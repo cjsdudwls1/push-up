@@ -20,10 +20,19 @@ data class EnemyTemplate(
     val weakness: ExerciseType? = null,
     val resist: ExerciseType? = null,
     val isBoss: Boolean = false,
-    val wardHp: Int = 0,
+    /** Ward size as a fraction of the enemy's own HP; 0 for no ward. */
+    val wardFraction: Float = 0f,
 ) {
-    fun spawn(player: PlayerState, difficulty: Difficulty, capacity: Float): Enemy {
-        val hp = CombatResolver.enemyMaxHp(standardRepCost, player, difficulty, capacity, defense)
+    fun spawn(
+        player: PlayerState,
+        difficulty: Difficulty,
+        capacity: Float,
+        referenceLevel: Int = player.level,
+    ): Enemy {
+        val hp = CombatResolver.enemyMaxHp(
+            standardRepCost, player, difficulty, capacity, defense, referenceLevel
+        )
+        val ward = (hp * wardFraction).toInt()
         return Enemy(
             id = id,
             korean = korean,
@@ -36,7 +45,8 @@ data class EnemyTemplate(
             weakness = weakness,
             resist = resist,
             isBoss = isBoss,
-            wardHp = wardHp,
+            wardHp = ward,
+            wardMaxHp = ward,
         )
     }
 }
@@ -48,6 +58,9 @@ data class Dungeon(
     val recommendedLevel: IntRange,
 ) {
     val standardRepCost: Int get() = floors.sumOf { it.standardRepCost }
+
+    /** The level the encounters are balanced around; outgrowing it is what makes them easier. */
+    val referenceLevel: Int get() = recommendedLevel.first
 
     /** Long dungeons must checkpoint per floor or they become one impossible sitting. */
     val checkpointed: Boolean get() = standardRepCost >= 56
@@ -128,13 +141,13 @@ object Dungeons {
             6, "봉인된 성소",
             listOf(
                 EnemyTemplate("acolyte", "봉인 사제", 12, defense = 11, attack = 15),
-                EnemyTemplate("ward_keeper", "결계 지기", 13, defense = 11, attack = 15, wardHp = 1),
+                EnemyTemplate("ward_keeper", "결계 지기", 13, defense = 11, attack = 15, wardFraction = 0.30f),
                 EnemyTemplate("seal_beast", "봉인수", 14, defense = 11, attack = 15),
                 EnemyTemplate("choir", "성가대", 15, defense = 11, attack = 15),
                 EnemyTemplate(
                     "sealed_one", "봉인된 자", 16,
                     defense = 11, attack = 15, rageThreshold = 6, ultimateFraction = 0.48f,
-                    weakness = ExerciseType.PLANK, wardHp = 1, isBoss = true,
+                    weakness = ExerciseType.PLANK, wardFraction = 0.30f, isBoss = true,
                 ),
             ),
             recommendedLevel = 12..14,
@@ -160,7 +173,7 @@ object Dungeons {
             listOf(
                 EnemyTemplate("royal_guard", "왕실 근위병", 16, defense = 20, attack = 24),
                 EnemyTemplate("royal_guard_2", "왕실 기사단장", 17, defense = 20, attack = 24),
-                EnemyTemplate("court_mage", "궁정 마법사", 18, defense = 20, attack = 24, wardHp = 1),
+                EnemyTemplate("court_mage", "궁정 마법사", 18, defense = 20, attack = 24, wardFraction = 0.30f),
                 EnemyTemplate("executioner", "처형인", 19, defense = 20, attack = 24),
                 EnemyTemplate("champion", "왕의 챔피언", 19, defense = 20, attack = 24),
                 EnemyTemplate(

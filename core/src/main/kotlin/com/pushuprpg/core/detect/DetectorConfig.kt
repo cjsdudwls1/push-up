@@ -71,10 +71,15 @@ data class DetectorConfig(
     val hTopPrior: Float = 1.35f,
     val hBotPrior: Float = 0.70f,
     val rMin: Float = 0.35f,
-    val topClampMin: Float = 0.95f,
-    val topClampMax: Float = 1.90f,
-    val botClampMin: Float = 0.15f,
-    val botClampMax: Float = 1.20f,
+    // Deliberately wide. These exist to stop a wild outlier capturing the calibration, not to
+    // encode what a correct pushup looks like — the ratio shifts with how steeply the phone is
+    // tilted, and a user whose living-room setup lands outside a tight clamp would find the accept
+    // line permanently unreachable while every quality indicator said everything was fine. That
+    // failure is silent and unrecoverable, which makes it far worse than a loose clamp.
+    val topClampMin: Float = 0.70f,
+    val topClampMax: Float = 2.40f,
+    val botClampMin: Float = 0.10f,
+    val botClampMax: Float = 1.80f,
     val alphaExpand: Float = 0.35f,
     val alphaTopContract: Float = 0.06f,
     val alphaBotContract: Float = 0.10f,

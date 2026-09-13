@@ -4,6 +4,7 @@ import com.pushuprpg.core.detect.DetectorConfig
 import com.pushuprpg.core.detect.ExerciseType
 import com.pushuprpg.core.detect.RepGrade
 import com.pushuprpg.core.game.*
+import com.pushuprpg.core.detect.RepGrade as Grade
 import com.pushuprpg.core.progression.*
 import kotlin.math.abs
 import kotlin.test.Test
@@ -216,5 +217,127 @@ class ProgressionTest {
         assertTrue(!Streak.maintained(reps = 3))
         assertEquals(50, Streak.afterBreak(100), "a missed week must not erase a year")
         assertTrue(Streak.hpBonus(1000) <= 0.25f)
+    }
+}
+
+/** Properties that emerged from reviewing the balance design rather than from the original spec. */
+class BalanceRegressionTest {
+
+    private val resolver = CombatResolver()
+
+    private fun repsToKill(player: PlayerState, enemy: Enemy, depth: Float = 92f): Int {
+        var p = player
+        var e = enemy
+        var reps = 0
+        while (!e.isDead && reps < 5000) {
+            val r = resolver.resolve(
+                p, e,
+                RepInput(depth, com.pushuprpg.core.detect.RepGrade.DEEP, cycleMs = 3000),
+                NoCritRng,
+            )
+            p = r.player; e = r.enemy; reps++
+        }
+        return reps
+    }
+
+    @Test
+    fun `levelling up actually makes an old dungeon cheaper`() {
+        // If enemy HP scaled off the player's live attack, twenty levels of work would change the
+        // rep cost of everything by exactly zero — progress that buys nothing.
+        val dungeon = Dungeons.FREE_DUNGEON
+        val boss = dungeon.floors.last()
+
+        val fresh = PlayerState.create(PlayerClass.KNIGHT, level = dungeon.referenceLevel)
+        val veteran = PlayerState.create(PlayerClass.KNIGHT, level = 20)
+
+        val freshReps = repsToKill(fresh, boss.spawn(fresh, Difficulty.STANDARD, 8f, dungeon.referenceLevel))
+        val veteranReps = repsToKill(veteran, boss.spawn(veteran, Difficulty.STANDARD, 8f, dungeon.referenceLevel))
+
+        assertTrue(veteranReps < freshReps,
+            "a level-20 player still needed $veteranReps reps against a beginner's $freshReps")
+    }
+
+    @Test
+    fun `a dungeon still costs its authored reps at its own recommended level`() {
+        // The flip side: outgrowing content must not mean current content is trivial too.
+        for (dungeon in Dungeons.ALL) {
+            val player = PlayerState.create(PlayerClass.KNIGHT, level = dungeon.referenceLevel)
+            val boss = dungeon.floors.last()
+            val base = CombatResolver.expectedReps(boss.standardRepCost, Difficulty.STANDARD, 8f)
+            // A warded enemy is meant to cost more when answered with the wrong movement; that is
+            // the weakness doing its job, not a balance miss.
+            val expected = (base * (1f + boss.wardFraction / CombatResolver.WARD_CHIP)).toInt()
+            val actual = repsToKill(player, boss.spawn(player, Difficulty.STANDARD, 8f, dungeon.referenceLevel), depth = 88f)
+            assertTrue(abs(actual - expected) <= maxOf(3, expected / 3),
+                "${dungeon.korean}: took $actual reps, authored for about $expected")
+        }
+    }
+
+    @Test
+    fun `a long encounter does not become a stream of unanswerable ultimates`() {
+        // Rage used to accrue at a flat rate per rep, so a several-hundred-rep fight produced an
+        // ultimate every few seconds, each needing its own physical answer.
+        val player = PlayerState.create(PlayerClass.KNIGHT, level = 18)
+        val dungeon = Dungeons.ALL.last()
+        val boss = dungeon.floors.last()
+        val enemy = boss.spawn(player, Difficulty.HELL, capacity = 100f, dungeon.referenceLevel)
+        val encounter = Encounter(player, enemy, Difficulty.HELL, rng = NoCritRng)
+
+        var t = 0L
+        var ultimates = 0
+        var reps = 0
+        while (!encounter.finished && reps < 2000) {
+            t += 2_500
+            reps++
+            ultimates += encounter.onRep(
+                RepInput(95f, com.pushuprpg.core.detect.RepGrade.DEEP, cycleMs = 2500), t
+            ).count { it is CombatEvent.Ultimate }
+            ultimates += encounter.advanceTo(t).count { it is CombatEvent.Ultimate }
+        }
+
+        assertTrue(ultimates <= 12, "a single fight produced $ultimates ultimates over $reps reps")
+    }
+
+    @Test
+    fun `a ward is worn down rather than being a permanent damage tax`() {
+        val player = PlayerState.create(PlayerClass.KNIGHT, level = 12)
+        val template = Dungeons.byIndex(6)!!.floors.last()
+        val warded = template.spawn(player, Difficulty.STANDARD, 8f, 12)
+        assertTrue(warded.warded, "this enemy is supposed to have a ward")
+
+        // Pushups alone must still get through it — slower, but never blocked.
+        var p = player
+        var e = warded
+        var reps = 0
+        while (e.warded && reps < 500) {
+            val r = resolver.resolve(p, e, RepInput(92f, com.pushuprpg.core.detect.RepGrade.DEEP), NoCritRng)
+            p = r.player; e = r.enemy; reps++
+        }
+        assertTrue(!e.warded, "the ward never broke after $reps pushups")
+
+        // A plank is the intended answer and should be markedly faster.
+        var p2 = player
+        var e2 = template.spawn(player, Difficulty.STANDARD, 8f, 12)
+        var plankReps = 0
+        while (e2.warded && plankReps < 500) {
+            val r = resolver.resolve(
+                p2, e2,
+                RepInput(92f, com.pushuprpg.core.detect.RepGrade.DEEP, exercise = com.pushuprpg.core.detect.ExerciseType.PLANK),
+                NoCritRng,
+            )
+            p2 = r.player; e2 = r.enemy; plankReps++
+        }
+        assertTrue(plankReps < reps, "the plank answer ($plankReps) should beat brute force ($reps)")
+    }
+
+    @Test
+    fun `the calibration clamps are wide enough for an unusual camera angle`() {
+        // The ratio shifts with how steeply the phone is tilted. A clamp tight enough to exclude a
+        // real living-room setup would make the accept line permanently unreachable while every
+        // quality indicator reported OK — silent, and unrecoverable by the user.
+        val config = com.pushuprpg.core.detect.DetectorConfig.pushup()
+        assertTrue(config.topClampMax / config.topClampMin >= 3f,
+            "top clamp spans only ${config.topClampMin}..${config.topClampMax}")
+        assertTrue(config.botClampMin <= 0.15f)
     }
 }

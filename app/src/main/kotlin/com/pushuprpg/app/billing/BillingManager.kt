@@ -225,8 +225,9 @@ class BillingManager(
 
             _availability.value = BillingAvailability.CONNECTING
             var backoffMs = INITIAL_BACKOFF_MS
+            var attempt = 0
 
-            repeat(MAX_CONNECT_ATTEMPTS) { attempt ->
+            while (attempt < MAX_CONNECT_ATTEMPTS) {
                 val code = connectOnce()
                 if (code == BillingClient.BillingResponseCode.OK) {
                     _availability.value = BillingAvailability.READY
@@ -238,7 +239,8 @@ class BillingManager(
                     Log.w(TAG, "billing permanently unavailable: $code")
                     return false
                 }
-                if (attempt < MAX_CONNECT_ATTEMPTS - 1) {
+                attempt++
+                if (attempt < MAX_CONNECT_ATTEMPTS) {
                     // Jitter so a whole user base coming back online after an outage does not
                     // arrive at Play in lockstep.
                     delay(backoffMs + Random.nextLong(JITTER_MS))
@@ -246,9 +248,11 @@ class BillingManager(
                 }
             }
 
+            // Still down, but not fatally: stay CONNECTING so the UI says "reconnecting", and let
+            // the next refresh() start a fresh round of attempts.
             _availability.value = BillingAvailability.CONNECTING
-            return false
         }
+        return false
     }
 
     private suspend fun connectOnce(): Int = suspendCancellableCoroutine { cont ->
@@ -280,8 +284,7 @@ class BillingManager(
     private fun isPermanent(code: Int): Boolean = when (code) {
         BillingClient.BillingResponseCode.BILLING_UNAVAILABLE,
         BillingClient.BillingResponseCode.FEATURE_NOT_SUPPORTED,
-        BillingClient.BillingResponseCode.DEVELOPER_ERROR,
-        -> true
+        BillingClient.BillingResponseCode.DEVELOPER_ERROR -> true
 
         else -> false
     }
@@ -335,7 +338,7 @@ class BillingManager(
                         for (unfetched in queryResult.unfetchedProductList) {
                             // Almost always a console/build mismatch: wrong product id, or an
                             // unsigned build that Play will not sell from.
-                            Log.w(TAG, "product not fetched: ${unfetched.productId}")
+                            Log.w(TAG, "product not fetched: $unfetched")
                         }
                         cont.resume(details.flatMap { it.toSubscriptionPlans() })
                     }
@@ -357,7 +360,7 @@ class BillingManager(
         // Duplicate callbacks for one purchase are normal; acknowledging twice is not.
         if (!acknowledging.add(token)) return
 
-        val code = suspendCancellableCoroutine { cont ->
+        val code = suspendCancellableCoroutine<Int> { cont ->
             val params = AcknowledgePurchaseParams.newBuilder()
                 .setPurchaseToken(token)
                 .build()

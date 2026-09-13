@@ -97,7 +97,24 @@ class Encounter(
     private var plankHeldMs = 0
     private var repsSinceRage = 0
 
+    /** Roughly how many reps this fight should take, used to pace the boss's rage. */
+    private val expectedReps: Int =
+        (initialEnemy.maxHp / (initialPlayer.attack * initialPlayer.playerClass.expectedDprCoefficient)
+            .coerceAtLeast(1f)).toInt().coerceIn(1, 2000)
+
     val graceMs: Int get() = min(14_000, 8_000 + 200 * player.level)
+
+    /**
+     * How many reps buy the boss one point of rage.
+     *
+     * Derived from how long this fight is expected to last rather than being a flat count. At a
+     * fixed rate a long encounter — an athlete on a late dungeon, several hundred reps — would
+     * generate a continuous stream of ultimates, each needing a physical answer within ten seconds,
+     * which is not a fight anyone can win. Scaling it means every encounter gets roughly the same
+     * handful of them regardless of length.
+     */
+    private val repsPerRage: Int =
+        (expectedReps / RAGE_EVENTS_PER_ENCOUNTER).coerceAtLeast(MIN_REPS_PER_RAGE)
 
     /** The boss's ultimate lands this hard; never enough to one-shot from full. */
     val ultimateDamage: Int
@@ -153,7 +170,7 @@ class Encounter(
         }
 
         repsSinceRage++
-        if (repsSinceRage >= REPS_PER_RAGE) {
+        if (repsSinceRage >= repsPerRage) {
             repsSinceRage = 0
             rage++
         }
@@ -301,7 +318,8 @@ class Encounter(
 
     companion object {
         const val TICK_MS = 3_000L
-        const val REPS_PER_RAGE = 8
+        const val RAGE_EVENTS_PER_ENCOUNTER = 4
+        const val MIN_REPS_PER_RAGE = 6
         const val TELEGRAPH_LEAD = 2
         const val TELEGRAPH_WINDOW_MS = 10_000L
         const val STAGGER_MS = 6_000L

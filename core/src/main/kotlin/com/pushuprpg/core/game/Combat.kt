@@ -64,10 +64,20 @@ data class Enemy(
     val weakness: ExerciseType? = null,
     val resist: ExerciseType? = null,
     val isBoss: Boolean = false,
-    /** Blocks all but a tenth of non-plank damage until broken. */
+    /**
+     * A shield that must be worn down before the enemy itself takes damage.
+     *
+     * It is a *weakness*, not a wall: a plank tears through it at full rate while other movements
+     * chip at it, so the intended answer is obvious without the fight becoming unwinnable for
+     * someone who cannot hold a plank. Making it a pool that depletes rather than a permanent
+     * damage reduction is what keeps that true — an undepletable ward is just a tenfold rep cost
+     * wearing a costume.
+     */
     val wardHp: Int = 0,
+    val wardMaxHp: Int = 0,
 ) {
     val isDead: Boolean get() = hp <= 0
+    val warded: Boolean get() = wardHp > 0
 }
 
 /** The outcome of resolving one rep. */
@@ -178,9 +188,19 @@ class CombatResolver(
         val crit = rng.nextFloat() < critChance
         if (crit) raw *= player.playerClass.critMultiplier
 
-        // A ward blunts everything except a plank; breaking it is what the plank is *for*.
-        val warded = if (enemy.wardHp > 0 && rep.exercise != ExerciseType.PLANK) raw * 0.10f else raw
-        val damage = (floor(warded).toInt() - enemy.defense).coerceAtLeast(1)
+        val damage = (floor(raw).toInt() - enemy.defense).coerceAtLeast(1)
+
+        // A plank tears the ward down at full rate; anything else chips at it. Either way the ward
+        // is being spent, so the fight always progresses.
+        val nextEnemy = if (enemy.warded) {
+            val wardDamage = if (rep.exercise == ExerciseType.PLANK) damage else (damage * WARD_CHIP).toInt().coerceAtLeast(1)
+            val remainingWard = (enemy.wardHp - wardDamage).coerceAtLeast(0)
+            // Overkill carries through, so the rep that breaks the ward also lands on the enemy.
+            val spill = (wardDamage - enemy.wardHp).coerceAtLeast(0)
+            enemy.copy(wardHp = remainingWard, hp = (enemy.hp - spill).coerceAtLeast(0))
+        } else {
+            enemy.copy(hp = (enemy.hp - damage).coerceAtLeast(0))
+        }
 
         val xp = (2.0f * depthMult).roundToInt() + if (crit) 1 else 0
 
@@ -196,7 +216,7 @@ class CombatResolver(
             weaknessMultiplier = weaknessMult,
             xp = xp,
             player = advanced,
-            enemy = enemy.copy(hp = (enemy.hp - damage).coerceAtLeast(0)),
+            enemy = nextEnemy,
         )
     }
 
@@ -213,6 +233,9 @@ class CombatResolver(
     )
 
     companion object {
+        /** What fraction of a non-plank hit goes into wearing down a ward. */
+        const val WARD_CHIP = 0.45f
+
         /**
          * How the player's measured capacity scales an encounter's authored rep cost.
          *
@@ -250,11 +273,22 @@ class CombatResolver(
             difficulty: Difficulty,
             capacity: Float,
             defense: Int = 0,
+            referenceLevel: Int = player.level,
         ): Int {
             val reps = (standardRepCost * capacityScale(capacity) * difficulty.repMultiplier)
                 .roundToInt().coerceAtLeast(1)
             val k = player.playerClass.expectedDprCoefficient
-            val perRep = (player.attack * k * expectedComboMultiplier(reps, player.playerClass.comboCap) - defense)
+
+            // Scaled against the attack of a player at the dungeon's *recommended* level, not the
+            // player's own. Deriving it from live attack would mean twenty levels of grinding
+            // changed the rep cost of every encounter by exactly zero — an RPG with no power
+            // fantasy, where progress is a number that buys nothing. Anchoring to the recommended
+            // level keeps content at your level costing what it was authored to cost, while older
+            // dungeons genuinely get easier as you outgrow them.
+            val referenceAttack = player.playerClass.attackAt(referenceLevel.coerceAtLeast(1)) *
+                (1f + player.momentumBonus) * player.gearMultiplier
+
+            val perRep = (referenceAttack * k * expectedComboMultiplier(reps, player.playerClass.comboCap) - defense)
                 .coerceAtLeast(1f)
             return (perRep * reps).roundToInt().coerceAtLeast(1)
         }

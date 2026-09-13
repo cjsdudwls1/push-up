@@ -185,4 +185,84 @@
     <string name="error_model_load">준비 중 문제가 생겼어요. 앱을 다시 열어볼까요?</string>
     <string name="error_network">연결이 잠깐 끊겼어요. 운동은 그대로 진행돼요.</string>
     <string name="error_camera">카메라를 열 수 없어요. 다른 앱이 쓰고 있는지 확인해 주세요.</string>
+
+    <!-- Home hub -->
+    <string name="home_title">거점</string>
+    <string name="home_class_level">%1$s · 레벨 %2$d</string>
+    <string name="home_week">최근 7일</string>
+    <string name="home_today_good">좋아요, 오늘 몸은 확실히 썼어요</string>
+    <string name="home_replay">%1$s 다시 도전</string>
+    <string name="home_continue_locked">구독하면 이어서 갈 수 있어요</string>
+    <string name="home_trial_left">무료 체험 %1$d일 남았어요</string>
+    <string name="home_modes">모드</string>
+    <string name="home_dungeons_sub">원하는 던전을 골라요</string>
+    <string name="home_survival_sub">천장을 밀어 올려서 버텨요</string>
+    <string name="home_xp_progress">%1$,d / %2$,d</string>
+    <string name="home_xp_to_next">다음 레벨까지 %1$,d</string>
+    <string name="home_max_level">최고 레벨에 닿았어요</string>
+
+    <!-- Rank card -->
+    <string name="rank_section">등급</string>
+    <string name="rank_lifetime">누적 %1$,d개</string>
+    <string name="rank_max">최고 등급에 올랐어요</string>
+    <string name="level_section">레벨</string>
+
+    <!-- Dungeon select -->
+    <string name="dungeon_section_list">던전 목록</string>
+    <string name="dungeon_floors">%1$d층</string>
+    <string name="dungeon_meta">%1$s · %2$s</string>
+    <string name="dungeon_locked_badge">잠김</string>
+    <string name="dungeon_locked_subscription">구독하면 열려요</string>
+    <string name="dungeon_cleared_badge">클리어</string>
+    <string name="dungeon_free_badge">무료</string>
+    <string name="dungeon_next_badge">여기부터</string>
+    <string name="difficulty_section">난이도</string>
+
+    <!-- Records detail (heat calendar, session list) -->
+    <string name="records_heat_title">지난 13주</string>
+    <string name="records_heat_cd">지난 13주 달력이에요. 운동한 날 %1$d일.</string>
+    <string name="records_heat_less">적음</string>
+    <string name="records_heat_more">많음</string>
+    <string name="records_weekday_mon">월</string>
+    <string name="records_weekday_wed">수</string>
+    <string name="records_weekday_fri">금</string>
+    <string name="records_recent_title">최근 운동</string>
+    <string name="records_recent_sub">이긴 날도, 못 이긴 날도 똑같이 남아요.</string>
+    <string name="records_session_cleared">완료</string>
+    <string name="records_session_attempted">도전</string>
+    <string name="records_free_run">자유 운동</string>
+    <string name="records_unknown_dungeon">던전</string>
+    <string name="records_date">%1$d월 %2$d일</string>
+    <string name="records_reps_value">%1$d개</string>
+    <string name="records_combo_value">×%1$d</string>
+    <string name="records_days_value">%1$d일</string>
+    <string name="records_duration_hm">%1$d시간 %2$d분</string>
+    <string name="records_duration_ms">%1$d분 %2$d초</string>
+    <string name="records_duration_s">%1$d초</string>
+    <string name="records_label_reps">개수</string>
+    <string name="records_label_combo">콤보</string>
+    <string name="records_label_time">시간</string>
+    <string name="records_start_cta">첫 던전 열기</string>
+
+    <!-- Settings detail (sections, subtitles) -->
+    <string name="settings_title">설정</string>
+    <string name="settings_section_display">표시</string>
+    <string name="settings_section_sound">소리와 진동</string>
+    <string name="settings_section_exercise">운동</string>
+    <string name="settings_section_about">앱 정보</string>
+    <string name="settings_overlay_sub">카메라 위에 뼈대를 얼마나 그릴지 정해요.</string>
+    <string name="settings_gauge_side_sub">보기 편한 쪽에 두면 눈이 덜 움직여요.</string>
+    <string name="settings_gauge_number_sub">깊이를 숫자로도 같이 보여줘요.</string>
+    <string name="settings_large_text_sub">멀리서도 잘 보이도록 글씨를 키워요.</string>
+    <string name="settings_reduce_motion_sub">화면 흔들림과 번쩍임을 줄여요.</string>
+    <string name="settings_cvd_sub">초록·빨강 대신 파랑·노랑으로 구분해요.</string>
+    <string name="settings_voice_sub">개수와 응원을 소리로 알려줘요.</string>
+    <string name="settings_captions_sub">음성 안내를 글자로도 보여줘요.</string>
+    <string name="settings_exercise_sub">고른 운동으로 몬스터를 공격해요.</string>
+    <string name="settings_difficulty">난이도</string>
+    <string name="settings_difficulty_sub">몬스터가 버티는 개수가 달라져요. 언제든 바꿀 수 있어요.</string>
+    <string name="settings_recalibrate_sub">오늘 몸 상태에 맞춰 깊이 범위를 다시 재요. 30초면 끝나요.</string>
+    <string name="settings_audio_only_on">지금 켜져 있어요</string>
+    <string name="settings_audio_only_off">지금 꺼져 있어요</string>
+    <string name="settings_privacy_sub">무엇을 저장하고 무엇을 저장하지 않는지 적어두었어요.</string>
 </resources>
