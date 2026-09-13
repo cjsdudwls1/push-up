@@ -60,7 +60,9 @@ class CombatTest {
 
     @Test
     fun `a shallow rep deals nothing and costs combo without wiping it`() {
-        val r = resolver.resolve(knight(combo = 10), dummy(), rep(config.countEnter - 1f), NoCritRng)
+        // Shallowness is the detector's verdict, carried on the grade — combat does not re-measure.
+        val shallow = RepInput(config.countEnter - 1f, RepGrade.SHALLOW)
+        val r = resolver.resolve(knight(combo = 10), dummy(), shallow, NoCritRng)
         assertEquals(0, r.damage)
         assertTrue(r.rejected)
         assertEquals(RejectReason.TOO_SHALLOW, r.rejectReason)

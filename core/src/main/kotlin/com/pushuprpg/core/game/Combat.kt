@@ -111,10 +111,14 @@ class CombatResolver(
     fun depthMultiplier(depth: Float, playerClass: PlayerClass, bottomHoldMs: Int): Float {
         val accept = detectorConfig.countEnter
         val deep = detectorConfig.deepEnter
-        if (depth < accept) return 0f
 
+        // Floors at 1.0 rather than dropping to zero below the line. Whether a rep counts at all is
+        // the detector's call, not this function's — and the detector deliberately relaxes its
+        // accept line while it is still learning a new user's range. Re-testing the raw depth here
+        // would mean a beginner's first reps tick the counter up and then deal no damage, which
+        // reads as the game ignoring them.
         var m = if (depth < deep) {
-            1.00f + 0.60f * (depth - accept) / (deep - accept)
+            (1.00f + 0.60f * (depth - accept) / (deep - accept)).coerceAtLeast(1.0f)
         } else {
             val slope = if (playerClass == PlayerClass.KNIGHT) 0.25f else 0.15f
             1.60f + slope * (depth - deep) / (100f - deep)
@@ -139,7 +143,9 @@ class CombatResolver(
         if (rep.formScore < 0.50f) {
             return rejected(player, enemy, RejectReason.FORM_BROKEN)
         }
-        if (rep.depth < detectorConfig.countEnter) {
+        // The detector owns the question of whether this was a rep; it has the calibrated range,
+        // the hysteresis and the anti-cheat checks. Combat only turns an accepted rep into damage.
+        if (rep.grade == RepGrade.SHALLOW) {
             return rejected(player, enemy, RejectReason.TOO_SHALLOW)
         }
 
