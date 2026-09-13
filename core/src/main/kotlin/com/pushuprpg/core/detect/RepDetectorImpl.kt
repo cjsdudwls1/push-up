@@ -496,6 +496,8 @@ object DetectorFactory {
     ): RepDetector = when (type) {
         ExerciseType.PUSHUP -> RepDetectorImpl(config ?: DetectorConfig.pushup(), profile)
         ExerciseType.SQUAT -> RepDetectorImpl(config ?: DetectorConfig.squat(), profile)
-        ExerciseType.PLANK -> RepDetectorImpl(config ?: DetectorConfig.plank(), profile)
+        // A plank is a hold rather than a rep, so it needs its own detector entirely — the rep
+        // state machine has nothing to say about a position that is simply maintained.
+        ExerciseType.PLANK -> PlankDetector(config ?: DetectorConfig.plank())
     }
 }

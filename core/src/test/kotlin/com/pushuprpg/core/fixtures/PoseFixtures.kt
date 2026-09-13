@@ -137,6 +137,78 @@ object PoseFixtures {
     }
 
     /**
+     * A plank, viewed face-on from a phone on the floor.
+     *
+     * [sagDegrees] bends the shoulder-hip-knee line: 0 is a straight plank, positive sags the hips
+     * toward the floor, negative pikes them up. [drift] moves the hips away from where they started,
+     * in shoulder widths. [wander] displaces the whole body, which is what the stability term sees.
+     */
+    fun plankFrame(
+        tMs: Long,
+        sagDegrees: Float = 0f,
+        drift: Float = 0f,
+        wander: Float = 0f,
+        legConfidence: Float = CONFIDENT,
+        shoulderWidth: Float = SHOULDER_WIDTH,
+        centerU: Float = ASPECT / 2f,
+    ): PoseFrame {
+        val lm = MutableList(Lm.COUNT) { Landmark.ZERO }
+        val halfW = shoulderWidth / 2f
+        val shoulderV = WRIST_V - shoulderWidth * 1.15f
+        val cu = centerU + wander
+
+        fun put(index: Int, u: Float, v: Float, conf: Float) {
+            lm[index] = Landmark(x = u / ASPECT, y = v + wander * 0.4f, z = 0f, visibility = conf, presence = conf)
+        }
+
+        // Segment lengths along the body, running up the frame away from the camera. They are
+        // shorter than anatomy because a floor-level camera foreshortens everything pointing away
+        // from it — and they have to keep the knee inside the frame, since a landmark outside it is
+        // one the detector will (correctly) refuse to use.
+        val torso = shoulderWidth * 0.90f
+        val thigh = shoulderWidth * 0.80f
+
+        val hipV = shoulderV - torso + drift * shoulderWidth
+        // The sag angle bends the thigh segment relative to the torso.
+        val rad = sagDegrees * PI.toFloat() / 180f
+        val kneeV = hipV - thigh * cos(rad)
+        val kneeOffsetU = thigh * kotlin.math.sin(rad)
+
+        put(Lm.NOSE, cu, shoulderV + shoulderWidth * 0.5f, CONFIDENT)
+        put(Lm.LEFT_SHOULDER, cu + halfW, shoulderV, CONFIDENT)
+        put(Lm.RIGHT_SHOULDER, cu - halfW, shoulderV, CONFIDENT)
+        put(Lm.LEFT_ELBOW, cu + halfW, (shoulderV + WRIST_V) / 2f, CONFIDENT)
+        put(Lm.RIGHT_ELBOW, cu - halfW, (shoulderV + WRIST_V) / 2f, CONFIDENT)
+        put(Lm.LEFT_WRIST, cu + halfW, WRIST_V, CONFIDENT)
+        put(Lm.RIGHT_WRIST, cu - halfW, WRIST_V, CONFIDENT)
+        put(Lm.LEFT_HIP, cu + halfW * 0.85f, hipV, CONFIDENT)
+        put(Lm.RIGHT_HIP, cu - halfW * 0.85f, hipV, CONFIDENT)
+        put(Lm.LEFT_KNEE, cu + halfW * 0.8f + kneeOffsetU, kneeV, legConfidence)
+        put(Lm.RIGHT_KNEE, cu - halfW * 0.8f + kneeOffsetU, kneeV, legConfidence)
+        put(Lm.LEFT_ANKLE, cu + halfW * 0.75f + kneeOffsetU * 2f, kneeV - thigh, legConfidence)
+        put(Lm.RIGHT_ANKLE, cu - halfW * 0.75f + kneeOffsetU * 2f, kneeV - thigh, legConfidence)
+
+        return PoseFrame(tMs, WIDTH, HEIGHT, lm, emptyList())
+    }
+
+    /** [durationMs] of plank frames at [fps]. */
+    fun plankTrace(
+        durationMs: Int,
+        startMs: Long = 0L,
+        fps: Int = 30,
+        frameOf: (Long) -> PoseFrame = { plankFrame(it) },
+    ): List<PoseFrame> {
+        val step = (1000 / fps).toLong()
+        val frames = mutableListOf<PoseFrame>()
+        var t = startMs
+        while (t < startMs + durationMs) {
+            frames += frameOf(t)
+            t += step
+        }
+        return frames
+    }
+
+    /**
      * A full rep as a list of frames at [fps].
      *
      * [peakDepth] below the count line produces a shallow rep; the phase durations let a test make
