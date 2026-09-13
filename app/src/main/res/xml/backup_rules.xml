@@ -1,7 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  Progress is worth restoring; the entitlement cache is not, because Play is the source of truth
+  for what the user has paid for and a restored cache would only ever be stale or wrong.
+
+  Note the datastore paths: DataStore Preferences writes to files/datastore/<name>.preferences_pb,
+  not to SharedPreferences, so naming a settings.xml here would silently back up nothing.
+-->
 <full-backup-content>
-    <!-- Progress is worth restoring; the entitlement cache is not (Play is the source of truth). -->
     <include domain="database" path="pushup.db" />
-    <include domain="sharedpref" path="settings.xml" />
-    <exclude domain="sharedpref" path="billing_cache.xml" />
+    <include domain="file" path="datastore/progress.preferences_pb" />
+    <include domain="file" path="datastore/settings.preferences_pb" />
+    <include domain="file" path="datastore/calibration.preferences_pb" />
+    <exclude domain="file" path="datastore/billing_cache.preferences_pb" />
 </full-backup-content>

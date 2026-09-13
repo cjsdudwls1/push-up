@@ -2,11 +2,15 @@
 <data-extraction-rules>
     <cloud-backup>
         <include domain="database" path="pushup.db" />
-        <include domain="sharedpref" path="settings.xml" />
-        <exclude domain="sharedpref" path="billing_cache.xml" />
+        <include domain="file" path="datastore/progress.preferences_pb" />
+        <include domain="file" path="datastore/settings.preferences_pb" />
+        <include domain="file" path="datastore/calibration.preferences_pb" />
+        <exclude domain="file" path="datastore/billing_cache.preferences_pb" />
     </cloud-backup>
     <device-transfer>
         <include domain="database" path="pushup.db" />
-        <include domain="sharedpref" path="settings.xml" />
+        <include domain="file" path="datastore/progress.preferences_pb" />
+        <include domain="file" path="datastore/settings.preferences_pb" />
+        <include domain="file" path="datastore/calibration.preferences_pb" />
     </device-transfer>
 </data-extraction-rules>
