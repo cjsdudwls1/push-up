@@ -40,8 +40,15 @@ class OneEuroFilter(
     private val minCutoff: Double = DEFAULT_MIN_CUTOFF,
     private val beta: Double = DEFAULT_BETA,
     private val dCutoff: Double = DEFAULT_D_CUTOFF,
-    private val maxSlewPerSecond: Double = DEFAULT_MAX_SLEW,
+    maxSlewPerSecond: Double = DEFAULT_MAX_SLEW,
 ) {
+    /**
+     * Mutable because the depth signal's natural scale is only known once the user's range has
+     * been calibrated: the cap is reasoned about in depth units (0..100) and converted into
+     * whatever units this filter actually sees.
+     */
+    var maxSlewPerSecond: Double = maxSlewPerSecond
+
     private var initialized = false
     private var xPrev = 0.0
     private var dxPrev = 0.0
