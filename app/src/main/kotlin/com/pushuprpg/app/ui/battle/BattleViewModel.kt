@@ -14,7 +14,8 @@ import com.pushuprpg.app.domain.SessionRepository
 import com.pushuprpg.app.domain.SettingsRepository
 import com.pushuprpg.core.detect.DetectorConfig
 import com.pushuprpg.core.detect.ExerciseType
-import com.pushuprpg.core.detect.RepDetectorImpl
+import com.pushuprpg.core.detect.DetectorFactory
+import com.pushuprpg.core.detect.RepDetector
 import com.pushuprpg.core.detect.SkeletonMode
 import com.pushuprpg.core.game.CombatResolver
 import com.pushuprpg.core.game.Dungeons
@@ -56,7 +57,7 @@ class BattleViewModel(
     val settings: StateFlow<AppSettings> = _settings.asStateFlow()
 
     private var engine: BattleEngine? = null
-    private var detector: RepDetectorImpl? = null
+    private var detector: RepDetector? = null
     private var progress: PlayerProgress = PlayerProgress()
     private var exercise: ExerciseType = ExerciseType.PUSHUP
     private var dungeonIndex: Int = 1
@@ -85,7 +86,10 @@ class BattleViewModel(
                 ExerciseType.PLANK -> DetectorConfig.plank()
             }
             val profile = progressRepository.calibrationProfile(exercise)
-            val det = RepDetectorImpl(config, profile, settings.skeletonMode)
+            // Through the factory, not a direct RepDetectorImpl: a plank needs a different detector
+            // entirely, and constructing the rep state machine for it would silently count nothing.
+            val det = DetectorFactory.create(exercise, config, profile)
+            det.skeletonMode = settings.skeletonMode
             detector = det
 
             val player = PlayerState.create(
