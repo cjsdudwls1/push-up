@@ -1,0 +1,64 @@
+# Working in this repo
+
+## Layout
+
+- `core/` — pure Kotlin/JVM. Rep detection, calibration, combat, progression, dungeon content,
+  survival mode, run orchestration. **No Android imports, ever.** If something can be expressed as
+  a rule rather than a screen, it belongs here.
+- `app/` — Android. CameraX, MediaPipe, Compose, Room, DataStore, Play Billing.
+
+## Running the tests
+
+```bash
+scripts/test-core.sh          # no Android SDK needed; ~20s
+./gradlew :app:assembleDebug  # needs the SDK
+```
+
+`scripts/test-core.sh` mirrors `core/src` into a standalone Maven-Central-only Gradle build. Use it
+constantly — it is the only fast feedback loop in the project. `./gradlew :core:test` does *not*
+work without the Android SDK, because the root build declares AGP and Gradle configures every
+project.
+
+## Rules that are load-bearing
+
+**`:core` reads no clock and owns no randomness.** All time arrives as `PoseFrame.timestampMs` or
+an `atMs` parameter; randomness comes through the injected `Rng`. This is what makes a whole
+session replayable from a recorded landmark trace in a plain JVM test. Breaking it breaks every
+test in the module.
+
+**One component owns whether a rep counts.** The detector decides, using its calibrated range and
+its anti-cheat checks, and hands the verdict down as a `RepGrade`. Combat maps an accepted rep to
+damage and never re-tests the depth. Two components applying their own thresholds is exactly how
+the counter ended up incrementing without dealing damage.
+
+**The overlay draws only what `:core` gives it.** `RenderSkeleton` contains bones whose endpoints
+are both confidently visible, and joints that anchor a drawn bone. The renderer has no path to a
+stray dot because it is never handed one. Do not add confidence checks in the UI; fix them in
+`SkeletonBuilder`.
+
+**The gauge reads its thresholds from `DetectorConfig`.** The line the user aims at must be the
+same value the rep counter uses. Never hardcode 70 or 88 in a composable.
+
+**Reps survive a loss.** XP is earned per rep rather than on victory; progress is written whether
+the run was cleared or not. `BattleEngineTest` asserts it. The clear screen makes this promise in
+Korean and the code has to keep it.
+
+**Never punish a tracking failure.** When `PoseQuality != OK` the game clock stops and the boss
+stops attacking. A user must never lose health because the tracker blinked.
+
+## Copy
+
+Korean is the default locale, not a translation. Voice is 해요체 — an encouraging training partner,
+never a drill instructor. 실패 does not appear anywhere in the app; a lost run is `다음엔 잡아요`.
+Every user-visible string lives in `app/src/main/res/values/strings.xml`.
+
+## Balance
+
+Enemy HP is never authored. Content declares a *rep cost* and HP is derived at spawn. If a fight
+feels wrong, change its `standardRepCost` or a class's `expectedDprCoefficient` — never an HP
+number, because there isn't one.
+
+## Before claiming something works
+
+`:app` has never been compiled in this environment (Google's Maven is unreachable here), so any
+change to it is unverified until CI runs. Say so rather than implying otherwise.
