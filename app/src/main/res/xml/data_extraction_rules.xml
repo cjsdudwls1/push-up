@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<data-extraction-rules>
+    <cloud-backup>
+        <include domain="database" path="pushup.db" />
+        <include domain="sharedpref" path="settings.xml" />
+        <exclude domain="sharedpref" path="billing_cache.xml" />
+    </cloud-backup>
+    <device-transfer>
+        <include domain="database" path="pushup.db" />
+        <include domain="sharedpref" path="settings.xml" />
+    </device-transfer>
+</data-extraction-rules>
