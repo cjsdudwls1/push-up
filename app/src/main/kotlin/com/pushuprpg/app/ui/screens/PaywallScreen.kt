@@ -60,6 +60,7 @@ fun PaywallScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
+            .windowInsetsPadding(WindowInsets.safeDrawing)
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 20.dp)
             .padding(top = 56.dp, bottom = 32.dp),
@@ -103,8 +104,13 @@ fun PaywallScreen(
         }
 
         Spacer(Modifier.height(10.dp))
+        // Play stops offering the trial to someone who has already used it, so the label has to
+        // follow the offer. Promising seven free days above supporting text that correctly says
+        // "monthly, charged immediately" is the kind of contradiction users act on and then refund.
         PrimaryButton(
-            text = stringResource(R.string.paywall_trial),
+            text = selected?.takeIf { it.hasFreeTrial }
+                ?.let { stringResource(R.string.paywall_trial_days, it.freeTrialDays) }
+                ?: stringResource(R.string.paywall_subscribe),
             supportingText = selected?.let { renewalSummary(it) },
             onClick = { selected?.let(onPurchase) },
             enabled = selected != null,

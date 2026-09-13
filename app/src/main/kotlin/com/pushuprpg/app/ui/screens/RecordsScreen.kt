@@ -50,6 +50,7 @@ fun RecordsScreen(
     LazyColumn(
         modifier = modifier
             .fillMaxSize()
+            .windowInsetsPadding(WindowInsets.safeDrawing)
             .padding(horizontal = 20.dp),
         contentPadding = PaddingValues(top = 40.dp, bottom = 32.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),

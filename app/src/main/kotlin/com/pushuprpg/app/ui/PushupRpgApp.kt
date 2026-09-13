@@ -2,6 +2,8 @@ package com.pushuprpg.app.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -12,8 +14,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -22,17 +28,23 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.pushuprpg.app.AppContainer
 import com.pushuprpg.app.domain.AppSettings
+import com.pushuprpg.app.domain.FreeTier
 import com.pushuprpg.app.pose.PoseFrameSink
 import com.pushuprpg.app.pose.PoseLandmarkerSource
 import com.pushuprpg.app.ui.battle.BattleScreen
 import com.pushuprpg.app.ui.battle.BattleViewModel
 import com.pushuprpg.app.ui.result.ResultScreen
 import com.pushuprpg.app.ui.screens.*
+import androidx.compose.material3.Text
+import com.pushuprpg.app.R
 import com.pushuprpg.app.ui.theme.Palette
+import com.pushuprpg.app.ui.theme.Type
 import com.pushuprpg.app.ui.theme.PushupRpgTheme
 import com.pushuprpg.core.game.Dungeons
 import com.pushuprpg.core.game.PlayerClass
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.launch
 
 /**
@@ -56,9 +68,11 @@ fun PushupRpgApp(
     val navController = rememberNavController()
 
     val settings by container.settingsRepository.settings.collectAsState(initial = AppSettings())
-    val progress by container.progressRepository.progress.collectAsState(
-        initial = com.pushuprpg.app.domain.PlayerProgress()
-    )
+    // Collected nullably so "not loaded yet" is distinguishable from "not onboarded". With a
+    // non-null default the graph starts at onboarding for a returning user and then rebuilds when
+    // the real value lands.
+    val progressState by container.progressRepository.progress.collectAsState(initial = null)
+    val progress = progressState ?: com.pushuprpg.app.domain.PlayerProgress()
     val entitlement by container.entitlementRepository.entitlement.collectAsState(
         initial = com.pushuprpg.app.domain.Entitlement()
     )
@@ -79,8 +93,13 @@ fun PushupRpgApp(
         )
     }
 
-    DisposableEffect(granted) {
-        if (granted) poseSource.setup()
+    // createFromOptions loads a 5.8 MB model and initialises a GPU delegate — and on failure pays
+    // for the whole thing twice on the way to the CPU fallback. On the main thread that is a frozen
+    // UI at exactly the moment the user is getting into position, and an ANR on a slow device.
+    LaunchedEffect(granted) {
+        if (granted) withContext(Dispatchers.Default) { poseSource.setup() }
+    }
+    DisposableEffect(Unit) {
         onDispose { poseSource.close() }
     }
 
@@ -89,13 +108,22 @@ fun PushupRpgApp(
         reduceMotion = settings.reduceMotion,
     ) {
         Box(Modifier.fillMaxSize().background(Palette.Bg1)) {
-            NavHost(
-                navController = navController,
-                startDestination = when {
+            // Nothing is drawn until persisted progress has landed; see the nullable collect above.
+            if (progressState == null) return@Box
+
+            // NavHost memoises its graph on startDestination, and a changed one wipes the whole
+            // back stack. It is therefore decided exactly once.
+            val startDestination = remember {
+                when {
                     !progress.onboarded -> Routes.ONBOARDING
                     !granted -> Routes.PERMISSION
                     else -> Routes.HOME
-                },
+                }
+            }
+
+            NavHost(
+                navController = navController,
+                startDestination = startDestination,
             ) {
                 composable(Routes.ONBOARDING) {
                     OnboardingScreen(onContinue = { navController.navigate(Routes.CLASS_PICK) })
@@ -182,6 +210,7 @@ fun PushupRpgApp(
                     LaunchedEffect(state.outcome) {
                         state.outcome?.let { outcome ->
                             lastOutcome = outcome
+                            lastLevelsGained = vm.levelsGained.value
                             navController.navigate(Routes.result(dungeonIndex)) {
                                 popUpTo(Routes.BATTLE) { inclusive = true }
                             }
@@ -197,6 +226,7 @@ fun PushupRpgApp(
                         audioOnly = settings.audioOnly,
                         onQuit = {
                             lastOutcome = vm.quit()
+                            lastLevelsGained = vm.levelsGained.value
                             navController.navigate(Routes.result(dungeonIndex)) {
                                 popUpTo(Routes.BATTLE) { inclusive = true }
                             }
@@ -220,10 +250,26 @@ fun PushupRpgApp(
                             dungeonName = Dungeons.byIndex(dungeonIndex)?.korean.orEmpty(),
                             lifetimeReps = progress.lifetimeReps,
                             level = progress.level,
-                            levelsGained = 0,
+                            levelsGained = lastLevelsGained,
                             hasNextDungeon = dungeonIndex < Dungeons.ALL.size,
-                            onNextDungeon = { navController.navigate(Routes.battle(dungeonIndex + 1)) },
-                            onRetry = { navController.navigate(Routes.battle(dungeonIndex)) },
+                            onNextDungeon = {
+                                val next = dungeonIndex + 1
+                                // The same gate the dungeon list applies; without it the clear
+                                // screen was a way past the paywall.
+                                val route = if (FreeTier.canPlayDungeon(next, entitlement)) {
+                                    Routes.battle(next)
+                                } else {
+                                    Routes.PAYWALL
+                                }
+                                navController.navigate(route) {
+                                    popUpTo(Routes.RESULT) { inclusive = true }
+                                }
+                            },
+                            onRetry = {
+                                navController.navigate(Routes.battle(dungeonIndex)) {
+                                    popUpTo(Routes.RESULT) { inclusive = true }
+                                }
+                            },
                             onRecords = { navController.navigate(Routes.RECORDS) },
                             onHome = {
                                 navController.navigate(Routes.HOME) {
@@ -256,10 +302,13 @@ fun PushupRpgApp(
                 }
 
                 composable(Routes.RECORDS) {
-                    val sessions by container.sessionRepository.recent(50)
-                        .collectAsState(initial = emptyList())
-                    val totals by container.sessionRepository.dailyTotals(91)
-                        .collectAsState(initial = emptyList())
+                    // Remembered, because collectAsState keys on the flow instance: building a new
+                    // one each recomposition would cancel and restart both Room subscriptions every
+                    // time a run is banked.
+                    val recentFlow = remember { container.sessionRepository.recent(50) }
+                    val totalsFlow = remember { container.sessionRepository.dailyTotals(91) }
+                    val sessions by recentFlow.collectAsState(initial = emptyList())
+                    val totals by totalsFlow.collectAsState(initial = emptyList())
                     RecordsScreen(
                         progress = progress,
                         sessions = sessions,
@@ -301,6 +350,22 @@ fun PushupRpgApp(
                     )
                 }
             }
+
+            // Both delegates failing leaves a live preview with a counter frozen at zero. Saying
+            // so is the difference between a broken app and a recoverable one.
+            poseError?.let {
+                Text(
+                    text = stringResource(R.string.error_model_load),
+                    style = Type.bodyM,
+                    color = Palette.TextPrimary,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .fillMaxWidth()
+                        .background(Palette.ScrimPanelHigh)
+                        .padding(horizontal = 20.dp, vertical = 14.dp),
+                )
+            }
         }
     }
 }
@@ -318,3 +383,6 @@ fun PushupRpgApp(
  * point of XP and the streak already banked. Losing a screen is acceptable; losing the work is not.
  */
 internal var lastOutcome: com.pushuprpg.core.run.Outcome? = null
+
+/** Travels with [lastOutcome]; the battle entry is popped before the result screen composes. */
+internal var lastLevelsGained: Int = 0

@@ -27,8 +27,6 @@ import com.pushuprpg.app.ui.theme.Palette
 import com.pushuprpg.app.ui.theme.Type
 import com.pushuprpg.core.progression.RankProgress
 import com.pushuprpg.core.run.Outcome
-import java.text.NumberFormat
-import java.util.Locale
 
 /**
  * The end-of-run screen.
@@ -54,7 +52,6 @@ fun ResultScreen(
 ) {
     val colors = LocalGameColors.current
     val rank = RankProgress.of(lifetimeReps)
-    val format = NumberFormat.getIntegerInstance(Locale.KOREA)
 
     Column(
         modifier = modifier
@@ -65,9 +62,10 @@ fun ResultScreen(
                     1f to Palette.Bg0,
                 )
             )
+            .windowInsetsPadding(WindowInsets.safeDrawing)
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 20.dp)
-            .padding(top = 56.dp, bottom = 32.dp),
+            .padding(top = 40.dp, bottom = 32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(
@@ -135,7 +133,7 @@ fun ResultScreen(
         }
 
         Spacer(Modifier.height(20.dp))
-        RankCardLocal(rank = rank, format = format)
+        RankCardLocal(rank = rank)
 
         // Losing still leaves a mark on the enemy, and saying so turns a failed attempt into
         // visible progress rather than a wasted one.
@@ -227,7 +225,7 @@ private fun ResultTile(
 }
 
 @Composable
-private fun RankCardLocal(rank: RankProgress, format: NumberFormat) {
+private fun RankCardLocal(rank: RankProgress) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -250,7 +248,7 @@ private fun RankCardLocal(rank: RankProgress, format: NumberFormat) {
         Text(
             text = rank.next?.let {
                 stringResource(R.string.result_rank_to_next, it.korean, rank.repsToNext)
-            } ?: format.format(rank.lifetimeReps),
+            } ?: stringResource(R.string.rank_max),
             style = Type.labelM,
             color = Palette.TextTertiary,
         )

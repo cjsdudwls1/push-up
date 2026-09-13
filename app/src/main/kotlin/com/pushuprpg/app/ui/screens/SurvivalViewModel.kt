@@ -40,12 +40,25 @@ class SurvivalViewModel(
     private val _bestScore = MutableStateFlow(0)
     val bestScore: StateFlow<Int> = _bestScore.asStateFlow()
 
+    init {
+        // Scoped to the destination, so without loading it back the mode reported "최고 0점" every
+        // time the user returned — in the one place the product is built around a score.
+        viewModelScope.launch { _bestScore.value = progressRepository.current().bestSurvivalScore }
+    }
+
     private var startedAtMs = 0L
     private var reps = 0
     private var maxCombo = 0
     private var saved = false
 
+    @Volatile
+    private var restartRequested = false
+
     fun onPoseFrame(frame: com.pushuprpg.core.pose.PoseFrame) {
+        if (restartRequested) {
+            restartRequested = false
+            applyRestart()
+        }
         val tick: PoseTick = detector.onFrame(frame)
         if (startedAtMs == 0L) startedAtMs = tick.tMs
 
@@ -58,7 +71,19 @@ class SurvivalViewModel(
         _state.value = game.state()
     }
 
+    /**
+     * Asks for a reset rather than performing one.
+     *
+     * The button is on the main thread while frames are arriving on MediaPipe's; both
+     * [CeilingSurvival] and the detector are single-threaded and stateful by design, so an in-flight
+     * frame landing inside a reset would resume a half-cleared game. Deferring it means exactly one
+     * thread ever touches them.
+     */
     fun restart() {
+        restartRequested = true
+    }
+
+    private fun applyRestart() {
         game.reset()
         detector.reset()
         reps = 0
@@ -108,6 +133,7 @@ class SurvivalViewModel(
                     lifetimeReps = current.lifetimeReps + repsDone,
                     bestCombo = maxOf(current.bestCombo, combo),
                     totalActiveMs = current.totalActiveMs + over.survivedMs,
+                    bestSurvivalScore = maxOf(current.bestSurvivalScore, over.score),
                 )
             }
         }

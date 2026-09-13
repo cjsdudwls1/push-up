@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The launch theme, used only until Compose takes over. ComponentActivity does not need AppCompat,
+  and minSdk 26 has Material, so there is no reason to pull in a heavier parent.
+
+  The bars start transparent because enableEdgeToEdge() sets its own scrims; leaving them opaque
+  would give it something to undo and show a visible flash on the way in.
+-->
+<resources>
+    <style name="Theme.PushupRpg" parent="android:Theme.Material.NoActionBar">
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowBackground">@color/launch_background</item>
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
+</resources>

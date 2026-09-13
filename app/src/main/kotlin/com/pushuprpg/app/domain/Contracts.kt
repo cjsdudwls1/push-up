@@ -28,6 +28,7 @@ data class PlayerProgress(
     val capacityPushup: Float = 8f,
     val capacitySquat: Float = 12f,
     val capacityPlankSeconds: Float = 20f,
+    val bestSurvivalScore: Int = 0,
     val onboarded: Boolean = false,
 )
 

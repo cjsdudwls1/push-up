@@ -2,6 +2,7 @@ package com.pushuprpg.app.data
 
 import android.content.Context
 import androidx.datastore.core.DataStore
+import androidx.datastore.core.handlers.ReplaceFileCorruptionHandler
 import androidx.datastore.preferences.core.MutablePreferences
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
@@ -27,8 +28,19 @@ import kotlinx.coroutines.withContext
 import java.io.IOException
 import java.time.ZoneId
 
-private val Context.progressStore: DataStore<Preferences> by preferencesDataStore(name = "progress")
-private val Context.calibrationStore: DataStore<Preferences> by preferencesDataStore(name = "calibration")
+// A corrupt store is only half-visible without this: reads are masked because
+    // CorruptionException extends IOException and the read path already swallows those, but every
+    // write throws forever, so the app looks fine until the user changes something and then can
+    // never change anything again. Replacing the file is the only recovery they could not perform
+    // themselves.
+private val Context.progressStore: DataStore<Preferences> by preferencesDataStore(
+    name = "progress",
+    corruptionHandler = ReplaceFileCorruptionHandler { emptyPreferences() },
+)
+private val Context.calibrationStore: DataStore<Preferences> by preferencesDataStore(
+    name = "calibration",
+    corruptionHandler = ReplaceFileCorruptionHandler { emptyPreferences() },
+)
 
 /**
  * Resolves a stored enum name, falling back to [default] when the name is absent or unknown.
@@ -78,6 +90,7 @@ private fun Preferences.toProgress(): PlayerProgress = PlayerProgress(
     capacityPushup = this[KEY_CAPACITY_PUSHUP] ?: PROGRESS_DEFAULT.capacityPushup,
     capacitySquat = this[KEY_CAPACITY_SQUAT] ?: PROGRESS_DEFAULT.capacitySquat,
     capacityPlankSeconds = this[KEY_CAPACITY_PLANK] ?: PROGRESS_DEFAULT.capacityPlankSeconds,
+    bestSurvivalScore = this[KEY_BEST_SURVIVAL] ?: PROGRESS_DEFAULT.bestSurvivalScore,
     onboarded = this[KEY_ONBOARDED] ?: PROGRESS_DEFAULT.onboarded,
 )
 
@@ -95,6 +108,7 @@ private fun MutablePreferences.writeProgress(p: PlayerProgress) {
     this[KEY_CAPACITY_PUSHUP] = p.capacityPushup
     this[KEY_CAPACITY_SQUAT] = p.capacitySquat
     this[KEY_CAPACITY_PLANK] = p.capacityPlankSeconds
+    this[KEY_BEST_SURVIVAL] = p.bestSurvivalScore
     this[KEY_ONBOARDED] = p.onboarded
 }
 

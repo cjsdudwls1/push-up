@@ -27,6 +27,7 @@ fun OnboardingScreen(onContinue: () -> Unit, modifier: Modifier = Modifier) {
     Column(
         modifier = modifier
             .fillMaxSize()
+            .windowInsetsPadding(WindowInsets.safeDrawing)
             .padding(horizontal = 24.dp)
             .padding(top = 80.dp, bottom = 32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -71,6 +72,7 @@ fun ClassPickScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
+            .windowInsetsPadding(WindowInsets.safeDrawing)
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 20.dp)
             .padding(top = 60.dp, bottom = 32.dp),
@@ -142,6 +144,7 @@ fun PermissionScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
+            .windowInsetsPadding(WindowInsets.safeDrawing)
             .padding(horizontal = 24.dp)
             .padding(top = 80.dp, bottom = 32.dp),
     ) {

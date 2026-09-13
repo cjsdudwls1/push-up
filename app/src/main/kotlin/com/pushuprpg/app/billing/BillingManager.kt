@@ -233,6 +233,15 @@ class BillingManager(
                     _availability.value = BillingAvailability.READY
                     return true
                 }
+                if (code == BillingClient.BillingResponseCode.BILLING_UNAVAILABLE) {
+                    // Retrying in a loop will not help — but unlike the genuinely permanent codes,
+                    // this one is usually the user's to fix: Play out of date, not signed in, a
+                    // declined card, a managed-device restriction. Give up on this attempt without
+                    // latching, so the next refresh or app resume can try again once they have.
+                    _availability.value = BillingAvailability.UNAVAILABLE
+                    Log.w(TAG, "billing unavailable, retryable on resume: $code")
+                    return false
+                }
                 if (isPermanent(code)) {
                     permanentlyUnavailable = true
                     _availability.value = BillingAvailability.UNAVAILABLE
@@ -281,8 +290,14 @@ class BillingManager(
         }
     }
 
+    /**
+     * Codes worth latching on.
+     *
+     * Only the ones that cannot change without a new build or a different device. BILLING_UNAVAILABLE
+     * deliberately is not here: it usually means something the user can fix, and latching would keep
+     * them locked out for the rest of the process after they had.
+     */
     private fun isPermanent(code: Int): Boolean = when (code) {
-        BillingClient.BillingResponseCode.BILLING_UNAVAILABLE,
         BillingClient.BillingResponseCode.FEATURE_NOT_SUPPORTED,
         BillingClient.BillingResponseCode.DEVELOPER_ERROR -> true
 

@@ -24,8 +24,10 @@ import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
@@ -308,4 +310,19 @@ fun Pill(text: String, tint: Color, modifier: Modifier = Modifier) {
             .background(tint.copy(alpha = 0.16f))
             .padding(horizontal = 10.dp, vertical = 5.dp),
     )
+}
+
+/**
+ * Holds the screen awake for as long as this composable is in the tree.
+ *
+ * Scoped rather than set on the window: during a set the user's hands are on the floor and nothing
+ * will touch the screen, but a phone left open on the hub and put in a pocket should still sleep.
+ */
+@Composable
+fun KeepScreenOn() {
+    val view = LocalView.current
+    DisposableEffect(view) {
+        view.keepScreenOn = true
+        onDispose { view.keepScreenOn = false }
+    }
 }

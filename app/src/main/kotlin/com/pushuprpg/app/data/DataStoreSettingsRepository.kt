@@ -2,10 +2,12 @@ package com.pushuprpg.app.data
 
 import android.content.Context
 import androidx.datastore.core.DataStore
+import androidx.datastore.core.handlers.ReplaceFileCorruptionHandler
 import androidx.datastore.preferences.core.MutablePreferences
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.pushuprpg.app.domain.AppSettings
@@ -17,7 +19,15 @@ import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 
-private val Context.settingsStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
+// A corrupt store is only half-visible without this: reads are masked because
+    // CorruptionException extends IOException and the read path already swallows those, but every
+    // write throws forever, so the app looks fine until the user changes something and then can
+    // never change anything again. Replacing the file is the only recovery they could not perform
+    // themselves.
+private val Context.settingsStore: DataStore<Preferences> by preferencesDataStore(
+    name = "settings",
+    corruptionHandler = ReplaceFileCorruptionHandler { emptyPreferences() },
+)
 
 private val SETTINGS_DEFAULT = AppSettings()
 

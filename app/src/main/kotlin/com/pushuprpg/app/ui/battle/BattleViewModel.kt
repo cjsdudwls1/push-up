@@ -30,6 +30,7 @@ import com.pushuprpg.core.run.Outcome
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.time.Instant
@@ -56,13 +57,21 @@ class BattleViewModel(
     private val _settings = MutableStateFlow(AppSettings())
     val settings: StateFlow<AppSettings> = _settings.asStateFlow()
 
-    private var engine: BattleEngine? = null
-    private var detector: RepDetector? = null
-    private var progress: PlayerProgress = PlayerProgress()
-    private var exercise: ExerciseType = ExerciseType.PUSHUP
-    private var dungeonIndex: Int = 1
-    private var sessionBestDepth: Float = 0f
-    private var saved = false
+    // All of these are written from the main thread in start() and read from MediaPipe's callback
+    // thread in onPoseFrame, so the pose thread needs a guarantee it will actually see the
+    // publication — and that it cannot observe a half-constructed engine.
+    @Volatile private var engine: BattleEngine? = null
+    @Volatile private var detector: RepDetector? = null
+    @Volatile private var progress: PlayerProgress = PlayerProgress()
+    @Volatile private var exercise: ExerciseType = ExerciseType.PUSHUP
+    @Volatile private var dungeonIndex: Int = 1
+    @Volatile private var sessionBestDepth: Float = 0f
+
+    /** finish() is reachable from both the pose thread and quit(); the run must bank exactly once. */
+    private val saved = AtomicBoolean(false)
+
+    private val _levelsGained = MutableStateFlow(0)
+    val levelsGained: StateFlow<Int> = _levelsGained.asStateFlow()
 
     init {
         viewModelScope.launch {
@@ -72,8 +81,9 @@ class BattleViewModel(
 
     fun start(dungeonIndex: Int) {
         this.dungeonIndex = dungeonIndex
-        saved = false
+        saved.set(false)
         sessionBestDepth = 0f
+        _levelsGained.value = 0
 
         viewModelScope.launch {
             progress = progressRepository.current()
@@ -147,8 +157,10 @@ class BattleViewModel(
      * folded into [Outcome.xpEarned].
      */
     private fun finish(outcome: Outcome) {
-        if (saved) return
-        saved = true
+        if (!saved.compareAndSet(false, true)) return
+
+        val summary = detector?.sessionSummary()
+        val plankSeconds = ((summary?.holdMs ?: 0L) / 1000L).toInt()
 
         viewModelScope.launch {
             val epochDay = Instant.now().atZone(ZoneId.systemDefault()).toLocalDate().toEpochDay()
@@ -169,14 +181,17 @@ class BattleViewModel(
                 )
             )
 
-            detector?.let { det ->
-                val previous = progressRepository.calibrationProfile(exercise)
-                progressRepository.saveCalibrationProfile(exercise, det.updatedProfile(previous))
+            summary?.let {
+                detector?.let { det ->
+                    val previous = progressRepository.calibrationProfile(exercise)
+                    progressRepository.saveCalibrationProfile(exercise, det.updatedProfile(previous))
+                }
             }
 
             progressRepository.update { current ->
                 val levelled = Levels.apply(current.level, current.xpIntoLevel, outcome.xpEarned)
-                val streak = advanceStreak(current, epochDay, outcome.reps)
+                _levelsGained.value = levelled.levelsGained
+                val streak = advanceStreak(current, epochDay, outcome.reps, plankSeconds)
                 current.copy(
                     level = levelled.level,
                     xpIntoLevel = levelled.xpIntoLevel,
@@ -195,6 +210,9 @@ class BattleViewModel(
                     capacitySquat = if (exercise == ExerciseType.SQUAT) {
                         Capacity.update(current.capacitySquat, outcome.maxCombo)
                     } else current.capacitySquat,
+                    capacityPlankSeconds = if (exercise == ExerciseType.PLANK) {
+                        maxOf(current.capacityPlankSeconds, plankSeconds.toFloat())
+                    } else current.capacityPlankSeconds,
                 )
             }
         }
@@ -211,8 +229,17 @@ class BattleViewModel(
         current: PlayerProgress,
         epochDay: Long,
         reps: Int,
+        plankSeconds: Int,
     ): Pair<Int, Long> {
-        if (!Streak.maintained(reps)) return current.streakDays to current.lastActiveEpochDay
+        // The count has to go into the slot for the movement actually performed. Passing it as
+        // pushups regardless meant a five-minute plank — which reports zero reps by construction —
+        // lost the user their streak, and twelve squats kept it when fifteen are the bar.
+        val maintained = when (exercise) {
+            ExerciseType.PUSHUP -> Streak.maintained(reps = reps)
+            ExerciseType.SQUAT -> Streak.maintained(reps = 0, squats = reps)
+            ExerciseType.PLANK -> Streak.maintained(reps = 0, plankSeconds = plankSeconds)
+        }
+        if (!maintained) return current.streakDays to current.lastActiveEpochDay
         return when (epochDay - current.lastActiveEpochDay) {
             0L -> current.streakDays.coerceAtLeast(1) to epochDay
             1L -> (current.streakDays + 1) to epochDay

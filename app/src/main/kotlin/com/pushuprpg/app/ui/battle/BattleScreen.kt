@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import com.pushuprpg.app.R
 import com.pushuprpg.app.pose.CameraPreview
 import com.pushuprpg.app.pose.PoseLandmarkerSource
+import com.pushuprpg.app.ui.components.KeepScreenOn
 import com.pushuprpg.app.ui.theme.LocalGameColors
 import com.pushuprpg.app.ui.theme.LocalReduceMotion
 import com.pushuprpg.app.ui.theme.Palette
@@ -57,6 +58,8 @@ fun BattleScreen(
     onQuit: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    KeepScreenOn()
+
     val reduceMotion = LocalReduceMotion.current
     val configuration = LocalConfiguration.current
     val compact = configuration.screenHeightDp < 700
@@ -126,7 +129,8 @@ fun BattleScreen(
         Box(
             Modifier
                 .align(Alignment.TopStart)
-                .padding(start = 16.dp, top = 20.dp)
+                .windowInsetsPadding(WindowInsets.safeDrawing)
+                .padding(start = 16.dp, top = 8.dp)
                 .size(48.dp)
                 .clip(CircleShape)
                 .background(Palette.ScrimPanelHigh)
@@ -163,8 +167,9 @@ private fun BoxScope.BattleHudLayout(
         modifier = Modifier
             .align(Alignment.TopCenter)
             .fillMaxWidth()
+            .windowInsetsPadding(WindowInsets.safeDrawing)
             .padding(horizontal = 16.dp)
-            .padding(top = 24.dp),
+            .padding(top = 8.dp),
     ) {
         Row(verticalAlignment = Alignment.Top) {
             Spacer(Modifier.width(56.dp))

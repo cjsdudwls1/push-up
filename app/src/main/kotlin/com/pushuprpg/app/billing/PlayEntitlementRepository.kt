@@ -2,6 +2,7 @@ package com.pushuprpg.app.billing
 
 import android.content.Context
 import androidx.datastore.core.DataStore
+import androidx.datastore.core.handlers.ReplaceFileCorruptionHandler
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
@@ -25,8 +26,14 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import java.io.IOException
 
+// A corrupt store is only half-visible without this: reads are masked because
+    // CorruptionException extends IOException and the read path already swallows those, but every
+    // write throws forever, so the app looks fine until the user changes something and then can
+    // never change anything again. Replacing the file is the only recovery they could not perform
+    // themselves.
 private val Context.billingCacheStore: DataStore<Preferences> by preferencesDataStore(
-    name = "billing_cache"
+    name = "billing_cache",
+    corruptionHandler = ReplaceFileCorruptionHandler { emptyPreferences() },
 )
 
 /**

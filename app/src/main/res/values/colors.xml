@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Matches Palette.Bg1 so the window behind Compose is never a different colour. -->
+    <color name="launch_background">#FF0E1117</color>
+</resources>

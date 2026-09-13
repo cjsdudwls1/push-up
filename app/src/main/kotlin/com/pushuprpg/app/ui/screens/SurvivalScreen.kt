@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.dp
 import com.pushuprpg.app.R
 import com.pushuprpg.app.pose.CameraPreview
 import com.pushuprpg.app.pose.PoseLandmarkerSource
+import com.pushuprpg.app.ui.components.KeepScreenOn
 import com.pushuprpg.app.ui.components.PrimaryButton
 import com.pushuprpg.app.ui.components.SecondaryButton
 import com.pushuprpg.app.ui.components.cardSurface
@@ -43,6 +44,8 @@ fun SurvivalScreen(
     onHome: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    KeepScreenOn()
+
     Box(modifier.fillMaxSize().background(Color(0xFF1A1208))) {
 
         CameraPreview(source = poseSource, modifier = Modifier.fillMaxSize())
@@ -65,7 +68,8 @@ fun SurvivalScreen(
         Column(
             modifier = Modifier
                 .align(Alignment.TopCenter)
-                .padding(top = 40.dp),
+                .windowInsetsPadding(WindowInsets.safeDrawing)
+                .padding(top = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Text(
