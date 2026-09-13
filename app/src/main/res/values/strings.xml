@@ -173,6 +173,7 @@
     <string name="survival_best">최고 %1$,d점</string>
     <string name="survival_gameover">고냥이가 놀랐어요</string>
     <string name="survival_share">자랑하기</string>
+    <string name="survival_share_text">푸쉬업 RPG에서 고냥이를 %1$,d점만큼 지켰어요! 🐱💪</string>
 
     <!-- Paywall -->
     <string name="paywall_title">모든 던전을 열어요</string>

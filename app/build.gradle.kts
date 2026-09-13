@@ -31,7 +31,9 @@ android {
         versionName = "0.1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        resourceConfigurations += listOf("ko", "en")
+        // Korean-only for v1: the default resources are Korean, so shipping an "en"
+        // configuration without an English translation would just bloat the bundle.
+        resourceConfigurations += listOf("ko")
     }
 
     signingConfigs {

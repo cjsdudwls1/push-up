@@ -126,9 +126,12 @@ class BattleViewModel(
         viewModelScope.launch { settingsRepository.update { it.copy(skeletonMode = mode) } }
     }
 
-    fun quit() {
-        val e = engine ?: return
-        finish(e.quit())
+    /** Returns the banked outcome so the caller can hand it to the result screen. */
+    fun quit(): Outcome? {
+        val e = engine ?: return null
+        val outcome = e.quit()
+        finish(outcome)
+        return outcome
     }
 
     /**
