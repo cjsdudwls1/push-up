@@ -59,8 +59,12 @@ store listing.
 ## Known gaps, in the order they matter
 
 1. **The Android module has never been compiled.** Google's Maven was unreachable in the environment
-   this was built in, so `:app` has been written and reviewed but not built. Expect a first
-   compile to surface real errors. `:core` is fully compiled and tested.
+   this was built in, so `:app` was written and then reviewed against the pinned library versions
+   rather than built. That review found and fixed 32 issues, including a missing theme resource that
+   would have failed the resource link outright, a `drawText` import from the wrong package, three
+   thread races around the camera and the landmarker, and a timestamp unit mismatch that would have
+   made MediaPipe reject frames under load. Expect a first real compile to surface more. `:core` is
+   fully compiled and its 107 tests pass.
 2. **No character art or animation.** The launcher icon is a placeholder vector, and the player and
    enemy are not drawn at all yet — the battle screen shows the HUD over the camera. The design work
    for a cutout puppet rig is sketched in the notes but none of it is built. This is the largest
@@ -68,9 +72,10 @@ store listing.
 3. **No audio.** The design calls for audio to be the primary feedback channel — the user often
    cannot look at the screen mid-rep — and there is currently none. `AlertKey` and the `RepEvent`
    stream are the hooks it would attach to.
-4. **Squat and plank are configured but unproven.** `DetectorConfig.squat()` exists and the state
-   machine is shared, but the squat depth signal needs its own derivation and the plank needs the
-   hold-scoring path implemented. Ship pushup-only unless there is time to validate them.
+4. **Squat is configured but unproven.** `DetectorConfig.squat()` exists and the state machine is
+   shared, but the squat depth signal still needs its own derivation — reusing the pushup ratio for
+   a standing movement is a guess. The plank is fully implemented and tested, and is what the ward
+   and the boss-ultimate fallback depend on. Consider shipping pushup and plank only.
 5. **Every detection constant is reasoned, not measured.** They come from anthropometry and
    projection geometry, tested against synthetic traces. Before a public release, record real
    sessions on four or five different phones and re-tune. A trace recorder and a replay harness are
