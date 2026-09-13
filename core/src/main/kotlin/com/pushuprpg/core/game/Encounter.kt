@@ -194,6 +194,51 @@ class Encounter(
         return events
     }
 
+    /**
+     * Applies one tick of damage from a held position rather than from a rep.
+     *
+     * A plank tears through a ward at full rate, which is the whole reason a warded enemy is worth
+     * answering with one. It does not build combo — a hold is not a sequence of attacks — but it
+     * does count as activity, so the rest timer resets.
+     */
+    fun onHold(damage: Float, atMs: Long): List<CombatEvent> {
+        if (finished || damage <= 0f) return emptyList()
+        val events = mutableListOf<CombatEvent>()
+
+        val dealt = damage.roundToInt().coerceAtLeast(1)
+        enemy = if (enemy.warded) {
+            val remainingWard = (enemy.wardHp - dealt).coerceAtLeast(0)
+            val spill = (dealt - enemy.wardHp).coerceAtLeast(0)
+            enemy.copy(wardHp = remainingWard, hp = (enemy.hp - spill).coerceAtLeast(0))
+        } else {
+            enemy.copy(hp = (enemy.hp - dealt).coerceAtLeast(0))
+        }
+
+        damageDealt += dealt
+        lastRepAtMs = atMs
+        tickIndex = 0
+
+        events += CombatEvent.Hit(
+            atMs,
+            AttackResult(
+                damage = dealt,
+                crit = false,
+                deep = false,
+                rejected = false,
+                player = player,
+                enemy = enemy,
+                xp = 1,
+            ),
+        )
+        runXp += 1
+
+        if (enemy.isDead) {
+            finished = true
+            events += CombatEvent.EnemyDefeated(atMs, enemy)
+        }
+        return events
+    }
+
     /** Advances the idle clock. Call every frame with the current pose timestamp. */
     fun advanceTo(nowMs: Long): List<CombatEvent> {
         if (finished) return emptyList()

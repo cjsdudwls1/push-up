@@ -100,6 +100,8 @@ class BattleEngine(
     private var lastBottomMs = 0
     private var readyTopSinceMs = Long.MIN_VALUE
     private var damageSeq = 0L
+    private var plankHolding = false
+    private var lastHoldTickMs = 0L
     private var repsTotal = 0
     private var deepReps = 0
     private var depthSum = 0f
@@ -137,8 +139,11 @@ class BattleEngine(
             tick.phase != RepPhase.READY_TOP -> Long.MIN_VALUE
             else -> readyTopSinceMs
         }
-        val holding = readyTopSinceMs != Long.MIN_VALUE && tick.tMs - readyTopSinceMs >= TOP_HOLD_MS
-        encounter.setHolding(holding, tick.tMs)
+        // A plank that has stopped ticking is a plank that has ended, even if its detector has not
+        // said so yet.
+        if (plankHolding && tick.tMs - lastHoldTickMs > HOLD_STALE_MS) plankHolding = false
+        val topHold = readyTopSinceMs != Long.MIN_VALUE && tick.tMs - readyTopSinceMs >= TOP_HOLD_MS
+        encounter.setHolding(topHold || plankHolding, tick.tMs)
 
         for (event in tick.events) {
             when (event) {
@@ -190,6 +195,27 @@ class BattleEngine(
                 }
 
                 is RepEvent.Completed -> lastBottomMs = event.record.bottomMs
+
+                // A plank pays out continuously rather than per rep. It freezes the boss's rest
+                // timer for as long as it is held, which is what lets a player whose arms have
+                // given out stay in the fight instead of choosing between quitting and being hit.
+                is RepEvent.HoldTick -> {
+                    plankHolding = true
+                    lastHoldTickMs = event.tMs
+                    val hit = encounter.onHold(event.damage, event.tMs)
+                    for (ce in hit) {
+                        when (ce) {
+                            is CombatEvent.Hit -> {
+                                damageSeq++
+                                damages += FloatingDamage(damageSeq, ce.result.damage, false, false, event.tMs)
+                            }
+                            is CombatEvent.EnemyDefeated -> outcome = advanceFloor(event.tMs)
+                            else -> Unit
+                        }
+                    }
+                }
+
+                is RepEvent.HoldBroken -> plankHolding = false
 
                 is RepEvent.Shallow -> {
                     shallowStreak = event.consecutive
@@ -321,6 +347,9 @@ class BattleEngine(
         const val SHAKE_DECAY = 0.08f
         const val COMBO_MILESTONE = 10
         const val TOP_HOLD_MS = 2_000L
+
+        /** A hold with no tick for this long has ended, whatever the detector last said. */
+        const val HOLD_STALE_MS = 1_500L
         const val DEFAULT_CYCLE_MS = 3_000
     }
 }

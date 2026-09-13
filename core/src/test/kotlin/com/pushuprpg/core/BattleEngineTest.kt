@@ -175,3 +175,48 @@ class BattleEngineTest {
         }
     }
 }
+
+/** The plank as a combat action rather than as a detector output. */
+class PlankCombatTest {
+
+    @Test
+    fun `a held plank damages the enemy and keeps the boss off the player`() {
+        val player = com.pushuprpg.core.game.PlayerState.create(PlayerClass.MAGE, level = 1)
+        val enemy = Dungeons.FREE_DUNGEON.floors.first()
+            .spawn(player, Difficulty.STANDARD, 8f, Dungeons.FREE_DUNGEON.referenceLevel)
+        val encounter = Encounter(player, enemy, rng = NoCritRng)
+
+        var t = 0L
+        var dealt = 0
+        // Thirty seconds of a good plank at the detector's 2Hz tick.
+        repeat(60) {
+            t += 500
+            encounter.setHolding(true, t)
+            dealt += encounter.onHold(3.0f, t).filterIsInstance<CombatEvent.Hit>().sumOf { h -> h.result.damage }
+            encounter.advanceTo(t)
+        }
+
+        assertTrue(dealt > 0, "a held plank should actually hurt the enemy")
+        assertEquals(player.maxHp, encounter.player.hp, "holding should keep the boss off entirely")
+    }
+
+    @Test
+    fun `a plank tears down a ward far faster than pushups chip at it`() {
+        val player = com.pushuprpg.core.game.PlayerState.create(PlayerClass.MAGE, level = 12)
+        val template = Dungeons.byIndex(6)!!.floors.last()
+
+        fun tickPlank(): Int {
+            val e = Encounter(player, template.spawn(player, Difficulty.STANDARD, 8f, 12), rng = NoCritRng)
+            var t = 0L
+            var ticks = 0
+            while (e.enemy.warded && ticks < 5000) {
+                t += 500
+                e.onHold(6.0f, t)
+                ticks++
+            }
+            return ticks
+        }
+
+        assertTrue(tickPlank() < 5000, "the ward should break under a sustained plank")
+    }
+}
