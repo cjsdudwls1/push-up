@@ -28,8 +28,14 @@ class PoseLandmarkerSource(
 ) {
     private var landmarker: PoseLandmarker? = null
 
-    @Volatile
-    private var lastTimestampUs: Long = -1L
+    /**
+     * Guards the landmarker across the two threads that touch it: [analyze] runs on the camera's
+     * analysis executor, [close] on the main thread, and shutting the executor down does not wait
+     * for a frame already inside detectAsync.
+     */
+    private val markerLock = Any()
+
+    private var lastTimestampMs: Long = -1L
 
     /** True when the GPU delegate failed and we fell back; surfaced so quality can be dialled back. */
     var usingCpu: Boolean = false
@@ -84,17 +90,19 @@ class PoseLandmarkerSource(
      * garbage — for a transform the library already does. Mirroring is left to the renderer
      * entirely, because the detection maths is mirror-invariant by construction.
      */
-    fun analyze(image: ImageProxy, rotationDegrees: Int) {
+    fun analyze(image: ImageProxy, rotationDegrees: Int): Unit = synchronized(markerLock) {
         val marker = landmarker ?: run { image.close(); return }
 
-        // detectAsync rejects a timestamp that is not strictly increasing, and CameraX can hand
-        // back two frames with the same microsecond stamp under load.
-        val timestampUs = image.imageInfo.timestamp / 1000
-        if (timestampUs <= lastTimestampUs) {
+        // detectAsync rejects a timestamp that is not strictly increasing, and the value it
+        // receives is in milliseconds — so the guard has to be in milliseconds too. Checking
+        // microseconds and submitting milliseconds lets two frames half a millisecond apart pass
+        // the check and then collide, which throws.
+        val timestampMs = image.imageInfo.timestamp / 1_000_000
+        if (timestampMs <= lastTimestampMs) {
             image.close()
             return
         }
-        lastTimestampUs = timestampUs
+        lastTimestampMs = timestampMs
 
         try {
             val bitmap = image.toBitmap()
@@ -102,7 +110,7 @@ class PoseLandmarkerSource(
             val processing = ImageProcessingOptions.builder()
                 .setRotationDegrees(rotationDegrees)
                 .build()
-            marker.detectAsync(mpImage, processing, timestampUs / 1000)
+            marker.detectAsync(mpImage, processing, timestampMs)
         } catch (e: RuntimeException) {
             Log.w(TAG, "frame dropped", e)
         } finally {
@@ -149,9 +157,11 @@ class PoseLandmarkerSource(
     }
 
     fun close() {
-        landmarker?.close()
-        landmarker = null
-        lastTimestampUs = -1L
+        synchronized(markerLock) {
+            landmarker?.close()
+            landmarker = null
+            lastTimestampMs = -1L
+        }
     }
 
     companion object {

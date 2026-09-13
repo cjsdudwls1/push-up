@@ -23,12 +23,17 @@ class HomeViewModel(
     entitlementRepository: EntitlementRepository,
 ) : ViewModel() {
 
-    private val today = Instant.now().atZone(ZoneId.systemDefault()).toLocalDate().toEpochDay()
+    // Resolved per emission rather than once at construction: this ViewModel is scoped to the home
+    // back-stack entry, so it outlives midnight, and a captured date would leave the hub showing
+    // yesterday's count on the day a streak is most at risk.
+    private fun today(): Long =
+        Instant.now().atZone(ZoneId.systemDefault()).toLocalDate().toEpochDay()
 
     val state: StateFlow<HomeUiState> = combine(
         progressRepository.progress,
         sessionRepository.dailyTotals(days = 2).map { totals ->
-            totals.firstOrNull { it.epochDay == today }?.reps ?: 0
+            val day = today()
+            totals.firstOrNull { it.epochDay == day }?.reps ?: 0
         },
         entitlementRepository.entitlement,
     ) { progress, todayReps, entitlement ->

@@ -13,9 +13,9 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import java.util.concurrent.Executors
 
 /**
@@ -41,17 +41,26 @@ fun CameraPreview(
             implementationMode = PreviewView.ImplementationMode.PERFORMANCE
         }
     }
-    val analysisExecutor = remember { Executors.newSingleThreadExecutor() }
 
     DisposableEffect(frontCamera) {
+        // Owned by this effect rather than remembered across it, so a rebind cannot leave an
+        // orphaned executor running behind the new one.
+        val analysisExecutor = Executors.newSingleThreadExecutor()
         val providerFuture = ProcessCameraProvider.getInstance(context)
         var provider: ProcessCameraProvider? = null
+        var disposed = false
 
         providerFuture.addListener({
-            provider = providerFuture.get()
+            // CameraX initialisation takes a few hundred milliseconds on the first call of a
+            // process. Leaving the screen before it completes would otherwise run this listener
+            // after onDispose and bind a camera nothing is left to unbind.
+            if (disposed) return@addListener
+
+            val cameraProvider = providerFuture.get()
+            provider = cameraProvider
 
             val preview = Preview.Builder().build().also {
-                it.surfaceProvider = previewView.surfaceProvider
+                it.setSurfaceProvider(previewView.surfaceProvider)
             }
 
             // 640x480 is plenty: the landmarker downsamples to its own input size regardless, and a
@@ -67,9 +76,11 @@ fun CameraPreview(
                 .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                 .setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_RGBA_8888)
                 .build()
-                .also { it.setAnalyzer(analysisExecutor) { image ->
-                    source.analyze(image, image.imageInfo.rotationDegrees)
-                } }
+                .also {
+                    it.setAnalyzer(analysisExecutor) { image ->
+                        source.analyze(image, image.imageInfo.rotationDegrees)
+                    }
+                }
 
             val selector = if (frontCamera) {
                 CameraSelector.DEFAULT_FRONT_CAMERA
@@ -78,21 +89,23 @@ fun CameraPreview(
             }
 
             try {
-                provider?.unbindAll()
-                provider?.bindToLifecycle(lifecycleOwner, selector, preview, analysis)
-            } catch (e: IllegalArgumentException) {
-                // A device with no front camera, or one already held by another app.
+                cameraProvider.unbindAll()
+                cameraProvider.bindToLifecycle(lifecycleOwner, selector, preview, analysis)
+            } catch (_: IllegalArgumentException) {
+                // No front camera on this device, or it is held by another app. Falling back is
+                // better than a black screen; the user simply has to turn the phone around.
                 try {
-                    provider?.bindToLifecycle(
+                    cameraProvider.bindToLifecycle(
                         lifecycleOwner, CameraSelector.DEFAULT_BACK_CAMERA, preview, analysis
                     )
                 } catch (_: Exception) {
-                    // Surfaced to the user by the caller's error state; nothing to do here.
+                    // Surfaced to the user by the caller's error state.
                 }
             }
         }, ContextCompat.getMainExecutor(context))
 
         onDispose {
+            disposed = true
             provider?.unbindAll()
             analysisExecutor.shutdown()
         }

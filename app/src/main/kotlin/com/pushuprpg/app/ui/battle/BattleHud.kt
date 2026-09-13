@@ -18,9 +18,11 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.pushuprpg.app.R
 import com.pushuprpg.app.ui.theme.LocalGameColors
 import com.pushuprpg.app.ui.theme.Palette
 import com.pushuprpg.app.ui.theme.Type
@@ -179,7 +181,7 @@ fun ComboPill(combo: Int, modifier: Modifier = Modifier) {
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                text = "콤보 ×$combo",
+                text = stringResource(R.string.battle_combo, combo),
                 style = Type.titleL,
                 color = Palette.TextOnAccent,
             )
@@ -213,7 +215,7 @@ fun RepCounter(
         )
         Spacer(Modifier.width(6.dp))
         CameraText(
-            text = "개",
+            text = stringResource(R.string.battle_unit_reps),
             style = Type.titleL,
             color = Palette.TextSecondary,
             modifier = Modifier.padding(bottom = 18.dp),
@@ -231,7 +233,7 @@ fun UltimateWarning(visible: Boolean, modifier: Modifier = Modifier) {
         modifier = modifier,
     ) {
         Text(
-            text = "필살기 온다",
+            text = stringResource(R.string.battle_ultimate_incoming),
             style = Type.titleL,
             color = Palette.TextPrimary,
             textAlign = TextAlign.Center,

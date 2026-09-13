@@ -11,6 +11,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.pushuprpg.app.R
 import com.pushuprpg.app.domain.Entitlement
+import com.pushuprpg.app.domain.FreeTier
 import com.pushuprpg.app.domain.PlayerProgress
 import com.pushuprpg.app.ui.components.*
 import com.pushuprpg.app.ui.theme.LocalGameColors
@@ -44,6 +45,7 @@ data class HomeUiState(
 fun HomeScreen(
     state: HomeUiState,
     onStartDungeon: (Int) -> Unit,
+    onRequestPaywall: () -> Unit,
     onDungeonSelect: () -> Unit,
     onSurvival: () -> Unit,
     onRecords: () -> Unit,
@@ -104,10 +106,13 @@ fun HomeScreen(
 
         Spacer(Modifier.height(24.dp))
         val dungeon = Dungeons.byIndex(state.nextDungeon)
+        val playable = FreeTier.canPlayDungeon(state.nextDungeon, state.entitlement)
         PrimaryButton(
             text = stringResource(R.string.action_continue),
             supportingText = dungeon?.korean,
-            onClick = { onStartDungeon(state.nextDungeon) },
+            onClick = {
+                if (playable) onStartDungeon(state.nextDungeon) else onRequestPaywall()
+            },
         )
 
         Spacer(Modifier.height(10.dp))

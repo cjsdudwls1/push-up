@@ -140,6 +140,7 @@ fun PushupRpgApp(
                     HomeScreen(
                         state = state,
                         onStartDungeon = { navController.navigate(Routes.battle(it)) },
+                        onRequestPaywall = { navController.navigate(Routes.PAYWALL) },
                         onDungeonSelect = { navController.navigate(Routes.DUNGEON_SELECT) },
                         onSurvival = { navController.navigate(Routes.SURVIVAL) },
                         onRecords = { navController.navigate(Routes.RECORDS) },

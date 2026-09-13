@@ -160,14 +160,18 @@ fun RankCard(rankProgress: RankProgress, modifier: Modifier = Modifier) {
                     .background(tier),
             )
             Spacer(Modifier.width(10.dp))
+            // The rank name takes whatever is left after the lifetime count, rather than the two
+            // sharing the row by weight — a weighted split caps each at half the width, so a longer
+            // rank name like 그랜드마스터 ellipsises while empty space sits beside it.
             Text(
                 text = rankProgress.rank.korean,
                 style = Type.titleL,
                 color = tier,
                 maxLines = 1,
-                modifier = Modifier.weight(1f, fill = false),
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
             )
-            Spacer(Modifier.weight(1f))
+            Spacer(Modifier.width(12.dp))
             Text(
                 text = stringResource(R.string.rank_lifetime, rankProgress.lifetimeReps),
                 style = Type.labelL,

@@ -35,6 +35,7 @@ import com.pushuprpg.app.ui.theme.Type
 import com.pushuprpg.core.detect.PoseQuality
 import com.pushuprpg.core.run.AlertKey
 import com.pushuprpg.core.run.BattleState
+import com.pushuprpg.core.run.Toast
 import kotlin.math.sin
 
 /**
@@ -56,7 +57,6 @@ fun BattleScreen(
     onQuit: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val colors = LocalGameColors.current
     val reduceMotion = LocalReduceMotion.current
     val configuration = LocalConfiguration.current
     val compact = configuration.screenHeightDp < 700
@@ -263,8 +263,11 @@ private fun DamageNumbers(
 ) {
     val colors = LocalGameColors.current
     Box(modifier) {
-        damages.takeLast(4).forEachIndexed { index, damage ->
+        damages.takeLast(4).forEach { damage ->
             key(damage.id) {
+                // Derived from the number's own id so it stays put: using its position in the
+                // window made every surviving number slide sideways as new ones arrived.
+                val lane = (damage.id % 3L).toInt() - 1
                 val rise = remember { androidx.compose.animation.core.Animatable(0f) }
                 LaunchedEffect(damage.id) { rise.animateTo(1f, tween(900)) }
                 CameraText(
@@ -278,7 +281,7 @@ private fun DamageNumbers(
                     modifier = Modifier
                         .align(Alignment.Center)
                         .offset(
-                            x = ((index - 1) * 26).dp,
+                            x = (lane * 26).dp,
                             y = (-60 * rise.value).dp,
                         )
                         .alpha(1f - rise.value * rise.value),
@@ -291,19 +294,26 @@ private fun DamageNumbers(
 @Composable
 private fun AlertSlot(state: BattleState) {
     val alert = state.alert
+    // The content lambda keeps recomposing through the exit animation, by which point the live
+    // alert is already null. Holding the last one means the message fades out as itself rather
+    // than flickering into whatever the fallback happens to be.
+    var shown by remember { mutableStateOf<Toast?>(null) }
+    if (alert != null) shown = alert
+
     AnimatedVisibility(
         visible = alert != null,
         enter = fadeIn(tween(140)),
         exit = fadeOut(tween(220)),
     ) {
-        val key = alert?.textKey ?: AlertKey.IDLE
+        val current = shown
+        val key = current?.textKey ?: AlertKey.IDLE
         val text = when (key) {
             AlertKey.BOOTSTRAP -> stringResource(R.string.battle_bootstrap)
             AlertKey.CALIBRATED -> stringResource(R.string.battle_calibrated)
             AlertKey.SHALLOW_TWICE -> stringResource(R.string.battle_shallow_twice)
             AlertKey.SHALLOW_FOUR -> stringResource(R.string.battle_shallow_four)
             AlertKey.COMBO_BROKEN -> stringResource(R.string.battle_combo_broken)
-            AlertKey.COMBO_MILESTONE -> stringResource(R.string.battle_combo_milestone, alert?.arg ?: 0)
+            AlertKey.COMBO_MILESTONE -> stringResource(R.string.battle_combo_milestone, current?.arg ?: 0)
             AlertKey.IDLE -> stringResource(R.string.battle_idle)
             AlertKey.BOSS_LOW_HP -> stringResource(R.string.battle_boss_low_hp)
             AlertKey.ULTIMATE_INCOMING -> stringResource(R.string.battle_ultimate_incoming)
@@ -343,6 +353,11 @@ private fun QualityBanner(quality: PoseQuality, modifier: Modifier = Modifier) {
         PoseQuality.IMPLAUSIBLE_RATE -> stringResource(R.string.quality_implausible_rate)
     }
 
+    // Same reason as AlertSlot: without this, recovering from a lost track collapses the banner to
+    // an empty pill and fades that instead of the sentence.
+    var lastMessage by remember { mutableStateOf("") }
+    if (message != null) lastMessage = message
+
     AnimatedVisibility(
         visible = message != null,
         enter = fadeIn(tween(200)),
@@ -350,7 +365,7 @@ private fun QualityBanner(quality: PoseQuality, modifier: Modifier = Modifier) {
         modifier = modifier,
     ) {
         Text(
-            text = message.orEmpty(),
+            text = lastMessage,
             style = Type.bodyL,
             color = Palette.TextPrimary,
             textAlign = TextAlign.Center,
