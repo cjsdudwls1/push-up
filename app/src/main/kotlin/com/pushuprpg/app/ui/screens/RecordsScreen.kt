@@ -124,11 +124,15 @@ fun RecordsScreen(
 private fun ActivityGrid(totals: List<DailyTotal>) {
     val colors = LocalGameColors.current
     val byDay = totals.associateBy { it.epochDay }
-    val today = LocalDate.now().toEpochDay()
+    val todayDate = LocalDate.now()
+    val today = todayDate.toEpochDay()
     val weeks = 13
 
-    // Start on the Monday on or before the first day shown, so columns line up as real weeks.
-    val start = today - (weeks * 7 - 1)
+    // Each column must be one real week, so the grid starts on a Monday rather than on whatever
+    // weekday happens to fall 90 days ago. Epoch day 0 was a Thursday, which is why the offset is
+    // 3: (epochDay + 3) mod 7 gives 0 for a Monday.
+    val mondayOffset = ((today + 3) % 7).toInt()
+    val start = today - mondayOffset - (weeks - 1) * 7L
     val peak = totals.maxOfOrNull { it.reps }?.coerceAtLeast(1) ?: 1
 
     Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {

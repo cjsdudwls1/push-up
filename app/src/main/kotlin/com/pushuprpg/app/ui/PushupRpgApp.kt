@@ -22,6 +22,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.pushuprpg.app.AppContainer
 import com.pushuprpg.app.domain.AppSettings
+import com.pushuprpg.app.pose.PoseFrameSink
 import com.pushuprpg.app.pose.PoseLandmarkerSource
 import com.pushuprpg.app.ui.battle.BattleScreen
 import com.pushuprpg.app.ui.battle.BattleViewModel
@@ -64,13 +65,16 @@ fun PushupRpgApp(
     val granted by cameraGranted.collectAsState()
     val permanentlyDenied by permissionPermanentlyDenied.collectAsState()
 
-    var frameSink by remember { mutableStateOf<((com.pushuprpg.core.pose.PoseFrame) -> Unit)?>(null) }
     var poseError by remember { mutableStateOf<String?>(null) }
+
+    // Frames are handed over through an atomic sink rather than a Compose state var: the consumer
+    // is swapped from the composition but read from MediaPipe's own thread.
+    val frameSink = remember { PoseFrameSink() }
 
     val poseSource = remember {
         PoseLandmarkerSource(
             context = context,
-            onFrame = { frame -> frameSink?.invoke(frame) },
+            onFrame = frameSink::emit,
             onError = { poseError = it },
         )
     }
@@ -169,8 +173,9 @@ fun PushupRpgApp(
 
                     LaunchedEffect(dungeonIndex) { vm.start(dungeonIndex) }
                     DisposableEffect(vm) {
-                        frameSink = vm::onPoseFrame
-                        onDispose { frameSink = null }
+                        val consumer: (com.pushuprpg.core.pose.PoseFrame) -> Unit = vm::onPoseFrame
+                        frameSink.attach(consumer)
+                        onDispose { frameSink.detach(consumer) }
                     }
 
                     LaunchedEffect(state.outcome) {
@@ -234,8 +239,9 @@ fun PushupRpgApp(
                     val best by vm.bestScore.collectAsState()
 
                     DisposableEffect(vm) {
-                        frameSink = vm::onPoseFrame
-                        onDispose { frameSink = null }
+                        val consumer: (com.pushuprpg.core.pose.PoseFrame) -> Unit = vm::onPoseFrame
+                        frameSink.attach(consumer)
+                        onDispose { frameSink.detach(consumer) }
                     }
 
                     SurvivalScreen(
@@ -301,8 +307,13 @@ fun PushupRpgApp(
 /**
  * The finished run, handed from the battle destination to the result destination.
  *
- * A module-level holder rather than a navigation argument because [com.pushuprpg.core.run.Outcome]
- * is a structured value and serialising it through a route string would be a lot of ceremony for a
- * hand-off that lives for one screen transition.
+ * A module-level holder rather than a navigation argument: [com.pushuprpg.core.run.Outcome] is a
+ * structured value and serialising it through a route string would be a lot of ceremony for a
+ * hand-off that lives for exactly one screen transition.
+ *
+ * It does not survive process death, and that is an accepted trade rather than an oversight: the
+ * run is already written to the database before this screen opens, so the worst case is the user
+ * returning to a killed app and landing on the hub instead of on a summary — with every rep, every
+ * point of XP and the streak already banked. Losing a screen is acceptable; losing the work is not.
  */
 internal var lastOutcome: com.pushuprpg.core.run.Outcome? = null
