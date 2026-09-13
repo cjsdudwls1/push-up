@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A sword driven upward: the app's whole verb is "push up". Content stays inside the
+     66x66dp adaptive-icon safe zone so no launcher mask clips it. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- upward thrust chevrons -->
+    <path
+        android:pathData="M54,24 L70,42 L64,42 L54,31 L44,42 L38,42 Z"
+        android:fillColor="#FFFFB020"
+        android:fillAlpha="0.55" />
+
+    <!-- blade -->
+    <path
+        android:pathData="M54,30 L59,40 L59,66 L49,66 L49,40 Z"
+        android:fillColor="#FFEDEFF5" />
+    <path
+        android:pathData="M54,30 L59,40 L59,66 L54,66 Z"
+        android:fillColor="#FFB9C0D4" />
+
+    <!-- crossguard -->
+    <path
+        android:pathData="M36,66 L72,66 L72,73 L36,73 Z"
+        android:fillColor="#FFFF8A3D" />
+
+    <!-- grip -->
+    <path
+        android:pathData="M50,73 L58,73 L58,84 L50,84 Z"
+        android:fillColor="#FF6B4A2F" />
+
+    <!-- pommel -->
+    <path
+        android:pathData="M54,84 m-5,0 a5,5 0 1,0 10,0 a5,5 0 1,0 -10,0"
+        android:fillColor="#FFFF8A3D" />
+</vector>

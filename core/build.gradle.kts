@@ -1,3 +1,5 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
 plugins {
     alias(libs.plugins.kotlin.jvm)
     alias(libs.plugins.kotlin.serialization)
@@ -17,8 +19,19 @@ dependencies {
     testImplementation(libs.kotlinx.coroutines.test)
 }
 
+// Java 17 bytecode, because :app consumes this module and Android's toolchain tops out there.
+// Expressed as a compiler target rather than a `jvmToolchain(17)`, so the module also builds on a
+// machine whose only JDK is newer — CI, a container, a contributor on JDK 21 — without Gradle
+// trying to provision a second JDK.
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
+
 kotlin {
-    jvmToolchain(17)
+    compilerOptions {
+        jvmTarget.set(JvmTarget.JVM_17)
+    }
 }
 
 tasks.test {
