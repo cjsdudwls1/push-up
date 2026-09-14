@@ -70,6 +70,8 @@ private val KEY_HIGHEST_DUNGEON = intPreferencesKey("highest_dungeon_cleared")
 private val KEY_CAPACITY_PUSHUP = floatPreferencesKey("capacity_pushup")
 private val KEY_CAPACITY_SQUAT = floatPreferencesKey("capacity_squat")
 private val KEY_CAPACITY_PLANK = floatPreferencesKey("capacity_plank_seconds")
+private val KEY_BEST_SURVIVAL = intPreferencesKey("best_survival_score")
+private val KEY_CLASS_CHOSEN = booleanPreferencesKey("class_chosen")
 private val KEY_ONBOARDED = booleanPreferencesKey("onboarded")
 
 private fun calibrationTopKey(e: ExerciseType) = floatPreferencesKey("cal_${e.name}_top")

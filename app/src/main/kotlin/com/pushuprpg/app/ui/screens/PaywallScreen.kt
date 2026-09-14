@@ -210,12 +210,18 @@ private fun perMonthLabel(plan: SubscriptionPlan): String {
     return "월 $symbol${"%,d".format(perMonth)} 꼴"
 }
 
-/** Renewal terms, which Korean subscription rules require to be visible before purchase. */
+/**
+ * Renewal terms, which Korean subscription rules require to be visible before purchase.
+ *
+ * The braces around [period] are load-bearing: Hangul is a valid Kotlin identifier character, so
+ * "$period마다" parses as a reference to something called `period마다` rather than as the value
+ * followed by a particle. Every interpolation immediately followed by Korean needs them.
+ */
 private fun renewalSummary(plan: SubscriptionPlan): String {
     val period = if (plan.period == PlanPeriod.ANNUAL) "1년" else "1개월"
     return if (plan.hasFreeTrial) {
-        "${plan.freeTrialDays}일 무료 후 $period마다 ${plan.formattedPrice} 자동 결제"
+        "${plan.freeTrialDays}일 무료 후 ${period}마다 ${plan.formattedPrice} 자동 결제"
     } else {
-        "$period마다 ${plan.formattedPrice} 자동 결제"
+        "${period}마다 ${plan.formattedPrice} 자동 결제"
     }
 }
