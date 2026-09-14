@@ -1,9 +1,7 @@
 import java.util.Properties
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
@@ -92,6 +90,10 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
+    // AGP 9 compiles Kotlin itself — applying org.jetbrains.kotlin.android on top of it is a hard
+    // error, not a warning. Kotlin's jvmTarget defaults to targetCompatibility above, so there is
+    // no kotlin { compilerOptions { } } block here; :core still uses the Kotlin JVM plugin and
+    // keeps its own.
 
 
     packaging {
@@ -147,10 +149,4 @@ dependencies {
     androidTestImplementation(libs.androidx.test.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))
-}
-
-kotlin {
-    compilerOptions {
-        jvmTarget.set(JvmTarget.JVM_17)
-    }
 }
