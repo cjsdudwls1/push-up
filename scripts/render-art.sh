@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Render the share cards to PNG without an Android device.
+# Render the share cards and the Play feature graphic to PNG, without an Android device.
 #
 # :app cannot be compiled in every environment this repo is worked on, and the share card is the
 # one surface whose only job is to look right to someone who has never used the app. This mirrors
@@ -9,7 +9,7 @@
 #
 # The output is a proof of layout, not a pixel-exact render: fonts differ from a Korean device.
 #
-# Usage: scripts/preview-share-card.sh [output dir]
+# Usage: scripts/render-art.sh [output dir]
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

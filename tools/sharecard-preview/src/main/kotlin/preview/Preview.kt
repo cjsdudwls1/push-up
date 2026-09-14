@@ -42,6 +42,10 @@ fun main(args: Array<String>) {
         ),
     )
 
+    val banner = File(outDir, "feature-graphic.png")
+    javax.imageio.ImageIO.write(FeatureGraphic.render().image, "png", banner)
+    println("${banner.path}  ${FeatureGraphic.WIDTH}x${FeatureGraphic.HEIGHT}")
+
     cards.forEach { (name, data) ->
         val bitmap = ShareCardRenderer.render(res, data)
         val file = File(outDir, "$name.png")

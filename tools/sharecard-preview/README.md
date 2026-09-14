@@ -1,10 +1,10 @@
-# Share card preview
+# Art preview
 
-Renders `ShareCardRenderer` to PNG on a plain JVM, so the card can be reviewed by looking at it
-rather than by reading coordinates.
+Renders `ShareCardRenderer` and the Play feature graphic to PNG on a plain JVM, so they can be
+reviewed by looking at them rather than by reading coordinates.
 
 ```bash
-scripts/preview-share-card.sh [output dir]   # default: build/share-cards
+scripts/render-art.sh [output dir]   # default: build/share-cards
 ```
 
 `:app` cannot be compiled in every environment this repo is worked on (Google's Maven is
@@ -23,6 +23,10 @@ metrics.
 
 `R.kt` and the string table are generated from the real `strings.xml` on every run, so a renamed
 string breaks this build instead of silently rendering stale copy.
+
+`FeatureGraphic.kt` is the 1024x500 Play banner. It lives here rather than in `:app` because
+nothing in the app draws it — it exists only to be uploaded to the Console. The committed copy is
+`docs/store-assets/feature-graphic.png`.
 
 Adding a card variant means adding it to `Preview.kt`. Prefer values that break the layout — the
 longest dungeon name in the content table, a six-digit score — over ones that flatter it.
