@@ -7,6 +7,8 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.pushuprpg.app.AppContainer
 import com.pushuprpg.app.domain.ProgressRepository
+import com.pushuprpg.app.telemetry.Event
+import com.pushuprpg.app.telemetry.Telemetry
 import com.pushuprpg.app.domain.SessionRecord
 import com.pushuprpg.app.domain.SessionRepository
 import com.pushuprpg.core.detect.DetectorConfig
@@ -27,6 +29,7 @@ import kotlinx.coroutines.launch
 class SurvivalViewModel(
     private val progressRepository: ProgressRepository,
     private val sessionRepository: SessionRepository,
+    private val telemetry: Telemetry,
 ) : ViewModel() {
 
     private val game = CeilingSurvival()
@@ -116,6 +119,7 @@ class SurvivalViewModel(
      */
     fun finishTutorial() {
         val observed = maxCombo
+        telemetry.log(Event.TutorialCompleted(reps, _state.value.elapsedMs))
         viewModelScope.launch {
             progressRepository.update { current ->
                 current.copy(
@@ -162,7 +166,11 @@ class SurvivalViewModel(
     companion object {
         fun factory(container: AppContainer): ViewModelProvider.Factory = viewModelFactory {
             initializer {
-                SurvivalViewModel(container.progressRepository, container.sessionRepository)
+                SurvivalViewModel(
+                    container.progressRepository,
+                    container.sessionRepository,
+                    container.telemetry,
+                )
             }
         }
     }

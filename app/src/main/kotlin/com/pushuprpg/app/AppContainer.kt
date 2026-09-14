@@ -3,6 +3,7 @@ package com.pushuprpg.app
 import android.content.Context
 import com.pushuprpg.app.audio.GameAudio
 import com.pushuprpg.app.billing.PlayEntitlementRepository
+import com.pushuprpg.app.telemetry.Telemetry
 import com.pushuprpg.app.data.AppDatabase
 import com.pushuprpg.app.data.DataStoreProgressRepository
 import com.pushuprpg.app.data.DataStoreSettingsRepository
@@ -53,6 +54,8 @@ class AppContainer(context: Context) {
      * enough to be audible as a gap on the first rep of every run.
      */
     val audio: GameAudio by lazy { GameAudio(appContext) }
+
+    val telemetry: Telemetry by lazy { Telemetry(appContext) }
 
     /** The billing client, for the paywall's purchase flow. */
     val billing get() = (entitlementRepository as PlayEntitlementRepository).billing

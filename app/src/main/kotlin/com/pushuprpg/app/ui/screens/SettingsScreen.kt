@@ -183,15 +183,26 @@ fun SettingsScreen(
         // The privacy line lives on the settings screen as well as in the permission flow: it is
         // the single biggest objection a camera fitness app faces, and it is true, so it should be
         // easy to find rather than buried in a policy nobody opens.
-        Text(
-            text = stringResource(R.string.permission_privacy),
-            style = Type.bodyM,
-            color = Palette.TextSecondary,
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .cardSurface(shape = RoundedCornerShape(16.dp))
                 .padding(14.dp),
-        )
+        ) {
+            Text(
+                text = stringResource(R.string.permission_privacy),
+                style = Type.bodyM,
+                color = Palette.TextSecondary,
+            )
+            Spacer(Modifier.height(8.dp))
+            // Stated separately from the camera line on purpose: crash logs really are sent, and
+            // letting that sentence blur into "nothing leaves the device" would make both wrong.
+            Text(
+                text = stringResource(R.string.privacy_telemetry),
+                style = Type.bodyM,
+                color = Palette.TextTertiary,
+            )
+        }
         ActionSetting(
             title = stringResource(R.string.settings_privacy),
             onClick = onOpenPrivacy,

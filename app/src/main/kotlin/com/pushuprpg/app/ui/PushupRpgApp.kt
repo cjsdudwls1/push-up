@@ -30,6 +30,7 @@ import com.pushuprpg.app.AppContainer
 import com.pushuprpg.app.domain.AppSettings
 import com.pushuprpg.app.domain.FreeTier
 import com.pushuprpg.app.pose.PoseFrameSink
+import com.pushuprpg.app.telemetry.Event
 import com.pushuprpg.app.pose.PoseLandmarkerSource
 import com.pushuprpg.app.ui.battle.BattleScreen
 import com.pushuprpg.app.ui.battle.BattleViewModel
@@ -138,6 +139,7 @@ fun PushupRpgApp(
                                 container.progressRepository.update {
                                     it.copy(playerClass = playerClass, classChosen = true)
                                 }
+                                container.telemetry.log(Event.ClassPicked(playerClass.name))
                             }
                             // Onboarding is not finished here: the tutorial run is what completes
                             // it, because that run is also the calibration set every dungeon is
@@ -176,7 +178,10 @@ fun PushupRpgApp(
                     HomeScreen(
                         state = state,
                         onStartDungeon = { navController.navigate(Routes.battle(it)) },
-                        onRequestPaywall = { navController.navigate(Routes.PAYWALL) },
+                        onRequestPaywall = {
+                            container.telemetry.log(Event.PaywallShown("home"))
+                            navController.navigate(Routes.PAYWALL)
+                        },
                         onDungeonSelect = { navController.navigate(Routes.DUNGEON_SELECT) },
                         onSurvival = { navController.navigate(Routes.survival()) },
                         onRecords = { navController.navigate(Routes.RECORDS) },
@@ -196,7 +201,10 @@ fun PushupRpgApp(
                             }
                         },
                         onStart = { navController.navigate(Routes.battle(it)) },
-                        onRequestPaywall = { navController.navigate(Routes.PAYWALL) },
+                        onRequestPaywall = {
+                            container.telemetry.log(Event.PaywallShown("dungeon_select"))
+                            navController.navigate(Routes.PAYWALL)
+                        },
                     )
                 }
 

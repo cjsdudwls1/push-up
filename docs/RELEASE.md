@@ -25,10 +25,22 @@ that read as foreign.
 A hosted privacy policy URL is required, and `SettingsScreen`'s `onOpenPrivacy` is currently an
 empty lambda waiting for it.
 
-The Data Safety form should say: camera access is used for on-device pose detection; no video,
-image or biometric data is collected, stored or transmitted; no data leaves the device. That is
-true of the code as written — `PoseLandmarkerSource` is the only consumer of camera frames and it
-produces coordinates, which never leave the process. Keep it true.
+The Data Safety form has to make one distinction carefully, because both halves are true:
+
+- **Camera.** Used for on-device pose detection. No video, image, landmark or biometric data is
+  collected, stored or transmitted. That is true of the code as written —
+  `PoseLandmarkerSource` is the only consumer of camera frames and it produces coordinates, which
+  never leave the process. Keep it true.
+- **Crash logs and analytics.** Firebase Crashlytics and Analytics *do* send data: crash traces,
+  and the counts, durations and enum names listed in `telemetry/Telemetry.kt`. Declare them.
+
+Do not let the second collapse the first in the privacy policy. "카메라 영상은 어디로도 전송되지
+않아요" stays, and the crash/analytics collection is stated separately. Conflating them either
+overstates what is collected or understates it, and both are worse than the truth.
+
+Firebase is applied only when `app/google-services.json` exists, so the project builds without it.
+Generate it in the Firebase console with the application id `io.github.cjsdudwls1.pushuprpg`; the
+file is gitignored.
 
 ### Content rating and category
 A fitness app with combat and a subscription. Complete the IARC questionnaire honestly; the game

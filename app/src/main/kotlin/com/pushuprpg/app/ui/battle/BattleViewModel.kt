@@ -7,6 +7,8 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.pushuprpg.app.AppContainer
 import com.pushuprpg.app.audio.GameAudio
+import com.pushuprpg.app.telemetry.Event
+import com.pushuprpg.app.telemetry.Telemetry
 import com.pushuprpg.app.domain.AppSettings
 import com.pushuprpg.app.domain.PlayerProgress
 import com.pushuprpg.app.domain.ProgressRepository
@@ -15,6 +17,7 @@ import com.pushuprpg.app.domain.SessionRepository
 import com.pushuprpg.app.domain.SettingsRepository
 import com.pushuprpg.core.detect.DetectorConfig
 import com.pushuprpg.core.detect.ExerciseType
+import com.pushuprpg.core.detect.PoseQuality
 import com.pushuprpg.core.detect.DetectorFactory
 import com.pushuprpg.core.detect.RepDetector
 import com.pushuprpg.core.detect.SkeletonMode
@@ -51,6 +54,7 @@ class BattleViewModel(
     private val sessionRepository: SessionRepository,
     private val settingsRepository: SettingsRepository,
     private val audio: GameAudio,
+    private val telemetry: Telemetry,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(BattleState())
@@ -68,6 +72,7 @@ class BattleViewModel(
     @Volatile private var exercise: ExerciseType = ExerciseType.PUSHUP
     @Volatile private var dungeonIndex: Int = 1
     @Volatile private var sessionBestDepth: Float = 0f
+    @Volatile private var lastReportedQuality: PoseQuality = PoseQuality.OK
 
     /** finish() is reachable from both the pose thread and quit(); the run must bank exactly once. */
     private val saved = AtomicBoolean(false)
@@ -127,6 +132,8 @@ class BattleViewModel(
                 rngSeed = dungeonIndex * 1_000L + progress.level,
             )
             _state.value = engine!!.currentState()
+            telemetry.setExercise(exercise)
+            telemetry.log(Event.RunStarted(dungeonIndex, settings.difficulty, exercise))
         }
     }
 
@@ -137,6 +144,16 @@ class BattleViewModel(
         // Fired straight from this thread: routing it through a recomposition would spend most of
         // the ~90ms budget between the rep bottoming out and the user hearing it.
         audio.play(next.sounds)
+
+        // The most useful signal the app collects: how often tracking drops, for what reason, and
+        // on which device. Every detection constant here is reasoned rather than measured, so
+        // without this there is no way to learn that a threshold is wrong for a phone nobody here
+        // has held.
+        if (next.quality != PoseQuality.OK && lastReportedQuality == PoseQuality.OK) {
+            telemetry.log(Event.QualityLost(next.quality, next.reps))
+        }
+        lastReportedQuality = next.quality
+
         sessionBestDepth = maxOf(sessionBestDepth, next.depth)
         _state.value = next
         next.outcome?.let { finish(it) }
@@ -170,6 +187,16 @@ class BattleViewModel(
 
         val summary = detector?.sessionSummary()
         val plankSeconds = ((summary?.holdMs ?: 0L) / 1000L).toInt()
+
+        telemetry.log(
+            Event.RunFinished(
+                dungeon = dungeonIndex,
+                cleared = outcome.cleared,
+                reps = outcome.reps,
+                durationMs = outcome.durationMs,
+                plausibility = outcome.plausibility,
+            )
+        )
 
         viewModelScope.launch {
             val epochDay = Instant.now().atZone(ZoneId.systemDefault()).toLocalDate().toEpochDay()
@@ -270,6 +297,7 @@ class BattleViewModel(
                     container.sessionRepository,
                     container.settingsRepository,
                     container.audio,
+                    container.telemetry,
                 )
             }
         }

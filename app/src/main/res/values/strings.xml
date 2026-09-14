@@ -25,6 +25,7 @@
     <string name="onboarding_body">푸쉬업 한 개가 공격 한 번이에요.\n카메라가 동작을 읽고, 몬스터가 쓰러져요.</string>
     <string name="permission_headline">카메라 권한이 필요해요</string>
     <string name="permission_privacy">카메라는 동작만 인식해요. 영상은 저장되지도, 어디로도 전송되지 않아요.</string>
+    <string name="privacy_telemetry">앱이 멈추거나 오류가 나면 원인을 찾기 위한 기록이 전송돼요. 여기에 영상이나 사진은 들어가지 않아요.</string>
     <string name="permission_grant">카메라 권한 허용</string>
     <string name="permission_open_settings">설정에서 권한 켜기</string>
     <string name="permission_why">왜 필요한가요?</string>

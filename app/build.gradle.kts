@@ -9,6 +9,18 @@ plugins {
     alias(libs.plugins.ksp)
 }
 
+// Firebase is applied only when the config file is present.
+//
+// The google-services plugin fails the build outright without google-services.json, and that file
+// cannot live in the repository — it is per-project and names the app. Gating on it means the
+// project builds and runs for anyone who clones it, and Crashlytics switches on the moment the file
+// is dropped in, with no code change.
+val firebaseConfigured = file("google-services.json").exists()
+if (firebaseConfigured) {
+    apply(plugin = libs.plugins.google.services.get().pluginId)
+    apply(plugin = libs.plugins.firebase.crashlytics.get().pluginId)
+}
+
 // Release signing is driven by keystore.properties, which is gitignored.
 // CI writes it from repository secrets; see .github/workflows/release.yml.
 val keystorePropertiesFile = rootProject.file("keystore.properties")
@@ -32,6 +44,7 @@ android {
         targetSdk = 36
         versionCode = 1
         versionName = "0.1.0"
+        buildConfigField("boolean", "FIREBASE_CONFIGURED", firebaseConfigured.toString())
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         // Korean-only for v1: the default resources are Korean, so shipping an "en"
@@ -122,6 +135,12 @@ dependencies {
 
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.billing.ktx)
+
+    // Always on the classpath so the telemetry code compiles either way; it no-ops at runtime when
+    // Firebase has not been initialised.
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.crashlytics)
+    implementation(libs.firebase.analytics)
     implementation(libs.kotlinx.serialization.json)
 
     testImplementation(libs.junit)
