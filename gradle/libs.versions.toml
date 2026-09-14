@@ -68,8 +68,11 @@ androidx-camera-view = { group = "androidx.camera", name = "camera-view", versio
 billing-ktx = { group = "com.android.billingclient", name = "billing-ktx", version.ref = "billing" }
 
 firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.ref = "firebaseBom" }
-firebase-crashlytics = { group = "com.google.firebase", name = "firebase-crashlytics-ktx" }
-firebase-analytics = { group = "com.google.firebase", name = "firebase-analytics-ktx" }
+# No -ktx suffix: Firebase folded the Kotlin extensions into the main modules and stopped
+# publishing the -ktx artifacts. The BOM therefore declares no version for them, which Gradle
+# reports as "Could not find com.google.firebase:firebase-analytics-ktx:." — an empty version.
+firebase-crashlytics = { group = "com.google.firebase", name = "firebase-crashlytics" }
+firebase-analytics = { group = "com.google.firebase", name = "firebase-analytics" }
 mediapipe-tasks-vision = { group = "com.google.mediapipe", name = "tasks-vision", version.ref = "mediapipe" }
 
 # --- test ---
