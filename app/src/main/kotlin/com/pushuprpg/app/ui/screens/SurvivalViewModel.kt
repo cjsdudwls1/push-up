@@ -15,6 +15,7 @@ import com.pushuprpg.core.detect.PoseTick
 import com.pushuprpg.core.detect.RepDetectorImpl
 import com.pushuprpg.core.detect.RepEvent
 import com.pushuprpg.core.detect.SkeletonMode
+import com.pushuprpg.core.progression.Capacity
 import com.pushuprpg.core.survival.CeilingSurvival
 import com.pushuprpg.core.survival.SurvivalEvent
 import com.pushuprpg.core.survival.SurvivalState
@@ -106,6 +107,25 @@ class SurvivalViewModel(
      * They have to: rank is built from lifetime reps, and a free mode whose work did not count
      * would quietly make the app's central promise conditional on paying.
      */
+    /**
+     * Seeds the player's capacity from the tutorial run and marks onboarding complete.
+     *
+     * The first survival run is the calibration set: it is the only moment the app can ask someone
+     * to do as many as they can without it feeling like a test, because they are busy protecting a
+     * cat. Every dungeon from then on is sized from this number.
+     */
+    fun finishTutorial() {
+        val observed = maxCombo
+        viewModelScope.launch {
+            progressRepository.update { current ->
+                current.copy(
+                    capacityPushup = Capacity.update(current.capacityPushup, observed),
+                    onboarded = true,
+                )
+            }
+        }
+    }
+
     private fun save(over: SurvivalEvent.GameOver) {
         if (saved) return
         saved = true

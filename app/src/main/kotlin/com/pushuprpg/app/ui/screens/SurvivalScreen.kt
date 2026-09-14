@@ -39,6 +39,7 @@ fun SurvivalScreen(
     state: SurvivalState,
     bestScore: Int,
     poseSource: PoseLandmarkerSource,
+    isTutorial: Boolean,
     onRetry: () -> Unit,
     onShare: (Int) -> Unit,
     onHome: () -> Unit,
@@ -85,15 +86,29 @@ fun SurvivalScreen(
             )
         }
 
+        // The tutorial explains itself once, before the ceiling starts moving. After that the
+        // mapping does the teaching: pushing up is pushing the ceiling up, which needs no words.
+        if (isTutorial && state.reps == 0 && state.alive) {
+            IntroCard(modifier = Modifier.align(Alignment.Center))
+        }
+
         if (!state.alive) {
-            GameOverCard(
-                score = state.score,
-                bestScore = bestScore,
-                onRetry = onRetry,
-                onShare = onShare,
-                onHome = onHome,
-                modifier = Modifier.align(Alignment.Center),
-            )
+            if (isTutorial) {
+                TutorialDoneCard(
+                    reps = state.reps,
+                    onContinue = onHome,
+                    modifier = Modifier.align(Alignment.Center),
+                )
+            } else {
+                GameOverCard(
+                    score = state.score,
+                    bestScore = bestScore,
+                    onRetry = onRetry,
+                    onShare = onShare,
+                    onHome = onHome,
+                    modifier = Modifier.align(Alignment.Center),
+                )
+            }
         }
     }
 }
@@ -192,6 +207,70 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawCat(
     val eyeR = head * (0.13f + 0.07f * alarm)
     listOf(-1f, 1f).forEach { side ->
         drawCircle(color = dark, radius = eyeR, center = Offset(centerX + side * head * 0.34f, eyeY))
+    }
+}
+
+@Composable
+private fun IntroCard(modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier
+            .padding(horizontal = 28.dp)
+            .fillMaxWidth()
+            .cardSurface(shape = RoundedCornerShape(22.dp), color = Palette.Bg1)
+            .padding(22.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(
+            text = stringResource(R.string.tutorial_intro_title),
+            style = Type.titleL,
+            color = Palette.TextPrimary,
+            textAlign = TextAlign.Center,
+        )
+        Spacer(Modifier.height(10.dp))
+        Text(
+            text = stringResource(R.string.tutorial_intro_body),
+            style = Type.bodyL,
+            color = Palette.TextSecondary,
+            textAlign = TextAlign.Center,
+        )
+    }
+}
+
+/**
+ * The tutorial's ending.
+ *
+ * It reports the reps rather than the score, because the number that matters here is the one the
+ * game will use to size every dungeon from now on — and because telling a beginner their score
+ * before they know what a good one is invites the wrong comparison.
+ */
+@Composable
+private fun TutorialDoneCard(
+    reps: Int,
+    onContinue: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier
+            .padding(horizontal = 28.dp)
+            .fillMaxWidth()
+            .cardSurface(shape = RoundedCornerShape(22.dp), color = Palette.Bg1)
+            .padding(22.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(
+            text = stringResource(R.string.tutorial_done_title),
+            style = Type.titleL,
+            color = Palette.TextPrimary,
+        )
+        Spacer(Modifier.height(10.dp))
+        Text(
+            text = stringResource(R.string.tutorial_done_body, reps),
+            style = Type.bodyL,
+            color = Palette.TextSecondary,
+            textAlign = TextAlign.Center,
+        )
+        Spacer(Modifier.height(20.dp))
+        PrimaryButton(text = stringResource(R.string.tutorial_continue), onClick = onContinue)
     }
 }
 

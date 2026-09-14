@@ -16,7 +16,11 @@ object Routes {
     const val RECORDS = "records"
     const val SETTINGS = "settings"
     const val PAYWALL = "paywall"
-    const val SURVIVAL = "survival"
+    private const val SURVIVAL_BASE = "survival"
+    const val SURVIVAL = "$SURVIVAL_BASE/{tutorial}"
+    const val ARG_TUTORIAL = "tutorial"
+
+    fun survival(tutorial: Boolean = false) = "$SURVIVAL_BASE/$tutorial"
 
     private const val BATTLE_BASE = "battle"
     const val BATTLE = "$BATTLE_BASE/{dungeonIndex}"

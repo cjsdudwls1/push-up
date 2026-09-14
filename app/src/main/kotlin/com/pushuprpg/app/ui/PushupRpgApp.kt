@@ -115,8 +115,9 @@ fun PushupRpgApp(
             // back stack. It is therefore decided exactly once.
             val startDestination = remember {
                 when {
-                    !progress.onboarded -> Routes.ONBOARDING
+                    !progress.classChosen -> Routes.ONBOARDING
                     !granted -> Routes.PERMISSION
+                    !progress.onboarded -> Routes.survival(tutorial = true)
                     else -> Routes.HOME
                 }
             }
@@ -135,10 +136,16 @@ fun PushupRpgApp(
                         onPick = { playerClass: PlayerClass ->
                             scope.launch {
                                 container.progressRepository.update {
-                                    it.copy(playerClass = playerClass, onboarded = true)
+                                    it.copy(playerClass = playerClass, classChosen = true)
                                 }
                             }
-                            navController.navigate(if (granted) Routes.HOME else Routes.PERMISSION) {
+                            // Onboarding is not finished here: the tutorial run is what completes
+                            // it, because that run is also the calibration set every dungeon is
+                            // sized from. Marking it done earlier would let someone reach a dungeon
+                            // with no measured capacity at all.
+                            navController.navigate(
+                                if (granted) Routes.survival(tutorial = true) else Routes.PERMISSION
+                            ) {
                                 popUpTo(Routes.ONBOARDING) { inclusive = true }
                             }
                         },
@@ -150,7 +157,8 @@ fun PushupRpgApp(
                     // at a rationale for something they have already agreed to.
                     LaunchedEffect(granted) {
                         if (granted) {
-                            navController.navigate(Routes.HOME) {
+                            val next = if (progress.onboarded) Routes.HOME else Routes.survival(tutorial = true)
+                            navController.navigate(next) {
                                 popUpTo(Routes.PERMISSION) { inclusive = true }
                             }
                         }
@@ -170,7 +178,7 @@ fun PushupRpgApp(
                         onStartDungeon = { navController.navigate(Routes.battle(it)) },
                         onRequestPaywall = { navController.navigate(Routes.PAYWALL) },
                         onDungeonSelect = { navController.navigate(Routes.DUNGEON_SELECT) },
-                        onSurvival = { navController.navigate(Routes.SURVIVAL) },
+                        onSurvival = { navController.navigate(Routes.survival()) },
                         onRecords = { navController.navigate(Routes.RECORDS) },
                         onSettings = { navController.navigate(Routes.SETTINGS) },
                     )
@@ -281,7 +289,11 @@ fun PushupRpgApp(
                     }
                 }
 
-                composable(Routes.SURVIVAL) {
+                composable(
+                    route = Routes.SURVIVAL,
+                    arguments = listOf(navArgument(Routes.ARG_TUTORIAL) { type = NavType.BoolType }),
+                ) { entry ->
+                    val isTutorial = entry.arguments?.getBoolean(Routes.ARG_TUTORIAL) ?: false
                     val vm: SurvivalViewModel = viewModel(factory = SurvivalViewModel.factory(container))
                     val state by vm.state.collectAsState()
                     val best by vm.bestScore.collectAsState()
@@ -296,9 +308,19 @@ fun PushupRpgApp(
                         state = state,
                         bestScore = best,
                         poseSource = poseSource,
+                        isTutorial = isTutorial,
                         onRetry = vm::restart,
                         onShare = onShare,
-                        onHome = { navController.popBackStack() },
+                        onHome = {
+                            if (isTutorial) {
+                                vm.finishTutorial()
+                                navController.navigate(Routes.HOME) {
+                                    popUpTo(Routes.SURVIVAL) { inclusive = true }
+                                }
+                            } else {
+                                navController.popBackStack()
+                            }
+                        },
                     )
                 }
 

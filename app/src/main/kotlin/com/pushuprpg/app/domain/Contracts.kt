@@ -29,6 +29,10 @@ data class PlayerProgress(
     val capacitySquat: Float = 12f,
     val capacityPlankSeconds: Float = 20f,
     val bestSurvivalScore: Int = 0,
+    /** The player has chosen a class. Separate from [onboarded] because the default class is a
+     *  real class, so it cannot be used to infer whether anyone picked it. */
+    val classChosen: Boolean = false,
+    /** Onboarding is complete, which means the tutorial run has measured a starting capacity. */
     val onboarded: Boolean = false,
 )
 

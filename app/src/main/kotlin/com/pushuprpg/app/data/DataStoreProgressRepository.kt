@@ -91,6 +91,7 @@ private fun Preferences.toProgress(): PlayerProgress = PlayerProgress(
     capacitySquat = this[KEY_CAPACITY_SQUAT] ?: PROGRESS_DEFAULT.capacitySquat,
     capacityPlankSeconds = this[KEY_CAPACITY_PLANK] ?: PROGRESS_DEFAULT.capacityPlankSeconds,
     bestSurvivalScore = this[KEY_BEST_SURVIVAL] ?: PROGRESS_DEFAULT.bestSurvivalScore,
+    classChosen = this[KEY_CLASS_CHOSEN] ?: PROGRESS_DEFAULT.classChosen,
     onboarded = this[KEY_ONBOARDED] ?: PROGRESS_DEFAULT.onboarded,
 )
 
@@ -109,6 +110,7 @@ private fun MutablePreferences.writeProgress(p: PlayerProgress) {
     this[KEY_CAPACITY_SQUAT] = p.capacitySquat
     this[KEY_CAPACITY_PLANK] = p.capacityPlankSeconds
     this[KEY_BEST_SURVIVAL] = p.bestSurvivalScore
+    this[KEY_CLASS_CHOSEN] = p.classChosen
     this[KEY_ONBOARDED] = p.onboarded
 }
 
