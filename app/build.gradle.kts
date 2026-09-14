@@ -33,7 +33,16 @@ android {
     // allowed to differ, and here they do: the identity is owned, the package name is not worth a
     // 37-file rename that cannot be compile-checked in this environment.
     namespace = "com.pushuprpg.app"
-    compileSdk = 36
+    // API 37 (Android 17) is the first level published with a minor suffix: the SDK package is
+    // platforms;android-37.0, not platforms;android-37. compileSdkMinor is what pins resolution to
+    // it — without it AGP looks for a package name that is never published, which is why an
+    // earlier attempt at compileSdk = 37 failed at sdkmanager with "Failed to find package".
+    //
+    // 37 is not optional: AndroidX (Compose 1.12, navigation 2.10.1) refuses to be consumed by a
+    // module compiled against anything older. targetSdk stays at 36 — compileSdk only decides which
+    // APIs are visible, not which runtime behaviours the app opts in to.
+    compileSdk = 37
+    compileSdkMinor = 0
 
     defaultConfig {
         applicationId = "io.github.cjsdudwls1.pushuprpg"

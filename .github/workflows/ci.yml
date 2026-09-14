@@ -52,17 +52,24 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
-      # Pinned to a platform that exists. This project was scaffolded without access to Google's
-      # Maven, so the original compileSdk was a guess (37) and sdkmanager rejected it outright.
-      # The listing on failure is what turns the next guess into a fact.
+      # The listing is unconditional: this project was scaffolded without access to Google's
+      # Maven, and guessing package names off release notes has now cost two CI rounds. The
+      # platform carries a minor suffix from API 37 onward (android-37.0, not android-37), and
+      # the build-tools version is read off the list rather than assumed.
       - name: Install SDK platform
         run: |
-          sdkmanager "platforms;android-36" "build-tools;36.0.0" || {
-            echo "::group::Platforms this runner can actually install"
-            sdkmanager --list 2>/dev/null | grep -E "^\s+(platforms;android|build-tools;)" | sort -u
-            echo "::endgroup::"
-            exit 1
-          }
+          echo "::group::Platforms and build-tools available to this runner"
+          sdkmanager --list 2>/dev/null \
+            | grep -oE "(platforms;android|build-tools);[0-9][0-9.]*" | sort -uV
+          echo "::endgroup::"
+          sdkmanager "platforms;android-37.0"
+          BUILD_TOOLS=$(sdkmanager --list 2>/dev/null \
+            | grep -oE "build-tools;37[0-9.]*" | sort -uV | tail -1)
+          if [ -n "$BUILD_TOOLS" ]; then
+            sdkmanager "$BUILD_TOOLS"
+          else
+            echo "No build-tools;37.x published yet; letting AGP pick its default."
+          fi
 
       - name: Assemble debug
         run: ./gradlew :app:assembleDebug --no-daemon --stacktrace
