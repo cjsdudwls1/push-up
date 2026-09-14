@@ -219,6 +219,7 @@ fun PushupRpgApp(
 
                     BattleScreen(
                         state = state,
+                        playerClass = progress.playerClass,
                         poseSource = poseSource,
                         sessionBestDepth = vm.currentSessionBestDepth(),
                         gaugeOnRight = settings.gaugeOnRight,

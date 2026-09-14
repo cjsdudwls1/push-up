@@ -1,5 +1,8 @@
 package com.pushuprpg.core.run
 
+import com.pushuprpg.core.anim.AnimClip
+import com.pushuprpg.core.anim.AnimState
+import com.pushuprpg.core.anim.FighterAnimator
 import com.pushuprpg.core.detect.*
 import com.pushuprpg.core.game.*
 import com.pushuprpg.core.pose.PoseFrame
@@ -49,6 +52,17 @@ data class BattleState(
     val elapsedMs: Long = 0,
     val countEnter: Float = 70f,
     val deepEnter: Float = 88f,
+
+    // --- presentation state, resolved here so the renderer stays a renderer ---
+    val playerAnim: AnimState = AnimState(AnimClip.IDLE, 0f, 0f, 0f),
+    val enemyId: String = "",
+    val enemyIsBoss: Boolean = false,
+    /** 0..1, flashes when the enemy is struck. */
+    val enemyHurt: Float = 0f,
+    /** 0..1 through the enemy's death animation. */
+    val enemyDeath: Float = 0f,
+    /** 0..1 as the boss charges toward its ultimate. */
+    val telegraphCharge: Float = 0f,
 ) {
     val enemyHpFraction: Float get() = enemyHp.toFloat() / enemyMaxHp.coerceAtLeast(1)
     val playerHpFraction: Float get() = playerHp.toFloat() / playerMaxHp.coerceAtLeast(1)
@@ -100,6 +114,9 @@ class BattleEngine(
     private var lastBottomMs = 0
     private var readyTopSinceMs = Long.MIN_VALUE
     private var damageSeq = 0L
+    private val animator = FighterAnimator(initialPlayer.playerClass)
+    private var enemyHurtAtMs = Long.MIN_VALUE
+    private var enemyDiedAtMs = Long.MIN_VALUE
     private var plankHolding = false
     private var lastHoldTickMs = 0L
     private var repsTotal = 0
@@ -171,6 +188,8 @@ class BattleEngine(
                                 depthSum += event.depth
                                 xpTotal += ce.result.xp
                                 if (ce.result.deep) deepReps++
+                                animator.onStrike(event.tMs, ce.result.deep, ce.result.crit)
+                                enemyHurtAtMs = event.tMs
                                 damageSeq++
                                 damages += FloatingDamage(
                                     damageSeq, ce.result.damage, ce.result.crit, ce.result.deep, event.tMs
@@ -182,7 +201,10 @@ class BattleEngine(
                                 }
                             }
                             is CombatEvent.EnemyDefeated -> {
-                                outcome = advanceFloor(event.tMs)
+                                // The next floor is held back until the enemy has finished coming
+                                // apart. Spawning it on the same frame cancelled the death outright
+                                // — the kill the player just earned simply never appeared.
+                                enemyDiedAtMs = event.tMs
                             }
                             else -> alert = alertFor(ce) ?: alert
                         }
@@ -209,7 +231,7 @@ class BattleEngine(
                                 damageSeq++
                                 damages += FloatingDamage(damageSeq, ce.result.damage, false, false, event.tMs)
                             }
-                            is CombatEvent.EnemyDefeated -> outcome = advanceFloor(event.tMs)
+                            is CombatEvent.EnemyDefeated -> enemyDiedAtMs = event.tMs
                             else -> Unit
                         }
                     }
@@ -243,16 +265,21 @@ class BattleEngine(
             }
         }
 
-        // Idle pressure only accrues while the tracker can actually see the user.
-        if (tick.quality == PoseQuality.OK && outcome == null) {
+        // Idle pressure only accrues while the tracker can actually see the user, and never while
+        // an enemy is mid-death — being hit by a corpse reads as a bug.
+        if (tick.quality == PoseQuality.OK && outcome == null && enemyDiedAtMs == Long.MIN_VALUE) {
             for (ce in encounter.advanceTo(tick.tMs)) {
                 when (ce) {
                     is CombatEvent.BossTick -> {
                         shake = (shake + 0.6f).coerceAtMost(1f)
+                        animator.onHurt(ce.atMs)
                         alert = Toast(AlertKey.IDLE, 0, ce.atMs)
                     }
                     is CombatEvent.Telegraph -> alert = Toast(AlertKey.ULTIMATE_INCOMING, 0, ce.atMs)
-                    is CombatEvent.Ultimate -> if (ce.damage > 0) shake = 1f
+                    is CombatEvent.Ultimate -> if (ce.damage > 0) {
+                        shake = 1f
+                        animator.onHurt(ce.atMs)
+                    }
                     is CombatEvent.Exhausted -> outcome = finish(cleared = false, atMs = ce.atMs)
                     else -> Unit
                 }
@@ -262,6 +289,28 @@ class BattleEngine(
         player = encounter.player
 
         val telegraphed = encounter.rage >= encounter.enemy.rageThreshold - Encounter.TELEGRAPH_LEAD
+
+        // Advance once the enemy has finished shattering.
+        if (enemyDiedAtMs != Long.MIN_VALUE && tick.tMs - enemyDiedAtMs >= DEATH_MS && outcome == null) {
+            outcome = advanceFloor(tick.tMs)
+        }
+
+        outcome?.let { animator.onRunEnded(tick.tMs, it.cleared) }
+        val anim = animator.update(tick.tMs, tick.depth)
+
+        val hurtElapsed = if (enemyHurtAtMs == Long.MIN_VALUE) Long.MAX_VALUE else tick.tMs - enemyHurtAtMs
+        val enemyHurt = if (hurtElapsed >= HURT_FLASH_MS) 0f
+        else (1f - hurtElapsed.toFloat() / HURT_FLASH_MS).coerceIn(0f, 1f)
+
+        val deathElapsed = if (enemyDiedAtMs == Long.MIN_VALUE) -1L else tick.tMs - enemyDiedAtMs
+        val enemyDeath = if (deathElapsed < 0) 0f
+        else (deathElapsed.toFloat() / DEATH_MS).coerceIn(0f, 1f)
+        val dying = enemyDiedAtMs != Long.MIN_VALUE
+
+        // Charge rises across the whole approach to the threshold, not just at the telegraph, so
+        // the enemy visibly winds up rather than snapping into a warning.
+        val charge = (encounter.rage.toFloat() / encounter.enemy.rageThreshold.coerceAtLeast(1))
+            .coerceIn(0f, 1f)
 
         state = state.copy(
             depth = tick.depth,
@@ -288,6 +337,12 @@ class BattleEngine(
             elapsedMs = if (startedAtMs == Long.MIN_VALUE) 0 else tick.tMs - startedAtMs,
             countEnter = detector.config.countEnter,
             deepEnter = detector.config.deepEnter,
+            playerAnim = anim,
+            enemyId = encounter.enemy.id,
+            enemyIsBoss = encounter.enemy.isBoss,
+            enemyHurt = enemyHurt,
+            enemyDeath = enemyDeath,
+            telegraphCharge = charge,
         )
         return state
     }
@@ -300,6 +355,7 @@ class BattleEngine(
         // first would leave the HUD showing "4 / 3" on the clear screen.
         if (floorIndex >= dungeon.floors.size - 1) return finish(cleared = true, atMs = atMs)
         floorIndex++
+        enemyDiedAtMs = Long.MIN_VALUE
         // Between floors the player is topped up and the chain starts again; a dungeon should be a
         // sequence of fights, not one unbroken set that only the fittest can finish.
         player = player.copy(hp = player.maxHp, combo = 0, tempoStreak = 0)
@@ -308,6 +364,7 @@ class BattleEngine(
     }
 
     private fun spawnFloor(index: Int, atMs: Long): Encounter {
+        enemyHurtAtMs = Long.MIN_VALUE
         val template = dungeon.floors[index]
         val enemy = template.spawn(player, difficulty, capacity, dungeon.referenceLevel)
         return Encounter(
@@ -351,5 +408,7 @@ class BattleEngine(
         /** A hold with no tick for this long has ended, whatever the detector last said. */
         const val HOLD_STALE_MS = 1_500L
         const val DEFAULT_CYCLE_MS = 3_000
+        const val HURT_FLASH_MS = 220L
+        const val DEATH_MS = 700L
     }
 }

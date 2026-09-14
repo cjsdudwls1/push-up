@@ -34,6 +34,7 @@ import com.pushuprpg.app.ui.theme.LocalReduceMotion
 import com.pushuprpg.app.ui.theme.Palette
 import com.pushuprpg.app.ui.theme.Type
 import com.pushuprpg.core.detect.PoseQuality
+import com.pushuprpg.core.game.PlayerClass
 import com.pushuprpg.core.run.AlertKey
 import com.pushuprpg.core.run.BattleState
 import com.pushuprpg.core.run.Toast
@@ -50,6 +51,7 @@ import kotlin.math.sin
 @Composable
 fun BattleScreen(
     state: BattleState,
+    playerClass: PlayerClass,
     poseSource: PoseLandmarkerSource,
     sessionBestDepth: Float,
     gaugeOnRight: Boolean,
@@ -118,6 +120,7 @@ fun BattleScreen(
         ) {
             BattleHudLayout(
                 state = state,
+                playerClass = playerClass,
                 sessionBestDepth = sessionBestDepth,
                 gaugeOnRight = gaugeOnRight,
                 showGaugeNumber = showGaugeNumber,
@@ -156,6 +159,7 @@ fun BattleScreen(
 @Composable
 private fun BoxScope.BattleHudLayout(
     state: BattleState,
+    playerClass: PlayerClass,
     sessionBestDepth: Float,
     gaugeOnRight: Boolean,
     showGaugeNumber: Boolean,
@@ -171,8 +175,35 @@ private fun BoxScope.BattleHudLayout(
             .padding(horizontal = 16.dp)
             .padding(top = 8.dp),
     ) {
+        // The two combatants face each other across the top, as they did in the demo, but they are
+        // drawn rather than pasted — the player's figure does the rep with the user.
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(if (compact) 116.dp else 140.dp),
+            verticalAlignment = Alignment.Bottom,
+        ) {
+            Fighter(
+                playerClass = playerClass,
+                state = state.playerAnim,
+                modifier = Modifier.weight(1f).fillMaxHeight(),
+            )
+            Spacer(Modifier.width(12.dp))
+            Monster(
+                visual = MonsterVisual(
+                    id = state.enemyId,
+                    isBoss = state.enemyIsBoss,
+                    hurt = state.enemyHurt,
+                    telegraph = state.telegraphCharge,
+                    death = state.enemyDeath,
+                    timeMs = state.elapsedMs,
+                ),
+                modifier = Modifier.weight(1f).fillMaxHeight(),
+            )
+        }
+
+        Spacer(Modifier.height(6.dp))
         Row(verticalAlignment = Alignment.Top) {
-            Spacer(Modifier.width(56.dp))
             HealthBar(
                 name = stringResource(R.string.battle_player_label),
                 hp = state.playerHp,

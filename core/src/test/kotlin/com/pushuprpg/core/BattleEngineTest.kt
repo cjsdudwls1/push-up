@@ -220,3 +220,116 @@ class PlankCombatTest {
         assertTrue(tickPlank() < 5000, "the ward should break under a sustained plank")
     }
 }
+
+/** The presentation state the engine resolves, so the renderer never has to decide anything. */
+class BattleEnginePresentationTest {
+
+    private fun engine() = BattleEngine(
+        dungeon = Dungeons.FREE_DUNGEON,
+        difficulty = Difficulty.STANDARD,
+        capacity = 8f,
+        initialPlayer = PlayerState.create(PlayerClass.KNIGHT, level = 1),
+        detector = RepDetectorImpl(DetectorConfig.pushup()),
+        resolver = CombatResolver(),
+    )
+
+    @Test
+    fun `the avatar coils in step with the user's descent`() {
+        // The answer to "it only has one attack motion" is this, not more clips: the character does
+        // the rep with the user every frame it is idle.
+        val e = engine()
+        var maxWindup = 0f
+        var sawDeepWindup = false
+        for (f in PoseFixtures.trace(count = 2, peakDepth = 0.95f)) {
+            val s = e.onPoseFrame(f)
+            maxWindup = maxOf(maxWindup, s.playerAnim.windup)
+            if (s.depth > 80f && s.playerAnim.windup > 0.6f) sawDeepWindup = true
+        }
+        assertTrue(maxWindup > 0.7f, "the avatar never wound up, peaked at $maxWindup")
+        assertTrue(sawDeepWindup, "the wind-up did not track the depth")
+    }
+
+    @Test
+    fun `consecutive reps play different attack motions`() {
+        val e = engine()
+        val attacks = mutableListOf<com.pushuprpg.core.anim.AnimClip>()
+        var last: com.pushuprpg.core.anim.AnimClip? = null
+        for (f in PoseFixtures.trace(count = 6, peakDepth = 0.80f)) {
+            val s = e.onPoseFrame(f)
+            val clip = s.playerAnim.clip
+            if (clip.isAttack && clip != last) attacks += clip
+            last = clip
+            if (s.outcome != null) break
+        }
+        assertTrue(attacks.size >= 3, "only saw $attacks")
+        assertTrue(attacks.zipWithNext().all { (a, b) -> a != b }, "repeated a motion: $attacks")
+    }
+
+    @Test
+    fun `the enemy flashes when struck and shatters when killed`() {
+        val e = engine()
+        var sawHurt = false
+        var sawDeath = false
+        for (f in PoseFixtures.trace(count = 60, peakDepth = 0.95f, restMs = 250)) {
+            val s = e.onPoseFrame(f)
+            if (s.enemyHurt > 0.5f) sawHurt = true
+            if (s.enemyDeath > 0f) sawDeath = true
+            if (s.outcome != null) break
+        }
+        assertTrue(sawHurt, "the enemy never reacted to being hit")
+        assertTrue(sawDeath, "no enemy ever died")
+    }
+
+    @Test
+    fun `the boss visibly charges rather than snapping into a warning`() {
+        // The charge is exposed across the whole approach to the threshold, not only once the
+        // telegraph fires, so the enemy is seen winding up. A user mid-rep is not reading the
+        // screen and needs the peripheral cue before the words arrive.
+        val e = engine()
+        // Rage builds from resting far faster than from reps, which is what the warning is for.
+        val frames = PoseFixtures.trace(count = 1, peakDepth = 0.95f).toMutableList()
+        var t = frames.last().timestampMs + 33
+        repeat(1800) { frames += PoseFixtures.frame(t, 0f); t += 33 }
+
+        var peak = 0f
+        var sawMidCharge = false
+        for (f in frames) {
+            val s = e.onPoseFrame(f)
+            peak = maxOf(peak, s.telegraphCharge)
+            if (s.telegraphCharge in 0.2f..0.9f) sawMidCharge = true
+            if (s.outcome != null) break
+        }
+        assertTrue(peak > 0f, "the charge never moved")
+        assertTrue(sawMidCharge, "the charge jumped straight to full, peaked at $peak")
+    }
+
+    @Test
+    fun `a killed enemy finishes coming apart before the next one arrives`() {
+        val e = engine()
+        var sawPartialDeath = false
+        var floorAtDeathStart = -1
+        var floorAdvancedTooEarly = false
+        for (f in PoseFixtures.trace(count = 60, peakDepth = 0.95f, restMs = 250)) {
+            val s = e.onPoseFrame(f)
+            if (s.enemyDeath > 0f && s.enemyDeath < 1f) {
+                sawPartialDeath = true
+                if (floorAtDeathStart < 0) floorAtDeathStart = s.floorIndex
+                if (s.floorIndex != floorAtDeathStart) floorAdvancedTooEarly = true
+            } else {
+                floorAtDeathStart = -1
+            }
+            if (s.outcome != null) break
+        }
+        assertTrue(sawPartialDeath, "the death animation was never visible")
+        assertTrue(!floorAdvancedTooEarly, "the next floor arrived mid-shatter")
+    }
+
+    @Test
+    fun `the run's ending wins over a late combat event`() {
+        val e = engine()
+        var frames = PoseFixtures.trace(count = 3, peakDepth = 0.95f)
+        frames.forEach { e.onPoseFrame(it) }
+        val outcome = e.quit()
+        assertTrue(!outcome.cleared)
+    }
+}
