@@ -107,6 +107,17 @@ CI runs both. See `.github/workflows/ci.yml`.
 ## Before shipping
 
 `docs/RELEASE.md` has the checklist. The short version: a signing keystore, the Play Console
-subscription products from `BillingProducts.kt`, a hosted privacy policy URL, a Data Safety
-declaration, store screenshots, and a content rating. Placeholder launcher art and the absence of
-character animation are the two obvious gaps in what is here.
+subscription products from `BillingProducts.kt`, GitHub Pages switched on so the privacy policy URL
+resolves, a Data Safety declaration, store screenshots taken on a real device, and a content rating.
+
+Three more documents cover the half of this that is not code:
+
+- `docs/STORE_LISTING.md` — the Console fields, written to Play's limits, plus what each of the
+  eight screenshots has to do.
+- `docs/LAUNCH.md` — the plan for getting the first users, the hypotheses it tests, and the
+  numbers that decide whether to build anything else.
+- `docs/DECISIONS.md` — the product decisions and why.
+
+`scripts/render-art.sh` renders the share cards and the Play feature graphic to PNG on a plain JVM,
+so the artwork can be reviewed without an Android device. Same idea as `test-core.sh`, applied to
+pixels.
