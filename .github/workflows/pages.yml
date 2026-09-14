@@ -1,0 +1,43 @@
+# Publishes site/ to GitHub Pages.
+#
+# site/ rather than docs/ so the internal planning documents in docs/ stay out of the published
+# site. The privacy policy URL this produces is a hard requirement for the Play listing, so this
+# workflow is on the release path, not a nicety.
+#
+# One-time setup: repository Settings -> Pages -> Source -> "GitHub Actions".
+name: Pages
+
+on:
+  push:
+    branches: ["claude/pushup-rpg-app-2xnr4o"]
+    paths:
+      - "site/**"
+      - ".github/workflows/pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+      - id: deployment
+        uses: actions/deploy-pages@v4

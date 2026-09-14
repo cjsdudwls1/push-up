@@ -26,6 +26,11 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import android.content.ActivityNotFoundException
+import android.content.Context
+import android.content.Intent
+import android.widget.Toast
+import androidx.core.net.toUri
 import com.pushuprpg.app.AppContainer
 import com.pushuprpg.app.domain.AppSettings
 import com.pushuprpg.app.domain.FreeTier
@@ -376,7 +381,7 @@ fun PushupRpgApp(
                                 )
                             }
                         },
-                        onOpenPrivacy = { /* wired to the hosted policy URL before release */ },
+                        onOpenPrivacy = { openUrl(context, context.getString(R.string.privacy_policy_url)) },
                     )
                 }
 
@@ -432,3 +437,20 @@ internal var lastOutcome: com.pushuprpg.core.run.Outcome? = null
 
 /** Travels with [lastOutcome]; the battle entry is popped before the result screen composes. */
 internal var lastLevelsGained: Int = 0
+
+/**
+ * Opens a link in whatever the device uses for the web.
+ *
+ * Failure is surfaced rather than swallowed: the one link this app has is its privacy policy, and a
+ * settings row that does nothing when tapped looks like the policy does not exist.
+ */
+private fun openUrl(context: Context, url: String) {
+    try {
+        context.startActivity(
+            Intent(Intent.ACTION_VIEW, url.toUri()).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        )
+    } catch (e: ActivityNotFoundException) {
+        Toast.makeText(context, context.getString(R.string.browser_unavailable), Toast.LENGTH_SHORT)
+            .show()
+    }
+}

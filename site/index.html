@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>푸쉬업 RPG — 팔굽혀펴기가 곧 공격이에요</title>
+<meta name="description" content="카메라가 자세를 보고 개수를 세요. 한 개가 한 번의 공격이고, 깊게 내려갈수록 더 아프게 들어가요. 영상은 저장되지도, 어디로도 전송되지 않아요.">
+<link rel="canonical" href="https://cjsdudwls1.github.io/push-up/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="푸쉬업 RPG">
+<meta property="og:title" content="푸쉬업 RPG — 팔굽혀펴기가 곧 공격이에요">
+<meta property="og:description" content="카메라가 자세를 보고 개수를 세요. 얕게 하면 안 맞아요. 져도 개수는 남아요.">
+<meta property="og:image" content="https://cjsdudwls1.github.io/push-up/assets/card-dungeon.png">
+<meta property="og:url" content="https://cjsdudwls1.github.io/push-up/">
+<meta property="og:locale" content="ko_KR">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#07080c">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💪</text></svg>">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <a class="wordmark" href="./">푸쉬업 <span>RPG</span></a>
+    <nav>
+      <a href="#how">어떻게 하나요</a>
+      <a href="#cat">고냥이 모드</a>
+      <a href="#privacy">개인정보</a>
+      <a href="#price">요금</a>
+    </nav>
+  </div>
+</header>
+
+<div class="hero">
+  <div class="wrap">
+    <div>
+      <span class="eyebrow">안드로이드 · 출시 준비 중</span>
+      <h1>팔굽혀펴기가 <em>곧 공격</em>이에요</h1>
+      <p class="lede">
+        폰을 바닥에 세워두고 엎드리면 카메라가 자세를 봐요.
+        한 개가 한 번의 공격이고, 깊게 내려갈수록 더 아프게 들어가요.
+        개수를 세느라 집중이 끊기지 않아요.
+      </p>
+      <div class="cta-row" id="cta-row">
+        <a class="btn btn-primary" data-link="play" hidden>Google Play에서 받기</a>
+        <a class="btn btn-primary" data-link="waitlist" hidden>출시 알림 받기</a>
+        <a class="btn btn-ghost" href="https://github.com/cjsdudwls1/push-up">개발 과정 보기</a>
+      </div>
+      <p class="cta-note" data-note="waitlist" hidden>이메일만 받아요. 출시하면 한 번 알려드리고 끝이에요.</p>
+      <p class="cta-note" data-note="soon" hidden>아직 스토어에 올라가기 전이에요. 준비되면 이 자리에 링크가 생겨요.</p>
+    </div>
+
+    <!-- Drawn rather than screenshotted: the app is not on a store yet, and a mockup that claims to
+         be a screenshot would be a lie about a product nobody can check. -->
+    <svg viewBox="0 0 300 420" role="img" aria-label="깊이 게이지와 몬스터 체력이 보이는 게임 화면 그림" style="width:100%;max-width:330px;margin:0 auto;display:block">
+      <defs>
+        <linearGradient id="screen" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#161a23"/>
+          <stop offset="1" stop-color="#07080c"/>
+        </linearGradient>
+        <linearGradient id="gauge" x1="0" y1="1" x2="0" y2="0">
+          <stop offset="0" stop-color="#35e08a"/>
+          <stop offset="1" stop-color="#ffc53d"/>
+        </linearGradient>
+      </defs>
+      <rect x="30" y="8" width="240" height="404" rx="34" fill="#1f2430"/>
+      <rect x="36" y="14" width="228" height="392" rx="29" fill="url(#screen)"/>
+
+      <!-- boss hp, with the exact number the feedback asked for -->
+      <rect x="56" y="36" width="188" height="10" rx="5" fill="#2e3542"/>
+      <rect x="56" y="36" width="116" height="10" rx="5" fill="#ff4d5e"/>
+      <text x="56" y="62" fill="#f2f5fa" font-size="11" font-family="sans-serif" font-weight="700">고블린 킹</text>
+      <text x="244" y="62" fill="#a9b3c4" font-size="11" font-family="sans-serif" text-anchor="end">1,240 / 2,000</text>
+
+      <!-- monster -->
+      <circle cx="150" cy="150" r="42" fill="#3b2f52"/>
+      <path d="M120 118 L130 96 L140 116 Z M180 118 L170 96 L160 116 Z" fill="#3b2f52"/>
+      <circle cx="136" cy="146" r="6" fill="#ff4d5e"/>
+      <circle cx="164" cy="146" r="6" fill="#ff4d5e"/>
+
+      <!-- depth gauge: the line the user aims at -->
+      <rect x="56" y="228" width="26" height="150" rx="13" fill="#161a23" stroke="#2e3542"/>
+      <rect x="56" y="300" width="26" height="78" rx="13" fill="url(#gauge)"/>
+      <line x1="48" y1="296" x2="92" y2="296" stroke="#ffc53d" stroke-width="2" stroke-dasharray="3 3"/>
+      <text x="98" y="300" fill="#ffc53d" font-size="11" font-family="sans-serif" font-weight="700">깊은 타격</text>
+      <line x1="48" y1="336" x2="92" y2="336" stroke="#35e08a" stroke-width="2" stroke-dasharray="3 3"/>
+      <text x="98" y="340" fill="#35e08a" font-size="11" font-family="sans-serif" font-weight="700">인정되는 깊이</text>
+
+      <text x="150" y="214" fill="#f2f5fa" font-size="30" font-family="sans-serif" font-weight="800" text-anchor="middle">18</text>
+      <text x="244" y="378" fill="#ff9f43" font-size="14" font-family="sans-serif" font-weight="800" text-anchor="end">×7 콤보</text>
+    </svg>
+  </div>
+</div>
+
+<section id="how">
+  <div class="wrap">
+    <h2>개수를 세지 않아도 돼요</h2>
+    <p class="section-lede">
+      운동 앱이 지겨워지는 건 대부분 같은 이유예요. 몇 개 했는지 기억해야 하고, 제대로 한 건지 아무도 안 봐주고,
+      오늘 한 게 내일 아무것도 아니게 돼요. 세 가지 다 반대로 만들었어요.
+    </p>
+    <div class="grid-3">
+      <div class="card">
+        <span class="mark">📐</span>
+        <h3>카메라가 세요</h3>
+        <p>어깨와 손목의 위치로 깊이를 재요. 거리나 각도가 달라져도 같은 기준으로 세고, 폰을 어디에 두든 상관없어요.</p>
+      </div>
+      <div class="card">
+        <span class="mark">⚔️</span>
+        <h3>얕게 하면 안 맞아요</h3>
+        <p>개수는 올라가는데 데미지는 안 들어가는 일이 없어요. 깊이를 판정하는 곳이 한 군데뿐이라, 인정된 한 개는 반드시 한 방이에요.</p>
+      </div>
+      <div class="card">
+        <span class="mark">🌱</span>
+        <h3>져도 남아요</h3>
+        <p>경험치는 이긴 순간이 아니라 개수마다 들어와요. 못 잡고 끝나도 오늘 한 건 그대로 기록되고 등급도 올라가요.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="alt" id="cat">
+  <div class="wrap">
+    <div class="split">
+      <div>
+        <h2>처음엔 고냥이부터요</h2>
+        <p class="section-lede" style="margin-bottom:0">
+          천장이 내려와요. 한 번 밀 때마다 다시 올라가요. 설명이 필요 없는 게 이 모드의 전부예요.
+          팔굽혀펴기를 한 번도 안 해본 사람도 30초면 무슨 게임인지 알아요.
+        </p>
+        <ul class="checks">
+          <li>튜토리얼이자 캐주얼 모드예요. 던전을 안 해도 여기만 계속 할 수 있어요.</li>
+          <li>이 모드는 계속 무료예요.</li>
+          <li>끝나면 기록이 카드로 나와요. 그대로 보내면 돼요.</li>
+        </ul>
+      </div>
+      <img src="assets/card-survival.png" alt="고냥이 지켜줘 기록 카드. 점수 1,240점, 밀어 올린 횟수 31회, 버틴 시간 1분 36초." width="1080" height="1350" loading="lazy">
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="split">
+      <img src="assets/card-dungeon.png" alt="던전 클리어 카드. 팔굽혀펴기 64개, 최대 콤보 21, 3분 34초." width="1080" height="1350" loading="lazy">
+      <div>
+        <h2>몬스터 체력은 개수로 되어 있어요</h2>
+        <p class="section-lede" style="margin-bottom:0">
+          체력이 몇이라는 숫자를 정해두지 않았어요. 이 몬스터를 잡는 데 팔굽혀펴기 몇 개가 필요한지를 먼저 정하고,
+          거기서 체력을 거꾸로 계산해요. 그래서 처음 하는 사람에게도, 하루에 200개씩 하는 사람에게도
+          같은 던전이 비슷하게 힘들어요.
+        </p>
+        <ul class="checks">
+          <li>스쿼트와 플랭크로도 싸울 수 있어요.</li>
+          <li>남은 체력을 숫자로 정확히 보여줘요.</li>
+          <li>트래킹이 흔들리면 시계가 멈춰요. 카메라가 놓쳐서 맞는 일은 없어요.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="alt" id="privacy">
+  <div class="wrap">
+    <div class="privacy-band">
+      <h2>영상은 저장되지도, 전송되지도 않아요</h2>
+      <p class="section-lede" style="margin-bottom:18px">
+        동작 인식은 전부 폰 안에서 일어나요. 카메라 화면은 게임을 하는 동안 화면에만 있고,
+        어디에도 기록되지 않고 서버로 올라가지도 않아요. 서버에 저장되는 건 사진도 영상도 아닌
+        개수와 시간 같은 숫자뿐이고, 그마저도 기기에 남아요.
+      </p>
+      <a class="btn btn-ghost" href="privacy.html">개인정보처리방침 전문 읽기</a>
+    </div>
+  </div>
+</section>
+
+<section id="price">
+  <div class="wrap">
+    <h2>무료로 계속 할 수 있는 부분이 있어요</h2>
+    <p class="section-lede">
+      체험 기간이 끝나면 아무것도 못 하게 되는 방식은 안 써요. 첫 던전과 고냥이 모드는 기간 제한 없이 무료예요.
+    </p>
+    <div class="price-grid">
+      <div class="price free">
+        <div class="tag">무료</div>
+        <div class="amount">0원</div>
+        <ul>
+          <li>고냥이 지켜줘 — 계속</li>
+          <li>첫 번째 던전 — 계속</li>
+          <li>기록, 연속 일수, 등급 전부</li>
+        </ul>
+      </div>
+      <div class="price">
+        <div class="tag">구독</div>
+        <div class="amount">7일 무료 체험</div>
+        <ul>
+          <li>모든 던전과 보스</li>
+          <li>스쿼트 · 플랭크 전투</li>
+          <li>난이도 선택</li>
+          <li>월간 / 연간 중 선택</li>
+        </ul>
+      </div>
+    </div>
+    <p class="cta-note">가격은 스토어 등록 시점에 이 자리에 정확히 표시돼요. 체험 기간 안에 해지하면 결제되지 않아요.</p>
+  </div>
+</section>
+
+<section class="alt">
+  <div class="wrap">
+    <h2>자주 묻는 것</h2>
+    <details>
+      <summary>인터넷 없이도 되나요?</summary>
+      <p>네. 동작 인식이 전부 폰 안에서 돌아가서 비행기 모드에서도 운동이 돼요. 결제와 구독 확인에만 연결이 필요해요.</p>
+    </details>
+    <details>
+      <summary>폰을 어디에 둬야 하나요?</summary>
+      <p>바닥에 세워서 몸 옆쪽을 비추면 가장 잘 잡혀요. 거리는 크게 상관없어요 — 깊이를 어깨 너비로 나눠서 재기 때문에 카메라가 멀든 가깝든 같은 기준이 나와요.</p>
+    </details>
+    <details>
+      <summary>무릎 대고 하는 것도 인정되나요?</summary>
+      <p>네. 처음에 각자 내려갈 수 있는 범위를 재고, 그 범위를 기준으로 판정해요. 남의 깊이가 아니라 오늘 내 깊이가 기준이에요.</p>
+    </details>
+    <details>
+      <summary>iOS 버전은요?</summary>
+      <p>지금은 안드로이드만 준비하고 있어요. 안드로이드에서 쓰는 사람이 생기면 그다음에 생각할 일이에요.</p>
+    </details>
+    <details>
+      <summary>개수를 속일 수 있나요?</summary>
+      <p>얕게 흔드는 걸로는 안 올라가요. 너무 빠른 하강, 한쪽으로 쏠린 자세, 위에서 아래로 내려갔다 오지 않은 동작은 개수로 안 쳐요. 다만 이건 경쟁 게임이 아니라 혼자 하는 운동이라, 속여서 손해 보는 건 본인이에요.</p>
+    </details>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="links">
+      <a href="privacy.html">개인정보처리방침</a>
+      <a href="terms.html">이용약관</a>
+      <a href="https://github.com/cjsdudwls1/push-up">GitHub</a>
+    </div>
+    <div>© 2026 푸쉬업 RPG</div>
+  </div>
+</footer>
+
+<script>
+/*
+ * The store link and the waitlist form do not exist yet. Rather than shipping dead buttons, each
+ * CTA stays hidden until its URL is filled in here — an empty string renders the honest "not on a
+ * store yet" note instead.
+ */
+const LINKS = {
+    play: "",      // https://play.google.com/store/apps/details?id=io.github.cjsdudwls1.pushuprpg
+    waitlist: "",  // a Google Form, or anything that collects an email
+};
+
+for (const [name, url] of Object.entries(LINKS)) {
+    const el = document.querySelector(`[data-link="${name}"]`);
+    if (el && url) {
+        el.href = url;
+        el.hidden = false;
+    }
+}
+
+// The waitlist note only makes sense next to a waitlist button; otherwise say plainly that there
+// is nowhere to send anyone yet.
+const note = LINKS.waitlist ? "waitlist" : (LINKS.play ? null : "soon");
+if (note) document.querySelector(`[data-note="${note}"]`).hidden = false;
+</script>
+
+</body>
+</html>

@@ -294,4 +294,9 @@
     <string name="share_text_dungeon_defeat">푸쉬업 RPG · %1$s에서 %2$,d번 때렸어요. 다음엔 잡아요 💪</string>
     <string name="result_share">이 판 자랑하기</string>
     <string name="share_unavailable">공유할 앱을 찾지 못했어요.</string>
+    <string name="browser_unavailable">웹 브라우저를 찾지 못했어요.</string>
+
+    <!-- Hosted from site/ by .github/workflows/pages.yml. Google Play requires this URL to resolve
+         before the listing can be published, so it is part of the release checklist, not a link. -->
+    <string name="privacy_policy_url" translatable="false">https://cjsdudwls1.github.io/push-up/privacy.html</string>
 </resources>

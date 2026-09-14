@@ -22,8 +22,17 @@ Korean price by hand rather than letting Play convert from USD — converted pri
 that read as foreign.
 
 ### Privacy policy and Data Safety
-A hosted privacy policy URL is required, and `SettingsScreen`'s `onOpenPrivacy` is currently an
-empty lambda waiting for it.
+The policy is written and hosted from `site/privacy.html`, and the app's settings row now opens
+`R.string.privacy_policy_url`. Two things still have to happen by hand:
+
+1. **Enable Pages.** Repository Settings → Pages → Source → "GitHub Actions".
+   `.github/workflows/pages.yml` publishes `site/` on every push that touches it. Until this is
+   switched on, `https://cjsdudwls1.github.io/push-up/privacy.html` 404s and the Play listing
+   cannot be submitted.
+2. **Fill in the contact address.** Section 11 of the policy carries a
+   `[출시 전 문의 이메일 기재 필요]` placeholder. Play review checks that the policy names a
+   contact, and a published policy with a bracketed placeholder in it is worse than no policy.
+   Search the repo for that string; it appears exactly once.
 
 The Data Safety form has to make one distinction carefully, because both halves are true:
 
