@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.pushuprpg.app.AppContainer
+import com.pushuprpg.app.audio.GameAudio
 import com.pushuprpg.app.domain.AppSettings
 import com.pushuprpg.app.domain.PlayerProgress
 import com.pushuprpg.app.domain.ProgressRepository
@@ -49,6 +50,7 @@ class BattleViewModel(
     private val progressRepository: ProgressRepository,
     private val sessionRepository: SessionRepository,
     private val settingsRepository: SettingsRepository,
+    private val audio: GameAudio,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(BattleState())
@@ -75,7 +77,11 @@ class BattleViewModel(
 
     init {
         viewModelScope.launch {
-            settingsRepository.settings.collect { _settings.value = it }
+            settingsRepository.settings.collect {
+                _settings.value = it
+                audio.soundEnabled = it.sfxEnabled
+                audio.hapticStrength = it.hapticStrength
+            }
         }
     }
 
@@ -128,6 +134,9 @@ class BattleViewModel(
     fun onPoseFrame(frame: PoseFrame) {
         val e = engine ?: return
         val next = e.onPoseFrame(frame)
+        // Fired straight from this thread: routing it through a recomposition would spend most of
+        // the ~90ms budget between the rep bottoming out and the user hearing it.
+        audio.play(next.sounds)
         sessionBestDepth = maxOf(sessionBestDepth, next.depth)
         _state.value = next
         next.outcome?.let { finish(it) }
@@ -260,6 +269,7 @@ class BattleViewModel(
                     container.progressRepository,
                     container.sessionRepository,
                     container.settingsRepository,
+                    container.audio,
                 )
             }
         }

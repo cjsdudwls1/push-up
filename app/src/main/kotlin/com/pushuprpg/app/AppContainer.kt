@@ -1,6 +1,7 @@
 package com.pushuprpg.app
 
 import android.content.Context
+import com.pushuprpg.app.audio.GameAudio
 import com.pushuprpg.app.billing.PlayEntitlementRepository
 import com.pushuprpg.app.data.AppDatabase
 import com.pushuprpg.app.data.DataStoreProgressRepository
@@ -46,6 +47,12 @@ class AppContainer(context: Context) {
     val entitlementRepository: EntitlementRepository by lazy {
         PlayEntitlementRepository(appContext, appScope)
     }
+
+    /**
+     * Shared across screens rather than created per battle: loading fifteen samples takes long
+     * enough to be audible as a gap on the first rep of every run.
+     */
+    val audio: GameAudio by lazy { GameAudio(appContext) }
 
     /** The billing client, for the paywall's purchase flow. */
     val billing get() = (entitlementRepository as PlayEntitlementRepository).billing

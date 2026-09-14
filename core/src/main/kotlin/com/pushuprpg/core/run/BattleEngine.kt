@@ -3,6 +3,9 @@ package com.pushuprpg.core.run
 import com.pushuprpg.core.anim.AnimClip
 import com.pushuprpg.core.anim.AnimState
 import com.pushuprpg.core.anim.FighterAnimator
+import com.pushuprpg.core.audio.BattleAudio
+import com.pushuprpg.core.audio.SoundCue
+import com.pushuprpg.core.audio.SoundRequest
 import com.pushuprpg.core.detect.*
 import com.pushuprpg.core.game.*
 import com.pushuprpg.core.pose.PoseFrame
@@ -63,6 +66,8 @@ data class BattleState(
     val enemyDeath: Float = 0f,
     /** 0..1 as the boss charges toward its ultimate. */
     val telegraphCharge: Float = 0f,
+    /** Sounds to play for this frame. Empty on most frames, never null. */
+    val sounds: List<SoundRequest> = emptyList(),
 ) {
     val enemyHpFraction: Float get() = enemyHp.toFloat() / enemyMaxHp.coerceAtLeast(1)
     val playerHpFraction: Float get() = playerHp.toFloat() / playerMaxHp.coerceAtLeast(1)
@@ -143,6 +148,7 @@ class BattleEngine(
         if (startedAtMs == Long.MIN_VALUE) startedAtMs = tick.tMs
         lastFrameMs = tick.tMs
 
+        val sounds = mutableListOf<SoundRequest>()
         val damages = state.damages.filter { tick.tMs - it.atMs < DAMAGE_LIFETIME_MS }.toMutableList()
         var alert = state.alert?.takeIf { tick.tMs - it.atMs < ALERT_LIFETIME_MS }
         var shake = (state.shake - SHAKE_DECAY).coerceAtLeast(0f)
@@ -190,6 +196,18 @@ class BattleEngine(
                                 if (ce.result.deep) deepReps++
                                 animator.onStrike(event.tMs, ce.result.deep, ce.result.crit)
                                 enemyHurtAtMs = event.tMs
+
+                                // Both bands fire: the dry cue confirms the rep counted, the low
+                                // one confirms it landed. They answer different questions.
+                                sounds += SoundRequest(SoundCue.REP_ACCEPT)
+                                sounds += SoundRequest(
+                                    cue = when {
+                                        ce.result.crit -> SoundCue.CRIT
+                                        ce.result.deep -> SoundCue.HIT_HEAVY
+                                        else -> SoundCue.HIT
+                                    },
+                                    rate = BattleAudio.pitchForCombo(event.combo),
+                                )
                                 damageSeq++
                                 damages += FloatingDamage(
                                     damageSeq, ce.result.damage, ce.result.crit, ce.result.deep, event.tMs
@@ -198,6 +216,7 @@ class BattleEngine(
                                 shallowStreak = 0
                                 if (event.combo > 0 && event.combo % COMBO_MILESTONE == 0) {
                                     alert = Toast(AlertKey.COMBO_MILESTONE, event.combo, event.tMs)
+                                    sounds += SoundRequest(SoundCue.COMBO_UP)
                                 }
                             }
                             is CombatEvent.EnemyDefeated -> {
@@ -205,6 +224,7 @@ class BattleEngine(
                                 // apart. Spawning it on the same frame cancelled the death outright
                                 // — the kill the player just earned simply never appeared.
                                 enemyDiedAtMs = event.tMs
+                                sounds += SoundRequest(SoundCue.ENEMY_DOWN)
                             }
                             else -> alert = alertFor(ce) ?: alert
                         }
@@ -214,6 +234,7 @@ class BattleEngine(
                 is RepEvent.DeepUpgrade -> {
                     alert = Toast(AlertKey.DEEP_STRIKE, 0, event.tMs)
                     shake = (shake + 0.3f).coerceAtMost(1f)
+                    sounds += SoundRequest(SoundCue.REP_DEEP)
                 }
 
                 is RepEvent.Completed -> lastBottomMs = event.record.bottomMs
@@ -250,7 +271,10 @@ class BattleEngine(
                     }
                 }
 
-                is RepEvent.ComboBroken -> alert = Toast(AlertKey.COMBO_BROKEN, event.finalCombo, event.tMs)
+                is RepEvent.ComboBroken -> {
+                    alert = Toast(AlertKey.COMBO_BROKEN, event.finalCombo, event.tMs)
+                    sounds += SoundRequest(SoundCue.COMBO_BREAK)
+                }
 
                 is RepEvent.QualityChanged -> {
                     alert = when (event.quality) {
@@ -273,12 +297,17 @@ class BattleEngine(
                     is CombatEvent.BossTick -> {
                         shake = (shake + 0.6f).coerceAtMost(1f)
                         animator.onHurt(ce.atMs)
+                        sounds += SoundRequest(SoundCue.PLAYER_HURT)
                         alert = Toast(AlertKey.IDLE, 0, ce.atMs)
                     }
-                    is CombatEvent.Telegraph -> alert = Toast(AlertKey.ULTIMATE_INCOMING, 0, ce.atMs)
+                    is CombatEvent.Telegraph -> {
+                        alert = Toast(AlertKey.ULTIMATE_INCOMING, 0, ce.atMs)
+                        sounds += SoundRequest(SoundCue.TELEGRAPH)
+                    }
                     is CombatEvent.Ultimate -> if (ce.damage > 0) {
                         shake = 1f
                         animator.onHurt(ce.atMs)
+                        sounds += SoundRequest(SoundCue.PLAYER_HURT, volume = 1f)
                     }
                     is CombatEvent.Exhausted -> outcome = finish(cleared = false, atMs = ce.atMs)
                     else -> Unit
@@ -295,6 +324,9 @@ class BattleEngine(
             outcome = advanceFloor(tick.tMs)
         }
 
+        if (outcome != null && state.outcome == null) {
+            sounds += SoundRequest(if (outcome.cleared) SoundCue.VICTORY else SoundCue.DEFEAT)
+        }
         outcome?.let { animator.onRunEnded(tick.tMs, it.cleared) }
         val anim = animator.update(tick.tMs, tick.depth)
 
@@ -343,6 +375,7 @@ class BattleEngine(
             enemyHurt = enemyHurt,
             enemyDeath = enemyDeath,
             telegraphCharge = charge,
+            sounds = sounds,
         )
         return state
     }
