@@ -106,19 +106,28 @@ class BodyFrameTracker(private val config: DetectorConfig) {
         }
         lastTMs = frame.timestampMs
 
-        // Normal to the shoulder axis, sign forced toward the wrists so the signal is unaffected
-        // by camera roll or by the preview being mirrored.
+        // Normal to the shoulder axis, with its sign forced toward the far end of the body so the
+        // signal is unaffected by camera roll or by the preview being mirrored.
+        //
+        // Which end counts as "far" depends on the movement: a pushup measures toward the hands on
+        // the floor, a squat toward the hips and legs. Getting this wrong does not produce a
+        // slightly worse reading — it inverts the signal, so descending would register as rising.
         var (nU, nV) = Geometry.rot90(axU, axV)
 
-        val wL = confidence[Lm.LEFT_WRIST]
-        val wR = confidence[Lm.RIGHT_WRIST]
         val shoulderU = (slU + srU) / 2f
         val shoulderV = (slV + srV) / 2f
 
+        val (farLeft, farRight) = when (config.exercise) {
+            ExerciseType.SQUAT -> Lm.LEFT_HIP to Lm.RIGHT_HIP
+            else -> Lm.LEFT_WRIST to Lm.RIGHT_WRIST
+        }
+        val wL = confidence[farLeft]
+        val wR = confidence[farRight]
+
         if (wL + wR > 0f) {
-            val wristU = (frame.u(Lm.LEFT_WRIST) * wL + frame.u(Lm.RIGHT_WRIST) * wR) / (wL + wR)
-            val wristV = (frame.v(Lm.LEFT_WRIST) * wL + frame.v(Lm.RIGHT_WRIST) * wR) / (wL + wR)
-            if (Geometry.dot(wristU - shoulderU, wristV - shoulderV, nU, nV) < 0f) {
+            val farU = (frame.u(farLeft) * wL + frame.u(farRight) * wR) / (wL + wR)
+            val farV = (frame.v(farLeft) * wL + frame.v(farRight) * wR) / (wL + wR)
+            if (Geometry.dot(farU - shoulderU, farV - shoulderV, nU, nV) < 0f) {
                 nU = -nU
                 nV = -nV
             }

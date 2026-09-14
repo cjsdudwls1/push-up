@@ -130,9 +130,13 @@ data class DetectorConfig(
             maxDescentSpeed = 450f, minAscentMs = 250, minRepPeriodMs = 900,
             maxDescentMs = 5000, maxBottomMs = 6000,
             signalMinCutoff = 1.0f, signalBeta = 18f,
-            hTopPrior = 1.00f, hBotPrior = 0.64f, rMin = 0.22f,
-            topClampMin = 0.85f, topClampMax = 1.12f,
-            botClampMin = 0.40f, botClampMax = 0.92f,
+            // The squat signal is hip-above-knee in shoulder widths: about +1.05 standing, 0 at
+            // parallel, negative below it. The bottom clamp therefore has to allow negative values
+            // — a deep squat genuinely puts the hip crease under the knee, and clamping at zero
+            // would cap a full-depth user at the same reading as a parallel one.
+            hTopPrior = 1.05f, hBotPrior = 0.05f, rMin = 0.45f,
+            topClampMin = 0.70f, topClampMax = 1.60f,
+            botClampMin = -0.50f, botClampMax = 0.80f,
         )
 
         fun plank(): DetectorConfig = DetectorConfig(ExerciseType.PLANK)

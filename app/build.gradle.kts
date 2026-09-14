@@ -19,11 +19,14 @@ val keystoreProperties = Properties().apply {
 }
 
 android {
+    // namespace is the code package (the R class); applicationId is the Play identity. They are
+    // allowed to differ, and here they do: the identity is owned, the package name is not worth a
+    // 37-file rename that cannot be compile-checked in this environment.
     namespace = "com.pushuprpg.app"
     compileSdk = 37
 
     defaultConfig {
-        applicationId = "com.pushuprpg.app"
+        applicationId = "io.github.cjsdudwls1.pushuprpg"
         minSdk = 26
         // Google Play requires new apps and updates to target API 36 from 2026-08-31.
         targetSdk = 36

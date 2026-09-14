@@ -136,6 +136,79 @@ object PoseFixtures {
         return lm
     }
 
+    /** Shoulder width for the standing fixtures. A full body in frame is smaller than a torso. */
+    const val STANDING_SHOULDER_WIDTH = 0.13f
+
+    /**
+     * A squat, viewed face-on from a phone propped up a couple of metres away.
+     *
+     * The knees barely change height in a real squat — the hips come down to meet them — so the
+     * fixture holds the knees still and descends the hip, which is what makes hip-above-knee the
+     * signal it is. [depthFraction] 0 is standing, 1 is parallel (hip level with knee), and above 1
+     * puts the hip crease below the knee.
+     */
+    fun squatFrame(
+        tMs: Long,
+        depthFraction: Float,
+        legConfidence: Float = CONFIDENT,
+        shoulderWidth: Float = STANDING_SHOULDER_WIDTH,
+        centerU: Float = ASPECT / 2f,
+        noiseU: Float = 0f,
+    ): PoseFrame {
+        val lm = MutableList(Lm.COUNT) { Landmark.ZERO }
+        val halfW = shoulderWidth / 2f
+
+        val thigh = shoulderWidth * 1.05f
+        val torso = shoulderWidth * 1.40f
+        val shank = shoulderWidth * 1.10f
+
+        val ankleV = 0.92f
+        val kneeV = ankleV - shank
+        val hipV = kneeV - thigh * (1f - depthFraction)
+        val shoulderV = hipV - torso
+
+        fun put(index: Int, u: Float, v: Float, conf: Float) {
+            lm[index] = Landmark((u + noiseU) / ASPECT, v, 0f, conf, conf)
+        }
+
+        // Knees track outward as the squat deepens, as they do when someone is doing it properly.
+        val kneeOut = halfW * (0.75f + 0.35f * depthFraction)
+
+        put(Lm.NOSE, centerU, shoulderV - shoulderWidth * 0.55f, CONFIDENT)
+        put(Lm.LEFT_SHOULDER, centerU + halfW, shoulderV, CONFIDENT)
+        put(Lm.RIGHT_SHOULDER, centerU - halfW, shoulderV, CONFIDENT)
+        put(Lm.LEFT_ELBOW, centerU + halfW * 1.15f, shoulderV + torso * 0.45f, CONFIDENT)
+        put(Lm.RIGHT_ELBOW, centerU - halfW * 1.15f, shoulderV + torso * 0.45f, CONFIDENT)
+        put(Lm.LEFT_WRIST, centerU + halfW * 0.9f, shoulderV + torso * 0.8f, CONFIDENT)
+        put(Lm.RIGHT_WRIST, centerU - halfW * 0.9f, shoulderV + torso * 0.8f, CONFIDENT)
+        put(Lm.LEFT_HIP, centerU + halfW * 0.8f, hipV, CONFIDENT)
+        put(Lm.RIGHT_HIP, centerU - halfW * 0.8f, hipV, CONFIDENT)
+        put(Lm.LEFT_KNEE, centerU + kneeOut, kneeV, legConfidence)
+        put(Lm.RIGHT_KNEE, centerU - kneeOut, kneeV, legConfidence)
+        put(Lm.LEFT_ANKLE, centerU + halfW * 0.7f, ankleV, legConfidence)
+        put(Lm.RIGHT_ANKLE, centerU - halfW * 0.7f, ankleV, legConfidence)
+
+        return PoseFrame(tMs, WIDTH, HEIGHT, lm, emptyList())
+    }
+
+    /** [count] squats, preceded by enough still standing frames for the detector to arm. */
+    fun squatTrace(
+        count: Int,
+        startMs: Long = 0L,
+        peakDepth: Float = 1.0f,
+        descentMs: Int = 1000,
+        bottomMs: Int = 200,
+        ascentMs: Int = 1000,
+        restMs: Int = 400,
+        fps: Int = 30,
+        settleMs: Int = 700,
+        frameOf: (Long, Float) -> PoseFrame = { t, d -> squatFrame(t, d) },
+    ): List<PoseFrame> = trace(
+        count = count, startMs = startMs, peakDepth = peakDepth,
+        descentMs = descentMs, bottomMs = bottomMs, ascentMs = ascentMs,
+        restMs = restMs, fps = fps, settleMs = settleMs, frameOf = frameOf,
+    )
+
     /**
      * A plank, viewed face-on from a phone on the floor.
      *

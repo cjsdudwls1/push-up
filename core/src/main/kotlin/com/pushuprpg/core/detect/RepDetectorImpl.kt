@@ -180,7 +180,7 @@ class RepDetectorImpl(
 
             RepPhase.READY_TOP -> {
                 hTopThisRep = maxOf(hTopThisRep, h)
-                if (!sample.noseDrop.isNaN()) noseAtTop = sample.noseDrop
+                if (!sample.bodyDrop.isNaN()) bodyDropAtTop = sample.bodyDrop
                 if (depth > config.topExit) {
                     phase = RepPhase.DESCENDING
                     tTopExit = tMs
@@ -289,16 +289,16 @@ class RepDetectorImpl(
         // Two-signal agreement: the thing that stops someone waving an arm at the phone. The
         // primary signal can be fooled by moving the wrists alone; the elbow angle and the nose
         // cannot be, because they describe the rest of the body.
-        if (!sample.elbowDepth.isNaN()) {
-            if (abs(depth - sample.elbowDepth) > config.maxSignalDisagreement) {
+        if (!sample.jointDepth.isNaN()) {
+            if (abs(depth - sample.jointDepth) > config.maxSignalDisagreement) {
                 return AbandonReason.INCONSISTENT
             }
-        } else if (!sample.noseDrop.isNaN() && noseAtTop != Float.NEGATIVE_INFINITY) {
-            // No world landmarks, so use the head instead: in a real rep it descends with the
-            // chest, and when someone is only moving their hands at the phone it does not move at
-            // all. Measured against where the nose sat when this rep armed.
-            val descended = sample.noseDrop - noseAtTop
-            if (descended < MIN_NOSE_DESCENT_FRACTION * calibrator.range) {
+        } else if (!sample.bodyDrop.isNaN() && bodyDropAtTop != Float.NEGATIVE_INFINITY) {
+            // No world landmarks, so watch a part of the body the primary signal does not: the head
+            // for a pushup, the shoulders for a squat. Either way it has to have genuinely
+            // travelled since this rep armed, which is what waving at the phone does not do.
+            val descended = sample.bodyDrop - bodyDropAtTop
+            if (descended < MIN_BODY_DROP_FRACTION * calibrator.range) {
                 return AbandonReason.INCONSISTENT
             }
         }
@@ -358,7 +358,7 @@ class RepDetectorImpl(
         struckThisRep = false
     }
 
-    private var noseAtTop = Float.NEGATIVE_INFINITY
+    private var bodyDropAtTop = Float.NEGATIVE_INFINITY
 
     private fun arm(h: Float) {
         phase = RepPhase.READY_TOP
@@ -434,7 +434,7 @@ class RepDetectorImpl(
         tQualityOkSince = Long.MIN_VALUE
         tLastGoodPose = Long.MIN_VALUE
         tFirstFrame = Long.MIN_VALUE
-        noseAtTop = Float.NEGATIVE_INFINITY
+        bodyDropAtTop = Float.NEGATIVE_INFINITY
         repCount = 0
         combo = 0
         maxCombo = 0
@@ -484,7 +484,8 @@ class RepDetectorImpl(
          */
         const val MAX_DEPTH_SLEW = 1000f
 
-        const val MIN_NOSE_DESCENT_FRACTION = 0.30f
+        /** How much of the calibrated range the cross-checked body part must have travelled. */
+        const val MIN_BODY_DROP_FRACTION = 0.30f
     }
 }
 
