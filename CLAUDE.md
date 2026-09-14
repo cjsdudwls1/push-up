@@ -60,5 +60,10 @@ number, because there isn't one.
 
 ## Before claiming something works
 
-`:app` has never been compiled in this environment (Google's Maven is unreachable here), so any
-change to it is unverified until CI runs. Say so rather than implying otherwise.
+`:app` cannot be compiled in this environment — Google's Maven is unreachable here — so any change
+to it is unverified until CI runs. CI does build it and is green; that is the verification, not a
+local check. Say which of the two you have, rather than implying otherwise.
+
+`scripts/render-art.sh` is the exception that proves it: it renders the share cards and the Play
+feature graphic on a plain JVM against a Java2D shim, so artwork can be reviewed by looking at it
+here. Layout, clipping and hierarchy are real; fonts and hinting are not.

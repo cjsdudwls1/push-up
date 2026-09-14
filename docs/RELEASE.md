@@ -79,13 +79,22 @@ store listing.
 
 ## Known gaps, in the order they matter
 
-1. **The Android module has never been compiled.** Google's Maven was unreachable in the environment
-   this was built in, so `:app` was written and then reviewed against the pinned library versions
-   rather than built. That review found and fixed 32 issues, including a missing theme resource that
-   would have failed the resource link outright, a `drawText` import from the wrong package, three
-   thread races around the camera and the landmarker, and a timestamp unit mismatch that would have
-   made MediaPipe reject frames under load. Expect a first real compile to surface more. `:core` is
-   fully compiled and its 107 tests pass.
+1. **The Android module now builds, and has never run.** `:app` compiles in CI and produces a debug
+   APK; what it has never done is start on a phone. Everything about the camera, the landmarker and
+   the detector thresholds is still unverified against real hardware and a real body.
+
+   Getting it to build took five rounds, and only the last was about the code:
+   `platforms;android-37.0` carries a minor suffix that `platforms;android-37` does not; AGP 9
+   compiles Kotlin itself and rejects `org.jetbrains.kotlin.android` outright; Firebase stopped
+   publishing its `-ktx` artifacts, so the BOM resolved them with an empty version; AndroidX refuses
+   to be consumed below compileSdk 37. Then the compiler saw all 46 files and found six errors —
+   two undeclared DataStore keys, and `"$period마다"`, which parses as one identifier because Hangul
+   is a valid Kotlin identifier character.
+
+   The earlier 32-issue review still did its job: a missing theme resource that would have failed
+   the resource link, a `drawText` import from the wrong package, three thread races around the
+   camera and the landmarker, and a timestamp unit mismatch that would have made MediaPipe reject
+   frames under load — none of which a compiler would have caught anyway.
 2. **Character art is geometric, not illustrated.** Fighters and monsters are drawn from shapes on
    a Compose canvas, with a wind-up blend that moves the avatar in step with the user and a
    three-hit attack string that varies by depth and crit. It works and it is consistent, but it is
