@@ -52,8 +52,17 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
+      # Pinned to a platform that exists. This project was scaffolded without access to Google's
+      # Maven, so the original compileSdk was a guess (37) and sdkmanager rejected it outright.
+      # The listing on failure is what turns the next guess into a fact.
       - name: Install SDK platform
-        run: sdkmanager "platforms;android-37" "build-tools;37.0.0"
+        run: |
+          sdkmanager "platforms;android-36" "build-tools;36.0.0" || {
+            echo "::group::Platforms this runner can actually install"
+            sdkmanager --list 2>/dev/null | grep -E "^\s+(platforms;android|build-tools;)" | sort -u
+            echo "::endgroup::"
+            exit 1
+          }
 
       - name: Assemble debug
         run: ./gradlew :app:assembleDebug --no-daemon --stacktrace

@@ -35,7 +35,7 @@ android {
     // allowed to differ, and here they do: the identity is owned, the package name is not worth a
     // 37-file rename that cannot be compile-checked in this environment.
     namespace = "com.pushuprpg.app"
-    compileSdk = 37
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "io.github.cjsdudwls1.pushuprpg"

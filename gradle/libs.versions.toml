@@ -5,13 +5,13 @@
 # unreachable from the sandbox this project was scaffolded in. They are pinned from the official
 # release notes; CI (which has full network + the Android SDK) is the build verification.
 [versions]
-agp = "9.4.0"                  # requires Gradle >= 9.6.0, supports API <= 37
+agp = "9.4.0"                  # requires Gradle >= 9.6.0
 kotlin = "2.3.21"
 ksp = "2.3.12"                 # KSP 2.3.x is versioned independently of Kotlin (works with 2.2+)
 coroutines = "1.11.0"
 serialization = "1.11.0"
 
-composeBom = "2026.08.00"      # Compose 1.12 -> compiled against API 37
+composeBom = "2026.08.00"      # Compose 1.12
 coreKtx = "1.19.0"
 activityCompose = "1.13.0"
 lifecycle = "2.11.0"
