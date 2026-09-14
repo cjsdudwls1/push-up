@@ -77,19 +77,19 @@ store listing.
    thread races around the camera and the landmarker, and a timestamp unit mismatch that would have
    made MediaPipe reject frames under load. Expect a first real compile to surface more. `:core` is
    fully compiled and its 107 tests pass.
-2. **No character art or animation.** The launcher icon is a placeholder vector, and the player and
-   enemy are not drawn at all yet — the battle screen shows the HUD over the camera. The design work
-   for a cutout puppet rig is sketched in the notes but none of it is built. This is the largest
-   visible gap against the demo.
-3. **No audio.** The design calls for audio to be the primary feedback channel — the user often
-   cannot look at the screen mid-rep — and there is currently none. `AlertKey` and the `RepEvent`
-   stream are the hooks it would attach to.
-4. **Squat is configured but unproven.** `DetectorConfig.squat()` exists and the state machine is
-   shared, but the squat depth signal still needs its own derivation — reusing the pushup ratio for
-   a standing movement is a guess. The plank is fully implemented and tested, and is what the ward
-   and the boss-ultimate fallback depend on. Consider shipping pushup and plank only.
-5. **Every detection constant is reasoned, not measured.** They come from anthropometry and
+2. **Character art is geometric, not illustrated.** Fighters and monsters are drawn from shapes on
+   a Compose canvas, with a wind-up blend that moves the avatar in step with the user and a
+   three-hit attack string that varies by depth and crit. It works and it is consistent, but it is
+   not the commissioned sticker art the demo showed. Replacing it later means swapping
+   `CharacterArt.kt` and `MonsterArt.kt`; nothing else reads them.
+3. **Audio is synthesised.** Fifteen cues from `tools/generate_sfx.py`, deliberately split into a
+   dry high band for form and a wet low band for impacts. Adequate and coherent; a sound designer
+   would do better. There is no music and no voice.
+4. **Every detection constant is reasoned, not measured.** They come from anthropometry and
    projection geometry, tested against synthetic traces. Before a public release, record real
    sessions on four or five different phones and re-tune. A trace recorder and a replay harness are
-   the first thing to build after the first compile.
-6. **No crash reporting or analytics.** Add before any real user sees this.
+   the first thing to build after the first compile — `PoseTrace` and `TraceReplay` in `:core` are
+   already there for it; what is missing is the Android side that writes one and a way to send it.
+5. **No instrumentation tests.** `:core` has 140 unit tests; `:app` has none, and cannot be tested
+   here at all. Compose UI tests and a Room migration test are the obvious first additions once the
+   module builds.
