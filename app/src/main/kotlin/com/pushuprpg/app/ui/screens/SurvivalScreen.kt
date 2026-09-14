@@ -13,12 +13,15 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.pushuprpg.app.R
 import com.pushuprpg.app.pose.CameraPreview
 import com.pushuprpg.app.pose.PoseLandmarkerSource
+import com.pushuprpg.app.share.ShareCardData
 import com.pushuprpg.app.ui.components.KeepScreenOn
 import com.pushuprpg.app.ui.components.PrimaryButton
 import com.pushuprpg.app.ui.components.SecondaryButton
@@ -41,7 +44,7 @@ fun SurvivalScreen(
     poseSource: PoseLandmarkerSource,
     isTutorial: Boolean,
     onRetry: () -> Unit,
-    onShare: (Int) -> Unit,
+    onShare: (ShareCardData) -> Unit,
     onHome: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -104,7 +107,16 @@ fun SurvivalScreen(
                     score = state.score,
                     bestScore = bestScore,
                     onRetry = onRetry,
-                    onShare = onShare,
+                    onShare = {
+                        onShare(
+                            ShareCardData.Survival(
+                                score = state.score,
+                                best = maxOf(bestScore, state.score),
+                                reps = state.reps,
+                                seconds = (state.elapsedMs / 1000).toInt(),
+                            )
+                        )
+                    },
                     onHome = onHome,
                     modifier = Modifier.align(Alignment.Center),
                 )
@@ -166,7 +178,17 @@ private fun CeilingAndCat(state: SurvivalState, modifier: Modifier = Modifier) {
     }
 }
 
-/** A cat, in circles. Round enough to be worth protecting. */
+/**
+ * 고냥이.
+ *
+ * The same cat the share card draws, and that is the reason it is not just three circles: this is
+ * the mascot, and the first thing anyone who has not installed the app ever sees. The parts that
+ * make it read as a cat rather than a snowman — tall swept ears, whiskers, a tail — cost a handful
+ * of draw calls and are worth every one.
+ *
+ * [alarm] is the only thing that moves: ears flatten and eyes widen as the ceiling closes in. That
+ * is the whole emotional read of the mode, and it is carried by shape so it survives greyscale.
+ */
 private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawCat(
     centerX: Float,
     baseY: Float,
@@ -175,38 +197,113 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawCat(
 ) {
     val body = 46f * scale
     val head = 30f * scale
+    val headY = baseY - body * 1.05f - head * 0.72f
     val fur = Color(0xFFF3D9A8)
+    val ear = Color(0xFFE0A88C)
     val dark = Color(0xFF3A2A18)
+
+    // Tail first: the body edge hides where it joins.
+    drawPath(
+        path = androidx.compose.ui.graphics.Path().apply {
+            moveTo(centerX + body * 0.82f, baseY - body * 0.18f)
+            cubicTo(
+                centerX + body * 1.62f, baseY - body * 0.30f,
+                centerX + body * 1.55f, baseY - body * 0.74f,
+                centerX + body * 1.48f, baseY - body * 0.98f,
+            )
+            cubicTo(
+                centerX + body * 1.36f, baseY - body * 1.46f,
+                centerX + body * 1.16f, baseY - body * 1.44f,
+                centerX + body * 0.98f, baseY - body * 1.40f,
+            )
+        },
+        color = fur,
+        style = Stroke(width = head * 0.30f, cap = StrokeCap.Round),
+    )
 
     drawRoundRect(
         color = fur,
-        topLeft = Offset(centerX - body, baseY - body * 1.1f),
-        size = Size(body * 2f, body * 1.1f),
-        cornerRadius = CornerRadius(body * 0.6f),
+        topLeft = Offset(centerX - body, baseY - body * 1.05f),
+        size = Size(body * 2f, body * 1.05f),
+        cornerRadius = CornerRadius(body * 0.62f),
     )
-    drawCircle(color = fur, radius = head, center = Offset(centerX, baseY - body * 1.15f - head * 0.6f))
 
-    // Ears flatten as the ceiling closes in — the whole emotional read of the mode.
-    val earSpread = head * 0.62f
-    val earHeight = head * (0.85f - 0.45f * alarm)
+    // Ears before the head, so their bases vanish under it. Flattening is clamped so an alarmed cat
+    // still has ears — a cat with none reads as a bug rather than as fear.
+    val lift = 1f - 0.42f * alarm
     listOf(-1f, 1f).forEach { side ->
         drawPath(
             path = androidx.compose.ui.graphics.Path().apply {
-                val ex = centerX + side * earSpread
-                val ey = baseY - body * 1.15f - head * 1.2f
-                moveTo(ex - head * 0.28f, ey + head * 0.4f)
-                lineTo(ex + side * head * 0.1f, ey - earHeight * 0.5f)
-                lineTo(ex + head * 0.28f, ey + head * 0.4f)
+                moveTo(centerX + side * head * 0.16f, headY - head * 0.62f)
+                lineTo(centerX + side * head * (0.74f + 0.30f * alarm), headY - head * 1.58f * lift)
+                lineTo(centerX + side * head * 1.00f, headY - head * 0.34f)
                 close()
             },
             color = fur,
         )
+        drawPath(
+            path = androidx.compose.ui.graphics.Path().apply {
+                moveTo(centerX + side * head * 0.36f, headY - head * 0.66f)
+                lineTo(centerX + side * head * (0.71f + 0.28f * alarm), headY - head * 1.28f * lift)
+                lineTo(centerX + side * head * 0.84f, headY - head * 0.52f)
+                close()
+            },
+            color = ear,
+        )
     }
 
-    val eyeY = baseY - body * 1.15f - head * 0.7f
-    val eyeR = head * (0.13f + 0.07f * alarm)
+    drawCircle(color = fur, radius = head, center = Offset(centerX, headY))
+
+    val eyeY = headY - head * 0.10f
+    val eyeR = head * (0.15f + 0.07f * alarm)
     listOf(-1f, 1f).forEach { side ->
-        drawCircle(color = dark, radius = eyeR, center = Offset(centerX + side * head * 0.34f, eyeY))
+        drawCircle(color = dark, radius = eyeR, center = Offset(centerX + side * head * 0.36f, eyeY))
+    }
+
+    val noseY = eyeY + head * 0.30f
+    drawPath(
+        path = androidx.compose.ui.graphics.Path().apply {
+            moveTo(centerX - head * 0.10f, noseY)
+            lineTo(centerX + head * 0.10f, noseY)
+            lineTo(centerX, noseY + head * 0.11f)
+            close()
+        },
+        color = dark,
+    )
+
+    val stroke = head * 0.055f
+    val mouthY = noseY + head * 0.12f
+    drawLine(
+        color = dark,
+        start = Offset(centerX, mouthY),
+        end = Offset(centerX - head * 0.14f, mouthY + head * 0.12f),
+        strokeWidth = stroke,
+        cap = StrokeCap.Round,
+    )
+    drawLine(
+        color = dark,
+        start = Offset(centerX, mouthY),
+        end = Offset(centerX + head * 0.14f, mouthY + head * 0.12f),
+        strokeWidth = stroke,
+        cap = StrokeCap.Round,
+    )
+
+    listOf(-1f, 1f).forEach { side ->
+        val from = centerX + side * head * 0.42f
+        drawLine(
+            color = dark,
+            start = Offset(from, noseY - head * 0.04f),
+            end = Offset(from + side * head * 0.72f, noseY - head * 0.22f),
+            strokeWidth = stroke,
+            cap = StrokeCap.Round,
+        )
+        drawLine(
+            color = dark,
+            start = Offset(from, noseY + head * 0.12f),
+            end = Offset(from + side * head * 0.76f, noseY + head * 0.16f),
+            strokeWidth = stroke,
+            cap = StrokeCap.Round,
+        )
     }
 }
 
@@ -279,7 +376,7 @@ private fun GameOverCard(
     score: Int,
     bestScore: Int,
     onRetry: () -> Unit,
-    onShare: (Int) -> Unit,
+    onShare: () -> Unit,
     onHome: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -315,7 +412,7 @@ private fun GameOverCard(
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             SecondaryButton(
                 text = stringResource(R.string.survival_share),
-                onClick = { onShare(score) },
+                onClick = onShare,
                 modifier = Modifier.weight(1f),
             )
             SecondaryButton(

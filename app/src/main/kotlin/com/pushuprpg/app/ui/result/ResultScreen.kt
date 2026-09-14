@@ -46,6 +46,7 @@ fun ResultScreen(
     hasNextDungeon: Boolean,
     onNextDungeon: () -> Unit,
     onRetry: () -> Unit,
+    onShare: () -> Unit,
     onRecords: () -> Unit,
     onHome: () -> Unit,
     modifier: Modifier = Modifier,
@@ -161,6 +162,14 @@ fun ResultScreen(
                 modifier = Modifier.fillMaxWidth(),
             )
         }
+        Spacer(Modifier.height(10.dp))
+        // Sharing sits directly under the primary action rather than beside 기록/홈, because a loss
+        // is worth posting here too and burying it next to navigation says otherwise.
+        SecondaryButton(
+            text = stringResource(R.string.result_share),
+            onClick = onShare,
+            modifier = Modifier.fillMaxWidth(),
+        )
         Spacer(Modifier.height(10.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             SecondaryButton(

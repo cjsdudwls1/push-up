@@ -30,6 +30,7 @@ import com.pushuprpg.app.AppContainer
 import com.pushuprpg.app.domain.AppSettings
 import com.pushuprpg.app.domain.FreeTier
 import com.pushuprpg.app.pose.PoseFrameSink
+import com.pushuprpg.app.share.ShareCardData
 import com.pushuprpg.app.telemetry.Event
 import com.pushuprpg.app.pose.PoseLandmarkerSource
 import com.pushuprpg.app.ui.battle.BattleScreen
@@ -43,6 +44,7 @@ import com.pushuprpg.app.ui.theme.Type
 import com.pushuprpg.app.ui.theme.PushupRpgTheme
 import com.pushuprpg.core.game.Dungeons
 import com.pushuprpg.core.game.PlayerClass
+import com.pushuprpg.core.progression.Rank
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.withContext
@@ -62,7 +64,7 @@ fun PushupRpgApp(
     permissionPermanentlyDenied: MutableStateFlow<Boolean>,
     onRequestCameraPermission: () -> Unit,
     onOpenAppSettings: () -> Unit,
-    onShare: (Int) -> Unit,
+    onShare: (ShareCardData) -> Unit,
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -286,6 +288,19 @@ fun PushupRpgApp(
                                 navController.navigate(Routes.battle(dungeonIndex)) {
                                     popUpTo(Routes.RESULT) { inclusive = true }
                                 }
+                            },
+                            onShare = {
+                                onShare(
+                                    ShareCardData.Dungeon(
+                                        dungeonName = Dungeons.byIndex(dungeonIndex)?.korean.orEmpty(),
+                                        cleared = outcome.cleared,
+                                        reps = outcome.reps,
+                                        maxCombo = outcome.maxCombo,
+                                        seconds = (outcome.durationMs / 1000).toInt(),
+                                        rankKorean = Rank.forLifetimeReps(progress.lifetimeReps).korean,
+                                        lifetimeReps = progress.lifetimeReps,
+                                    )
+                                )
                             },
                             onRecords = { navController.navigate(Routes.RECORDS) },
                             onHome = {

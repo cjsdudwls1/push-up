@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The only thing this app ever hands to another app: a rendered share card in the cache directory.
+  Scoped to that one subdirectory on purpose — a broader path would expose the Room database and the
+  DataStore preferences to any app the user picks in a chooser.
+-->
+<paths>
+    <cache-path name="share" path="share/" />
+</paths>
