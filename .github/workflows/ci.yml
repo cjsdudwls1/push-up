@@ -51,7 +51,14 @@ jobs:
           distribution: temurin
           java-version: "17"
 
+      # packages: is not optional. The action's default is "tools platform-tools", and Google
+      # removed the legacy `tools` package from its repository between 2026-09-14 and 2026-09-17 —
+      # this build went from green to failing in ten seconds with no change to the code. Asking for
+      # platform-tools alone skips the package that no longer exists.
+      # https://github.com/android-actions/setup-android/issues/537
       - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
 
       - uses: gradle/actions/setup-gradle@v4
 
