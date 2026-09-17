@@ -74,6 +74,17 @@ android {
         debug {
             applicationIdSuffix = ".debug"
             isMinifyEnabled = false
+
+            // A universal debug APK is 78MB, and about three quarters of that is MediaPipe's
+            // native code for CPU architectures no phone in the test group has. Testers download
+            // this over mobile data, so the debug channel ships arm64 only — every Android phone
+            // sold in the last decade. Nothing here touches the release bundle, which still
+            // carries every ABI and lets Play send each device only its own slice.
+            //
+            // Running on an x86 emulator: -Ppushup.debugAbis=arm64-v8a,x86_64
+            val debugAbis = (findProperty("pushup.debugAbis") as String? ?: "arm64-v8a")
+                .split(",").map(String::trim).filter(String::isNotEmpty)
+            ndk { abiFilters += debugAbis }
         }
         release {
             isMinifyEnabled = true
