@@ -21,8 +21,17 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
+      # Same as ci.yml: from API 37 the platform package carries a minor suffix, so
+      # "platforms;android-37" is a name that is never published. This would have failed the
+      # first time a version tag was pushed.
       - name: Install SDK platform
-        run: sdkmanager "platforms;android-37" "build-tools;37.0.0"
+        run: |
+          sdkmanager "platforms;android-37.0"
+          BUILD_TOOLS=$(sdkmanager --list 2>/dev/null \
+            | grep -oE "build-tools;37[0-9.]*" | sort -uV | tail -1)
+          if [ -n "$BUILD_TOOLS" ]; then
+            sdkmanager "$BUILD_TOOLS"
+          fi
 
       # The keystore never lives in the repository. Store it base64-encoded in
       # secrets.RELEASE_KEYSTORE_BASE64 (`base64 -w0 release.jks`) alongside its passwords.

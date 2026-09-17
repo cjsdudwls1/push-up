@@ -40,6 +40,9 @@ jobs:
   android:
     name: "Android debug build"
     runs-on: ubuntu-latest
+    # Only for the "Publish debug APK" step below; everything else here is read-only.
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
 
@@ -84,6 +87,44 @@ jobs:
           name: app-debug
           path: app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
+
+      # Actions artifacts are login-gated zips, which makes installing on a phone a chore.
+      # A prerelease asset has a plain public URL that any browser can fetch, so the tag stays
+      # fixed at "debug" and the link never changes:
+      #
+      #   https://github.com/cjsdudwls1/push-up/releases/download/debug/pushup-rpg-debug.apk
+      #
+      # Deleted and recreated rather than clobbered, so the tag points at the commit that was
+      # actually built instead of whichever one first created it.
+      # Actions artifacts are login-gated zips, which makes installing on a phone a chore.
+      # A prerelease asset has a plain public URL any browser can fetch, so the tag stays fixed at
+      # "debug" and the link never changes:
+      #
+      #   https://github.com/cjsdudwls1/push-up/releases/download/debug/pushup-rpg-debug.apk
+      #
+      # Deleted and recreated rather than clobbered, so the tag points at the commit that was
+      # actually built rather than whichever one first created it.
+      - name: Publish debug APK for phone install
+        if: github.ref == 'refs/heads/claude/pushup-rpg-app-2xnr4o'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          APK: ${{ runner.temp }}/pushup-rpg-debug.apk
+        run: |
+          set -euo pipefail
+          cp app/build/outputs/apk/debug/app-debug.apk "$APK"
+          gh release delete debug --yes --cleanup-tag || true
+          gh release create debug "$APK" \
+            --target "$GITHUB_SHA" \
+            --prerelease \
+            --title "디버그 빌드 (폰에 바로 설치)" \
+            --notes-file .github/debug-release-notes.md
+          {
+            echo "### 폰에 설치하기"
+            echo ""
+            echo "[pushup-rpg-debug.apk](https://github.com/cjsdudwls1/push-up/releases/download/debug/pushup-rpg-debug.apk)"
+            echo ""
+            echo "APK $(du -h "$APK" | cut -f1)"
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload lint report
         if: always()
