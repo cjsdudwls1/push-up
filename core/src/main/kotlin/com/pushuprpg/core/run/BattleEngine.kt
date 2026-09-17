@@ -145,8 +145,19 @@ class BattleEngine(
 
     fun onPoseFrame(frame: PoseFrame): BattleState {
         val tick = detector.onFrame(frame)
-        if (startedAtMs == Long.MIN_VALUE) startedAtMs = tick.tMs
+        if (startedAtMs == Long.MIN_VALUE) {
+            startedAtMs = tick.tMs
+            // Floor 0's encounter was built before a frame existed, so this is the first moment its
+            // deadlines can be anchored to the clock the rest of the run will use.
+            encounter.startAt(tick.tMs)
+        }
         lastFrameMs = tick.tMs
+        // Before anything reads a deadline this frame, so a dropout is invisible to the rep loop
+        // and the holding check as well as to the damage tick.
+        encounter.setTracking(
+            tracking = tick.quality == PoseQuality.OK && enemyDiedAtMs == Long.MIN_VALUE,
+            atMs = tick.tMs,
+        )
 
         val sounds = mutableListOf<SoundRequest>()
         val damages = state.damages.filter { tick.tMs - it.atMs < DAMAGE_LIFETIME_MS }.toMutableList()

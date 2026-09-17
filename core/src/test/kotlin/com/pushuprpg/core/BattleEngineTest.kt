@@ -58,6 +58,63 @@ class BattleEngineTest {
         assertEquals(Dungeons.FREE_DUNGEON.floors.size - 1, state.floorIndex)
     }
 
+    /**
+     * A phone's frame timestamps are milliseconds since boot, not since the run started.
+     *
+     * Every test in this file used to fabricate timestamps from 0, which happened to coincide with
+     * the fake epoch floor 0's encounter was constructed at — so the whole module was blind to the
+     * fact that on a real device the boss opened the fight owing tens of thousands of idle ticks
+     * and killed the player on frame one. Any clock offset must be invisible.
+     */
+    @Test
+    fun `a run behaves the same whatever the device clock says`() {
+        val offsets = listOf(0L, 600_000L, 86_400_000L, 5L * 86_400_000L)
+        val outcomes = offsets.map { offset ->
+            val e = engine()
+            var t = offset
+            val frames = mutableListOf<PoseFrame>()
+            repeat(20) { frames += PoseFixtures.frame(t, 0f); t += 33 }
+            repeat(6) {
+                frames += PoseFixtures.rep(t, peakDepth = 0.95f)
+                t = frames.last().timestampMs + 33
+            }
+            val state = play(e, frames)
+            Triple(state.playerHp, state.outcome?.reps ?: -1, state.outcome?.cleared)
+        }
+
+        outcomes.zip(offsets).forEach { (result, offset) ->
+            assertEquals(outcomes.first(), result,
+                "a clock offset of ${offset}ms changed the run: $result vs ${outcomes.first()}")
+        }
+        assertTrue(outcomes.first().first > 0,
+            "the player should still be alive after six reps, hp=${outcomes.first().first}")
+    }
+
+    /**
+     * Gating damage on [PoseQuality] is not enough on its own: the idle clock kept running under
+     * the gate, so the whole dropout was paid out in one burst on the frame tracking recovered.
+     */
+    @Test
+    fun `a tracking dropout costs nothing when tracking comes back`() {
+        val withGap = engine()
+        var t = 100_000L
+        val frames = mutableListOf<PoseFrame>()
+        repeat(20) { frames += PoseFixtures.frame(t, 0f); t += 33 }
+        frames += PoseFixtures.rep(t, peakDepth = 0.95f)
+        t = frames.last().timestampMs + 33
+        // Ninety seconds where the tracker cannot see anybody at all.
+        repeat(2700) { frames += PoseFrame.empty(t); t += 33 }
+        // Then they are back, and push again.
+        repeat(20) { frames += PoseFixtures.frame(t, 0f); t += 33 }
+        frames += PoseFixtures.rep(t, peakDepth = 0.95f)
+
+        val state = play(withGap, frames)
+        assertTrue(state.outcome == null,
+            "a 90s dropout must not end the run, outcome=${state.outcome}")
+        assertEquals(state.playerMaxHp, state.playerHp,
+            "the dropout was repaid as damage the instant tracking returned")
+    }
+
     @Test
     fun `the boss is never idle-killed while the tracker cannot see the user`() {
         val e = engine()
@@ -184,7 +241,7 @@ class PlankCombatTest {
         val player = com.pushuprpg.core.game.PlayerState.create(PlayerClass.MAGE, level = 1)
         val enemy = Dungeons.FREE_DUNGEON.floors.first()
             .spawn(player, Difficulty.STANDARD, 8f, Dungeons.FREE_DUNGEON.referenceLevel)
-        val encounter = Encounter(player, enemy, rng = NoCritRng)
+        val encounter = Encounter(player, enemy, rng = NoCritRng, startedAtMs = 0L)
 
         var t = 0L
         var dealt = 0
@@ -206,7 +263,7 @@ class PlankCombatTest {
         val template = Dungeons.byIndex(6)!!.floors.last()
 
         fun tickPlank(): Int {
-            val e = Encounter(player, template.spawn(player, Difficulty.STANDARD, 8f, 12), rng = NoCritRng)
+            val e = Encounter(player, template.spawn(player, Difficulty.STANDARD, 8f, 12), rng = NoCritRng, startedAtMs = 0L)
             var t = 0L
             var ticks = 0
             while (e.enemy.warded && ticks < 5000) {

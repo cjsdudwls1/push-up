@@ -17,7 +17,7 @@ class EncounterTest {
         level: Int = 1,
     ): Pair<Encounter, PlayerState> {
         val p = PlayerState.create(playerClass, level)
-        return Encounter(p, boss(p), rng = NoCritRng) to p
+        return Encounter(p, boss(p), rng = NoCritRng, startedAtMs = 0L) to p
     }
 
     private fun deepRep(cycleMs: Int = 3000, holdMs: Int = 0) =
@@ -147,7 +147,7 @@ class EncounterTest {
                 val p = PlayerState.create(cls, level)
                 for (dungeon in Dungeons.ALL) {
                     val bossTemplate = dungeon.floors.last()
-                    val enc = Encounter(p, bossTemplate.spawn(p, Difficulty.HELL, 8f), Difficulty.HELL)
+                    val enc = Encounter(p, bossTemplate.spawn(p, Difficulty.HELL, 8f), Difficulty.HELL, startedAtMs = 0L)
                     assertTrue(enc.ultimateDamage < p.maxHp,
                         "${cls} L$level vs ${dungeon.korean}: ult ${enc.ultimateDamage} >= hp ${p.maxHp}")
                 }

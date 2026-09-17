@@ -69,7 +69,7 @@ class SurvivalViewModel(
         tick.events.filterIsInstance<RepEvent.Strike>().forEach { strike ->
             reps++
             maxCombo = maxOf(maxCombo, strike.combo)
-            handle(game.onRep(strike.depth, strike.tMs))
+            handle(game.onRep(strike.grade, strike.depth, strike.tMs))
         }
         handle(game.update(tick.tMs))
         _state.value = game.state()

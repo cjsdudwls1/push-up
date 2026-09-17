@@ -281,7 +281,7 @@ class BalanceRegressionTest {
         val dungeon = Dungeons.ALL.last()
         val boss = dungeon.floors.last()
         val enemy = boss.spawn(player, Difficulty.HELL, capacity = 100f, dungeon.referenceLevel)
-        val encounter = Encounter(player, enemy, Difficulty.HELL, rng = NoCritRng)
+        val encounter = Encounter(player, enemy, Difficulty.HELL, rng = NoCritRng, startedAtMs = 0L)
 
         var t = 0L
         var ultimates = 0

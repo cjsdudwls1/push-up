@@ -1,5 +1,7 @@
 package com.pushuprpg.core
 
+import com.pushuprpg.core.detect.DetectorConfig
+import com.pushuprpg.core.detect.RepGrade
 import com.pushuprpg.core.survival.CeilingSurvival
 import com.pushuprpg.core.survival.SurvivalEvent
 import kotlin.test.Test
@@ -7,6 +9,19 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class CeilingSurvivalTest {
+
+    /**
+     * The verdict a converged detector would return for [depth].
+     *
+     * These tests were all written in depths, against the converged lines, so routing them through
+     * this keeps every existing assertion saying what it always said — while the production path
+     * now takes the detector's grade directly rather than re-deriving one.
+     */
+    private fun graded(depth: Float, config: DetectorConfig = DetectorConfig.pushup()): RepGrade = when {
+        depth >= config.deepEnter -> RepGrade.DEEP
+        depth >= config.countEnter -> RepGrade.COUNTED
+        else -> RepGrade.SHALLOW
+    }
 
     /** Plays at a fixed cadence and returns how long the run lasted. */
     private fun playAtCadence(repsPerSecond: Float, depth: Float, limitMs: Long = 600_000): Long {
@@ -18,7 +33,7 @@ class CeilingSurvivalTest {
             t += 33
             game.update(t)
             if (t >= nextRep) {
-                game.onRep(depth, t)
+                game.onRep(graded(depth), depth, t)
                 nextRep += repInterval
             }
         }
@@ -70,13 +85,39 @@ class CeilingSurvivalTest {
         assertTrue(strong > beginner, "strong run ${strong}ms did not beat beginner ${beginner}ms")
     }
 
+    /**
+     * The mode's whole job is somebody's first sixty seconds, and a first-time user is judged by a
+     * detector still in bootstrap — against a deliberately more forgiving line than the converged
+     * one. This used to re-test the depth against the converged line and hand back a near miss for
+     * every rep the detector had accepted: a ceiling that barely moved and a combo stuck at zero,
+     * which reads as "it isn't seeing me".
+     */
+    @Test
+    fun `a rep the detector accepted counts, even below the converged line`() {
+        val game = CeilingSurvival()
+        game.update(0)
+        game.update(1000)
+
+        // 63 is under DetectorConfig.countEnter (70) but over bootstrapCountEnter: exactly the
+        // band a beginner's first reps land in.
+        val events = game.onRep(RepGrade.COUNTED, depth = 63f, atMs = 1000)
+
+        assertTrue(events.none { it is SurvivalEvent.NearMiss },
+            "the detector accepted this rep; the ceiling must not call it a near miss")
+        assertEquals(1, game.state().combo, "an accepted rep builds combo")
+        // Asserted on the event rather than the height, which the ceiling clamps at 1.
+        val pushed = events.filterIsInstance<SurvivalEvent.Pushed>().single()
+        assertTrue(pushed.lift >= CeilingSurvival.LIFT,
+            "an accepted rep gets a full push, not a consolation nudge: lift=${pushed.lift}")
+    }
+
     @Test
     fun `a rep that falls short still helps, and says so`() {
         val game = CeilingSurvival()
         game.update(0)
         game.update(1000)
         val before = game.state().height
-        val events = game.onRep(50f, 1000)
+        val events = game.onRep(graded(50f), 50f, 1000)
         assertTrue(game.state().height > before, "a genuine attempt should lift something")
         assertTrue(events.any { it is SurvivalEvent.NearMiss }, "and should be reported as a near miss")
     }
@@ -87,7 +128,7 @@ class CeilingSurvivalTest {
         game.update(0)
         game.update(1000)
         val before = game.state().height
-        val events = game.onRep(5f, 1000)
+        val events = game.onRep(graded(5f), 5f, 1000)
         assertEquals(before, game.state().height)
         assertTrue(events.all { it is SurvivalEvent.NearMiss })
     }
@@ -100,7 +141,7 @@ class CeilingSurvivalTest {
         while (game.state().alive && t < 120_000) {
             t += 33
             game.update(t)
-            if (t % 900 < 33) game.onRep(92f, t)
+            if (t % 900 < 33) game.onRep(graded(92f), 92f, t)
             val now = game.state().score
             assertTrue(now >= previous, "score fell from $previous to $now")
             previous = now
@@ -117,7 +158,7 @@ class CeilingSurvivalTest {
             while (game.state().alive && t < 90_000) {
                 t += 33
                 game.update(t)
-                if (t % 1200 < 33) game.onRep(90f, t)
+                if (t % 1200 < 33) game.onRep(graded(90f), 90f, t)
                 if (t % 3000 < 33) samples += game.state().score
             }
             return samples
@@ -144,7 +185,7 @@ class CeilingSurvivalTest {
         while (game.state().alive && t < 200_000) {
             t += 33
             milestones += game.update(t).filterIsInstance<SurvivalEvent.Milestone>().map { it.seconds }
-            if (t % 700 < 33) game.onRep(95f, t)
+            if (t % 700 < 33) game.onRep(graded(95f), 95f, t)
         }
         assertTrue(milestones.isNotEmpty(), "a run of ${game.state().elapsedMs}ms announced nothing")
         assertEquals(milestones.sorted(), milestones)

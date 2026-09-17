@@ -55,7 +55,12 @@ class Encounter(
     private val difficulty: Difficulty = Difficulty.STANDARD,
     private val resolver: CombatResolver = CombatResolver(),
     private val rng: Rng = SeededRng(0),
-    startedAtMs: Long = 0L,
+    /**
+     * The timestamp this fight's deadlines are measured from. No default: the only sensible value
+     * is a real frame timestamp, and a `0L` default is exactly what let floor 0 be constructed
+     * against an epoch the device's clock had passed millions of milliseconds earlier.
+     */
+    startedAtMs: Long,
 ) {
     var player: PlayerState = initialPlayer
         private set
@@ -85,6 +90,7 @@ class Encounter(
 
     private var lastRepAtMs: Long = startedAtMs
     private var lastTickAtMs: Long = startedAtMs
+    private var lastSeenMs: Long = startedAtMs
     private var tickIndex: Int = 0
     private var telegraphed = false
     private var telegraphAtMs = 0L
@@ -119,6 +125,42 @@ class Encounter(
     /** The boss's ultimate lands this hard; never enough to one-shot from full. */
     val ultimateDamage: Int
         get() = (player.maxHp * enemy.ultimateFraction * difficulty.enemyAtkMultiplier).roundToInt()
+
+    /**
+     * Anchors every deadline this fight owns to the first real frame of the run.
+     *
+     * Floor 0's encounter has to exist before any frame does — [BattleEngine] builds it in a
+     * property initialiser — so its epoch cannot be known at construction. Without this call the
+     * idle clock starts at whatever was guessed, and since a device's frame timestamps are
+     * milliseconds since boot, the boss opens the fight owing tens of thousands of punish ticks
+     * and kills the player on frame one.
+     */
+    fun startAt(atMs: Long) {
+        lastRepAtMs = atMs
+        lastTickAtMs = atMs
+        lastSeenMs = atMs
+    }
+
+    /**
+     * Tell the encounter whether the tracker can currently see the player.
+     *
+     * Gating the damage call on [PoseQuality] stops a dropout hurting *during* it, but the idle
+     * clock kept running underneath, so the whole gap was paid out in one burst the instant
+     * tracking recovered. That is still punishing a tracking failure, just one frame late. Moving
+     * every deadline forward by the gap means the dropout costs nothing then and nothing after.
+     *
+     * Call once per frame, tracked or not.
+     */
+    fun setTracking(tracking: Boolean, atMs: Long) {
+        val gap = atMs - lastSeenMs
+        lastSeenMs = atMs
+        if (tracking || finished || gap <= 0) return
+        lastRepAtMs += gap
+        lastTickAtMs += gap
+        telegraphAtMs += gap
+        staggeredUntilMs += gap
+        holdingSinceMs = holdingSinceMs?.plus(gap)
+    }
 
     /**
      * Tell the encounter the player is holding a static position (a plank, or the top of a

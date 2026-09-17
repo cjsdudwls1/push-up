@@ -1,6 +1,7 @@
 package com.pushuprpg.core.survival
 
 import com.pushuprpg.core.detect.DetectorConfig
+import com.pushuprpg.core.detect.RepGrade
 import kotlin.math.pow
 import kotlin.math.roundToInt
 
@@ -117,36 +118,48 @@ class CeilingSurvival(
     }
 
     /**
-     * A counted rep. [depth] is the same 0..100 value the detector produces.
+     * A rep the detector has already judged.
      *
-     * A rep that falls short still gives a little, and is reported as a near miss rather than
+     * [grade] is the detector's verdict and this function does not second-guess it. It used to:
+     * it re-tested [depth] against `config.countEnter`, which is the *converged* line, while a
+     * first-time user is still in bootstrap and being counted against a deliberately more
+     * forgiving one. Every early rep therefore came back a near miss — a barely-moving ceiling and
+     * a combo stuck at zero — in the one mode whose entire job is to be somebody's first sixty
+     * seconds. That is the same defect that once let the dungeon counter tick up while dealing no
+     * damage, and the rule it breaks is the same: one component owns whether a rep counts.
+     *
+     * [depth] survives only to scale the lift between the accepted and deep bands.
+     *
+     * A rep the detector rejected still gives a little, and is reported as a near miss rather than
      * ignored. This mode is the on-ramp for people who have never used the app; making a shallow
      * rep feel like nothing happened is how you teach someone that they are bad at it.
      */
-    fun onRep(depth: Float, atMs: Long): List<SurvivalEvent> {
+    fun onRep(grade: RepGrade, depth: Float, atMs: Long): List<SurvivalEvent> {
         if (!alive) return emptyList()
         if (startedAtMs == Long.MIN_VALUE) {
             startedAtMs = atMs
             lastUpdateMs = atMs
         }
 
-        val accept = config.countEnter
-        val deep = config.deepEnter
+        val counted = grade != RepGrade.SHALLOW
+        val isDeep = grade == RepGrade.DEEP
 
-        if (depth < accept * SHALLOW_CREDIT_FLOOR) {
+        // Far short of even the forgiving line: acknowledged, but it moves nothing.
+        if (!counted && depth < config.countEnter * SHALLOW_CREDIT_FLOOR) {
             return listOf(SurvivalEvent.NearMiss(atMs))
         }
 
-        val isDeep = depth >= deep
+        val accept = config.countEnter
+        val deep = config.deepEnter
         val lift = when {
             isDeep -> DEEP_LIFT
-            depth >= accept -> LIFT + (DEEP_LIFT - LIFT) * ((depth - accept) / (deep - accept)).coerceIn(0f, 1f)
+            counted -> LIFT + (DEEP_LIFT - LIFT) * ((depth - accept) / (deep - accept)).coerceIn(0f, 1f)
             // Short of the line but genuinely tried: a fraction of the push, and a near miss.
             else -> LIFT * SHALLOW_LIFT_FRACTION
         }
 
         reps++
-        if (depth >= accept) {
+        if (counted) {
             combo++
             bestCombo = maxOf(bestCombo, combo)
         } else {
@@ -160,7 +173,7 @@ class CeilingSurvival(
 
         height = (height + lift).coerceAtMost(1f)
 
-        return if (depth >= accept) {
+        return if (counted) {
             listOf(SurvivalEvent.Pushed(atMs, lift, isDeep, combo))
         } else {
             listOf(SurvivalEvent.Pushed(atMs, lift, false, combo), SurvivalEvent.NearMiss(atMs))
