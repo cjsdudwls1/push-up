@@ -16,5 +16,11 @@ local.properties
 *.keystore
 keystore.properties
 
+# The one exception, and only this one. app/debug.keystore holds Android's standard debug
+# credentials (androiddebugkey / android / android) — publicly documented, useless for Play, and
+# the only way a debug APK built on one machine can install over one built on another. Without it
+# every CI runner generates a fresh key and each build refuses to update the last.
+!app/debug.keystore
+
 # Per-project Firebase config; generate it in the Firebase console.
 google-services.json

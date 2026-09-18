@@ -60,6 +60,22 @@ android {
     }
 
     signingConfigs {
+        // A fixed debug key, checked in.
+        //
+        // Without this AGP falls back to ~/.android/debug.keystore and generates one if it is
+        // missing — which it always is on an ephemeral CI runner. Every build then carried a
+        // different signature, so the debug APK people download could never install over the one
+        // they already had: Android rejects an update signed by a different key.
+        //
+        // These are Android's own documented debug credentials. They are not a secret, they are
+        // not the release key, and Play will not accept anything signed with them.
+        getByName("debug") {
+            storeFile = file("debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
+
         if (keystoreProperties.isNotEmpty()) {
             create("release") {
                 storeFile = file(keystoreProperties.getProperty("storeFile"))
@@ -85,6 +101,14 @@ android {
             val debugAbis = (findProperty("pushup.debugAbis") as String? ?: "arm64-v8a")
                 .split(",").map(String::trim).filter(String::isNotEmpty)
             ndk { abiFilters += debugAbis }
+
+            // Which build is actually on the phone. CI passes the short commit, so Android's app
+            // info screen names it — a debug channel that silently fails to update is otherwise
+            // indistinguishable from a fix that did not work, which has already cost a round of
+            // testing here.
+            (findProperty("pushup.buildId") as String?)
+                ?.takeIf { it.isNotBlank() }
+                ?.let { versionNameSuffix = "-$it" }
         }
         release {
             isMinifyEnabled = true

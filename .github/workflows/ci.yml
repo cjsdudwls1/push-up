@@ -82,7 +82,9 @@ jobs:
           fi
 
       - name: Assemble debug
-        run: ./gradlew :app:assembleDebug --no-daemon --stacktrace
+        run: |
+          ./gradlew :app:assembleDebug --no-daemon --stacktrace \
+            -Ppushup.buildId="${GITHUB_SHA::7}"
 
       - name: Lint
         run: ./gradlew :app:lintDebug --no-daemon
