@@ -67,9 +67,21 @@ private val KEY_STREAK_DAYS = intPreferencesKey("streak_days")
 private val KEY_BEST_STREAK_DAYS = intPreferencesKey("best_streak_days")
 private val KEY_LAST_ACTIVE_DAY = longPreferencesKey("last_active_epoch_day")
 private val KEY_HIGHEST_DUNGEON = intPreferencesKey("highest_dungeon_cleared")
-private val KEY_CAPACITY_PUSHUP = floatPreferencesKey("capacity_pushup")
-private val KEY_CAPACITY_SQUAT = floatPreferencesKey("capacity_squat")
-private val KEY_CAPACITY_PLANK = floatPreferencesKey("capacity_plank_seconds")
+/**
+ * Capacity is stored one key per movement, the same way calibration already is, so a new exercise
+ * is a new key that simply does not exist yet rather than a schema change.
+ *
+ * The three keys below are what the first three movements were written under. They are read once as
+ * a fallback and never written again, so an existing install keeps the capacity it earned. Nothing
+ * is deleted: a user who downgrades still finds their old values where the old build looks.
+ */
+private fun capacityKey(e: ExerciseType) = floatPreferencesKey("capacity_${e.name}")
+
+private val LEGACY_CAPACITY_KEYS: Map<ExerciseType, Preferences.Key<Float>> = mapOf(
+    ExerciseType.PUSHUP to floatPreferencesKey("capacity_pushup"),
+    ExerciseType.SQUAT to floatPreferencesKey("capacity_squat"),
+    ExerciseType.PLANK to floatPreferencesKey("capacity_plank_seconds"),
+)
 private val KEY_BEST_SURVIVAL = intPreferencesKey("best_survival_score")
 private val KEY_CLASS_CHOSEN = booleanPreferencesKey("class_chosen")
 private val KEY_ONBOARDED = booleanPreferencesKey("onboarded")
@@ -89,9 +101,7 @@ private fun Preferences.toProgress(): PlayerProgress = PlayerProgress(
     bestStreakDays = this[KEY_BEST_STREAK_DAYS] ?: PROGRESS_DEFAULT.bestStreakDays,
     lastActiveEpochDay = this[KEY_LAST_ACTIVE_DAY] ?: PROGRESS_DEFAULT.lastActiveEpochDay,
     highestDungeonCleared = this[KEY_HIGHEST_DUNGEON] ?: PROGRESS_DEFAULT.highestDungeonCleared,
-    capacityPushup = this[KEY_CAPACITY_PUSHUP] ?: PROGRESS_DEFAULT.capacityPushup,
-    capacitySquat = this[KEY_CAPACITY_SQUAT] ?: PROGRESS_DEFAULT.capacitySquat,
-    capacityPlankSeconds = this[KEY_CAPACITY_PLANK] ?: PROGRESS_DEFAULT.capacityPlankSeconds,
+    capacity = readCapacity(),
     bestSurvivalScore = this[KEY_BEST_SURVIVAL] ?: PROGRESS_DEFAULT.bestSurvivalScore,
     classChosen = this[KEY_CLASS_CHOSEN] ?: PROGRESS_DEFAULT.classChosen,
     onboarded = this[KEY_ONBOARDED] ?: PROGRESS_DEFAULT.onboarded,
@@ -108,13 +118,24 @@ private fun MutablePreferences.writeProgress(p: PlayerProgress) {
     this[KEY_BEST_STREAK_DAYS] = p.bestStreakDays
     this[KEY_LAST_ACTIVE_DAY] = p.lastActiveEpochDay
     this[KEY_HIGHEST_DUNGEON] = p.highestDungeonCleared
-    this[KEY_CAPACITY_PUSHUP] = p.capacityPushup
-    this[KEY_CAPACITY_SQUAT] = p.capacitySquat
-    this[KEY_CAPACITY_PLANK] = p.capacityPlankSeconds
+    p.capacity.forEach { (exercise, value) -> this[capacityKey(exercise)] = value }
     this[KEY_BEST_SURVIVAL] = p.bestSurvivalScore
     this[KEY_CLASS_CHOSEN] = p.classChosen
     this[KEY_ONBOARDED] = p.onboarded
 }
+
+/**
+ * Only movements the user has actually done appear in the map.
+ *
+ * Absent means "never measured", which [PlayerProgress.capacityOf] answers from the movement's own
+ * starting value — deliberately not the same as a stored zero, which would size every encounter at
+ * the capacity floor.
+ */
+private fun Preferences.readCapacity(): Map<ExerciseType, Float> =
+    ExerciseType.entries.mapNotNull { e ->
+        val stored = this[capacityKey(e)] ?: LEGACY_CAPACITY_KEYS[e]?.let { this[it] }
+        stored?.let { e to it }
+    }.toMap()
 
 private fun Preferences.toCalibration(exercise: ExerciseType): UserProfile {
     val sessions = this[calibrationSessionsKey(exercise)] ?: 0

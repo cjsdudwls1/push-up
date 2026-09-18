@@ -12,6 +12,8 @@ import com.pushuprpg.app.telemetry.Telemetry
 import com.pushuprpg.app.domain.SessionRecord
 import com.pushuprpg.app.domain.SessionRepository
 import com.pushuprpg.core.detect.DetectorConfig
+import com.pushuprpg.app.domain.capacityOf
+import com.pushuprpg.app.domain.withCapacity
 import com.pushuprpg.core.detect.ExerciseType
 import com.pushuprpg.core.detect.PoseTick
 import com.pushuprpg.core.detect.RepDetectorImpl
@@ -122,10 +124,12 @@ class SurvivalViewModel(
         telemetry.log(Event.TutorialCompleted(reps, _state.value.elapsedMs))
         viewModelScope.launch {
             progressRepository.update { current ->
-                current.copy(
-                    capacityPushup = Capacity.update(current.capacityPushup, observed),
-                    onboarded = true,
-                )
+                current
+                    .withCapacity(
+                        ExerciseType.PUSHUP,
+                        Capacity.update(current.capacityOf(ExerciseType.PUSHUP), observed),
+                    )
+                    .copy(onboarded = true)
             }
         }
     }

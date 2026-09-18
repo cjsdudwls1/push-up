@@ -287,19 +287,30 @@ class RepDetectorImpl(
         if (depthVelocity <= config.minDescentVelocity) return AbandonReason.TOO_FAST
 
         // Two-signal agreement: the thing that stops someone waving an arm at the phone. The
-        // primary signal can be fooled by moving the wrists alone; the elbow angle and the nose
-        // cannot be, because they describe the rest of the body.
-        if (!sample.jointDepth.isNaN()) {
-            if (abs(depth - sample.jointDepth) > config.maxSignalDisagreement) {
+        // primary signal can be fooled by moving the wrists alone; the joint angle and the watched
+        // body part cannot be, because they describe the rest of the body.
+        //
+        // Which second opinion exists is a property of the movement, so the descriptor decides.
+        when {
+            !sample.jointDepth.isNaN() ->
+                if (abs(depth - sample.jointDepth) > config.maxSignalDisagreement) {
+                    return AbandonReason.INCONSISTENT
+                }
+
+            // A movement with no independently moving body part has nothing to fall back to, so it
+            // refuses out loud rather than letting an unchecked rep through. The caller sees an
+            // Abandoned event; it never looks like the detector simply counted nothing.
+            config.descriptor.signal?.crossCheck == CrossCheckPolicy.JOINT_REQUIRED ->
                 return AbandonReason.INCONSISTENT
-            }
-        } else if (!sample.bodyDrop.isNaN() && bodyDropAtTop != Float.NEGATIVE_INFINITY) {
-            // No world landmarks, so watch a part of the body the primary signal does not: the head
-            // for a pushup, the shoulders for a squat. Either way it has to have genuinely
-            // travelled since this rep armed, which is what waving at the phone does not do.
-            val descended = sample.bodyDrop - bodyDropAtTop
-            if (descended < MIN_BODY_DROP_FRACTION * calibrator.range) {
-                return AbandonReason.INCONSISTENT
+
+            !sample.bodyDrop.isNaN() && bodyDropAtTop != Float.NEGATIVE_INFINITY -> {
+                // No world landmarks, so watch a part of the body the primary signal does not: the
+                // head for a pushup, the shoulders for a squat. Either way it has to have genuinely
+                // travelled since this rep armed, which is what waving at the phone does not do.
+                val descended = sample.bodyDrop - bodyDropAtTop
+                if (descended < MIN_BODY_DROP_FRACTION * calibrator.range) {
+                    return AbandonReason.INCONSISTENT
+                }
             }
         }
 
@@ -406,15 +417,29 @@ class RepDetectorImpl(
             return PoseQuality.IMPLAUSIBLE_RATE
         }
 
-        val core = minOf(confidence[Lm.LEFT_SHOULDER], confidence[Lm.RIGHT_SHOULDER])
+        // From the side the far shoulder is regressed rather than seen, and its confidence never
+        // clears the bar — a `min` across the pair would report LOW_CONFIDENCE for every frame of
+        // a perfectly tracked set. Which rule applies is declared by the exercise.
+        val core = when (config.descriptor.coreConfidence) {
+            CoreConfidence.BOTH_SHOULDERS ->
+                minOf(confidence[Lm.LEFT_SHOULDER], confidence[Lm.RIGHT_SHOULDER])
+            CoreConfidence.NEAR_SIDE ->
+                maxOf(confidence[Lm.LEFT_SHOULDER], confidence[Lm.RIGHT_SHOULDER])
+        }
         if (core < config.minCoreConfidence) return PoseQuality.LOW_CONFIDENCE
 
-        val arms = maxOf(
-            confidence[Lm.LEFT_SHOULDER] * confidence[Lm.LEFT_WRIST],
-            confidence[Lm.RIGHT_SHOULDER] * confidence[Lm.RIGHT_WRIST],
-        )
-        if (arms < config.minSideWeight && sample.source != DepthSource.ELBOW_FALLBACK) {
-            return PoseQuality.OUT_OF_FRAME
+        // The landmarks that carry *this* movement, not the arms unconditionally. A squat used to
+        // be gated on wrist confidence it never reads, so a squat with the hands out of frame
+        // reported OUT_OF_FRAME while the hip-and-knee signal it actually uses was perfect.
+        val signal = config.descriptor.signal
+        if (signal != null) {
+            val primary = maxOf(
+                confidence[signal.proximal.left] * confidence[signal.distal.left],
+                confidence[signal.proximal.right] * confidence[signal.distal.right],
+            )
+            if (primary < config.minSideWeight && sample.source != DepthSource.ELBOW_FALLBACK) {
+                return PoseQuality.OUT_OF_FRAME
+            }
         }
 
         return PoseQuality.OK
@@ -490,15 +515,30 @@ class RepDetectorImpl(
 }
 
 object DetectorFactory {
+    /**
+     * The detector for a movement, chosen by what kind of movement it is rather than by name.
+     *
+     * Adding a counted exercise therefore needs no edit here at all: it is a [MovementKind.REP]
+     * value in [Exercises] and the rep state machine picks it up. A hold still needs a detector
+     * written for it — [PlankDetector]'s scoring terms (hip height, shoulder stack, alignment) are
+     * a plank's, not a wall sit's — so a second hold is a real piece of work, and this says so
+     * instead of quietly handing it the plank scorer.
+     */
     fun create(
         type: ExerciseType,
         config: DetectorConfig? = null,
         profile: UserProfile = UserProfile.empty(),
-    ): RepDetector = when (type) {
-        ExerciseType.PUSHUP -> RepDetectorImpl(config ?: DetectorConfig.pushup(), profile)
-        ExerciseType.SQUAT -> RepDetectorImpl(config ?: DetectorConfig.squat(), profile)
-        // A plank is a hold rather than a rep, so it needs its own detector entirely — the rep
-        // state machine has nothing to say about a position that is simply maintained.
-        ExerciseType.PLANK -> PlankDetector(config ?: DetectorConfig.plank())
+    ): RepDetector {
+        val descriptor = Exercises.of(type)
+        val cfg = config ?: descriptor.config
+        return when (descriptor.kind) {
+            MovementKind.REP -> RepDetectorImpl(cfg, profile)
+            MovementKind.HOLD -> {
+                require(type == ExerciseType.PLANK) {
+                    "$type is a hold but has no scorer; PlankDetector measures a plank, not $type"
+                }
+                PlankDetector(cfg)
+            }
+        }
     }
 }

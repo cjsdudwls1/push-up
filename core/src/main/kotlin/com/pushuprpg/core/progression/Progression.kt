@@ -1,5 +1,7 @@
 package com.pushuprpg.core.progression
 
+import com.pushuprpg.core.detect.ExerciseType
+import com.pushuprpg.core.detect.Exercises
 import kotlin.math.pow
 import kotlin.math.roundToInt
 
@@ -125,6 +127,18 @@ object Streak {
         reps >= MIN_REPS_TO_MAINTAIN ||
             plankSeconds >= MIN_PLANK_SECONDS ||
             squats >= MIN_SQUATS
+
+    /**
+     * Whether a day's work on one movement keeps the streak.
+     *
+     * The bar belongs to the movement, so adding an exercise cannot leave it counted as pushups —
+     * which is the bug that once let twelve squats keep a streak needing fifteen, and let a
+     * five-minute plank (zero reps by construction) lose one.
+     *
+     * [amount] is reps for a counted movement and seconds for a hold.
+     */
+    fun maintained(exercise: ExerciseType, amount: Int): Boolean =
+        amount >= Exercises.of(exercise).streakBar
 
     /** Bonus max HP from a streak, capped so it never becomes the reason to play. */
     fun hpBonus(days: Int): Float = (days * 0.01f).coerceAtMost(0.25f)

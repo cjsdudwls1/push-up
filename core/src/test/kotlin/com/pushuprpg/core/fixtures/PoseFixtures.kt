@@ -1,6 +1,7 @@
 package com.pushuprpg.core.fixtures
 
 import com.pushuprpg.core.detect.DepthSignal
+import com.pushuprpg.core.detect.Exercises
 import com.pushuprpg.core.pose.Landmark
 import com.pushuprpg.core.pose.PoseFrame
 import com.pushuprpg.core.pose.PoseLandmarks as Lm
@@ -109,9 +110,14 @@ object PoseFixtures {
      * World landmarks placed so the 3-D elbow angle closes from lockout to a standard bottom
      * exactly in step with the primary signal, which is what the agreement check compares.
      */
-    private fun worldFor(depthFraction: Float, armConf: Float): List<Landmark> {
-        val theta = DepthSignal.ELBOW_TOP_DEG -
-            depthFraction * (DepthSignal.ELBOW_TOP_DEG - DepthSignal.ELBOW_BOTTOM_DEG)
+    private fun worldFor(depthFraction: Float, armConf: Float): List<Landmark> =
+        elbowWorld(
+            DepthSignal.ELBOW_TOP_DEG -
+                depthFraction * (DepthSignal.ELBOW_TOP_DEG - DepthSignal.ELBOW_BOTTOM_DEG)
+        )
+
+    /** World landmarks whose enclosed 3-D elbow angle is exactly [theta] degrees on both sides. */
+    private fun elbowWorld(theta: Float): List<Landmark> {
         val rad = theta * PI.toFloat() / 180f
 
         val lm = MutableList(Lm.COUNT) { Landmark.ZERO }
@@ -138,6 +144,97 @@ object PoseFixtures {
 
     /** Shoulder width for the standing fixtures. A full body in frame is smaller than a torso. */
     const val STANDING_SHOULDER_WIDTH = 0.13f
+
+    /** Where the bar is. The hands do not move during a pull-up; the body moves to them. */
+    const val BAR_V = 0.10f
+
+    const val H_TOP_PULLUP = 1.40f
+    const val H_BOTTOM_PULLUP = 0.50f
+
+    fun hForPullUp(depthFraction: Float): Float =
+        H_TOP_PULLUP - depthFraction * (H_TOP_PULLUP - H_BOTTOM_PULLUP)
+
+    /**
+     * A pull-up, viewed face-on from a phone a few metres back.
+     *
+     * A pull-up is a pushup upside down: the hands are fixed and the shoulders travel toward them,
+     * so the shoulder-to-wrist gap shrinks exactly as it does in a pushup and the body normal is
+     * sign-forced toward the wrists in both cases — it simply points up the image here.
+     *
+     * Everything below the shoulders is rigid and translates with them, which is the *point* of
+     * this fixture: it is what makes nose-vs-shoulders and ankles-vs-wrists useless as cross-checks
+     * for this movement, and it is why the descriptor requires the elbow angle instead.
+     *
+     * [depthFraction] 0 is a dead hang, 1 is chin over bar.
+     */
+    fun pullUpFrame(
+        tMs: Long,
+        depthFraction: Float,
+        legConfidence: Float = CONFIDENT,
+        shoulderWidth: Float = STANDING_SHOULDER_WIDTH,
+        centerU: Float = ASPECT / 2f,
+        world: Boolean = true,
+    ): PoseFrame {
+        val lm = MutableList(Lm.COUNT) { Landmark.ZERO }
+        val halfW = shoulderWidth / 2f
+
+        val shoulderV = BAR_V + hForPullUp(depthFraction) * shoulderWidth
+        val torso = shoulderWidth * 1.50f
+        val thigh = shoulderWidth * 1.40f
+        val shank = shoulderWidth * 1.30f
+
+        val hipV = shoulderV + torso
+        val kneeV = hipV + thigh
+        val ankleV = kneeV + shank
+
+        fun put(index: Int, u: Float, v: Float, conf: Float) {
+            lm[index] = Landmark(u / ASPECT, v, 0f, conf, conf)
+        }
+
+        // Elbows flare as the pull closes, but the head, hips, knees and ankles are a rigid body
+        // hanging off the shoulders: none of them moves *relative* to the shoulders at all.
+        val elbowOut = halfW * (1.0f + 0.50f * depthFraction)
+        val elbowV = (shoulderV + BAR_V) / 2f
+
+        put(Lm.NOSE, centerU, shoulderV - shoulderWidth * 0.50f, CONFIDENT)
+        put(Lm.LEFT_SHOULDER, centerU + halfW, shoulderV, CONFIDENT)
+        put(Lm.RIGHT_SHOULDER, centerU - halfW, shoulderV, CONFIDENT)
+        put(Lm.LEFT_ELBOW, centerU + elbowOut, elbowV, CONFIDENT)
+        put(Lm.RIGHT_ELBOW, centerU - elbowOut, elbowV, CONFIDENT)
+        put(Lm.LEFT_WRIST, centerU + halfW, BAR_V, CONFIDENT)
+        put(Lm.RIGHT_WRIST, centerU - halfW, BAR_V, CONFIDENT)
+        put(Lm.LEFT_HIP, centerU + halfW * 0.80f, hipV, legConfidence)
+        put(Lm.RIGHT_HIP, centerU - halfW * 0.80f, hipV, legConfidence)
+        put(Lm.LEFT_KNEE, centerU + halfW * 0.75f, kneeV, legConfidence)
+        put(Lm.RIGHT_KNEE, centerU - halfW * 0.75f, kneeV, legConfidence)
+        put(Lm.LEFT_ANKLE, centerU + halfW * 0.70f, ankleV, legConfidence)
+        put(Lm.RIGHT_ANKLE, centerU - halfW * 0.70f, ankleV, legConfidence)
+
+        val theta = Exercises.HANG_TOP_DEG -
+            depthFraction * (Exercises.HANG_TOP_DEG - Exercises.HANG_BOTTOM_DEG)
+        return PoseFrame(
+            tMs, WIDTH, HEIGHT, lm,
+            if (world) elbowWorld(theta) else emptyList(),
+        )
+    }
+
+    /** [count] pull-ups, preceded by enough dead-hang frames for the detector to arm. */
+    fun pullUpTrace(
+        count: Int,
+        startMs: Long = 0L,
+        peakDepth: Float = 0.95f,
+        descentMs: Int = 1200,
+        bottomMs: Int = 200,
+        ascentMs: Int = 1200,
+        restMs: Int = 400,
+        fps: Int = 30,
+        settleMs: Int = 800,
+        frameOf: (Long, Float) -> PoseFrame = { t, d -> pullUpFrame(t, d) },
+    ): List<PoseFrame> = trace(
+        count = count, startMs = startMs, peakDepth = peakDepth,
+        descentMs = descentMs, bottomMs = bottomMs, ascentMs = ascentMs,
+        restMs = restMs, fps = fps, settleMs = settleMs, frameOf = frameOf,
+    )
 
     /**
      * A squat, viewed face-on from a phone propped up a couple of metres away.

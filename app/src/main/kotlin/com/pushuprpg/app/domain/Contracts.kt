@@ -1,6 +1,7 @@
 package com.pushuprpg.app.domain
 
 import com.pushuprpg.core.detect.ExerciseType
+import com.pushuprpg.core.detect.Exercises
 import com.pushuprpg.core.detect.SkeletonMode
 import com.pushuprpg.core.detect.UserProfile
 import com.pushuprpg.core.game.Difficulty
@@ -25,9 +26,15 @@ data class PlayerProgress(
     /** Epoch day of the most recent day that met the streak bar. */
     val lastActiveEpochDay: Long = 0,
     val highestDungeonCleared: Int = 0,
-    val capacityPushup: Float = 8f,
-    val capacitySquat: Float = 12f,
-    val capacityPlankSeconds: Float = 20f,
+    /**
+     * Measured working capacity per movement — reps for a counted exercise, seconds for a hold.
+     *
+     * A map rather than a field per exercise, so adding a movement is adding a descriptor value and
+     * not a field here, a preference key in the repository, a branch in the battle view model and a
+     * branch in the survival one. A movement the user has never done is simply absent; read it
+     * through [capacityOf] so it falls back to the descriptor's own starting value.
+     */
+    val capacity: Map<ExerciseType, Float> = emptyMap(),
     val bestSurvivalScore: Int = 0,
     /** The player has chosen a class. Separate from [onboarded] because the default class is a
      *  real class, so it cannot be used to infer whether anyone picked it. */
@@ -35,6 +42,13 @@ data class PlayerProgress(
     /** Onboarding is complete, which means the tutorial run has measured a starting capacity. */
     val onboarded: Boolean = false,
 )
+
+/** This player's capacity for a movement, or the movement's own starting value. */
+fun PlayerProgress.capacityOf(exercise: ExerciseType): Float =
+    capacity[exercise] ?: Exercises.of(exercise).defaultCapacity
+
+fun PlayerProgress.withCapacity(exercise: ExerciseType, value: Float): PlayerProgress =
+    copy(capacity = capacity + (exercise to value))
 
 /** One finished run, win or lose. Losses are recorded exactly like wins — that is the point. */
 data class SessionRecord(

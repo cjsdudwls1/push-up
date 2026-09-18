@@ -2,7 +2,6 @@ package com.pushuprpg.core.detect
 
 import com.pushuprpg.core.math.Geometry
 import com.pushuprpg.core.pose.PoseFrame
-import com.pushuprpg.core.pose.PoseLandmarks as Lm
 import kotlin.math.abs
 
 /**
@@ -17,41 +16,44 @@ data class DepthSample(
     /** |h_left − h_right| in h units; large values mean one side is dropping more than the other. */
     val asymmetry: Float,
     /**
-     * 0..100 from the 3-D angle at the working joint — the elbow for a pushup, the knee for a
-     * squat. NaN when world landmarks are unavailable. Read only as a cross-check.
+     * 0..100 from the 3-D angle at the working joint — the elbow for a pushup or a pull-up, the
+     * knee for a squat. NaN when world landmarks are unavailable, or when the exercise declares no
+     * [JointAngleCheck]. Read only as a cross-check.
      */
     val jointDepth: Float,
     /**
      * How far an independent part of the body has travelled along the body axis since the top, in
-     * h units, defined so that it **increases as the user descends** for every exercise.
+     * h units, defined so that it **increases as the user descends** for every exercise. NaN when
+     * the exercise declares no [BodyTravelCheck], or when the landmarks it needs are not visible.
      *
-     * The point is to watch something the primary signal does not: a pushup can be faked by moving
-     * the wrists alone, a squat by tilting the pelvis. Which part is useful differs by movement —
-     * the head drops relative to the shoulders in a pushup but is rigid against them in a squat, so
-     * the squat watches the shoulders against the ankles instead.
+     * See [BodyTravelCheck] for why each exercise watches what it watches — and why a pull-up
+     * watches nothing.
      */
     val bodyDrop: Float,
 )
 
 /**
- * Computes the depth ratio `h = dot(wrist − shoulder, n̂) / scale`.
+ * Computes the depth ratio `h = dot(distal − proximal, n̂) / scale` for whatever movement the
+ * config describes.
  *
- * Per side, so that a user with one arm out of frame still gets a reading, and so that the
- * difference between sides becomes a usable asymmetry signal.
+ * There are no exercise branches here. Everything that differs between a pushup, a squat and a
+ * pull-up is a value in [Exercises]; this file is the one implementation those values drive. Per
+ * side, so that a user with one limb out of frame still gets a reading, and so that the difference
+ * between sides becomes a usable asymmetry signal.
  */
 object DepthSignal {
 
     /** Elbow angle at lockout, in degrees, used to anchor the cross-check. */
-    const val ELBOW_TOP_DEG = 172f
+    const val ELBOW_TOP_DEG = Exercises.ELBOW_TOP_DEG
 
     /** Elbow angle with the upper arm parallel to the floor — a standard pushup bottom. */
-    const val ELBOW_BOTTOM_DEG = 82f
+    const val ELBOW_BOTTOM_DEG = Exercises.ELBOW_BOTTOM_DEG
 
     /** Knee angle standing. */
-    const val KNEE_TOP_DEG = 172f
+    const val KNEE_TOP_DEG = Exercises.KNEE_TOP_DEG
 
     /** Knee angle with the thigh parallel to the floor. */
-    const val KNEE_BOTTOM_DEG = 88f
+    const val KNEE_BOTTOM_DEG = Exercises.KNEE_BOTTOM_DEG
 
     fun compute(
         frame: PoseFrame,
@@ -60,13 +62,15 @@ object DepthSignal {
         config: DetectorConfig,
     ): DepthSample? {
         if (body.scale <= 0f) return null
-        if (config.exercise == ExerciseType.SQUAT) return computeSquat(frame, body, confidence, config)
+        // A hold has no depth ratio. Returning null rather than inventing one is what stops the rep
+        // state machine from ever being fed a plank.
+        val signal = config.descriptor.signal ?: return null
 
-        val wL = confidence[Lm.LEFT_SHOULDER] * confidence[Lm.LEFT_WRIST]
-        val wR = confidence[Lm.RIGHT_SHOULDER] * confidence[Lm.RIGHT_WRIST]
+        val wL = confidence[signal.proximal.left] * confidence[signal.distal.left]
+        val wR = confidence[signal.proximal.right] * confidence[signal.distal.right]
 
-        val hL = sideRatio(frame, body, Lm.LEFT_SHOULDER, Lm.LEFT_WRIST)
-        val hR = sideRatio(frame, body, Lm.RIGHT_SHOULDER, Lm.RIGHT_WRIST)
+        val hL = sideRatio(frame, body, signal.proximal.left, signal.distal.left)
+        val hR = sideRatio(frame, body, signal.proximal.right, signal.distal.right)
 
         val usableL = wL > 0f && !hL.isNaN()
         val usableR = wR > 0f && !hR.isNaN()
@@ -75,129 +79,81 @@ object DepthSignal {
         var asymmetry = 0f
         when {
             usableL && usableR -> {
-                // One side far less trusted than the other: take the good one outright rather than
-                // letting a weighted mean quietly import the bad one's error.
-                h = when {
-                    wL < SIDE_DOMINANCE * wR -> hR
-                    wR < SIDE_DOMINANCE * wL -> hL
-                    else -> (hL * wL + hR * wR) / (wL + wR)
+                h = when (signal.sideCombiner) {
+                    // A split stance: only the front leg bends, and averaging it with a trailing
+                    // leg that barely moves halves the reading so no honest rep reaches the line.
+                    // h falls with effort, so the working side is the smaller one.
+                    SideCombiner.DEEPER_SIDE -> minOf(hL, hR)
+                    // One side far less trusted than the other: take the good one outright rather
+                    // than letting a weighted mean quietly import the bad one's error.
+                    SideCombiner.CONFIDENCE_WEIGHTED -> when {
+                        wL < SIDE_DOMINANCE * wR -> hR
+                        wR < SIDE_DOMINANCE * wL -> hL
+                        else -> (hL * wL + hR * wR) / (wL + wR)
+                    }
                 }
-                asymmetry = abs(hL - hR)
+                // An asymmetric movement is asymmetric by definition; reporting that as a fault
+                // would flag every honest rep.
+                asymmetry = if (signal.sideCombiner == SideCombiner.DEEPER_SIDE) 0f else abs(hL - hR)
             }
             usableL -> h = hL
             usableR -> h = hR
             else -> return null
         }
 
-        val elbow = elbowDepth(frame, confidence, config)
-        val drop = noseDrop(frame, body, confidence)
+        val joint = signal.jointCheck?.let { jointDepth(frame, confidence, config, it) } ?: Float.NaN
+        val travel = signal.bodyTravel?.let { bodyTravel(frame, body, confidence, it) } ?: Float.NaN
 
-        val source = if (maxOf(wL, wR) >= config.minSideWeight) {
-            DepthSource.PRIMARY
-        } else if (!elbow.isNaN()) {
-            DepthSource.ELBOW_FALLBACK
-        } else {
-            DepthSource.NONE
+        val source = when {
+            maxOf(wL, wR) >= config.minSideWeight -> DepthSource.PRIMARY
+            signal.allowJointFallback && !joint.isNaN() -> DepthSource.ELBOW_FALLBACK
+            else -> DepthSource.NONE
         }
 
         if (source == DepthSource.NONE) return null
 
-        return DepthSample(h = h, source = source, asymmetry = asymmetry, jointDepth = elbow, bodyDrop = drop)
+        return DepthSample(h = h, source = source, asymmetry = asymmetry, jointDepth = joint, bodyDrop = travel)
     }
 
     /**
-     * Squat depth: how far the hip sits above the knee, along the body axis, in shoulder widths.
+     * The measured segment projected onto the body normal, in shoulder widths.
      *
-     * This is the anatomical definition of squat depth — "hip crease below the knee" — expressed
-     * directly, which is why it is worth using rather than reaching for the obvious alternatives.
-     * The knee *angle* is unusable for the same reason the elbow angle is unusable for a pushup: a
-     * user faces the camera, so the joint flexes in the plane pointing away from it and the
-     * projection barely moves. Hip height above the *ankle* would work, but ankles leave the frame
-     * far more often than knees do.
-     *
-     * Shoulder width is the normaliser again, and for the same reason: it is close to perpendicular
-     * to the optical axis and physically constant, so `f` and `Z` cancel and the reading survives
-     * the user drifting nearer to or further from the phone mid-set.
-     *
-     * The scale runs from about +1.05 standing, through 0 at parallel — hip level with knee — to
-     * negative below parallel. It decreases as the user descends, exactly like the pushup ratio, so
-     * the calibrator and the state machine need no special case at all.
+     * The normaliser is what makes this worth using: shoulder width is close to perpendicular to
+     * the optical axis and physically constant, so `f` and `Z` cancel and the reading survives the
+     * user drifting nearer to or further from the phone mid-set.
      */
-    private fun computeSquat(
-        frame: PoseFrame,
-        body: BodyFrameState,
-        confidence: FloatArray,
-        config: DetectorConfig,
-    ): DepthSample? {
-        val wL = confidence[Lm.LEFT_HIP] * confidence[Lm.LEFT_KNEE]
-        val wR = confidence[Lm.RIGHT_HIP] * confidence[Lm.RIGHT_KNEE]
-
-        val hL = squatSideRatio(frame, body, Lm.LEFT_HIP, Lm.LEFT_KNEE)
-        val hR = squatSideRatio(frame, body, Lm.RIGHT_HIP, Lm.RIGHT_KNEE)
-
-        val usableL = wL > 0f && !hL.isNaN()
-        val usableR = wR > 0f && !hR.isNaN()
-
-        val h: Float
-        var asymmetry = 0f
-        when {
-            usableL && usableR -> {
-                h = when {
-                    wL < SIDE_DOMINANCE * wR -> hR
-                    wR < SIDE_DOMINANCE * wL -> hL
-                    else -> (hL * wL + hR * wR) / (wL + wR)
-                }
-                asymmetry = abs(hL - hR)
-            }
-            usableL -> h = hL
-            usableR -> h = hR
-            else -> return null
-        }
-
-        if (maxOf(wL, wR) < config.minSideWeight) return null
-
-        return DepthSample(
-            h = h,
-            source = DepthSource.PRIMARY,
-            asymmetry = asymmetry,
-            jointDepth = kneeDepth(frame, confidence, config),
-            bodyDrop = shoulderDropOverAnkles(frame, body, confidence),
-        )
-    }
-
-    /** Hip-above-knee along the body normal, in shoulder widths. Positive while the hip is higher. */
-    private fun squatSideRatio(frame: PoseFrame, body: BodyFrameState, hip: Int, knee: Int): Float {
-        val du = frame.u(knee) - frame.u(hip)
-        val dv = frame.v(knee) - frame.v(hip)
-        if (body.scale < Geometry.EPSILON) return Float.NaN
-        return Geometry.dot(du, dv, body.nU, body.nV) / body.scale
-    }
-
-    private fun sideRatio(frame: PoseFrame, body: BodyFrameState, shoulder: Int, wrist: Int): Float {
-        val du = frame.u(wrist) - frame.u(shoulder)
-        val dv = frame.v(wrist) - frame.v(shoulder)
+    private fun sideRatio(frame: PoseFrame, body: BodyFrameState, proximal: Int, distal: Int): Float {
+        val du = frame.u(distal) - frame.u(proximal)
+        val dv = frame.v(distal) - frame.v(proximal)
         if (body.scale < Geometry.EPSILON) return Float.NaN
         return Geometry.dot(du, dv, body.nU, body.nV) / body.scale
     }
 
     /**
-     * Independent depth estimate from the 3-D elbow angle.
+     * Independent depth estimate from a 3-D joint angle.
      *
      * This must come from world landmarks, never from the projected 2-D angle: in this camera
-     * geometry the forearm swings away from the lens as the user descends, so the projected angle
-     * can barely move across a full-depth rep. Useful as a cross-check, unusable as the gauge.
+     * geometry the working limb swings away from the lens as the user descends, so the projected
+     * angle can barely move across a full-depth rep. Useful as a cross-check, unusable as the gauge.
+     * The one movement where it is strong rather than marginal is the pull-up, where the subject
+     * hangs side-on to the flexing elbow — which is why the pull-up is allowed to require it.
      */
-    fun elbowDepth(frame: PoseFrame, confidence: FloatArray, config: DetectorConfig): Float {
+    fun jointDepth(
+        frame: PoseFrame,
+        confidence: FloatArray,
+        config: DetectorConfig,
+        check: JointAngleCheck,
+    ): Float {
         if (!frame.hasWorld) return Float.NaN
         val w = frame.worldLandmarks
 
-        val cL = confidence[Lm.LEFT_ELBOW]
-        val cR = confidence[Lm.RIGHT_ELBOW]
+        val cL = confidence[check.vertex.left]
+        val cR = confidence[check.vertex.right]
         val aL = if (cL >= config.minCoreConfidence) {
-            Geometry.angleDeg3(w[Lm.LEFT_SHOULDER], w[Lm.LEFT_ELBOW], w[Lm.LEFT_WRIST])
+            Geometry.angleDeg3(w[check.proximal.left], w[check.vertex.left], w[check.distal.left])
         } else Float.NaN
         val aR = if (cR >= config.minCoreConfidence) {
-            Geometry.angleDeg3(w[Lm.RIGHT_SHOULDER], w[Lm.RIGHT_ELBOW], w[Lm.RIGHT_WRIST])
+            Geometry.angleDeg3(w[check.proximal.right], w[check.vertex.right], w[check.distal.right])
         } else Float.NaN
 
         val theta = when {
@@ -207,71 +163,46 @@ object DepthSignal {
             else -> return Float.NaN
         }
 
-        return (100f * (ELBOW_TOP_DEG - theta) / (ELBOW_TOP_DEG - ELBOW_BOTTOM_DEG)).coerceIn(0f, 100f)
+        return (100f * (check.topDeg - theta) / (check.topDeg - check.bottomDeg)).coerceIn(0f, 100f)
     }
 
     /**
-     * Independent depth estimate from the 3-D knee angle — the squat's counterpart to the elbow.
+     * How far the watched body part has travelled along the body axis, in h units, signed so it
+     * increases with depth for every exercise.
      *
-     * Same reasoning: a user faces the camera, so the knee flexes in the plane pointing away from
-     * it and the projected angle barely moves across a full squat. Only world landmarks see it.
+     * Returns NaN when either endpoint is not visible at all, which the caller must treat as
+     * "unknown" rather than "no movement" — reading a missing landmark as zero travel would reject
+     * every rep the moment the legs left frame.
      */
-    fun kneeDepth(frame: PoseFrame, confidence: FloatArray, config: DetectorConfig): Float {
-        if (!frame.hasWorld) return Float.NaN
-        val w = frame.worldLandmarks
-
-        val cL = confidence[Lm.LEFT_KNEE]
-        val cR = confidence[Lm.RIGHT_KNEE]
-        val aL = if (cL >= config.minCoreConfidence) {
-            Geometry.angleDeg3(w[Lm.LEFT_HIP], w[Lm.LEFT_KNEE], w[Lm.LEFT_ANKLE])
-        } else Float.NaN
-        val aR = if (cR >= config.minCoreConfidence) {
-            Geometry.angleDeg3(w[Lm.RIGHT_HIP], w[Lm.RIGHT_KNEE], w[Lm.RIGHT_ANKLE])
-        } else Float.NaN
-
-        val theta = when {
-            !aL.isNaN() && !aR.isNaN() -> (aL * cL + aR * cR) / (cL + cR)
-            !aL.isNaN() -> aL
-            !aR.isNaN() -> aR
-            else -> return Float.NaN
-        }
-        return (100f * (KNEE_TOP_DEG - theta) / (KNEE_TOP_DEG - KNEE_BOTTOM_DEG)).coerceIn(0f, 100f)
-    }
-
-    /**
-     * How far the shoulders have come down toward the ankles, in h units, negated so it increases
-     * with depth like every other [DepthSample.bodyDrop].
-     *
-     * A squat lowers the whole upper body; tilting the pelvis at the camera does not. That is the
-     * distinction this exists to draw.
-     */
-    fun shoulderDropOverAnkles(
+    fun bodyTravel(
         frame: PoseFrame,
         body: BodyFrameState,
         confidence: FloatArray,
+        check: BodyTravelCheck,
     ): Float {
-        val ankleConf = minOf(confidence[Lm.LEFT_ANKLE], confidence[Lm.RIGHT_ANKLE])
-        if (ankleConf <= 0f || body.scale < Geometry.EPSILON) return Float.NaN
-        val ankleU = (frame.u(Lm.LEFT_ANKLE) + frame.u(Lm.RIGHT_ANKLE)) / 2f
-        val ankleV = (frame.v(Lm.LEFT_ANKLE) + frame.v(Lm.RIGHT_ANKLE)) / 2f
-        val extent = Geometry.dot(
-            ankleU - body.shoulderU, ankleV - body.shoulderV,
-            body.nU, body.nV,
-        ) / body.scale
-        return -extent
+        if (body.scale < Geometry.EPSILON) return Float.NaN
+        val fromU = pointU(frame, check.from); val fromV = pointV(frame, check.from)
+        val toU = pointU(frame, check.to); val toV = pointV(frame, check.to)
+        if (minOf(pointConfidence(confidence, check.from), pointConfidence(confidence, check.to)) <= 0f) {
+            return Float.NaN
+        }
+        val extent = Geometry.dot(toU - fromU, toV - fromV, body.nU, body.nV) / body.scale
+        return if (check.invert) -extent else extent
     }
 
-    /**
-     * How far the nose sits below the shoulder line, along n̂, in h units.
-     *
-     * The head descends with the chest in a real pushup but stays put when someone waves an arm at
-     * the phone, which is what makes this a useful second opinion when world landmarks are absent.
-     */
-    fun noseDrop(frame: PoseFrame, body: BodyFrameState, confidence: FloatArray): Float {
-        if (confidence[Lm.NOSE] <= 0f || body.scale < Geometry.EPSILON) return Float.NaN
-        val du = frame.u(Lm.NOSE) - body.shoulderU
-        val dv = frame.v(Lm.NOSE) - body.shoulderV
-        return Geometry.dot(du, dv, body.nU, body.nV) / body.scale
+    private fun pointU(frame: PoseFrame, p: BodyPoint): Float = when (p) {
+        is BodyPoint.Single -> frame.u(p.index)
+        is BodyPoint.Midpoint -> (frame.u(p.pair.left) + frame.u(p.pair.right)) / 2f
+    }
+
+    private fun pointV(frame: PoseFrame, p: BodyPoint): Float = when (p) {
+        is BodyPoint.Single -> frame.v(p.index)
+        is BodyPoint.Midpoint -> (frame.v(p.pair.left) + frame.v(p.pair.right)) / 2f
+    }
+
+    private fun pointConfidence(confidence: FloatArray, p: BodyPoint): Float = when (p) {
+        is BodyPoint.Single -> confidence[p.index]
+        is BodyPoint.Midpoint -> minOf(confidence[p.pair.left], confidence[p.pair.right])
     }
 
     /** Below this ratio a side is considered so much worse than the other that it is dropped. */

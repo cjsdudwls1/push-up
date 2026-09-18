@@ -105,6 +105,15 @@ data class DetectorConfig(
     val hintSuppressFirstReps: Int = 5,
     val hintRewardMultiplier: Float = 1.10f,
 ) {
+    /**
+     * What this config is measuring, as data.
+     *
+     * A getter rather than a constructor property on purpose: it keeps [DetectorConfig]'s identity,
+     * `copy` and `equals` exactly what they were, and it means a config and its descriptor can
+     * never disagree about which exercise they describe.
+     */
+    val descriptor: ExerciseDescriptor get() = Exercises.of(exercise)
+
     init {
         require(topEnter < topExit) { "topEnter must be below topExit" }
         require(topExit < countExit) { "topExit must be below countExit" }
@@ -115,31 +124,29 @@ data class DetectorConfig(
     }
 
     companion object {
-        fun pushup(): DetectorConfig = DetectorConfig(ExerciseType.PUSHUP)
+        /**
+         * The tuning for a movement.
+         *
+         * Every per-exercise value now lives beside its landmark pairs and cross-checks in
+         * [Exercises], so a new movement is one value in one file rather than a new factory here, a
+         * branch in [DepthSignal], a branch in [BodyFrameTracker] and a branch in [DetectorFactory].
+         * The named helpers below are kept because half the codebase and every test calls them.
+         */
+        fun forExercise(type: ExerciseType): DetectorConfig = Exercises.of(type).config
+
+        fun pushup(): DetectorConfig = Exercises.PUSHUP.config
 
         /**
          * A squat is the same state machine with a different signal and a slower cadence; the
          * thresholds move because the usable range of a squat (standing to parallel) is a smaller
          * fraction of the body than a pushup's.
          */
-        fun squat(): DetectorConfig = DetectorConfig(
-            exercise = ExerciseType.SQUAT,
-            topEnter = 15f, topExit = 30f,
-            countEnter = 68f, countExit = 52f,
-            deepEnter = 85f, deepExit = 78f,
-            maxDescentSpeed = 450f, minAscentMs = 250, minRepPeriodMs = 900,
-            maxDescentMs = 5000, maxBottomMs = 6000,
-            signalMinCutoff = 1.0f, signalBeta = 18f,
-            // The squat signal is hip-above-knee in shoulder widths: about +1.05 standing, 0 at
-            // parallel, negative below it. The bottom clamp therefore has to allow negative values
-            // — a deep squat genuinely puts the hip crease under the knee, and clamping at zero
-            // would cap a full-depth user at the same reading as a parallel one.
-            hTopPrior = 1.05f, hBotPrior = 0.05f, rMin = 0.45f,
-            topClampMin = 0.70f, topClampMax = 1.60f,
-            botClampMin = -0.50f, botClampMax = 0.80f,
-        )
+        fun squat(): DetectorConfig = Exercises.SQUAT.config
 
-        fun plank(): DetectorConfig = DetectorConfig(ExerciseType.PLANK)
+        /** A pull-up is a pushup upside down, paced far more slowly. */
+        fun pullUp(): DetectorConfig = Exercises.PULL_UP.config
+
+        fun plank(): DetectorConfig = Exercises.PLANK.config
     }
 }
 

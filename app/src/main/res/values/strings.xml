@@ -166,6 +166,28 @@
     <string name="exercise_pushup">푸쉬업</string>
     <string name="exercise_squat">스쿼트</string>
     <string name="exercise_plank">플랭크</string>
+    <string name="exercise_pull_up">턱걸이</string>
+    <string name="exercise_curl">덤벨컬</string>
+    <string name="exercise_overhead_press">오버헤드 프레스</string>
+    <string name="exercise_lunge">런지</string>
+    <string name="exercise_bench_press">벤치프레스</string>
+    <string name="exercise_hinge">힙 힌지</string>
+
+    <!-- Camera placement. Getting this wrong is the single most common reason a set counts nothing. -->
+    <string name="exercise_hint_pushup">폰을 바닥에 세워서 옆모습이 나오게 해주세요.</string>
+    <string name="exercise_hint_squat">폰을 정면에 두고 2m쯤 떨어져 주세요. 무릎까지 나와야 해요.</string>
+    <string name="exercise_hint_plank">폰을 바닥에 세워서 옆모습이 나오게 해주세요.</string>
+    <string name="exercise_hint_pull_up">폰을 정면에 두고 온몸이 나오도록 멀리 놓아주세요.</string>
+    <string name="exercise_hint_curl">폰을 정면에 두고 허리 높이로 세워주세요. 양팔을 동시에 올렸다 내려요.</string>
+    <string name="exercise_hint_overhead_press">폰을 정면에 두고 허리 높이로 세워주세요. 팔을 다 펴도 화면 안에 있어야 해요.</string>
+    <string name="exercise_hint_lunge">폰을 정면에 두고 2m쯤 떨어져 주세요. 앞다리 기준으로 세요.</string>
+    <string name="exercise_hint_bench_press">폰을 옆에서 벤치 전체가 보이게 세워주세요. 인식이 가장 불안정한 종목이에요.</string>
+    <string name="exercise_hint_hinge">폰을 정면 또는 살짝 비스듬하게, 2m쯤 떨어뜨려 허리 높이로 세워주세요. 완전한 옆모습은 어깨가 겹쳐서 인식이 안 돼요.</string>
+
+    <!-- Shown when a loaded exercise is selected. -->
+    <string name="exercise_load_warning_title">중량 운동은 주의해 주세요</string>
+    <string name="exercise_load_warning_body">카메라는 무게를 못 봐요. 5kg이든 50kg이든 똑같이 보입니다. 그런데 이 게임은 계속 하라고 몰아붙여요 — 콤보가 끊기고 보스가 때립니다.\n\n한 개 더 할지 말지는 게임이 아니라 몸이 정해야 해요. 무리라고 느껴지면 그냥 내려놓으세요. 기록은 어차피 남아요.</string>
+    <string name="exercise_unvalidated">아직 실기기에서 검증되지 않은 종목이에요. 개수가 이상하면 알려주세요.</string>
 
     <!-- Survival mode -->
     <string name="survival_title">고냥이 지켜줘</string>

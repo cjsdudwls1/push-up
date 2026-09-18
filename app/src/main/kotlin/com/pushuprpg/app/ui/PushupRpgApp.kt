@@ -34,6 +34,8 @@ import androidx.core.net.toUri
 import com.pushuprpg.app.AppContainer
 import com.pushuprpg.app.domain.AppSettings
 import com.pushuprpg.app.domain.FreeTier
+import com.pushuprpg.app.domain.capacityOf
+import com.pushuprpg.core.detect.ExerciseType
 import com.pushuprpg.app.pose.PoseFrameSink
 import com.pushuprpg.app.share.ShareCardData
 import com.pushuprpg.app.telemetry.Event
@@ -140,7 +142,7 @@ fun PushupRpgApp(
 
                 composable(Routes.CLASS_PICK) {
                     ClassPickScreen(
-                        capacity = progress.capacityPushup,
+                        capacity = progress.capacityOf(ExerciseType.PUSHUP),
                         onPick = { playerClass: PlayerClass ->
                             scope.launch {
                                 container.progressRepository.update {
@@ -199,7 +201,7 @@ fun PushupRpgApp(
                 composable(Routes.DUNGEON_SELECT) {
                     DungeonSelectScreen(
                         highestCleared = progress.highestDungeonCleared,
-                        capacity = progress.capacityPushup,
+                        capacity = progress.capacityOf(ExerciseType.PUSHUP),
                         difficulty = settings.difficulty,
                         entitlement = entitlement,
                         onDifficultyChange = { difficulty ->

@@ -48,6 +48,9 @@ class BodyFrameTracker(private val config: DetectorConfig) {
 
     private var scaleEma = 0f
     private var initialized = false
+
+    /** 0 until the normal's sign has been decided; only used when the descriptor latches it. */
+    private var latchedSign = 0
     private var lastTMs = 0L
 
     fun reset() {
@@ -63,20 +66,54 @@ class BodyFrameTracker(private val config: DetectorConfig) {
      * Returns null when the shoulders are not reliable enough to define a frame at all, which is
      * the honest answer — every downstream quantity divides by [BodyFrameState.scale].
      */
+    private companion object {
+        /**
+         * How far the far pair must project along the normal before its sign is trusted.
+         *
+         * Below this the projection is small enough that landmark noise decides it.
+         */
+        const val SIGN_LATCH_FRACTION = 0.40f
+    }
+
     fun update(frame: PoseFrame, confidence: FloatArray): BodyFrameState? {
         if (!frame.hasPose) return null
-        if (confidence[Lm.LEFT_SHOULDER] < config.minCoreConfidence ||
-            confidence[Lm.RIGHT_SHOULDER] < config.minCoreConfidence
-        ) return null
+
+        val descriptor = config.descriptor
+        val nearSide = descriptor.coreConfidence == CoreConfidence.NEAR_SIDE
+        val confL = confidence[Lm.LEFT_SHOULDER]
+        val confR = confidence[Lm.RIGHT_SHOULDER]
+        // Filmed from the side the far shoulder is a regression, not an observation, so demanding
+        // both would refuse every frame of an otherwise perfect set.
+        val coreConf = if (nearSide) maxOf(confL, confR) else minOf(confL, confR)
+        if (coreConf < config.minCoreConfidence) return null
 
         val aspect = frame.aspect
-        val slU = frame.u(Lm.LEFT_SHOULDER)
-        val slV = frame.v(Lm.LEFT_SHOULDER)
-        val srU = frame.u(Lm.RIGHT_SHOULDER)
-        val srV = frame.v(Lm.RIGHT_SHOULDER)
+        val left = confL >= confR
+        val shoulder = if (left) Lm.LEFT_SHOULDER else Lm.RIGHT_SHOULDER
+        val hip = if (left) Lm.LEFT_HIP else Lm.RIGHT_HIP
 
-        var axU = slU - srU
-        var axV = slV - srV
+        // The origin the depth ratio is measured from: the shoulder midpoint when the user faces
+        // the lens, the near shoulder alone when they do not.
+        val originU: Float
+        val originV: Float
+        var axU: Float
+        var axV: Float
+        when (descriptor.axisSource) {
+            AxisSource.SHOULDER_PAIR -> {
+                originU = (frame.u(Lm.LEFT_SHOULDER) + frame.u(Lm.RIGHT_SHOULDER)) / 2f
+                originV = (frame.v(Lm.LEFT_SHOULDER) + frame.v(Lm.RIGHT_SHOULDER)) / 2f
+                axU = frame.u(Lm.LEFT_SHOULDER) - frame.u(Lm.RIGHT_SHOULDER)
+                axV = frame.v(Lm.LEFT_SHOULDER) - frame.v(Lm.RIGHT_SHOULDER)
+            }
+            AxisSource.NEAR_SIDE_TORSO -> {
+                if (confidence[hip] < config.minCoreConfidence) return null
+                originU = frame.u(shoulder)
+                originV = frame.v(shoulder)
+                axU = frame.u(hip) - frame.u(shoulder)
+                axV = frame.v(hip) - frame.v(shoulder)
+            }
+        }
+
         val axisLen = Geometry.norm(axU, axV)
         if (axisLen < Geometry.EPSILON) return null
         axU /= axisLen
@@ -110,24 +147,36 @@ class BodyFrameTracker(private val config: DetectorConfig) {
         // signal is unaffected by camera roll or by the preview being mirrored.
         //
         // Which end counts as "far" depends on the movement: a pushup measures toward the hands on
-        // the floor, a squat toward the hips and legs. Getting this wrong does not produce a
-        // slightly worse reading — it inverts the signal, so descending would register as rising.
+        // the floor, a squat toward the hips and legs, a pull-up toward the hands on the bar above.
+        // Getting this wrong does not produce a slightly worse reading — it inverts the signal, so
+        // descending would register as rising. It is therefore declared per exercise, as data.
         var (nU, nV) = Geometry.rot90(axU, axV)
 
-        val shoulderU = (slU + srU) / 2f
-        val shoulderV = (slV + srV) / 2f
+        val shoulderU = originU
+        val shoulderV = originV
 
-        val (farLeft, farRight) = when (config.exercise) {
-            ExerciseType.SQUAT -> Lm.LEFT_HIP to Lm.RIGHT_HIP
-            else -> Lm.LEFT_WRIST to Lm.RIGHT_WRIST
-        }
-        val wL = confidence[farLeft]
-        val wR = confidence[farRight]
+        val far = descriptor.normalToward
+        val wL = confidence[far.left]
+        val wR = confidence[far.right]
+
+        if (scaleReset) latchedSign = 0
 
         if (wL + wR > 0f) {
-            val farU = (frame.u(farLeft) * wL + frame.u(farRight) * wR) / (wL + wR)
-            val farV = (frame.v(farLeft) * wL + frame.v(farRight) * wR) / (wL + wR)
-            if (Geometry.dot(farU - shoulderU, farV - shoulderV, nU, nV) < 0f) {
+            val farU = (frame.u(far.left) * wL + frame.u(far.right) * wR) / (wL + wR)
+            val farV = (frame.v(far.left) * wL + frame.v(far.right) * wR) / (wL + wR)
+            val projection = Geometry.dot(farU - shoulderU, farV - shoulderV, nU, nV)
+            val sign = if (descriptor.latchNormalSign) {
+                // Take the sign the first time the movement is unambiguous, then hold it. Near the
+                // hard end of a side-on press the projection approaches zero, and re-deciding there
+                // puts a flip on the strike frame itself.
+                if (latchedSign == 0 && abs(projection) > SIGN_LATCH_FRACTION * instantScale) {
+                    latchedSign = if (projection < 0f) -1 else 1
+                }
+                latchedSign
+            } else {
+                if (projection < 0f) -1 else 1
+            }
+            if (sign < 0) {
                 nU = -nU
                 nV = -nV
             }

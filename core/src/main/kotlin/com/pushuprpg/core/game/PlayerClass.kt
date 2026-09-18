@@ -1,6 +1,7 @@
 package com.pushuprpg.core.game
 
 import com.pushuprpg.core.detect.ExerciseType
+import com.pushuprpg.core.detect.Exercises
 
 /**
  * The three classes, distinguished by the *kind of training* they reward rather than by a stat
@@ -92,9 +93,11 @@ enum class Difficulty(
     }
 }
 
-/** How a movement converts into damage relative to a pushup. */
-fun ExerciseType.coefficient(): Float = when (this) {
-    ExerciseType.PUSHUP -> 1.00f
-    ExerciseType.SQUAT -> 0.85f
-    ExerciseType.PLANK -> 1.00f
-}
+/**
+ * How a movement converts into damage relative to a pushup.
+ *
+ * Declared with the movement rather than here, so adding an exercise cannot leave it dealing a
+ * silently wrong amount of damage. It is the only lever for making a floor cost the right number of
+ * a given movement — enemy HP is derived from a rep cost and is never authored.
+ */
+fun ExerciseType.coefficient(): Float = Exercises.of(this).damageCoefficient

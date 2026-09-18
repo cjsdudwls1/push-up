@@ -1,6 +1,15 @@
 package com.pushuprpg.core.detect
 
-enum class ExerciseType { PUSHUP, SQUAT, PLANK }
+/**
+ * The movements the game can be played with.
+ *
+ * The behaviour of each one lives in [Exercises], not here: adding an entry without adding its
+ * descriptor fails loudly at first use rather than producing a selectable exercise that counts
+ * nothing. Persisted by `name`, so entries may be appended freely but never renamed or reordered.
+ */
+enum class ExerciseType {
+    PUSHUP, SQUAT, PLANK, PULL_UP, CURL, OVERHEAD_PRESS, LUNGE, BENCH_PRESS, HINGE
+}
 
 /**
  * Where the rep is in its cycle.

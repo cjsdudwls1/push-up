@@ -15,8 +15,12 @@ import com.pushuprpg.app.domain.ProgressRepository
 import com.pushuprpg.app.domain.SessionRecord
 import com.pushuprpg.app.domain.SessionRepository
 import com.pushuprpg.app.domain.SettingsRepository
+import com.pushuprpg.app.domain.capacityOf
+import com.pushuprpg.app.domain.withCapacity
 import com.pushuprpg.core.detect.DetectorConfig
 import com.pushuprpg.core.detect.ExerciseType
+import com.pushuprpg.core.detect.Exercises
+import com.pushuprpg.core.detect.MovementKind
 import com.pushuprpg.core.detect.PoseQuality
 import com.pushuprpg.core.detect.DetectorFactory
 import com.pushuprpg.core.detect.RepDetector
@@ -101,11 +105,8 @@ class BattleViewModel(
             val settings = settingsRepository.settings.first()
             exercise = settings.exercise
 
-            val config = when (exercise) {
-                ExerciseType.PUSHUP -> DetectorConfig.pushup()
-                ExerciseType.SQUAT -> DetectorConfig.squat()
-                ExerciseType.PLANK -> DetectorConfig.plank()
-            }
+            // The movement's own tuning, as data. A new exercise needs no branch here.
+            val config = DetectorConfig.forExercise(exercise)
             val profile = progressRepository.calibrationProfile(exercise)
             // Through the factory, not a direct RepDetectorImpl: a plank needs a different detector
             // entirely, and constructing the rep state machine for it would silently count nothing.
@@ -228,7 +229,14 @@ class BattleViewModel(
                 val levelled = Levels.apply(current.level, current.xpIntoLevel, outcome.xpEarned)
                 _levelsGained.value = levelled.levelsGained
                 val streak = advanceStreak(current, epochDay, outcome.reps, plankSeconds)
-                current.copy(
+                // Capacity is measured in the movement's own unit: reps for a counted exercise,
+                // seconds for a hold. A hold's best is its longest, not an average of its reps.
+                val measured = if (Exercises.of(exercise).kind == MovementKind.HOLD) {
+                    maxOf(current.capacityOf(exercise), plankSeconds.toFloat())
+                } else {
+                    Capacity.update(current.capacityOf(exercise), outcome.maxCombo)
+                }
+                current.withCapacity(exercise, measured).copy(
                     level = levelled.level,
                     xpIntoLevel = levelled.xpIntoLevel,
                     lifetimeReps = current.lifetimeReps + outcome.reps,
@@ -240,15 +248,6 @@ class BattleViewModel(
                     highestDungeonCleared = if (outcome.cleared) {
                         maxOf(current.highestDungeonCleared, dungeonIndex)
                     } else current.highestDungeonCleared,
-                    capacityPushup = if (exercise == ExerciseType.PUSHUP) {
-                        Capacity.update(current.capacityPushup, outcome.maxCombo)
-                    } else current.capacityPushup,
-                    capacitySquat = if (exercise == ExerciseType.SQUAT) {
-                        Capacity.update(current.capacitySquat, outcome.maxCombo)
-                    } else current.capacitySquat,
-                    capacityPlankSeconds = if (exercise == ExerciseType.PLANK) {
-                        maxOf(current.capacityPlankSeconds, plankSeconds.toFloat())
-                    } else current.capacityPlankSeconds,
                 )
             }
         }
@@ -267,15 +266,14 @@ class BattleViewModel(
         reps: Int,
         plankSeconds: Int,
     ): Pair<Int, Long> {
-        // The count has to go into the slot for the movement actually performed. Passing it as
-        // pushups regardless meant a five-minute plank — which reports zero reps by construction —
-        // lost the user their streak, and twelve squats kept it when fifteen are the bar.
-        val maintained = when (exercise) {
-            ExerciseType.PUSHUP -> Streak.maintained(reps = reps)
-            ExerciseType.SQUAT -> Streak.maintained(reps = 0, squats = reps)
-            ExerciseType.PLANK -> Streak.maintained(reps = 0, plankSeconds = plankSeconds)
+        // The count has to be judged against the bar for the movement actually performed. Passing it
+        // as pushups regardless meant a five-minute plank — which reports zero reps by construction
+        // — lost the user their streak, and twelve squats kept it when fifteen are the bar. The bar
+        // now travels with the movement, so a new exercise cannot be measured against a pushup's.
+        val done = if (Exercises.of(exercise).kind == MovementKind.HOLD) plankSeconds else reps
+        if (!Streak.maintained(exercise, done)) {
+            return current.streakDays to current.lastActiveEpochDay
         }
-        if (!maintained) return current.streakDays to current.lastActiveEpochDay
         return when (epochDay - current.lastActiveEpochDay) {
             0L -> current.streakDays.coerceAtLeast(1) to epochDay
             1L -> (current.streakDays + 1) to epochDay
@@ -283,11 +281,7 @@ class BattleViewModel(
         }
     }
 
-    private fun capacityFor(exercise: ExerciseType): Float = when (exercise) {
-        ExerciseType.PUSHUP -> progress.capacityPushup
-        ExerciseType.SQUAT -> progress.capacitySquat
-        ExerciseType.PLANK -> progress.capacityPlankSeconds
-    }
+    private fun capacityFor(exercise: ExerciseType): Float = progress.capacityOf(exercise)
 
     companion object {
         fun factory(container: AppContainer): ViewModelProvider.Factory = viewModelFactory {
