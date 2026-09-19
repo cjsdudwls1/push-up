@@ -36,6 +36,35 @@ class ExerciseRouterTest {
     }
 
     @Test
+    fun `no loaded-barbell detector claims a bodyweight trace`() {
+        // Six descriptors were added without a real body ever testing them, and the danger is not
+        // that they fail to count — it is that one of them counts something else's reps. A curl
+        // detector that strikes on a pushup would take the set off the movement the user is actually
+        // doing, credit its capacity to the wrong exercise, and size the next boss from it.
+        val loaded = setOf(
+            ExerciseType.CURL,
+            ExerciseType.OVERHEAD_PRESS,
+            ExerciseType.LUNGE,
+            ExerciseType.BENCH_PRESS,
+            ExerciseType.HINGE,
+        )
+        val traces = mapOf(
+            ExerciseType.PUSHUP to PoseFixtures.trace(count = 8, startMs = 3_600_000L),
+            ExerciseType.PULL_UP to PoseFixtures.pullUpTrace(count = 8, startMs = 3_600_000L),
+            ExerciseType.SQUAT to PoseFixtures.squatTrace(count = 8, startMs = 3_600_000L),
+        )
+
+        traces.forEach { (expected, frames) ->
+            val struck = strikesPerExercise(frames).filterValues { it > 0 }.keys
+            val intruders = struck.intersect(loaded)
+            assertTrue(
+                intruders.isEmpty(),
+                "a $expected trace was also counted as $intruders",
+            )
+        }
+    }
+
+    @Test
     fun `only the credited detector builds a skeleton`() {
         // Nine skeletons a frame is nine allocations a frame for one that gets drawn. The saving is
         // only sound if the one on screen still arrives, so both halves are asserted here.
