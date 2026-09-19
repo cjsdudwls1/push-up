@@ -106,16 +106,12 @@ data class AppSettings(
     /** Screen dark, audio only. The battery fix and the accessibility mode are the same feature. */
     val audioOnly: Boolean = false,
     val largeText: Boolean = false,
-    /** Which movement to credit when [autoExercise] is off, and the router's opening guess when it is on. */
-    val exercise: ExerciseType = ExerciseType.PUSHUP,
     /**
-     * Let the camera work out the exercise instead of making the user declare it.
-     *
-     * On by default. Nine movements had collapsed the settings picker into two-character labels, and
-     * a superset — alternating pull-ups and pushups, which is simply how people train — cannot be
-     * expressed by a single choice made before the set starts.
+     * The movement picked on the way into the last dungeon, remembered so the entry picker opens on
+     * it. It is a default for that screen, not a global mode — the run's exercise is whatever was
+     * chosen at entry.
      */
-    val autoExercise: Boolean = true,
+    val exercise: ExerciseType = ExerciseType.PUSHUP,
     val difficulty: Difficulty = Difficulty.STANDARD,
 )
 

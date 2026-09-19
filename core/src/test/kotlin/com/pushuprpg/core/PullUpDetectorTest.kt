@@ -149,4 +149,27 @@ class PullUpDetectorTest {
             "half reps must still be half reps on rep 20",
         )
     }
+
+    /**
+     * The cheat the body-travel witness exists to stop, and which it was silently not stopping.
+     *
+     * strikeBlockedReason used to pick ONE cross-check — the first available — so whenever world
+     * landmarks were present the declared body-travel check was skipped entirely. A pull-up is the
+     * clean demonstration: a pushup additionally requires the head to drop relative to the
+     * shoulders, a hanging body is rigid and cannot do that, so the pushup's witness is exactly the
+     * thing that should refuse a pull-up — and it was not being asked.
+     *
+     * Kept after exercise auto-detection was removed, because the bug it pins is the detector's, not
+     * the router's: with the witness skipped, a pushup could be faked with a rigid head.
+     */
+    @Test
+    fun `the pushup detector refuses a pull-up`() {
+        val pushup = DetectorFactory.create(ExerciseType.PUSHUP, profile = UserProfile.empty())
+        PoseFixtures.pullUpTrace(count = 6, startMs = 3_600_000L).forEach(pushup::onFrame)
+
+        assertEquals(
+            0, pushup.sessionSummary().repCount,
+            "the pushup detector counted a pull-up: its head-drop witness was not consulted",
+        )
+    }
 }

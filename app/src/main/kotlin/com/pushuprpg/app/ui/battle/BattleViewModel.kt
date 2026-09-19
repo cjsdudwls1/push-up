@@ -18,7 +18,6 @@ import com.pushuprpg.app.domain.SettingsRepository
 import com.pushuprpg.app.domain.capacityOf
 import com.pushuprpg.app.domain.withCapacity
 import com.pushuprpg.core.detect.DetectorConfig
-import com.pushuprpg.core.detect.ExerciseRouter
 import com.pushuprpg.core.detect.ExerciseType
 import com.pushuprpg.core.detect.Exercises
 import com.pushuprpg.core.detect.MovementKind
@@ -75,7 +74,6 @@ class BattleViewModel(
     @Volatile private var detector: RepDetector? = null
     @Volatile private var progress: PlayerProgress = PlayerProgress()
     @Volatile private var exercise: ExerciseType = ExerciseType.PUSHUP
-    @Volatile private var router: ExerciseRouter? = null
     @Volatile private var dungeonIndex: Int = 1
     @Volatile private var sessionBestDepth: Float = 0f
     @Volatile private var lastReportedQuality: PoseQuality = PoseQuality.OK
@@ -85,16 +83,6 @@ class BattleViewModel(
 
     private val _levelsGained = MutableStateFlow(0)
     val levelsGained: StateFlow<Int> = _levelsGained.asStateFlow()
-
-    /**
-     * Which exercise the router settled on, or null while it is set by hand.
-     *
-     * Null is the honest value for the manual path: the screen must not announce a detection it did
-     * not make. It is also null before the first counted rep, because until then nothing has been
-     * confirmed and the router is only reporting its starting guess.
-     */
-    private val _detectedExercise = MutableStateFlow<ExerciseType?>(null)
-    val detectedExercise: StateFlow<ExerciseType?> = _detectedExercise.asStateFlow()
 
     init {
         viewModelScope.launch {
@@ -117,28 +105,18 @@ class BattleViewModel(
             val settings = settingsRepository.settings.first()
             exercise = settings.exercise
 
-            // Auto: every detector runs and the exercise is whichever one actually produces a
-            // verified rep. The router is itself a RepDetector, so nothing downstream knows or
-            // cares — including the engine, which reads its gauge thresholds from config and so
-            // follows the movement when a superset changes it mid-run.
-            val det: RepDetector = if (settings.autoExercise) {
-                ExerciseRouter(
-                    profiles = ExerciseType.entries.associateWith {
-                        progressRepository.calibrationProfile(it)
-                    },
-                    initial = exercise,
-                ).also { router = it }
-            } else {
-                router = null
-                // The movement's own tuning, as data. A new exercise needs no branch here.
-                val config = DetectorConfig.forExercise(exercise)
-                val profile = progressRepository.calibrationProfile(exercise)
-                // Through the factory, not a direct RepDetectorImpl: a plank needs a different
-                // detector entirely, and constructing the rep state machine for it would silently
-                // count nothing.
-                DetectorFactory.create(exercise, config, profile)
-            }
-            _detectedExercise.value = null
+            // One detector for the whole run, for the movement the user chose on the way in.
+            //
+            // An earlier build raced all nine detectors and credited whichever produced a verified
+            // rep. It identified the exercise correctly and was still wrong: the loser's strikes are
+            // discarded, so every rep done before the race resolved simply vanished — measured at 0
+            // of 6 pull-ups when someone moved straight from the floor to the bar. A run has one
+            // movement, and it is chosen rather than guessed.
+            val config = DetectorConfig.forExercise(exercise)
+            val profile = progressRepository.calibrationProfile(exercise)
+            // Through the factory, not a direct RepDetectorImpl: a plank needs a different detector
+            // entirely, and constructing the rep state machine for it would silently count nothing.
+            val det: RepDetector = DetectorFactory.create(exercise, config, profile)
             det.skeletonMode = settings.skeletonMode
             detector = det
 
@@ -152,17 +130,10 @@ class BattleViewModel(
             engine = BattleEngine(
                 dungeon = dungeon,
                 difficulty = settings.difficulty,
-                // Read once, at spawn, because HP is derived at spawn and an enemy whose HP moved
-                // mid-fight would make the bar lie. A superset therefore fights a boss sized from
-                // the movement the run opened with, which is the right trade: the alternative is a
-                // health bar that jumps when the user changes exercise.
                 capacity = capacityFor(exercise),
                 initialPlayer = player,
                 detector = det,
-                // A lambda, not a captured value: under auto-detection the accept and deep lines
-                // move with the movement, and a resolver holding a copy would pay a pull-up's depth
-                // against a pushup's curve.
-                resolver = CombatResolver { det.config },
+                resolver = CombatResolver(config),
                 // Seeded from the dungeon and the player's level rather than a clock, so a run is
                 // reproducible from a recorded trace when diagnosing a report.
                 rngSeed = dungeonIndex * 1_000L + progress.level,
@@ -189,16 +160,6 @@ class BattleViewModel(
             telemetry.log(Event.QualityLost(next.quality, next.reps))
         }
         lastReportedQuality = next.quality
-
-        // The run's exercise is whatever the body is actually doing, so the session record, the
-        // calibration it feeds back and the streak bar are all judged against the right movement.
-        router?.lastRouted?.let { routed ->
-            if (routed.committed && (routed.exercise != exercise || _detectedExercise.value == null)) {
-                exercise = routed.exercise
-                _detectedExercise.value = routed.exercise
-                telemetry.setExercise(routed.exercise)
-            }
-        }
 
         sessionBestDepth = maxOf(sessionBestDepth, next.depth)
         _state.value = next
@@ -264,18 +225,7 @@ class BattleViewModel(
             )
 
             summary?.let {
-                val r = router
-                if (r != null) {
-                    // Every detector's calibration, not just the winner's. A superset warms two
-                    // ranges in one run, and a detector that never counted anything has nothing to
-                    // fold in and folds in nothing.
-                    val previous = ExerciseType.entries.associateWith {
-                        progressRepository.calibrationProfile(it)
-                    }
-                    r.updatedProfiles(previous).forEach { (type, profile) ->
-                        progressRepository.saveCalibrationProfile(type, profile)
-                    }
-                } else detector?.let { det ->
+                detector?.let { det ->
                     val previous = progressRepository.calibrationProfile(exercise)
                     progressRepository.saveCalibrationProfile(exercise, det.updatedProfile(previous))
                 }

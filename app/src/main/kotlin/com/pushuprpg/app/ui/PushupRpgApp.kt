@@ -186,7 +186,7 @@ fun PushupRpgApp(
                     val state by vm.state.collectAsState()
                     HomeScreen(
                         state = state,
-                        onStartDungeon = { navController.navigate(Routes.battle(it)) },
+                        onStartDungeon = { navController.navigate(Routes.exercisePick(it)) },
                         onRequestPaywall = {
                             container.telemetry.log(Event.PaywallShown("home"))
                             navController.navigate(Routes.PAYWALL)
@@ -209,10 +209,33 @@ fun PushupRpgApp(
                                 container.settingsRepository.update { it.copy(difficulty = difficulty) }
                             }
                         },
-                        onStart = { navController.navigate(Routes.battle(it)) },
+                        onStart = { navController.navigate(Routes.exercisePick(it)) },
                         onRequestPaywall = {
                             container.telemetry.log(Event.PaywallShown("dungeon_select"))
                             navController.navigate(Routes.PAYWALL)
+                        },
+                    )
+                }
+
+                composable(
+                    route = Routes.EXERCISE_PICK,
+                    arguments = listOf(navArgument(Routes.ARG_DUNGEON_INDEX) { type = NavType.IntType }),
+                ) { entry ->
+                    val dungeonIndex = entry.arguments?.getInt(Routes.ARG_DUNGEON_INDEX) ?: 1
+                    ExercisePickScreen(
+                        dungeonName = Dungeons.byIndex(dungeonIndex)?.korean.orEmpty(),
+                        initial = settings.exercise,
+                        onStart = { picked ->
+                            scope.launch {
+                                // Persisted before navigating, and awaited, because BattleViewModel
+                                // reads the choice out of settings when it starts. Firing the write
+                                // and navigating in parallel would race, and losing that race means
+                                // a run counted with the previous movement's detector.
+                                container.settingsRepository.update { it.copy(exercise = picked) }
+                                navController.navigate(Routes.battle(dungeonIndex)) {
+                                    popUpTo(Routes.EXERCISE_PICK) { inclusive = true }
+                                }
+                            }
                         },
                     )
                 }
@@ -242,8 +265,6 @@ fun PushupRpgApp(
                         }
                     }
 
-                    val detected by vm.detectedExercise.collectAsState()
-
                     BattleScreen(
                         state = state,
                         playerClass = progress.playerClass,
@@ -252,7 +273,6 @@ fun PushupRpgApp(
                         gaugeOnRight = settings.gaugeOnRight,
                         showGaugeNumber = settings.showGaugeNumber,
                         audioOnly = settings.audioOnly,
-                        detectedExercise = detected,
                         onQuit = {
                             lastOutcome = vm.quit()
                             lastLevelsGained = vm.levelsGained.value
@@ -286,7 +306,7 @@ fun PushupRpgApp(
                                 // The same gate the dungeon list applies; without it the clear
                                 // screen was a way past the paywall.
                                 val route = if (FreeTier.canPlayDungeon(next, entitlement)) {
-                                    Routes.battle(next)
+                                    Routes.exercisePick(next)
                                 } else {
                                     Routes.PAYWALL
                                 }
@@ -295,7 +315,7 @@ fun PushupRpgApp(
                                 }
                             },
                             onRetry = {
-                                navController.navigate(Routes.battle(dungeonIndex)) {
+                                navController.navigate(Routes.exercisePick(dungeonIndex)) {
                                     popUpTo(Routes.RESULT) { inclusive = true }
                                 }
                             },
@@ -380,15 +400,11 @@ fun PushupRpgApp(
                         },
                         onRecalibrate = {
                             scope.launch {
-                                // Under auto-detection there is no single "current" exercise to
-                                // reset, and a button that silently cleared only the one showing in
-                                // the picker would leave the range that is actually wrong in place.
-                                val targets: List<ExerciseType> = if (settings.autoExercise) {
-                                    ExerciseType.entries
-                                } else {
-                                    listOf(settings.exercise)
-                                }
-                                targets.forEach { type ->
+                                // Every movement's range, not just the last one played. The button
+                                // lives on the settings screen, which no longer names an exercise,
+                                // so clearing only one would be clearing one the user cannot see —
+                                // and a range relearns itself within a few reps anyway.
+                                ExerciseType.entries.forEach { type ->
                                     container.progressRepository.saveCalibrationProfile(
                                         type,
                                         com.pushuprpg.core.detect.UserProfile.empty(),

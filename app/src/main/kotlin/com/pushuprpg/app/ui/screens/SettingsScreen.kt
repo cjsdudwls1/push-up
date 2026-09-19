@@ -19,12 +19,9 @@ import com.pushuprpg.app.domain.AppSettings
 import com.pushuprpg.app.domain.HapticStrength
 import com.pushuprpg.app.ui.components.SectionHeader
 import com.pushuprpg.app.ui.components.cardSurface
-import com.pushuprpg.app.ui.components.exerciseLabelRes
 import com.pushuprpg.app.ui.theme.LocalGameColors
 import com.pushuprpg.app.ui.theme.Palette
 import com.pushuprpg.app.ui.theme.Type
-import com.pushuprpg.core.detect.ExerciseType
-import com.pushuprpg.core.detect.Exercises
 import com.pushuprpg.core.detect.SkeletonMode
 import com.pushuprpg.core.game.Difficulty
 
@@ -154,26 +151,8 @@ fun SettingsScreen(
 
         Spacer(Modifier.height(10.dp))
         SectionHeader(text = "운동")
-        SwitchSetting(
-            title = stringResource(R.string.settings_auto_exercise),
-            subtitle = stringResource(R.string.settings_auto_exercise_note),
-            checked = settings.autoExercise,
-            onCheckedChange = { v -> onChange { it.copy(autoExercise = v) } },
-        )
-        // The picker stays on screen with auto enabled rather than disappearing. It still does
-        // something — it is the movement the gauge is drawn for before the first counted rep — and
-        // it is where the load warning below lives, which should not be reachable only by turning
-        // auto off.
-        SegmentedSetting(
-            title = stringResource(
-                if (settings.autoExercise) R.string.settings_exercise_start else R.string.settings_exercise
-            ),
-            options = ExerciseType.entries,
-            labelFor = { stringResource(exerciseLabelRes(it)) },
-            selected = settings.exercise,
-            onSelect = { v -> onChange { it.copy(exercise = v) } },
-        )
-        ExerciseNotes(settings.exercise)
+        // No exercise picker here. It lives on the way into a dungeon, where the choice is actually
+        // being made and where the per-exercise camera placement and load warning are worth reading.
         SegmentedSetting(
             title = "난이도",
             options = Difficulty.entries,
@@ -255,7 +234,6 @@ private fun SwitchSetting(
     title: String,
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
-    subtitle: String? = null,
 ) {
     val colors = LocalGameColors.current
     Row(
@@ -266,12 +244,7 @@ private fun SwitchSetting(
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(text = title, style = Type.bodyL, color = Palette.TextPrimary)
-            if (subtitle != null) {
-                Text(text = subtitle, style = Type.bodyM, color = Palette.TextSecondary)
-            }
-        }
+        Text(text = title, style = Type.bodyL, color = Palette.TextPrimary, modifier = Modifier.weight(1f))
         Switch(
             checked = checked,
             onCheckedChange = onCheckedChange,
@@ -333,69 +306,3 @@ private fun ActionSetting(title: String, onClick: () -> Unit) {
     )
 }
 
-/**
- * Where to put the phone, and — for the loaded movements — what the camera cannot do for you.
- *
- * The placement line earns its place: getting the phone wrong is the single most common reason a
- * whole set counts nothing, and every exercise wants it somewhere different.
- *
- * The warning is deliberately not a disclaimer. It says the one true thing the user cannot see for
- * themselves: that the game is pushing them to keep going and has no idea what is on the bar.
- */
-@Composable
-private fun ExerciseNotes(exercise: ExerciseType) {
-    val colors = LocalGameColors.current
-    val loaded = exercise in setOf(
-        ExerciseType.BENCH_PRESS,
-        ExerciseType.HINGE,
-        ExerciseType.OVERHEAD_PRESS,
-        ExerciseType.CURL,
-    )
-    val hint = when (exercise) {
-        ExerciseType.PUSHUP -> R.string.exercise_hint_pushup
-        ExerciseType.SQUAT -> R.string.exercise_hint_squat
-        ExerciseType.PLANK -> R.string.exercise_hint_plank
-        ExerciseType.PULL_UP -> R.string.exercise_hint_pull_up
-        ExerciseType.CURL -> R.string.exercise_hint_curl
-        ExerciseType.OVERHEAD_PRESS -> R.string.exercise_hint_overhead_press
-        ExerciseType.LUNGE -> R.string.exercise_hint_lunge
-        ExerciseType.BENCH_PRESS -> R.string.exercise_hint_bench_press
-        ExerciseType.HINGE -> R.string.exercise_hint_hinge
-    }
-
-    Column(
-        Modifier
-            .fillMaxWidth()
-            .padding(top = 8.dp)
-            .cardSurface(shape = RoundedCornerShape(14.dp), color = Palette.Bg2)
-            .padding(14.dp),
-    ) {
-        Text(
-            text = stringResource(hint),
-            style = Type.bodyM,
-            color = Palette.TextSecondary,
-        )
-        if (!Exercises.of(exercise).validatedOnDevice) {
-            Spacer(Modifier.height(8.dp))
-            Text(
-                text = stringResource(R.string.exercise_unvalidated),
-                style = Type.bodyM,
-                color = Palette.TextTertiary,
-            )
-        }
-        if (loaded) {
-            Spacer(Modifier.height(12.dp))
-            Text(
-                text = stringResource(R.string.exercise_load_warning_title),
-                style = Type.labelL,
-                color = colors.deep,
-            )
-            Spacer(Modifier.height(6.dp))
-            Text(
-                text = stringResource(R.string.exercise_load_warning_body),
-                style = Type.bodyM,
-                color = Palette.TextSecondary,
-            )
-        }
-    }
-}

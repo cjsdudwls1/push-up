@@ -22,9 +22,23 @@ object Routes {
 
     fun survival(tutorial: Boolean = false) = "$SURVIVAL_BASE/$tutorial"
 
+    const val ARG_DUNGEON_INDEX = "dungeonIndex"
+
+    /**
+     * Choosing the movement sits on its own destination rather than inside the battle screen.
+     *
+     * Every way into a dungeon — the home shortcut, the dungeon list, retry, and next-dungeon from
+     * the clear screen — goes through here, so there is no path that starts a run without a choice.
+     * Keeping it off the battle screen also means the camera is not live while somebody reads a
+     * safety warning.
+     */
+    private const val EXERCISE_PICK_BASE = "exercise_pick"
+    const val EXERCISE_PICK = "$EXERCISE_PICK_BASE/{dungeonIndex}"
+
+    fun exercisePick(dungeonIndex: Int) = "$EXERCISE_PICK_BASE/$dungeonIndex"
+
     private const val BATTLE_BASE = "battle"
     const val BATTLE = "$BATTLE_BASE/{dungeonIndex}"
-    const val ARG_DUNGEON_INDEX = "dungeonIndex"
 
     fun battle(dungeonIndex: Int) = "$BATTLE_BASE/$dungeonIndex"
 

@@ -36,13 +36,10 @@ class SurvivalViewModel(
 
     private val game = CeilingSurvival()
 
-    // Pushups, fixed — deliberately not routed through ExerciseRouter like the dungeon is.
-    //
-    // Three reasons, and they all point the same way. The fiction is pushing a ceiling off a cat, so
-    // a curl does not mean anything here. The copy says 푸쉬업으로 밀어 올려서 in as many words. And
-    // this run is the calibration set: it seeds PUSHUP capacity, which every dungeon's enemy HP is
-    // then derived from — so crediting a pull-up's reps to it would mis-size every fight that
-    // follows.
+    // Pushups, fixed — and unlike a dungeon there is no picker, because the mode only means one
+    // thing. The fiction is pushing a ceiling off a cat, so a curl does not apply; the copy says
+    // 푸쉬업으로 밀어 올려서 in as many words; and this run is the calibration set that seeds PUSHUP
+    // capacity, which every dungeon's enemy HP is derived from.
     //
     // The overlay is off by default here: the mode's whole appeal is that it looks like a toy, and
     // a joint diagram over the top would undo that immediately.

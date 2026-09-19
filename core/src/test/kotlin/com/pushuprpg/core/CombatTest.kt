@@ -26,37 +26,6 @@ class CombatTest {
         RepInput(depth, if (depth >= config.deepEnter) RepGrade.DEEP else RepGrade.COUNTED, exercise, cycleMs)
 
     @Test
-    fun `the depth curve follows a changing exercise rather than a captured copy`() {
-        // Auto-detection means one run can contain two movements, and each carries its own accept
-        // and deep lines. A resolver that captured a config at construction would keep paying a
-        // squat's depth against a pushup's curve, which is the two-sets-of-numbers drift the class
-        // documents itself as preventing — so the config is read per rep.
-        var current = DetectorConfig.pushup()
-        val following = CombatResolver { current }
-        val fixed = CombatResolver(DetectorConfig.pushup())
-
-        val squat = DetectorConfig.forExercise(ExerciseType.SQUAT)
-        assertTrue(
-            squat.deepEnter != DetectorConfig.pushup().deepEnter,
-            "this test needs two exercises whose deep lines differ",
-        )
-
-        // A depth sitting between the two deep lines: deep for one movement and not the other.
-        val depth = minOf(squat.deepEnter, DetectorConfig.pushup().deepEnter) + 1f
-
-        val before = following.depthMultiplier(depth, PlayerClass.KNIGHT, 0)
-        current = squat
-        val after = following.depthMultiplier(depth, PlayerClass.KNIGHT, 0)
-
-        assertTrue(before != after, "the curve did not move with the exercise (both \$before)")
-        assertEquals(
-            before,
-            fixed.depthMultiplier(depth, PlayerClass.KNIGHT, 0),
-            "a resolver given a plain config must still behave exactly as it did",
-        )
-    }
-
-    @Test
     fun `a deep rep at combo eleven reproduces the demo's twenty damage`() {
         // The demo shows "20 / 깊은 타격" for a level-1 knight mid-combo. Tempo is deliberately out
         // of band so this pins the depth and combo terms alone:

@@ -44,7 +44,6 @@ private val KEY_REDUCE_MOTION = booleanPreferencesKey("reduce_motion")
 private val KEY_AUDIO_ONLY = booleanPreferencesKey("audio_only")
 private val KEY_LARGE_TEXT = booleanPreferencesKey("large_text")
 private val KEY_EXERCISE = stringPreferencesKey("exercise")
-private val KEY_AUTO_EXERCISE = booleanPreferencesKey("auto_exercise")
 private val KEY_DIFFICULTY = stringPreferencesKey("difficulty")
 
 private fun Preferences.toSettings(): AppSettings = AppSettings(
@@ -61,7 +60,6 @@ private fun Preferences.toSettings(): AppSettings = AppSettings(
     audioOnly = this[KEY_AUDIO_ONLY] ?: SETTINGS_DEFAULT.audioOnly,
     largeText = this[KEY_LARGE_TEXT] ?: SETTINGS_DEFAULT.largeText,
     exercise = enumOrDefault(this[KEY_EXERCISE], SETTINGS_DEFAULT.exercise),
-    autoExercise = this[KEY_AUTO_EXERCISE] ?: SETTINGS_DEFAULT.autoExercise,
     difficulty = enumOrDefault(this[KEY_DIFFICULTY], SETTINGS_DEFAULT.difficulty),
 )
 
@@ -79,7 +77,6 @@ private fun MutablePreferences.writeSettings(s: AppSettings) {
     this[KEY_AUDIO_ONLY] = s.audioOnly
     this[KEY_LARGE_TEXT] = s.largeText
     this[KEY_EXERCISE] = s.exercise.name
-    this[KEY_AUTO_EXERCISE] = s.autoExercise
     this[KEY_DIFFICULTY] = s.difficulty.name
 }
 

@@ -42,6 +42,7 @@ import com.pushuprpg.app.ui.theme.LocalGameColors
 import com.pushuprpg.app.ui.theme.Palette
 import com.pushuprpg.app.ui.theme.Type
 import com.pushuprpg.core.detect.ExerciseType
+import com.pushuprpg.core.detect.Exercises
 import com.pushuprpg.core.progression.Rank
 import com.pushuprpg.core.progression.RankProgress
 
@@ -347,4 +348,75 @@ fun exerciseLabelRes(exercise: ExerciseType): Int = when (exercise) {
     ExerciseType.LUNGE -> R.string.exercise_lunge
     ExerciseType.BENCH_PRESS -> R.string.exercise_bench_press
     ExerciseType.HINGE -> R.string.exercise_hinge
+}
+
+/**
+ * Where to put the phone, and — for the loaded movements — what the camera cannot do for you.
+ *
+ * The placement line earns its place: getting the phone wrong is the single most common reason a
+ * whole set counts nothing, and every exercise wants it somewhere different.
+ *
+ * The warning is deliberately not a disclaimer. It says the one true thing the user cannot see for
+ * themselves: that the game is pushing them to keep going and has no idea what is on the bar.
+ *
+ * Shared rather than private to the settings screen, because the exercise is now chosen on the way
+ * into a dungeon and this is the screen that has to carry the warning — the moment before the set
+ * is the moment it is worth reading.
+ */
+@Composable
+fun ExerciseNotes(exercise: ExerciseType) {
+    val colors = LocalGameColors.current
+    val loaded = exercise in setOf(
+        ExerciseType.BENCH_PRESS,
+        ExerciseType.HINGE,
+        ExerciseType.OVERHEAD_PRESS,
+        ExerciseType.CURL,
+    )
+    val hint = when (exercise) {
+        ExerciseType.PUSHUP -> R.string.exercise_hint_pushup
+        ExerciseType.SQUAT -> R.string.exercise_hint_squat
+        ExerciseType.PLANK -> R.string.exercise_hint_plank
+        ExerciseType.PULL_UP -> R.string.exercise_hint_pull_up
+        ExerciseType.CURL -> R.string.exercise_hint_curl
+        ExerciseType.OVERHEAD_PRESS -> R.string.exercise_hint_overhead_press
+        ExerciseType.LUNGE -> R.string.exercise_hint_lunge
+        ExerciseType.BENCH_PRESS -> R.string.exercise_hint_bench_press
+        ExerciseType.HINGE -> R.string.exercise_hint_hinge
+    }
+
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .padding(top = 8.dp)
+            .cardSurface(shape = RoundedCornerShape(14.dp), color = Palette.Bg2)
+            .padding(14.dp),
+    ) {
+        Text(
+            text = stringResource(hint),
+            style = Type.bodyM,
+            color = Palette.TextSecondary,
+        )
+        if (!Exercises.of(exercise).validatedOnDevice) {
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = stringResource(R.string.exercise_unvalidated),
+                style = Type.bodyM,
+                color = Palette.TextTertiary,
+            )
+        }
+        if (loaded) {
+            Spacer(Modifier.height(12.dp))
+            Text(
+                text = stringResource(R.string.exercise_load_warning_title),
+                style = Type.labelL,
+                color = colors.deep,
+            )
+            Spacer(Modifier.height(6.dp))
+            Text(
+                text = stringResource(R.string.exercise_load_warning_body),
+                style = Type.bodyM,
+                color = Palette.TextSecondary,
+            )
+        }
+    }
 }
