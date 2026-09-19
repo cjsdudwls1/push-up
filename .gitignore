@@ -24,3 +24,8 @@ keystore.properties
 
 # Per-project Firebase config; generate it in the Firebase console.
 google-services.json
+
+# Scratch git worktrees the agent harness creates for parallel work. They are full nested checkouts
+# of this repo and are removed when the work finishes; committing one would nest the repo inside
+# itself.
+.claude/worktrees/
