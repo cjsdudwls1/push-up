@@ -19,6 +19,7 @@ import com.pushuprpg.app.domain.AppSettings
 import com.pushuprpg.app.domain.HapticStrength
 import com.pushuprpg.app.ui.components.SectionHeader
 import com.pushuprpg.app.ui.components.cardSurface
+import com.pushuprpg.app.ui.components.exerciseLabelRes
 import com.pushuprpg.app.ui.theme.LocalGameColors
 import com.pushuprpg.app.ui.theme.Palette
 import com.pushuprpg.app.ui.theme.Type
@@ -153,24 +154,22 @@ fun SettingsScreen(
 
         Spacer(Modifier.height(10.dp))
         SectionHeader(text = "운동")
+        SwitchSetting(
+            title = stringResource(R.string.settings_auto_exercise),
+            subtitle = stringResource(R.string.settings_auto_exercise_note),
+            checked = settings.autoExercise,
+            onCheckedChange = { v -> onChange { it.copy(autoExercise = v) } },
+        )
+        // The picker stays on screen with auto enabled rather than disappearing. It still does
+        // something — it is the movement the gauge is drawn for before the first counted rep — and
+        // it is where the load warning below lives, which should not be reachable only by turning
+        // auto off.
         SegmentedSetting(
-            title = stringResource(R.string.settings_exercise),
+            title = stringResource(
+                if (settings.autoExercise) R.string.settings_exercise_start else R.string.settings_exercise
+            ),
             options = ExerciseType.entries,
-            labelFor = {
-                stringResource(
-                    when (it) {
-                        ExerciseType.PUSHUP -> R.string.exercise_pushup
-                        ExerciseType.SQUAT -> R.string.exercise_squat
-                        ExerciseType.PLANK -> R.string.exercise_plank
-                        ExerciseType.PULL_UP -> R.string.exercise_pull_up
-                        ExerciseType.CURL -> R.string.exercise_curl
-                        ExerciseType.OVERHEAD_PRESS -> R.string.exercise_overhead_press
-                        ExerciseType.LUNGE -> R.string.exercise_lunge
-                        ExerciseType.BENCH_PRESS -> R.string.exercise_bench_press
-                        ExerciseType.HINGE -> R.string.exercise_hinge
-                    }
-                )
-            },
+            labelFor = { stringResource(exerciseLabelRes(it)) },
             selected = settings.exercise,
             onSelect = { v -> onChange { it.copy(exercise = v) } },
         )
@@ -256,6 +255,7 @@ private fun SwitchSetting(
     title: String,
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
+    subtitle: String? = null,
 ) {
     val colors = LocalGameColors.current
     Row(
@@ -266,7 +266,12 @@ private fun SwitchSetting(
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(text = title, style = Type.bodyL, color = Palette.TextPrimary, modifier = Modifier.weight(1f))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(text = title, style = Type.bodyL, color = Palette.TextPrimary)
+            if (subtitle != null) {
+                Text(text = subtitle, style = Type.bodyM, color = Palette.TextSecondary)
+            }
+        }
         Switch(
             checked = checked,
             onCheckedChange = onCheckedChange,

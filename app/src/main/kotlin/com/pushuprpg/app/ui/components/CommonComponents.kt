@@ -1,5 +1,6 @@
 package com.pushuprpg.app.ui.components
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -40,6 +41,7 @@ import com.pushuprpg.app.R
 import com.pushuprpg.app.ui.theme.LocalGameColors
 import com.pushuprpg.app.ui.theme.Palette
 import com.pushuprpg.app.ui.theme.Type
+import com.pushuprpg.core.detect.ExerciseType
 import com.pushuprpg.core.progression.Rank
 import com.pushuprpg.core.progression.RankProgress
 
@@ -325,4 +327,24 @@ fun KeepScreenOn() {
         view.keepScreenOn = true
         onDispose { view.keepScreenOn = false }
     }
+}
+
+/**
+ * The Korean name of an exercise, as a string resource.
+ *
+ * Shared rather than written out at each call site: the settings picker and the battle HUD must
+ * never disagree about what a movement is called, and a new exercise should not be able to ship
+ * with a name in one place and an enum constant in the other.
+ */
+@StringRes
+fun exerciseLabelRes(exercise: ExerciseType): Int = when (exercise) {
+    ExerciseType.PUSHUP -> R.string.exercise_pushup
+    ExerciseType.SQUAT -> R.string.exercise_squat
+    ExerciseType.PLANK -> R.string.exercise_plank
+    ExerciseType.PULL_UP -> R.string.exercise_pull_up
+    ExerciseType.CURL -> R.string.exercise_curl
+    ExerciseType.OVERHEAD_PRESS -> R.string.exercise_overhead_press
+    ExerciseType.LUNGE -> R.string.exercise_lunge
+    ExerciseType.BENCH_PRESS -> R.string.exercise_bench_press
+    ExerciseType.HINGE -> R.string.exercise_hinge
 }

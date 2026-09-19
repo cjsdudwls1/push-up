@@ -290,27 +290,37 @@ class RepDetectorImpl(
         // primary signal can be fooled by moving the wrists alone; the joint angle and the watched
         // body part cannot be, because they describe the rest of the body.
         //
-        // Which second opinion exists is a property of the movement, so the descriptor decides.
-        when {
-            !sample.jointDepth.isNaN() ->
-                if (abs(depth - sample.jointDepth) > config.maxSignalDisagreement) {
-                    return AbandonReason.INCONSISTENT
-                }
+        // EVERY witness the descriptor declared and that is measurable this frame must agree. This
+        // used to be a `when`, so the first available branch won and the rest were skipped — which
+        // meant that whenever world landmarks were present the body-travel check was never
+        // evaluated at all. A pushup could then be satisfied by elbow flexion with a completely
+        // rigid head, which is waving at the phone with bent arms. It also made a pushup detector
+        // accept a pull-up: the two share their primary signal exactly, and the only thing that
+        // separates them is that a hanging body's head does not move relative to its shoulders.
+        val signal = config.descriptor.signal
 
+        if (!sample.jointDepth.isNaN()) {
+            if (abs(depth - sample.jointDepth) > config.maxSignalDisagreement) {
+                return AbandonReason.INCONSISTENT
+            }
+        } else if (signal?.crossCheck == CrossCheckPolicy.JOINT_REQUIRED) {
             // A movement with no independently moving body part has nothing to fall back to, so it
             // refuses out loud rather than letting an unchecked rep through. The caller sees an
             // Abandoned event; it never looks like the detector simply counted nothing.
-            config.descriptor.signal?.crossCheck == CrossCheckPolicy.JOINT_REQUIRED ->
-                return AbandonReason.INCONSISTENT
+            return AbandonReason.INCONSISTENT
+        }
 
-            !sample.bodyDrop.isNaN() && bodyDropAtTop != Float.NEGATIVE_INFINITY -> {
-                // No world landmarks, so watch a part of the body the primary signal does not: the
-                // head for a pushup, the shoulders for a squat. Either way it has to have genuinely
-                // travelled since this rep armed, which is what waving at the phone does not do.
-                val descended = sample.bodyDrop - bodyDropAtTop
-                if (descended < MIN_BODY_DROP_FRACTION * calibrator.range) {
-                    return AbandonReason.INCONSISTENT
-                }
+        if (signal?.bodyTravel != null &&
+            !sample.bodyDrop.isNaN() &&
+            bodyDropAtTop != Float.NEGATIVE_INFINITY
+        ) {
+            // A part of the body the primary signal does not watch: the head for a pushup, the
+            // shoulders for a squat. It has to have genuinely travelled since this rep armed, which
+            // is what waving at the phone does not do — and what a body hanging off a bar does not
+            // do either.
+            val descended = sample.bodyDrop - bodyDropAtTop
+            if (descended < MIN_BODY_DROP_FRACTION * calibrator.range) {
+                return AbandonReason.INCONSISTENT
             }
         }
 

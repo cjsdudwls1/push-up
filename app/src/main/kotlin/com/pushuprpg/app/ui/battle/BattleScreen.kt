@@ -29,10 +29,12 @@ import com.pushuprpg.app.R
 import com.pushuprpg.app.pose.CameraPreview
 import com.pushuprpg.app.pose.PoseLandmarkerSource
 import com.pushuprpg.app.ui.components.KeepScreenOn
+import com.pushuprpg.app.ui.components.exerciseLabelRes
 import com.pushuprpg.app.ui.theme.LocalGameColors
 import com.pushuprpg.app.ui.theme.LocalReduceMotion
 import com.pushuprpg.app.ui.theme.Palette
 import com.pushuprpg.app.ui.theme.Type
+import com.pushuprpg.core.detect.ExerciseType
 import com.pushuprpg.core.detect.PoseQuality
 import com.pushuprpg.core.game.PlayerClass
 import com.pushuprpg.core.run.AlertKey
@@ -59,6 +61,8 @@ fun BattleScreen(
     audioOnly: Boolean,
     onQuit: () -> Unit,
     modifier: Modifier = Modifier,
+    /** What the router settled on, or null when the exercise was set by hand. */
+    detectedExercise: ExerciseType? = null,
 ) {
     KeepScreenOn()
 
@@ -125,6 +129,7 @@ fun BattleScreen(
                 gaugeOnRight = gaugeOnRight,
                 showGaugeNumber = showGaugeNumber,
                 compact = compact,
+                detectedExercise = detectedExercise,
             )
         }
 
@@ -164,6 +169,7 @@ private fun BoxScope.BattleHudLayout(
     gaugeOnRight: Boolean,
     showGaugeNumber: Boolean,
     compact: Boolean,
+    detectedExercise: ExerciseType?,
 ) {
     val colors = LocalGameColors.current
 
@@ -175,6 +181,21 @@ private fun BoxScope.BattleHudLayout(
             .padding(horizontal = 16.dp)
             .padding(top = 8.dp),
     ) {
+        // Stated, not silent. Auto-detection that guesses wrong is only recoverable if the user can
+        // see what it guessed, and this line is the whole difference between "the counter is broken"
+        // and "it thinks I'm doing squats".
+        if (detectedExercise != null) {
+            Text(
+                text = stringResource(
+                    R.string.battle_detected_exercise,
+                    stringResource(exerciseLabelRes(detectedExercise)),
+                ),
+                style = Type.labelS,
+                color = Palette.TextSecondary,
+                modifier = Modifier.align(Alignment.CenterHorizontally),
+            )
+        }
+
         // The two combatants face each other across the top, as they did in the demo, but they are
         // drawn rather than pasted — the player's figure does the rep with the user.
         Row(

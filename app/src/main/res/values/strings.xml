@@ -159,6 +159,10 @@
     <string name="settings_audio_only_sub">화면을 어둡게 하고 소리로만 진행해요. 배터리가 오래가요.</string>
     <string name="settings_large_text">큰 글씨</string>
     <string name="settings_exercise">운동 종류</string>
+    <string name="settings_exercise_start">시작 운동</string>
+    <string name="settings_auto_exercise">운동 자동 인식</string>
+    <string name="settings_auto_exercise_note">뭘 하는지 알아서 알아봐요. 풀업·푸쉬업 슈퍼세트도 그대로 됩니다.</string>
+    <string name="battle_detected_exercise">%1$s 인식했어요</string>
     <string name="settings_privacy">개인정보 처리방침</string>
     <string name="settings_recalibrate">범위 다시 측정</string>
 

@@ -109,8 +109,19 @@ enum class RejectReason { TOO_SHALLOW, FORM_BROKEN }
  * and future additions cannot perturb existing golden values.
  */
 class CombatResolver(
-    private val detectorConfig: DetectorConfig = DetectorConfig.pushup(),
+    /**
+     * Read per rep rather than captured once, because the movement can change inside a single run.
+     *
+     * Auto-detection means a superset moves the accept and deep lines with it, and a resolver
+     * holding the pushup's copy would pay a pull-up's depth against a pushup's curve — the exact
+     * two-sets-of-numbers drift this class exists to avoid.
+     */
+    private val configOf: () -> DetectorConfig = { DetectorConfig.pushup() },
 ) {
+    constructor(detectorConfig: DetectorConfig) : this({ detectorConfig })
+
+    private val detectorConfig: DetectorConfig get() = configOf()
+
     /**
      * Depth-to-damage curve, read off the *detector's* thresholds rather than its own copy.
      *

@@ -242,6 +242,8 @@ fun PushupRpgApp(
                         }
                     }
 
+                    val detected by vm.detectedExercise.collectAsState()
+
                     BattleScreen(
                         state = state,
                         playerClass = progress.playerClass,
@@ -250,6 +252,7 @@ fun PushupRpgApp(
                         gaugeOnRight = settings.gaugeOnRight,
                         showGaugeNumber = settings.showGaugeNumber,
                         audioOnly = settings.audioOnly,
+                        detectedExercise = detected,
                         onQuit = {
                             lastOutcome = vm.quit()
                             lastLevelsGained = vm.levelsGained.value
@@ -377,10 +380,20 @@ fun PushupRpgApp(
                         },
                         onRecalibrate = {
                             scope.launch {
-                                container.progressRepository.saveCalibrationProfile(
-                                    settings.exercise,
-                                    com.pushuprpg.core.detect.UserProfile.empty(),
-                                )
+                                // Under auto-detection there is no single "current" exercise to
+                                // reset, and a button that silently cleared only the one showing in
+                                // the picker would leave the range that is actually wrong in place.
+                                val targets: List<ExerciseType> = if (settings.autoExercise) {
+                                    ExerciseType.entries
+                                } else {
+                                    listOf(settings.exercise)
+                                }
+                                targets.forEach { type ->
+                                    container.progressRepository.saveCalibrationProfile(
+                                        type,
+                                        com.pushuprpg.core.detect.UserProfile.empty(),
+                                    )
+                                }
                             }
                         },
                         onOpenPrivacy = { openUrl(context, context.getString(R.string.privacy_policy_url)) },

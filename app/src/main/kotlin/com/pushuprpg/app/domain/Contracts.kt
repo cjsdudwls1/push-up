@@ -55,6 +55,10 @@ data class SessionRecord(
     val id: Long = 0,
     val startedAtMs: Long,
     val durationMs: Long,
+    /**
+     * The movement actually credited, which under auto-detection is what the router settled on
+     * rather than what was selected before the run.
+     */
     val exercise: ExerciseType,
     val reps: Int,
     val maxCombo: Int,
@@ -102,7 +106,16 @@ data class AppSettings(
     /** Screen dark, audio only. The battery fix and the accessibility mode are the same feature. */
     val audioOnly: Boolean = false,
     val largeText: Boolean = false,
+    /** Which movement to credit when [autoExercise] is off, and the router's opening guess when it is on. */
     val exercise: ExerciseType = ExerciseType.PUSHUP,
+    /**
+     * Let the camera work out the exercise instead of making the user declare it.
+     *
+     * On by default. Nine movements had collapsed the settings picker into two-character labels, and
+     * a superset — alternating pull-ups and pushups, which is simply how people train — cannot be
+     * expressed by a single choice made before the set starts.
+     */
+    val autoExercise: Boolean = true,
     val difficulty: Difficulty = Difficulty.STANDARD,
 )
 
