@@ -30,6 +30,8 @@ fun CameraPreview(
     source: PoseLandmarkerSource,
     modifier: Modifier = Modifier,
     frontCamera: Boolean = true,
+    /** Which camera actually bound. The overlay mirrors only for the front one. */
+    onCameraBound: (Boolean) -> Unit = {},
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -67,7 +69,14 @@ fun CameraPreview(
             // larger capture buys nothing but heat and dropped frames.
             val resolution = ResolutionSelector.Builder()
                 .setResolutionStrategy(
-                    ResolutionStrategy(Size(640, 480), ResolutionStrategy.FALLBACK_RULE_CLOSEST_HIGHER)
+                    // ..._THEN_LOWER rather than CLOSEST_HIGHER, which CameraX's own javadoc warns
+                    // can throw from bindToLifecycle when no higher resolution exists. That throw
+                    // used to land in the front-camera catch below and be misread as "no front
+                    // camera", silently rebinding the back one with the same failing config.
+                    ResolutionStrategy(
+                        Size(640, 480),
+                        ResolutionStrategy.FALLBACK_RULE_CLOSEST_HIGHER_THEN_LOWER,
+                    )
                 )
                 .build()
 
@@ -75,6 +84,21 @@ fun CameraPreview(
                 .setResolutionSelector(resolution)
                 .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                 .setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_RGBA_8888)
+                // Hand the analyzer an UPRIGHT buffer, so every consumer agrees about which way is
+                // up. Without it the buffer stays in the sensor's landscape orientation, MediaPipe
+                // returns landmarks in that same unrotated space (Tasks projects results back to
+                // the original image, not the rotated ROI), and the overlay then draws sensor-frame
+                // coordinates into a portrait view. Measured from a device recording: a squat's
+                // vertical travel appeared as 89px of HORIZONTAL skeleton motion against 26px
+                // vertical — the body's y showing up as the drawing's x, correlation +0.78.
+                //
+                // Detection was never affected, because BodyFrameTracker builds its axis from the
+                // shoulders and its normal by rot90, so it is invariant to a rolled frame by
+                // construction. This is a drawing fix, and the reps were always right.
+                //
+                // With this on, imageInfo.rotationDegrees becomes 0, so the value handed to
+                // MediaPipe below is 0 and nothing rotates twice.
+                .setOutputImageRotationEnabled(true)
                 .build()
                 .also {
                     it.setAnalyzer(analysisExecutor) { image ->
@@ -91,13 +115,17 @@ fun CameraPreview(
             try {
                 cameraProvider.unbindAll()
                 cameraProvider.bindToLifecycle(lifecycleOwner, selector, preview, analysis)
+                onCameraBound(frontCamera)
             } catch (_: IllegalArgumentException) {
                 // No front camera on this device, or it is held by another app. Falling back is
-                // better than a black screen; the user simply has to turn the phone around.
+                // better than a black screen; the user simply has to turn the phone around — but
+                // the caller has to be told, because the overlay mirrors for the front camera and
+                // would otherwise mirror a back-camera image.
                 try {
                     cameraProvider.bindToLifecycle(
                         lifecycleOwner, CameraSelector.DEFAULT_BACK_CAMERA, preview, analysis
                     )
+                    onCameraBound(false)
                 } catch (_: Exception) {
                     // Surfaced to the user by the caller's error state.
                 }

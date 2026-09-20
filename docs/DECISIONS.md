@@ -77,6 +77,39 @@ Crashlytics를 넣기로 한 이상 개인정보처리방침과 Play Data Safety
 수정. 라우터와 무관한 검출기 자체의 결함이었고(머리를 고정하면 푸쉬업을 속일 수 있었습니다),
 `PullUpDetectorTest.the pushup detector refuses a pull-up`이 그것을 고정합니다.
 
+## 카메라 프레임은 똑바로 세워서 받는다 — 스켈레톤이 90도 돌아가 있던 이유
+
+실기기 녹화에서 뼈대가 몸이 아니라 문간에 그려졌습니다. 원인은 좌표계가 두 개였기 때문입니다.
+
+- CameraX는 센서의 **가로** 버퍼(640×480)를 주고, 앱은 **세로 고정**입니다.
+- 회전값을 MediaPipe에 넘겼는데(`ImageProcessingOptions`), **Tasks는 결과를 회전된 ROI가 아니라
+  원본 이미지 좌표계로 되돌려 투영합니다.** 그래서 랜드마크는 센서 가로 좌표계로 돌아옵니다.
+- 화면(`PreviewView`)은 회전된 세로 영상을 보여줍니다. 오버레이가 센서 좌표를 화면 좌표에
+  그대로 그린 겁니다.
+
+**측정으로 확정했습니다.** 녹화 36프레임에서 피험자는 스쿼트로 **세로 86px** 움직이는데,
+그려진 뼈대의 무게중심은 **가로 89px, 세로 26px** 움직였습니다. 몸의 y가 그림의 x로 나타난 것이고,
+`corr(bodyY, skelX) = +0.78` / `corr(bodyY, skelY) = +0.35`입니다.
+
+**검출에는 영향이 없었습니다.** `BodyFrameTracker`가 축을 어깨에서 뽑고 법선을 rot90으로 만들기
+때문에 프레임이 굴러도 불변입니다. 개수는 처음부터 맞았고, 그림만 틀렸습니다.
+
+처음 진단은 "aspect가 1.78배 틀려서 비등방 왜곡이 생기고 모든 깊이 값이 틀어진다"였는데
+**틀렸습니다.** 검증 에이전트가 MediaPipe 소스(`LandmarkProjectionCalculator`,
+`BaseVisionTaskApi.convertToNormalizedRect`)로 반박했고, 영상 측정이 반박 쪽을 지지했습니다.
+그 오진을 따라 `publish()`에서 width/height를 맞바꿨다면 **없던 비등방 왜곡을 새로 만들** 뻔했습니다.
+
+고친 방법: `ImageAnalysis.Builder.setOutputImageRotationEnabled(true)`. CameraX가 버퍼를 직접
+세워서 주므로 `rotationDegrees`가 0이 되고, 비트맵도 `PoseFrame`도 오버레이도 전부 같은 좌표계를
+봅니다. 한 줄이고, 소비자마다 회전을 따로 맞추는 것보다 낫습니다.
+
+같이 고친 것 둘:
+- `FALLBACK_RULE_CLOSEST_HIGHER`는 bind에서 예외를 던질 수 있는데, 그 예외가 전면 카메라
+  fallback에 잡혀서 **해상도 실패가 "전면 카메라 없음"으로 오진**되고 후면 카메라가 같은 설정으로
+  다시 바인딩되고 있었습니다. `..._THEN_LOWER`로 바꿨습니다.
+- 오버레이 좌우 반전이 **실제로 바인딩된 카메라**를 따르게 했습니다. 전면이 안 잡혀 후면으로
+  넘어가면 반전하면 안 되는데, 기본값이 `true`로 고정이었고 호출부는 아무것도 넘기지 않았습니다.
+
 ## 아직 결정되지 않은 것
 
 - 구독 실제 가격 (Play 콘솔에서 설정. 코드는 `ProductDetails`에서 읽기만 합니다)

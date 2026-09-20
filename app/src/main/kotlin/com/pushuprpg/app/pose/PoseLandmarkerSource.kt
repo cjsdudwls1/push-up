@@ -85,10 +85,18 @@ class PoseLandmarkerSource(
     /**
      * Feeds one camera frame.
      *
-     * Rotation is passed through [ImageProcessingOptions] rather than by rotating a bitmap first.
-     * Pre-rotating means allocating a full-size bitmap every frame — tens of megabytes a second of
-     * garbage — for a transform the library already does. Mirroring is left to the renderer
-     * entirely, because the detection maths is mirror-invariant by construction.
+     * The buffer arrives upright: CameraPreview sets `setOutputImageRotationEnabled(true)`, so
+     * `rotationDegrees` is 0 here and the rotation passed below is a no-op kept only so a device
+     * that ignores the flag still gets a correct frame.
+     *
+     * This used to hand MediaPipe the sensor's landscape buffer plus a rotation, on the reasoning
+     * that pre-rotating wastes a bitmap a frame on a transform the library already does. The
+     * library does do it — for inference. But Tasks projects its results back into the *original*
+     * unrotated image, so the landmarks came back in sensor coordinates while the preview showed
+     * the display frame, and the overlay drew one into the other. Detection never minded, because
+     * the geometry is roll-invariant by construction; the skeleton was drawn sideways.
+     *
+     * Mirroring is still left to the renderer, because the detection maths is mirror-invariant.
      */
     fun analyze(image: ImageProxy, rotationDegrees: Int): Unit = synchronized(markerLock) {
         val marker = landmarker ?: run { image.close(); return }

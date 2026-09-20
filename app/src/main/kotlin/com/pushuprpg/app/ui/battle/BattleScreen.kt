@@ -85,7 +85,15 @@ fun BattleScreen(
 
     Box(modifier = modifier.fillMaxSize().background(Color.Black)) {
 
-        CameraPreview(source = poseSource, modifier = Modifier.fillMaxSize())
+        // Mirroring follows the camera that actually bound, not the one asked for. A device with
+        // no usable front camera falls back to the back one, and mirroring that would put the
+        // skeleton on the wrong side of the body.
+        var mirrored by remember { mutableStateOf(true) }
+        CameraPreview(
+            source = poseSource,
+            modifier = Modifier.fillMaxSize(),
+            onCameraBound = { front -> mirrored = front },
+        )
 
         if (!audioOnly) {
             SkeletonOverlay(
@@ -94,6 +102,7 @@ fun BattleScreen(
                 countEnter = state.countEnter,
                 deepEnter = state.deepEnter,
                 flare = animatedFlare,
+                mirrored = mirrored,
                 modifier = Modifier.fillMaxSize(),
             )
         }
