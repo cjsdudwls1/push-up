@@ -121,6 +121,13 @@ class RepDetectorImpl(
             val h = signalFilter.filter(sample.h.toDouble(), tMs).toFloat()
             if (signalFilter.hadDiscontinuity) abandonRep(tMs, AbandonReason.QUALITY_LOST, events)
 
+            // Before mapping, and only until the first rep completes: put the range where this body
+            // actually rests. A prior that is off by more than topEnter locks the user out of the
+            // top band entirely, and because the calibrator only learns from completed reps, that
+            // lockout can never resolve itself. Filtered h, not raw, so a single bad frame cannot
+            // drag the anchor.
+            calibrator.observeRest(h)
+
             depth = calibrator.map(h)
             depthVelocity = -100f * signalFilter.velocity.toFloat() / calibrator.range
             depthSource = sample.source

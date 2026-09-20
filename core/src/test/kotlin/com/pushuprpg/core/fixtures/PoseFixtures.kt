@@ -60,8 +60,13 @@ object PoseFixtures {
         centerU: Float = ASPECT / 2f,
         noiseU: Float = 0f,
         noiseV: Float = 0f,
+        hScale: Float = 1f,
     ): PoseFrame {
-        val h = hFor(depthFraction)
+        // hScale models a different build. `h` is arm length over shoulder width, so a longer-limbed
+        // user reads proportionally higher at EVERY depth — the range scales, it does not shift. The
+        // world landmarks are deliberately left alone: the elbow closes to the same angle at the
+        // bottom of a pushup whatever the limb lengths, so the joint cross-check must keep agreeing.
+        val h = hFor(depthFraction) * hScale
         val shoulderV = WRIST_V - h * shoulderWidth
         val halfW = shoulderWidth / 2f
 

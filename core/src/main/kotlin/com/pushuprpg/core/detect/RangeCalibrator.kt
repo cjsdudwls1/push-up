@@ -41,6 +41,13 @@ class RangeCalibrator(
     private var sessionBot = Float.POSITIVE_INFINITY
     private val startedFromProfile: Boolean = !profile.isEmpty
 
+    /** The largest `h` seen before any rep completed — this user's actual rest position. */
+    private var restAnchor = Float.NEGATIVE_INFINITY
+
+    /** How many times [observeRest] has moved the window this session, for diagnostics. */
+    var reanchors: Int = 0
+        private set
+
     init {
         // Seeding from the stored profile is what makes the gauge trustworthy on rep 1 of session
         // 2 rather than rep 4. The prior is still blended in so one unusual session cannot capture
@@ -84,6 +91,55 @@ class RangeCalibrator(
      */
     fun deepEnter(): Float =
         if (state == CalibrationState.BOOTSTRAP) config.bootstrapDeepEnter else config.deepEnter
+
+    /**
+     * Moves the range to sit where this user actually rests, before any rep has completed.
+     *
+     * Without this the detector has a loop that closes on itself. Arming needs `depth <= topEnter`;
+     * `depth` comes from a population prior; and the prior is only ever corrected by [onRepExtremes],
+     * which only a completed rep reaches. A user whose rest position sits further from the prior
+     * than `topEnter` therefore never arms, never completes a rep, and is never learned from — zero
+     * reps forever, with the tracker reporting OK and no event to diagnose it by.
+     *
+     * `h` at rest is a body proportion — for a pushup, arm length over shoulder width — and it spans
+     * roughly 1.0 to 1.8 across real builds against a prior of 1.35 and a tolerance of 0.13. Measured
+     * before this existed: builds at 1.0, 1.1, 1.2, 1.6, 1.7 and 1.8 all counted nothing from ten
+     * honest pushups. Only 1.3 to 1.5 worked.
+     *
+     * The window is **scaled, not shifted**, and that distinction is the whole of the fix. `h` is a
+     * ratio of two body measurements, so a longer-limbed user reads proportionally higher at every
+     * depth rather than offset by a constant: their lockout and their bottom both move, by the same
+     * factor. Shifting instead of scaling was tried first and made it worse — it put the bottom of a
+     * long-limbed user's range somewhere their elbow angle flatly disagreed with, and the rep was
+     * thrown out as INCONSISTENT rather than counted.
+     *
+     * Scaling preserves the shape of the range, so the count line stays the same fraction of this
+     * user's own travel. That is what buys arming without touching the anti-farming property that
+     * half reps never count, which is asserted separately.
+     *
+     * Anchored to the largest `h` seen, because `h` is maximal at rest by construction. It only ever
+     * grows, so a user who opens the app already at the bottom converges upward within a rep instead
+     * of being pinned there. Once a rep completes, [onRepExtremes] owns the range and this stops.
+     */
+    fun observeRest(h: Float) {
+        if (completedReps > 0 || h.isNaN()) return
+        if (h <= restAnchor) return
+        restAnchor = h
+
+        // Only when the rest position genuinely maps somewhere other than the top of the gauge.
+        // mapRaw rather than map, because the clamped version cannot see the opposite failure: a
+        // longer-limbed user reads *below* zero, arms perfectly well, and then never reaches the
+        // count line because their whole travel is compressed into the top of someone else's range.
+        if (abs(mapRaw(h)) <= config.topEnter) return
+
+        val shape = if (abs(top) > Geometry.EPSILON) bottom / top else 0f
+        top = h
+        bottom = h * shape
+        bottomBest = bottom
+        applyGuards()
+        bottomBest = min(bottomBest, bottom)
+        reanchors++
+    }
 
     /**
      * Feeds one **completed** rep's extremes. Incomplete reps must never reach here: a user who
