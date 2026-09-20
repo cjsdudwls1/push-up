@@ -123,6 +123,13 @@ fun HealthBar(
     color: Color,
     alignEnd: Boolean = false,
     modifier: Modifier = Modifier,
+    /**
+     * What to print under the bar. Defaults to "hp / maxHp".
+     *
+     * Overridable because neither bar is health any more: a run is a count of reps, so the left one
+     * reads as progress through the run and the right one as the reps this monster still owes.
+     */
+    label: String? = null,
 ) {
     val fraction by animateFloatAsState(
         targetValue = (hp.toFloat() / maxHp.coerceAtLeast(1)).coerceIn(0f, 1f),
@@ -155,7 +162,7 @@ fun HealthBar(
         }
         Spacer(Modifier.height(3.dp))
         CameraText(
-            text = "${format.format(hp)} / ${format.format(maxHp)}",
+            text = label ?: "${format.format(hp)} / ${format.format(maxHp)}",
             style = Type.labelM,
             color = Palette.TextSecondary,
         )

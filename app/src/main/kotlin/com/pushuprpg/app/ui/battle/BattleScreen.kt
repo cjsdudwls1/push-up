@@ -33,6 +33,8 @@ import com.pushuprpg.app.ui.theme.LocalGameColors
 import com.pushuprpg.app.ui.theme.LocalReduceMotion
 import com.pushuprpg.app.ui.theme.Palette
 import com.pushuprpg.app.ui.theme.Type
+import com.pushuprpg.core.detect.Exercises
+import com.pushuprpg.core.detect.MovementKind
 import com.pushuprpg.core.detect.PoseQuality
 import com.pushuprpg.core.game.PlayerClass
 import com.pushuprpg.core.run.AlertKey
@@ -212,12 +214,19 @@ private fun BoxScope.BattleHudLayout(
         }
 
         Spacer(Modifier.height(6.dp))
+        // Neither of these is health. A run is a count of reps and nothing can hurt the player, so
+        // a draining player bar would be a threat the game does not contain. The left bar is what
+        // the user has done, the right is what this monster still owes, and both are counted in the
+        // movement they chose.
+        val hold = Exercises.of(state.exercise).kind == MovementKind.HOLD
+        val unit = if (hold) R.string.battle_unit_seconds else R.string.battle_unit_reps
         Row(verticalAlignment = Alignment.Top) {
             HealthBar(
                 name = stringResource(R.string.battle_player_label),
-                hp = state.playerHp,
-                maxHp = state.playerMaxHp,
+                hp = state.reps,
+                maxHp = state.runTotalReps.coerceAtLeast(1),
                 color = colors.playerHp,
+                label = stringResource(unit, state.reps) + " / " + state.runTotalReps,
                 modifier = Modifier.weight(1f),
             )
             Spacer(Modifier.width(20.dp))
@@ -227,6 +236,10 @@ private fun BoxScope.BattleHudLayout(
                 maxHp = state.enemyMaxHp,
                 color = colors.bossHp,
                 alignEnd = true,
+                label = stringResource(
+                    if (hold) R.string.battle_remaining_seconds else R.string.battle_remaining,
+                    state.enemyHp,
+                ),
                 modifier = Modifier.weight(1f),
             )
         }

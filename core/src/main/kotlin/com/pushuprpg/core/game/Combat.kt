@@ -79,6 +79,15 @@ data class Enemy(
 ) {
     val isDead: Boolean get() = hp <= 0
     val warded: Boolean get() = wardHp > 0
+
+    /**
+     * Reps still owed, ward included — the number the health bar is really showing.
+     *
+     * HP is a rep count under the volume model, and a ward is more of the same reps rather than a
+     * separate resource, so a user answering a warded enemy with the wrong movement sees an honest
+     * total rather than a bar that appears stuck.
+     */
+    val remaining: Int get() = hp + wardHp
 }
 
 /** The outcome of resolving one rep. */

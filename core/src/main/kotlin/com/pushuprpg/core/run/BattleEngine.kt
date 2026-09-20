@@ -10,7 +10,16 @@ import com.pushuprpg.core.detect.*
 import com.pushuprpg.core.game.*
 import com.pushuprpg.core.pose.PoseFrame
 
-/** One damage number floating up the screen. */
+/**
+ * One number floating up the screen when a rep lands.
+ *
+ * [amount] is the enemy's REMAINING rep count after the hit, not damage dealt. Under the volume
+ * model a rep is worth exactly one, so a damage number would be either a permanent "1" or — as it
+ * briefly was — a decorative figure in the twenties while the monster lost a single rep. The count
+ * remaining is the number the user is actually working toward, and it is true.
+ *
+ * [crit] and [deep] still style it, so a deep rep looks better without being worth more.
+ */
 data class FloatingDamage(
     val id: Long,
     val amount: Int,
@@ -46,6 +55,10 @@ data class BattleState(
     val enemyMaxHp: Int = 1,
     val floorIndex: Int = 0,
     val floorCount: Int = 1,
+    /** Reps this whole run costs, every floor summed. The denominator of the run's progress. */
+    val runTotalReps: Int = 0,
+    /** The movement being counted, so the screen can say 개 or 초 without guessing. */
+    val exercise: ExerciseType = ExerciseType.PUSHUP,
     val ultimateIncoming: Boolean = false,
     val ultimateDeadlineMs: Long = 0,
     val damages: List<FloatingDamage> = emptyList(),
@@ -130,6 +143,14 @@ class BattleEngine(
     private var xpTotal = 0
     private var shallowStreak = 0
 
+    /**
+     * What the run costs in total, computed once at spawn from the same rule the entry screen quoted.
+     *
+     * Every floor's HP is a rep count, so the sum is the run's whole rep cost — the number the entry
+     * picker promised, which the HUD can now show the user working through.
+     */
+    private val runTotalReps: Int = dungeon.repCost(difficulty, detector.config.exercise)
+
     private var state = BattleState(
         playerHp = initialPlayer.hp,
         playerMaxHp = initialPlayer.maxHp,
@@ -137,6 +158,8 @@ class BattleEngine(
         enemyHp = encounter.enemy.hp,
         enemyMaxHp = encounter.enemy.maxHp,
         floorCount = dungeon.floors.size,
+        runTotalReps = runTotalReps,
+        exercise = detector.config.exercise,
         countEnter = detector.config.countEnter,
         deepEnter = detector.config.deepEnter,
     )
@@ -221,7 +244,8 @@ class BattleEngine(
                                 )
                                 damageSeq++
                                 damages += FloatingDamage(
-                                    damageSeq, ce.result.damage, ce.result.crit, ce.result.deep, event.tMs
+                                    damageSeq, ce.result.enemy.remaining, ce.result.crit,
+                                    ce.result.deep, event.tMs,
                                 )
                                 shake = (shake + if (ce.result.crit) 1.0f else 0.45f).coerceAtMost(1f)
                                 shallowStreak = 0
@@ -261,7 +285,9 @@ class BattleEngine(
                         when (ce) {
                             is CombatEvent.Hit -> {
                                 damageSeq++
-                                damages += FloatingDamage(damageSeq, ce.result.damage, false, false, event.tMs)
+                                damages += FloatingDamage(
+                                    damageSeq, ce.result.enemy.remaining, false, false, event.tMs,
+                                )
                             }
                             is CombatEvent.EnemyDefeated -> enemyDiedAtMs = event.tMs
                             else -> Unit

@@ -68,6 +68,21 @@ data class Dungeon(
 ) {
     val standardRepCost: Int get() = floors.sumOf { it.standardRepCost }
 
+    /**
+     * What this dungeon costs in reps of [exercise] — the one number to quote anywhere.
+     *
+     * The sum of each floor's own rounded cost, deliberately, rather than one rounding of the
+     * aggregate. A run is charged floor by floor, and the two differ: quoting the aggregate
+     * advertised five pull-ups for a run that then asked for six. Small, but the volume model's
+     * entire claim is that the number shown is the number performed, and a test caught this before
+     * anybody did a sixth pull-up for a monster that was supposed to be dead.
+     *
+     * Wards are excluded: a ward is extra reps owed only by the wrong movement for the enemy, so it
+     * belongs to the fight rather than to the advertised price.
+     */
+    fun repCost(difficulty: Difficulty, exercise: ExerciseType): Int =
+        floors.sumOf { CombatResolver.expectedReps(it.standardRepCost, difficulty, exercise) }
+
     /** The level the encounters are balanced around; outgrowing it is what makes them easier. */
     val referenceLevel: Int get() = recommendedLevel.first
 

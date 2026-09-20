@@ -22,7 +22,6 @@ import com.pushuprpg.app.ui.theme.LocalGameColors
 import com.pushuprpg.app.ui.theme.Palette
 import com.pushuprpg.app.ui.theme.Type
 import com.pushuprpg.core.detect.ExerciseType
-import com.pushuprpg.core.game.CombatResolver
 import com.pushuprpg.core.game.Difficulty
 import com.pushuprpg.core.game.Dungeon
 import com.pushuprpg.core.game.Dungeons
@@ -79,9 +78,7 @@ fun DungeonSelectScreen(
             val paid = FreeTier.canPlayDungeon(dungeon.index, entitlement)
             DungeonCard(
                 dungeon = dungeon,
-                expectedReps = CombatResolver.expectedReps(
-                    dungeon.standardRepCost, difficulty, exercise
-                ),
+                expectedReps = dungeon.repCost(difficulty, exercise),
                 cleared = dungeon.index <= highestCleared,
                 unlocked = unlocked,
                 paid = paid,

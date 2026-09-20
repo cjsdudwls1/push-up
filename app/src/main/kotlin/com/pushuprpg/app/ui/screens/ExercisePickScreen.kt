@@ -39,7 +39,7 @@ import com.pushuprpg.app.ui.theme.Type
 import com.pushuprpg.core.detect.ExerciseType
 import com.pushuprpg.core.detect.Exercises
 import com.pushuprpg.core.detect.MovementKind
-import com.pushuprpg.core.game.CombatResolver
+import com.pushuprpg.core.game.Dungeon
 import com.pushuprpg.core.game.Difficulty
 
 /**
@@ -61,12 +61,11 @@ import com.pushuprpg.core.game.Difficulty
  */
 @Composable
 fun ExercisePickScreen(
-    dungeonName: String,
+    /** The run being entered: its name, and the cost each row quotes. */
+    dungeon: Dungeon?,
     initial: ExerciseType,
     onStart: (ExerciseType) -> Unit,
     modifier: Modifier = Modifier,
-    /** The run's authored cost in standard reps; each row converts it to its own movement. */
-    standardRepCost: Int = 0,
     difficulty: Difficulty = Difficulty.STANDARD,
 ) {
     var expanded by remember { mutableStateOf(initial) }
@@ -81,7 +80,7 @@ fun ExercisePickScreen(
     ) {
         item {
             Text(
-                text = dungeonName,
+                text = dungeon?.korean.orEmpty(),
                 style = Type.labelL,
                 color = Palette.TextSecondary,
             )
@@ -106,10 +105,9 @@ fun ExercisePickScreen(
                 expanded = exercise == expanded,
                 isLast = exercise == initial,
                 // Exact, not an estimate: under the volume model the enemy's health IS this count,
-                // so the number here is the number of reps the user will actually perform.
-                cost = if (standardRepCost > 0) {
-                    CombatResolver.expectedReps(standardRepCost, difficulty, exercise)
-                } else 0,
+                // and Dungeon.repCost is the same function the run itself is priced by — so this is
+                // the number of reps the user will actually perform, not a rounding of it.
+                cost = dungeon?.repCost(difficulty, exercise) ?: 0,
                 onExpand = { expanded = exercise },
                 onStart = { onStart(exercise) },
             )

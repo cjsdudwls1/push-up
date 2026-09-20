@@ -2,7 +2,9 @@ package com.pushuprpg.core
 
 import com.pushuprpg.core.detect.DetectorConfig
 import com.pushuprpg.core.detect.ExerciseType
+import com.pushuprpg.core.detect.DetectorFactory
 import com.pushuprpg.core.detect.RepDetectorImpl
+import com.pushuprpg.core.detect.UserProfile
 import com.pushuprpg.core.fixtures.PoseFixtures
 import com.pushuprpg.core.game.*
 import com.pushuprpg.core.run.BattleEngine
@@ -47,6 +49,43 @@ class VolumeModelTest {
             advertised, state.outcome!!.reps,
             "advertised $advertised reps, took ${state.outcome?.reps}",
         )
+    }
+
+    @Test
+    fun `the run total the HUD shows is the number the entry screen quoted`() {
+        // The entry picker prints CombatResolver.expectedReps per movement and the HUD counts up to
+        // BattleState.runTotalReps. If those two ever disagree the app promises one number and asks
+        // for another, which is the whole thing the volume model exists to prevent.
+        ExerciseType.entries.forEach { exercise ->
+            val dungeon = Dungeons.FREE_DUNGEON
+            val quoted = dungeon.repCost(Difficulty.STANDARD, exercise)
+            val engine = BattleEngine(
+                dungeon = dungeon,
+                difficulty = Difficulty.STANDARD,
+                capacity = 8f,
+                initialPlayer = PlayerState.create(PlayerClass.KNIGHT, level = 1),
+                detector = DetectorFactory.create(exercise, profile = UserProfile.empty()),
+                resolver = CombatResolver(),
+            )
+            val shown = engine.currentState().runTotalReps
+
+            assertEquals(
+                quoted, shown,
+                "$exercise: the entry screen said $quoted and the HUD counts to $shown",
+            )
+            // And the aggregate shortcut must not be used anywhere, because it rounds once where
+            // the run rounds per floor: for a pull-up that gap advertised 5 for a run costing 6.
+            val aggregate = CombatResolver.expectedReps(
+                dungeon.standardRepCost, Difficulty.STANDARD, exercise,
+            )
+            if (aggregate != quoted) {
+                assertEquals(
+                    quoted, dungeon.repCost(Difficulty.STANDARD, exercise),
+                    "$exercise: repCost must be the per-floor sum, not the aggregate $aggregate",
+                )
+            }
+            assertEquals(exercise, engine.currentState().exercise)
+        }
     }
 
     @Test

@@ -225,9 +225,8 @@ fun PushupRpgApp(
                     val dungeonIndex = entry.arguments?.getInt(Routes.ARG_DUNGEON_INDEX) ?: 1
                     val dungeon = Dungeons.byIndex(dungeonIndex)
                     ExercisePickScreen(
-                        dungeonName = dungeon?.korean.orEmpty(),
+                        dungeon = dungeon,
                         initial = settings.exercise,
-                        standardRepCost = dungeon?.standardRepCost ?: 0,
                         difficulty = settings.difficulty,
                         onStart = { picked ->
                             scope.launch {
