@@ -201,7 +201,8 @@ fun PushupRpgApp(
                 composable(Routes.DUNGEON_SELECT) {
                     DungeonSelectScreen(
                         highestCleared = progress.highestDungeonCleared,
-                        capacity = progress.capacityOf(ExerciseType.PUSHUP),
+                        exercise = settings.exercise,
+                        capacity = progress.capacityOf(settings.exercise),
                         difficulty = settings.difficulty,
                         entitlement = entitlement,
                         onDifficultyChange = { difficulty ->
@@ -222,9 +223,12 @@ fun PushupRpgApp(
                     arguments = listOf(navArgument(Routes.ARG_DUNGEON_INDEX) { type = NavType.IntType }),
                 ) { entry ->
                     val dungeonIndex = entry.arguments?.getInt(Routes.ARG_DUNGEON_INDEX) ?: 1
+                    val dungeon = Dungeons.byIndex(dungeonIndex)
                     ExercisePickScreen(
-                        dungeonName = Dungeons.byIndex(dungeonIndex)?.korean.orEmpty(),
+                        dungeonName = dungeon?.korean.orEmpty(),
                         initial = settings.exercise,
+                        standardRepCost = dungeon?.standardRepCost ?: 0,
+                        difficulty = settings.difficulty,
                         onStart = { picked ->
                             scope.launch {
                                 // Persisted before navigating, and awaited, because BattleViewModel

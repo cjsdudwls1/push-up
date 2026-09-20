@@ -21,6 +21,7 @@ import com.pushuprpg.app.ui.components.cardSurface
 import com.pushuprpg.app.ui.theme.LocalGameColors
 import com.pushuprpg.app.ui.theme.Palette
 import com.pushuprpg.app.ui.theme.Type
+import com.pushuprpg.core.detect.ExerciseType
 import com.pushuprpg.core.game.CombatResolver
 import com.pushuprpg.core.game.Difficulty
 import com.pushuprpg.core.game.Dungeon
@@ -29,13 +30,18 @@ import com.pushuprpg.core.game.Dungeons
 /**
  * Dungeon list.
  *
- * Each card shows what the run will actually cost *this* player — not an abstract difficulty
- * rating but a number of reps, computed from their own measured capacity. That is the only figure
- * someone deciding whether they have twenty minutes and the energy can act on.
+ * Each card shows what the run costs, as a number of reps of the movement the user last chose.
+ * That is the only figure someone deciding whether they have twenty minutes and the energy can act
+ * on — and under the volume model it is exact rather than an estimate, because the rep count IS the
+ * enemy's health. It no longer depends on a measured capacity, so it says the same thing to a
+ * beginner and to an athlete.
  */
 @Composable
 fun DungeonSelectScreen(
     highestCleared: Int,
+    /** The movement the count is quoted in — whatever was picked on the way into the last run. */
+    exercise: ExerciseType,
+    /** Still measured, and still used to recommend a difficulty. It no longer sizes an enemy. */
     capacity: Float,
     difficulty: Difficulty,
     entitlement: Entitlement,
@@ -74,7 +80,7 @@ fun DungeonSelectScreen(
             DungeonCard(
                 dungeon = dungeon,
                 expectedReps = CombatResolver.expectedReps(
-                    dungeon.standardRepCost, difficulty, capacity
+                    dungeon.standardRepCost, difficulty, exercise
                 ),
                 cleared = dungeon.index <= highestCleared,
                 unlocked = unlocked,

@@ -39,6 +39,8 @@ import com.pushuprpg.app.ui.theme.Type
 import com.pushuprpg.core.detect.ExerciseType
 import com.pushuprpg.core.detect.Exercises
 import com.pushuprpg.core.detect.MovementKind
+import com.pushuprpg.core.game.CombatResolver
+import com.pushuprpg.core.game.Difficulty
 
 /**
  * Picks the movement for one dungeon run, on the way in.
@@ -63,6 +65,9 @@ fun ExercisePickScreen(
     initial: ExerciseType,
     onStart: (ExerciseType) -> Unit,
     modifier: Modifier = Modifier,
+    /** The run's authored cost in standard reps; each row converts it to its own movement. */
+    standardRepCost: Int = 0,
+    difficulty: Difficulty = Difficulty.STANDARD,
 ) {
     var expanded by remember { mutableStateOf(initial) }
 
@@ -100,6 +105,11 @@ fun ExercisePickScreen(
                 exercise = exercise,
                 expanded = exercise == expanded,
                 isLast = exercise == initial,
+                // Exact, not an estimate: under the volume model the enemy's health IS this count,
+                // so the number here is the number of reps the user will actually perform.
+                cost = if (standardRepCost > 0) {
+                    CombatResolver.expectedReps(standardRepCost, difficulty, exercise)
+                } else 0,
                 onExpand = { expanded = exercise },
                 onStart = { onStart(exercise) },
             )
@@ -112,6 +122,7 @@ private fun ExerciseRow(
     exercise: ExerciseType,
     expanded: Boolean,
     isLast: Boolean,
+    cost: Int,
     onExpand: () -> Unit,
     onStart: () -> Unit,
 ) {
@@ -146,6 +157,18 @@ private fun ExerciseRow(
             }
             if (isLast) {
                 Pill(text = stringResource(R.string.pick_exercise_last), tint = colors.accept)
+                Spacer(Modifier.width(6.dp))
+            }
+            if (cost > 0) {
+                Text(
+                    text = stringResource(
+                        if (descriptor.kind == MovementKind.HOLD) R.string.pick_exercise_cost_seconds
+                        else R.string.pick_exercise_cost_reps,
+                        cost,
+                    ),
+                    style = Type.labelL,
+                    color = Palette.TextPrimary,
+                )
             }
         }
 
