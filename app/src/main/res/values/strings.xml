@@ -164,6 +164,9 @@
     <string name="pick_exercise_last">지난번</string>
     <string name="pick_exercise_hold">시간으로 세요</string>
     <string name="pick_exercise_cost_reps">%1$,d개</string>
+    <string name="result_stars_three">깊이까지 완벽했어요</string>
+    <string name="result_stars_two">좋아요. 조금만 더 내려가면 별 세 개예요</string>
+    <string name="result_stars_one">개수는 다 채웠어요. 다음엔 더 깊게 가봐요</string>
     <string name="battle_count_reps">%1$,d개</string>
     <string name="battle_count_seconds">%1$,d초</string>
     <string name="battle_remaining">남은 %1$,d개</string>
@@ -182,6 +185,7 @@
     <string name="exercise_lunge">런지</string>
     <string name="exercise_bench_press">벤치프레스</string>
     <string name="exercise_hinge">힙 힌지</string>
+    <string name="exercise_dip">딥스</string>
 
     <!-- Camera placement. Getting this wrong is the single most common reason a set counts nothing. -->
     <string name="exercise_hint_pushup">폰을 바닥에 세워서 옆모습이 나오게 해주세요.</string>
@@ -193,6 +197,7 @@
     <string name="exercise_hint_lunge">폰을 정면에 두고 2m쯤 떨어져 주세요. 앞다리 기준으로 세요.</string>
     <string name="exercise_hint_bench_press">폰을 옆에서 벤치 전체가 보이게 세워주세요. 인식이 가장 불안정한 종목이에요.</string>
     <string name="exercise_hint_hinge">폰을 정면 또는 살짝 비스듬하게, 2m쯤 떨어뜨려 허리 높이로 세워주세요. 완전한 옆모습은 어깨가 겹쳐서 인식이 안 돼요.</string>
+    <string name="exercise_hint_dip">폰을 평행봉 정면, 손 높이(허리쯤)에 세워 주세요. 바닥에 두면 몸을 앞으로 숙이는 만큼 안 세어져요.</string>
 
     <!-- Shown when a loaded exercise is selected. -->
     <string name="exercise_load_warning_title">중량 운동은 주의해 주세요</string>

@@ -92,6 +92,33 @@ data class BattleState(
     val paused: Boolean get() = quality != PoseQuality.OK
 }
 
+/**
+ * How well a run was performed, from one to three.
+ *
+ * The volume model deliberately made every accepted rep worth exactly one, so that the count on the
+ * entry screen is the count performed. That left depth with nothing to do, and a rep at the 인정
+ * line paying the same as one well past 깊게 is not what this app wants to teach. Stars are the
+ * other axis: volume decides WHICH monster falls, depth decides how well you felled it.
+ *
+ * Read off the detector's own two lines rather than numbers of their own, for the same reason the
+ * gauge is: the user aims at 인정 and 깊게, so those are what they must be graded against.
+ */
+enum class Stars {
+    ONE, TWO, THREE;
+
+    val count: Int get() = ordinal + 1
+
+    companion object {
+        fun of(meanDepth: Float, countEnter: Float, deepEnter: Float): Stars = when {
+            meanDepth >= deepEnter -> THREE
+            // Halfway between the two lines. Not a third star's worth of depth, but visibly more
+            // than scraping the 인정 line on every rep.
+            meanDepth >= (countEnter + deepEnter) / 2f -> TWO
+            else -> ONE
+        }
+    }
+}
+
 data class Outcome(
     val cleared: Boolean,
     val reps: Int,
@@ -102,6 +129,8 @@ data class Outcome(
     val crackFraction: Float,
     val meanDepth: Float,
     val plausibility: Float,
+    /** How deep the run was, graded against the detector's own 인정 and 깊게 lines. */
+    val stars: Stars = Stars.ONE,
 )
 
 /**
@@ -459,6 +488,11 @@ class BattleEngine(
             xpEarned = xpTotal + bonus,
             crackFraction = if (cleared) 0f else encounter.crackFraction(),
             meanDepth = if (repsTotal == 0) 0f else depthSum / repsTotal,
+            stars = Stars.of(
+                meanDepth = if (repsTotal == 0) 0f else depthSum / repsTotal,
+                countEnter = detector.config.countEnter,
+                deepEnter = detector.config.deepEnter,
+            ),
             plausibility = summary.plausibility,
         )
     }

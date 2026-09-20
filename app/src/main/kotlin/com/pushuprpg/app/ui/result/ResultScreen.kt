@@ -27,6 +27,7 @@ import com.pushuprpg.app.ui.theme.Palette
 import com.pushuprpg.app.ui.theme.Type
 import com.pushuprpg.core.progression.RankProgress
 import com.pushuprpg.core.run.Outcome
+import com.pushuprpg.core.run.Stars
 
 /**
  * The end-of-run screen.
@@ -89,7 +90,10 @@ fun ResultScreen(
             textAlign = TextAlign.Center,
         )
 
-        Spacer(Modifier.height(24.dp))
+        Spacer(Modifier.height(18.dp))
+        StarRow(outcome.stars)
+
+        Spacer(Modifier.height(18.dp))
         ReassuranceBanner(reps = outcome.reps)
 
         Spacer(Modifier.height(20.dp))
@@ -260,6 +264,44 @@ private fun RankCardLocal(rank: RankProgress) {
             } ?: stringResource(R.string.rank_max),
             style = Type.labelM,
             color = Palette.TextTertiary,
+        )
+    }
+}
+
+/**
+ * The run's depth grade, one to three.
+ *
+ * The other half of the volume model. Reps decide which monster falls and every accepted rep is
+ * worth exactly one, so this is what going deeper actually buys — and it is shown on the clear
+ * screen rather than during the set, because chasing a star mid-rep is how form goes.
+ *
+ * Dim stars are drawn rather than omitted, so the grade reads as "two of three" instead of "two".
+ */
+@Composable
+private fun StarRow(stars: Stars) {
+    val colors = LocalGameColors.current
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            repeat(3) { i ->
+                Text(
+                    text = "\u2605",
+                    style = Type.displayM,
+                    color = if (i < stars.count) colors.deep else Palette.TextDisabled,
+                )
+            }
+        }
+        Spacer(Modifier.height(6.dp))
+        Text(
+            text = stringResource(
+                when (stars) {
+                    Stars.THREE -> R.string.result_stars_three
+                    Stars.TWO -> R.string.result_stars_two
+                    Stars.ONE -> R.string.result_stars_one
+                }
+            ),
+            style = Type.bodyM,
+            color = Palette.TextSecondary,
+            textAlign = TextAlign.Center,
         )
     }
 }

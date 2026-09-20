@@ -241,6 +241,110 @@ object PoseFixtures {
         restMs = restMs, fps = fps, settleMs = settleMs, frameOf = frameOf,
     )
 
+    /** Where the parallel bars sit, as a fraction of image height. */
+    const val DIP_BAR_V = 0.45f
+
+    const val DIP_H_TOP = 1.35f
+    const val DIP_H_BOTTOM = 0.88f
+
+    fun hForDip(depthFraction: Float): Float =
+        DIP_H_TOP - depthFraction * (DIP_H_TOP - DIP_H_BOTTOM)
+
+    /**
+     * A bar dip, filmed front-on from a phone level with the bars.
+     *
+     * The mirror of [pullUpFrame]: the hands are fixed and the body descends PAST them instead of
+     * rising toward them. Two things make this fixture worth having rather than reusing the
+     * pull-up's, and both are what the descriptor's cross-checks exist for:
+     *
+     *  - the ELBOW rises relative to the shoulder line as the body sinks, which is the witness that
+     *    separates a dip from a standing curl doing the same thing to the same landmarks;
+     *  - the torso leans forward as it descends, so the hips travel and the head does too — a dip is
+     *    not the rigid hanging body a pull-up is.
+     *
+     * [depthFraction] 0 is locked out at the top, 1 is an 85-degree bottom.
+     *
+     * [leanFraction] scales the forward lean; 0 is a strict vertical triceps dip.
+     */
+    fun dipFrame(
+        tMs: Long,
+        depthFraction: Float,
+        legConfidence: Float = CONFIDENT,
+        shoulderWidth: Float = STANDING_SHOULDER_WIDTH,
+        centerU: Float = ASPECT / 2f,
+        world: Boolean = true,
+        leanFraction: Float = 1f,
+        /**
+         * A different build. `h` at lockout is arm length over shoulder width, so a longer-limbed
+         * user reads proportionally higher at every depth — and the elbow, which sits between
+         * shoulder and wrist, has to move with it or the travel witness sees a body that does not
+         * exist. Scaling here rather than patching landmarks afterwards is what keeps it coherent.
+         */
+        hScale: Float = 1f,
+    ): PoseFrame {
+        val lm = MutableList(Lm.COUNT) { Landmark.ZERO }
+        val halfW = shoulderWidth / 2f
+
+        // Shoulders start an arm's length ABOVE the bars and sink toward them.
+        val shoulderV = DIP_BAR_V - hForDip(depthFraction) * hScale * shoulderWidth
+        val torso = shoulderWidth * 1.50f
+        val lean = shoulderWidth * 0.45f * depthFraction * leanFraction
+
+        val hipV = shoulderV + torso
+        val kneeV = hipV + shoulderWidth * 1.20f
+        val ankleV = kneeV + shoulderWidth * 1.10f
+
+        fun put(index: Int, u: Float, v: Float, conf: Float) {
+            lm[index] = Landmark(u / ASPECT, v, 0f, conf, conf)
+        }
+
+        // The elbow stays between shoulder and wrist, so as the shoulder sinks past the bar the
+        // elbow rises *relative to the shoulder line* — the travel witness the descriptor requires.
+        val elbowOut = halfW * (1.0f + 0.40f * depthFraction)
+        val elbowV = (shoulderV + DIP_BAR_V) / 2f
+
+        // The head follows the lean, unlike a pull-up's rigid hang.
+        put(Lm.NOSE, centerU + lean * 0.6f, shoulderV - shoulderWidth * 0.45f + lean * 0.3f, CONFIDENT)
+        put(Lm.LEFT_SHOULDER, centerU + halfW, shoulderV, CONFIDENT)
+        put(Lm.RIGHT_SHOULDER, centerU - halfW, shoulderV, CONFIDENT)
+        put(Lm.LEFT_ELBOW, centerU + elbowOut, elbowV, CONFIDENT)
+        put(Lm.RIGHT_ELBOW, centerU - elbowOut, elbowV, CONFIDENT)
+        put(Lm.LEFT_WRIST, centerU + halfW, DIP_BAR_V, CONFIDENT)
+        put(Lm.RIGHT_WRIST, centerU - halfW, DIP_BAR_V, CONFIDENT)
+        put(Lm.LEFT_HIP, centerU + halfW * 0.80f - lean, hipV, legConfidence)
+        put(Lm.RIGHT_HIP, centerU - halfW * 0.80f - lean, hipV, legConfidence)
+        put(Lm.LEFT_KNEE, centerU + halfW * 0.75f - lean * 1.6f, kneeV, legConfidence)
+        put(Lm.RIGHT_KNEE, centerU - halfW * 0.75f - lean * 1.6f, kneeV, legConfidence)
+        put(Lm.LEFT_ANKLE, centerU + halfW * 0.70f - lean * 2.0f, ankleV, legConfidence)
+        put(Lm.RIGHT_ANKLE, centerU - halfW * 0.70f - lean * 2.0f, ankleV, legConfidence)
+
+        val theta = Exercises.DIP_TOP_DEG -
+            depthFraction * (Exercises.DIP_TOP_DEG - Exercises.DIP_BOTTOM_DEG)
+        return PoseFrame(
+            tMs, WIDTH, HEIGHT, lm,
+            if (world) elbowWorld(theta) else emptyList(),
+        )
+    }
+
+    /** [count] bar dips, preceded by enough locked-out frames for the detector to arm. */
+    fun dipTrace(
+        count: Int,
+        startMs: Long = 0L,
+        peakDepth: Float = 0.95f,
+        descentMs: Int = 1000,
+        bottomMs: Int = 180,
+        ascentMs: Int = 1000,
+        restMs: Int = 350,
+        fps: Int = 30,
+        settleMs: Int = 800,
+        hScale: Float = 1f,
+        frameOf: (Long, Float) -> PoseFrame = { t, d -> dipFrame(t, d, hScale = hScale) },
+    ): List<PoseFrame> = trace(
+        count = count, startMs = startMs, peakDepth = peakDepth,
+        descentMs = descentMs, bottomMs = bottomMs, ascentMs = ascentMs,
+        restMs = restMs, fps = fps, settleMs = settleMs, frameOf = frameOf,
+    )
+
     /**
      * A squat, viewed face-on from a phone propped up a couple of metres away.
      *

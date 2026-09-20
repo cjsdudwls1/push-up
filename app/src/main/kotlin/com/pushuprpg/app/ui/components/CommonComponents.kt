@@ -348,6 +348,7 @@ fun exerciseLabelRes(exercise: ExerciseType): Int = when (exercise) {
     ExerciseType.LUNGE -> R.string.exercise_lunge
     ExerciseType.BENCH_PRESS -> R.string.exercise_bench_press
     ExerciseType.HINGE -> R.string.exercise_hinge
+    ExerciseType.DIP -> R.string.exercise_dip
 }
 
 /**
@@ -382,6 +383,7 @@ fun ExerciseNotes(exercise: ExerciseType) {
         ExerciseType.LUNGE -> R.string.exercise_hint_lunge
         ExerciseType.BENCH_PRESS -> R.string.exercise_hint_bench_press
         ExerciseType.HINGE -> R.string.exercise_hint_hinge
+        ExerciseType.DIP -> R.string.exercise_hint_dip
     }
 
     Column(

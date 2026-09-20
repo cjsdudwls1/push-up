@@ -182,6 +182,20 @@ data class BodyTravelCheck(
     val to: BodyPoint,
     /** True when `dot(to − from, n̂)` shrinks with depth and must be negated to grow with it. */
     val invert: Boolean,
+    /**
+     * How far the witness must travel, as a fraction of the calibrated range, before a rep counts.
+     *
+     * Per-movement because the witness is not geared the same way in each. A pushup's nose
+     * out-travels the primary signal, so the shared 0.30 is easy. A dip's elbow is geared about 1:1
+     * with it, and the reference is taken on the last frame of the top band rather than at lockout,
+     * so the witness only ever sees the middle of the rep — against 0.30 an honest dip measured
+     * 0.190 where 0.195 was required and every rep was refused, 0 of 8.
+     *
+     * Null keeps [RepDetectorImpl.MIN_BODY_DROP_FRACTION], so the nine movements that predate this
+     * are bit-identical. Worth noting the shared value is thin everywhere: a pushup clears it by
+     * only about 1.4x.
+     */
+    val minFraction: Float? = null,
 )
 
 /** What must hold before a strike is allowed. */
@@ -306,6 +320,10 @@ object Exercises {
     const val ELBOW_BOTTOM_DEG = 82f
 
     /** Elbow angle at a dead hang. */
+    /** Elbow locked out at the top of a dip; about 85 degrees at a bar-height bottom. */
+    const val DIP_TOP_DEG = 172f
+    const val DIP_BOTTOM_DEG = 85f
+
     const val HANG_TOP_DEG = 172f
 
     /** Elbow angle with the chin over the bar. */
@@ -734,8 +752,81 @@ object Exercises {
         streakBar = 12,
     )
 
+    /**
+     * A dip is a pull-up's mirror: the hands are fixed and the body travels PAST them rather than
+     * toward them. At lockout the acromion sits an arm's length above the wrists; at the bottom it
+     * is a hand's width above. So `h` is the same shrinking shoulder-to-wrist gap in the same pair
+     * order, and it falls with effort with no swap — measured monotone across a rep with no sign
+     * change, 1.505 at lockout down to 0.845 at an 85-degree bottom.
+     *
+     * **The normal points at the hips, not the wrists**, which is the one real decision here. Both
+     * agree at lockout, but as the body sinks the wrist projection closes to about 0.85 of a width
+     * while the hips keep a steady 1.3 — and a normal anchored on the closer pair is a normal whose
+     * sign is decided by the noisiest landmark in the body on the frame the strike fires. The lean
+     * of a dip rotates about the mediolateral axis, so the shoulder line stays fronto-parallel and
+     * the hips stay squarely below it.
+     *
+     * **Both witnesses are required, because each alone is defeated by a different fake.** A dip
+     * shares its signal pair AND its normal with a curl: stand still and curl a dumbbell from a
+     * hanging arm and the wrist closes the same gap with the same elbow angle, passing everything a
+     * pull-up asks for. What separates them is that a dip's ELBOW rises relative to the shoulder
+     * line as the body sinks past it, and a curl's does not — so the travel check is the one that
+     * refuses the curl, and the joint angle is the one that refuses a straight-armed front raise
+     * where the elbow travels but never bends.
+     *
+     * Bar dips only. Bench dips put the hands behind the hips, inside the body silhouette from the
+     * front, and filming them from the side collapses the shoulder axis into the near-side-torso
+     * territory that BENCH_PRESS needs. That is a second descriptor, not this one.
+     *
+     * Camera: level with the bar, front on. Placed on the floor a forward-leaning dip loses about a
+     * quarter of its range to parallax and counted 0 of 6.
+     */
+    val DIP = ExerciseDescriptor(
+        type = ExerciseType.DIP,
+        kind = MovementKind.REP,
+        normalToward = HIPS,
+        signal = RepSignal(
+            proximal = SHOULDERS,
+            distal = WRISTS,
+            scale = ScaleReference.SHOULDER_WIDTH,
+            jointCheck = JointAngleCheck(ELBOWS, SHOULDERS, WRISTS, DIP_TOP_DEG, DIP_BOTTOM_DEG),
+            bodyTravel = BodyTravelCheck(
+                from = BodyPoint.Midpoint(SHOULDERS),
+                to = BodyPoint.Midpoint(ELBOWS),
+                invert = true,
+                // Geared about 1:1 with the primary rather than out-travelling it, and measured from
+                // the last frame of the top band, so the shared 0.30 is unreachable: honest reps sat
+                // at 0.190 against a 0.195 bar and were all refused.
+                minFraction = 0.15f,
+            ),
+            crossCheck = CrossCheckPolicy.JOINT_REQUIRED,
+            allowJointFallback = true,
+        ),
+        config = DetectorConfig(
+            exercise = ExerciseType.DIP,
+            topEnter = 18f, topExit = 30f,
+            countEnter = 70f, countExit = 55f,
+            deepEnter = 88f, deepExit = 80f,
+            maxDescentSpeed = 420f, minAscentMs = 250, minRepPeriodMs = 900,
+            maxDescentMs = 5000, maxBottomMs = 4000,
+            signalMinCutoff = 1.0f, signalBeta = 15f,
+            // h at lockout IS arm length over shoulder width, so the prior has to span real builds:
+            // 1.28 for broad shoulders and short arms, 1.80 for a lanky one. Seated mid-population
+            // at 1.50 a broad build counted 0 of 6 with no events at all — a silent zero.
+            hTopPrior = 1.35f, hBotPrior = 0.90f, rMin = 0.40f,
+            topClampMin = 0.80f, topClampMax = 2.20f,
+            botClampMin = 0.30f, botClampMax = 1.60f,
+        ),
+        // Between a pushup and a pull-up, nearer the pull-up: a dip is near-max for most people but
+        // the hands carry less than a full hang.
+        damageCoefficient = 1.90f,
+        sessionVolumeScale = 0.30f,
+        defaultCapacity = 6f,
+        streakBar = 8,
+    )
+
     val ALL: List<ExerciseDescriptor> = listOf(
-        PUSHUP, SQUAT, PULL_UP, PLANK, CURL, OVERHEAD_PRESS, LUNGE, BENCH_PRESS, HINGE,
+        PUSHUP, SQUAT, PULL_UP, PLANK, CURL, OVERHEAD_PRESS, LUNGE, BENCH_PRESS, HINGE, DIP,
     )
 
     private val byType: Map<ExerciseType, ExerciseDescriptor> = ALL.associateBy { it.type }

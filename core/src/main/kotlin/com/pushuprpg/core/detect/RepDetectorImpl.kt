@@ -326,7 +326,8 @@ class RepDetectorImpl(
             // is what waving at the phone does not do — and what a body hanging off a bar does not
             // do either.
             val descended = sample.bodyDrop - bodyDropAtTop
-            if (descended < MIN_BODY_DROP_FRACTION * calibrator.range) {
+            val minTravel = signal.bodyTravel.minFraction ?: MIN_BODY_DROP_FRACTION
+            if (descended < minTravel * calibrator.range) {
                 return AbandonReason.INCONSISTENT
             }
         }

@@ -8,7 +8,7 @@ package com.pushuprpg.core.detect
  * nothing. Persisted by `name`, so entries may be appended freely but never renamed or reordered.
  */
 enum class ExerciseType {
-    PUSHUP, SQUAT, PLANK, PULL_UP, CURL, OVERHEAD_PRESS, LUNGE, BENCH_PRESS, HINGE
+    PUSHUP, SQUAT, PLANK, PULL_UP, CURL, OVERHEAD_PRESS, LUNGE, BENCH_PRESS, HINGE, DIP
 }
 
 /**
