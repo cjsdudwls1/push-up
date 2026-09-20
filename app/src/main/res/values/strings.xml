@@ -164,8 +164,8 @@
     <string name="pick_exercise_last">지난번</string>
     <string name="pick_exercise_hold">시간으로 세요</string>
     <string name="pick_exercise_cost_reps">%1$,d개</string>
-    <string name="battle_unit_reps">%1$,d개</string>
-    <string name="battle_unit_seconds">%1$,d초</string>
+    <string name="battle_count_reps">%1$,d개</string>
+    <string name="battle_count_seconds">%1$,d초</string>
     <string name="battle_remaining">남은 %1$,d개</string>
     <string name="battle_remaining_seconds">남은 %1$,d초</string>
     <string name="pick_exercise_cost_seconds">%1$,d초</string>

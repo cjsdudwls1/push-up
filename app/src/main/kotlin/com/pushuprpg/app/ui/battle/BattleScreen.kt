@@ -219,7 +219,7 @@ private fun BoxScope.BattleHudLayout(
         // the user has done, the right is what this monster still owes, and both are counted in the
         // movement they chose.
         val hold = Exercises.of(state.exercise).kind == MovementKind.HOLD
-        val unit = if (hold) R.string.battle_unit_seconds else R.string.battle_unit_reps
+        val unit = if (hold) R.string.battle_count_seconds else R.string.battle_count_reps
         Row(verticalAlignment = Alignment.Top) {
             HealthBar(
                 name = stringResource(R.string.battle_player_label),

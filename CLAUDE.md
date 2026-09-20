@@ -11,8 +11,13 @@
 
 ```bash
 scripts/test-core.sh          # no Android SDK needed; ~20s
+scripts/check-resources.sh    # duplicate/missing/misused <string>s; <1s
 ./gradlew :app:assembleDebug  # needs the SDK
 ```
+
+Run `check-resources.sh` before every push that touches `strings.xml`. A duplicated or missing
+string is not a Kotlin error, so `test-core.sh` cannot see it and it surfaces four minutes later as
+an aapt failure in CI. It has already cost one round.
 
 `scripts/test-core.sh` mirrors `core/src` into a standalone Maven-Central-only Gradle build. Use it
 constantly — it is the only fast feedback loop in the project. `./gradlew :core:test` does *not*
