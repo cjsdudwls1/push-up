@@ -211,11 +211,8 @@ class Encounter(
             defenseGaugeMs = min(DEFENSE_GAUGE_MS, defenseGaugeMs + GAUGE_REFILL_MS)
         }
 
-        repsSinceRage++
-        if (repsSinceRage >= repsPerRage) {
-            repsSinceRage = 0
-            rage++
-        }
+        // Rage no longer accrues; see checkTelegraph. The counters stay so BattleState keeps its
+        // shape and the UI needs no change in the same commit as the rule.
 
         if (telegraphed) {
             repsSinceTelegraph++
@@ -282,121 +279,51 @@ class Encounter(
     }
 
     /** Advances the idle clock. Call every frame with the current pose timestamp. */
+    /**
+     * Advances the encounter's own clock. Under the volume model this can no longer hurt anybody.
+     *
+     * What used to be here: an idle timer. After a grace period of `min(14s, 8s + 200ms * level)` —
+     * 8.2 seconds at level 1 — the enemy struck every three seconds, escalating. Measured against a
+     * knight's 120 max HP, a perfectly ordinary between-sets rest cost this:
+     *
+     *     30 s rest -> 120/120, free
+     *     60 s rest ->  60/120, half gone
+     *     90 s rest ->   0/120, dead, run over
+     *
+     * Ninety seconds is the *recommended* rest between pushup sets and the short end for pull-ups;
+     * a bench press wants 120-300. So the game killed people for resting correctly, and a bench
+     * session was unsurvivable by construction. It could not be retuned either — no multiple of 8.2
+     * seconds reaches a 300-second deadlift rest.
+     *
+     * The ultimate went with it for the same reason: its answer window was ten seconds of wall
+     * clock, so it punished a pause just as surely, only less often.
+     *
+     * Nothing replaces them. A run ends when the user stops, and how far they got is the result —
+     * which is the honest shape for an app whose own rules say reps survive a loss, that a tracking
+     * failure is never punished, and that 실패 appears nowhere. The pull comes from the next tier's
+     * count being visible ahead of you, not from a threat behind you.
+     */
     fun advanceTo(nowMs: Long): List<CombatEvent> {
         if (finished) return emptyList()
-        val events = mutableListOf<CombatEvent>()
-
-        // Resolve the ultimate first: its window can expire independently of the idle ticks.
-        if (telegraphed && nowMs >= telegraphAtMs + TELEGRAPH_WINDOW_MS) {
-            events += resolveUltimate(nowMs)
-            if (finished) return events
-        }
-
-        val holding = holdingSinceMs
-        if (holding != null) {
-            // Holding freezes the rest timer, paid for out of the gauge.
-            val spent = (nowMs - maxOf(holding, lastTickAtMs)).toInt().coerceAtLeast(0)
-            if (defenseGaugeMs > 0) {
-                defenseGaugeMs = (defenseGaugeMs - spent).coerceAtLeast(0)
-                lastRepAtMs = maxOf(lastRepAtMs, nowMs - graceMs / 2)
-                lastTickAtMs = nowMs
-                return events
-            }
-        }
-
-        if (nowMs < staggeredUntilMs) return events
-
-        val idleMs = nowMs - lastRepAtMs
-        if (idleMs <= graceMs) return events
-
-        val ticksDue = ((idleMs - graceMs) / TICK_MS).toInt()
-        while (tickIndex < ticksDue) {
-            tickIndex++
-            val escalation = min(3.0f, 1.0f + 0.25f * (tickIndex - 1))
-            val raw = (enemy.attack * difficulty.enemyAtkMultiplier * escalation).roundToInt()
-            val absorbed = min(player.shield, raw)
-            val net = (raw - absorbed).coerceAtLeast(0)
-
-            if (player.combo > 0) events += CombatEvent.ComboBroken(nowMs, player.combo)
-            player = player.copy(
-                hp = (player.hp - net).coerceAtLeast(0),
-                shield = player.shield - absorbed,
-                combo = 0,
-                tempoStreak = 0,
-            )
-            rage++
-            events += CombatEvent.BossTick(nowMs, net, tickIndex)
-            lastTickAtMs = nowMs
-
-            if (player.hp <= 0) {
-                finished = true
-                events += CombatEvent.Exhausted(nowMs, crackFraction())
-                return events
-            }
-        }
-
-        events += checkTelegraph(nowMs)
-        return events
-    }
-
-    private fun checkTelegraph(atMs: Long): List<CombatEvent> {
-        if (telegraphed || rage < enemy.rageThreshold - TELEGRAPH_LEAD) return emptyList()
-        telegraphed = true
-        telegraphAtMs = atMs
-        repsSinceTelegraph = 0
-        deepRepsSinceTelegraph = 0
-        fastRepsSinceTelegraph = 0
-        mageAnswerReady = false
-        return listOf(CombatEvent.Telegraph(atMs, atMs + TELEGRAPH_WINDOW_MS))
-    }
-
-    private fun resolveUltimate(atMs: Long): List<CombatEvent> {
-        telegraphed = false
-        rage = 0
-
-        val mitigation = when {
-            player.playerClass == PlayerClass.KNIGHT && deepRepsSinceTelegraph >= 2 -> Mitigation.FULL
-            player.playerClass == PlayerClass.MAGE && mageAnswerReady -> Mitigation.FULL
-            player.playerClass == PlayerClass.ARCHER && fastRepsSinceTelegraph >= 4 -> Mitigation.FULL
-            // The universal answer: hold a plank. A beginner whose arms are finished still has one.
-            holdingSinceMs != null && atMs - holdingSinceMs!! >= PLANK_FALLBACK_MS -> Mitigation.PARTIAL
-            else -> Mitigation.NONE
-        }
-
-        val damage = when (mitigation) {
-            Mitigation.FULL -> 0
-            Mitigation.PARTIAL -> (ultimateDamage * 0.40f).roundToInt()
-            Mitigation.NONE -> ultimateDamage
-        }
-
-        val events = mutableListOf<CombatEvent>()
-        if (mitigation == Mitigation.FULL) {
-            // Answering the telegraph staggers the boss and keeps the chain alive; that reward is
-            // what makes the warning worth reacting to rather than just enduring.
-            staggeredUntilMs = atMs + STAGGER_MS
-        } else {
-            if (player.combo > 0) events += CombatEvent.ComboBroken(atMs, player.combo)
-            player = player.copy(
-                hp = (player.hp - damage).coerceAtLeast(0),
-                combo = 0,
-                tempoStreak = 0,
-            )
-        }
-        events += CombatEvent.Ultimate(atMs, damage, mitigation)
-
-        if (player.hp <= 0) {
-            finished = true
-            events += CombatEvent.Exhausted(atMs, crackFraction())
-        }
-        return events
+        lastSeenMs = nowMs
+        return emptyList()
     }
 
     /**
-     * How much of this enemy's health stays broken for the retry.
+     * The boss no longer winds up an ultimate, and this returns nothing.
      *
-     * Losing already keeps every rep, every point of XP and the streak. This goes further and makes
-     * the attempt itself count for something: the next try is measurably shorter.
+     * It is kept as a seam rather than torn out because the idea is sound and only its *unit* was
+     * wrong. The ultimate had to be answered inside `TELEGRAPH_WINDOW_MS` — ten seconds of wall
+     * clock — so it punished a pause exactly as the idle timer did, just less often. Under a model
+     * where a run is a count of reps and rest is free, nothing may be measured in seconds.
+     *
+     * If the monster is to act again it has to demand reps, not time: "answer within five reps"
+     * holds its meaning whether those five take twenty seconds or four minutes. That is a design
+     * with a cost — it makes a set someone cannot finish into a threat — so it waits for evidence
+     * that the volume model needs it, rather than being guessed at now.
      */
+    private fun checkTelegraph(atMs: Long): List<CombatEvent> = emptyList()
+
     fun crackFraction(): Float =
         min(MAX_CRACK, 0.5f * damageDealt.toFloat() / enemy.maxHp.coerceAtLeast(1))
 

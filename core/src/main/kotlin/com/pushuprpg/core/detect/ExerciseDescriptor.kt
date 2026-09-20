@@ -71,6 +71,21 @@ data class ExerciseDescriptor(
      */
     val validatedOnDevice: Boolean = false,
     val damageCoefficient: Float,
+    /**
+     * Reps of *this* movement that make up the same session as one rep of content authored in
+     * pushups.
+     *
+     * Deliberately not [damageCoefficient], which is a per-rep damage ratio and answers a different
+     * question. A pull-up is worth 2.6 pushups as one rep of effort; that does not make a pull-up
+     * session 2.6 times shorter than a pushup session, it makes it about three times shorter,
+     * because a near-max movement caps out on volume long before a bodyweight push does. Using the
+     * damage coefficient for this gave 154 pull-ups and 471 bench reps for a 400-rep tier, neither
+     * of which is a session that exists.
+     *
+     * Anchored on a trained pushup session of ~150 reps: pull-up 45, bench 30, overhead press 30,
+     * curl 45, squat 100, lunge 130, hinge 37. A hold is in seconds, not reps.
+     */
+    val sessionVolumeScale: Float,
     /** Starting capacity for a user who has never done this movement — reps, or seconds for a hold. */
     val defaultCapacity: Float,
     /** Reps (or seconds, for a hold) in one day that keep a streak alive. */
@@ -89,6 +104,7 @@ data class ExerciseDescriptor(
             }
         }
         require(damageCoefficient > 0f) { "$type must deal damage" }
+        require(sessionVolumeScale > 0f) { "$type needs a session volume scale or a tier costs nothing" }
         require(defaultCapacity > 0f) { "$type needs a starting capacity" }
         require(streakBar > 0) { "$type needs a streak bar" }
     }
@@ -339,6 +355,7 @@ object Exercises {
         ),
         config = DetectorConfig(ExerciseType.PUSHUP),
         damageCoefficient = 1.00f,
+        sessionVolumeScale = 1.00f,
         defaultCapacity = 8f,
         streakBar = 10,
     )
@@ -386,6 +403,7 @@ object Exercises {
             botClampMin = -0.50f, botClampMax = 0.80f,
         ),
         damageCoefficient = 0.85f,
+        sessionVolumeScale = 0.67f,
         defaultCapacity = 12f,
         streakBar = 15,
     )
@@ -442,6 +460,7 @@ object Exercises {
         // twenty and seven. This coefficient is the knob to turn if a floor feels wrong — never an
         // enemy HP number, because there isn't one.
         damageCoefficient = 2.60f,
+        sessionVolumeScale = 0.30f,
         defaultCapacity = 4f,
         streakBar = 5,
     )
@@ -458,6 +477,7 @@ object Exercises {
         signal = null,
         config = DetectorConfig(ExerciseType.PLANK),
         damageCoefficient = 1.00f,
+        sessionVolumeScale = 2.00f,
         defaultCapacity = 20f,
         streakBar = 60,
     )
@@ -518,6 +538,7 @@ object Exercises {
         // A curl moves one limb's worth of load through a short path. Against a pushup, which
         // moves most of a bodyweight, the honest number is small.
         damageCoefficient = 0.35f,
+        sessionVolumeScale = 0.30f,
         defaultCapacity = 12f,
         streakBar = 15,
     )
@@ -563,6 +584,7 @@ object Exercises {
             botClampMin = -1.20f, botClampMax = -0.20f,
         ),
         damageCoefficient = 1.15f,
+        sessionVolumeScale = 0.20f,
         defaultCapacity = 8f,
         streakBar = 10,
     )
@@ -609,6 +631,7 @@ object Exercises {
             botClampMin = -0.60f, botClampMax = 0.70f,
         ),
         damageCoefficient = 0.95f,
+        sessionVolumeScale = 0.87f,
         defaultCapacity = 12f,
         streakBar = 15,
     )
@@ -661,6 +684,7 @@ object Exercises {
             botClampMin = 0.00f, botClampMax = 0.70f,
         ),
         damageCoefficient = 0.85f,
+        sessionVolumeScale = 0.20f,
         defaultCapacity = 8f,
         streakBar = 10,
     )
@@ -705,6 +729,7 @@ object Exercises {
             botClampMin = -0.90f, botClampMax = 0.60f,
         ),
         damageCoefficient = 1.00f,
+        sessionVolumeScale = 0.25f,
         defaultCapacity = 10f,
         streakBar = 12,
     )

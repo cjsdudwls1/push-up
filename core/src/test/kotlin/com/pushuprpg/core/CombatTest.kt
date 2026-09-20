@@ -102,7 +102,7 @@ class CombatTest {
         // Class identity should change how you train, not how long the dungeon takes.
         val repsByClass = PlayerClass.entries.map { cls ->
             val player = PlayerState.create(cls, level = 1)
-            val enemy = Dungeons.FREE_DUNGEON.floors.last().spawn(player, Difficulty.STANDARD, capacity = 8f)
+            val enemy = Dungeons.FREE_DUNGEON.floors.last().spawn(Difficulty.STANDARD, ExerciseType.PUSHUP)
             var p = player
             var e = enemy
             var reps = 0
@@ -124,8 +124,8 @@ class CombatTest {
         for (capacity in listOf(8f, 20f, 35f, 100f)) {
             val player = PlayerState.create(PlayerClass.KNIGHT, level = 1)
             val boss = Dungeons.FREE_DUNGEON.floors.last()
-            val enemy = boss.spawn(player, Difficulty.STANDARD, capacity)
-            val expected = CombatResolver.expectedReps(boss.standardRepCost, Difficulty.STANDARD, capacity)
+            val enemy = boss.spawn(Difficulty.STANDARD, ExerciseType.PUSHUP)
+            val expected = CombatResolver.expectedReps(boss.standardRepCost, Difficulty.STANDARD)
 
             var p = player
             var e = enemy
@@ -140,21 +140,49 @@ class CombatTest {
     }
 
     @Test
-    fun `capacity scaling compresses the beginner to athlete spread`() {
-        val beginner = CombatResolver.expectedReps(18, Difficulty.STANDARD, 8f)
-        val athlete = CombatResolver.expectedReps(18, Difficulty.STANDARD, 100f)
-        assertEquals(14, beginner, "the demo's first dungeon should be 14 reps for a beginner")
-        // A 12x capacity spread must not become a 12x session-length spread.
-        assertTrue(athlete < beginner * 7, "athlete would grind $athlete reps against $beginner")
-        assertTrue(athlete > beginner * 3, "athlete would coast at $athlete reps")
+    fun `a tier costs the same reps for everybody`() {
+        // The property that replaced capacity scaling, and the reason the volume model is readable:
+        // a tier that says 100 says 100 to a beginner and to an athlete. What used to personalise it
+        // was capacityScale, keyed on "largest consecutive set" — a measurement that cannot tell a
+        // 100 kg bench from an empty bar, and that a warm-up set could ratchet upward.
+        val boss = Dungeons.FREE_DUNGEON.floors.last()
+        val reps = CombatResolver.expectedReps(boss.standardRepCost, Difficulty.STANDARD)
+
+        PlayerClass.entries.forEach { cls ->
+            listOf(1, 5, 20, 60).forEach { level ->
+                val p = PlayerState.create(cls, level)
+                val e = boss.spawn(Difficulty.STANDARD, ExerciseType.PUSHUP)
+                var player = p
+                var enemy = e
+                var done = 0
+                while (!enemy.isDead && done < 5000) {
+                    val r = resolver.resolve(player, enemy, rep(92f), NoCritRng)
+                    player = r.player; enemy = r.enemy; done++
+                }
+                assertEquals(reps, done, "$cls at level $level paid $done reps, not $reps")
+            }
+        }
     }
 
     @Test
-    fun `a hard difficulty puts the athlete back under real load`() {
-        val beginnerStandard = CombatResolver.expectedReps(18, Difficulty.STANDARD, 8f) / 8f
-        val athleteHell = CombatResolver.expectedReps(18, Difficulty.HELL, 100f) / 100f
-        assertTrue(abs(beginnerStandard - athleteHell) < 0.35f,
-            "relative load: beginner $beginnerStandard vs athlete $athleteHell")
+    fun `difficulty is the one thing that moves a tier's cost`() {
+        // It stays because the user picks it and can see it, unlike a level or a measured capacity.
+        val costs = Difficulty.entries.map { CombatResolver.expectedReps(18, it) }
+        assertEquals(costs.sortedBy { it }, costs, "difficulty tiers are out of order: $costs")
+        assertTrue(costs.distinct().size == costs.size, "two difficulties cost the same: $costs")
+    }
+
+    @Test
+    fun `a movement's tier cost is its own session, not a pushup's`() {
+        // Authored in pushups, converted by session volume. A bench session is 20-40 working reps
+        // where a pushup session is 150, so the same tier cannot ask both for the same number.
+        val standard = CombatResolver.expectedReps(100, Difficulty.STANDARD, ExerciseType.PUSHUP)
+        val bench = CombatResolver.expectedReps(100, Difficulty.STANDARD, ExerciseType.BENCH_PRESS)
+        val pullUp = CombatResolver.expectedReps(100, Difficulty.STANDARD, ExerciseType.PULL_UP)
+
+        assertEquals(100, standard)
+        assertTrue(bench < standard / 3, "a bench tier asked for $bench reps against a pushup's $standard")
+        assertTrue(pullUp < standard / 2, "a pull-up tier asked for $pullUp reps against a pushup's $standard")
     }
 }
 
@@ -241,35 +269,44 @@ class BalanceRegressionTest {
     }
 
     @Test
-    fun `levelling up actually makes an old dungeon cheaper`() {
-        // If enemy HP scaled off the player's live attack, twenty levels of work would change the
-        // rep cost of everything by exactly zero — progress that buys nothing.
-        val dungeon = Dungeons.FREE_DUNGEON
-        val boss = dungeon.floors.last()
+    fun `a level does not change what a tier costs, and that is the point`() {
+        // This deliberately reverses an earlier rule. Enemy HP used to be derived from the attack of
+        // a player at the dungeon's recommended level, so twenty levels genuinely made old content
+        // cheaper. Under the volume model HP is a rep count, so it cannot: 100 reps is 100 reps at
+        // level 1 and at level 20. What levelling buys is everything else — the number on screen, the
+        // crit rate, the class fantasy — and not a shorter session, because a shorter session for the
+        // same tier would mean the count on the entry screen was a lie.
+        val boss = Dungeons.FREE_DUNGEON.floors.last()
+        val enemy = boss.spawn(Difficulty.STANDARD, ExerciseType.PUSHUP)
 
-        val fresh = PlayerState.create(PlayerClass.KNIGHT, level = dungeon.referenceLevel)
-        val veteran = PlayerState.create(PlayerClass.KNIGHT, level = 20)
+        val fresh = repsToKill(PlayerState.create(PlayerClass.KNIGHT, level = 1), enemy)
+        val veteran = repsToKill(PlayerState.create(PlayerClass.KNIGHT, level = 20), enemy)
 
-        val freshReps = repsToKill(fresh, boss.spawn(fresh, Difficulty.STANDARD, 8f, dungeon.referenceLevel))
-        val veteranReps = repsToKill(veteran, boss.spawn(veteran, Difficulty.STANDARD, 8f, dungeon.referenceLevel))
-
-        assertTrue(veteranReps < freshReps,
-            "a level-20 player still needed $veteranReps reps against a beginner's $freshReps")
+        assertEquals(fresh, veteran, "a level-20 player paid $veteran reps against a beginner's $fresh")
     }
 
     @Test
-    fun `a dungeon still costs its authored reps at its own recommended level`() {
-        // The flip side: outgrowing content must not mean current content is trivial too.
+    fun `every tier costs exactly what it was authored to cost`() {
+        // Not "roughly" any more. The old derivation could only be checked to within a third because
+        // it multiplied a rep count by a predicted damage per rep; now the rep count IS the HP, so
+        // the assertion is exact — apart from a ward, which is the weakness mechanic doing its job.
         for (dungeon in Dungeons.ALL) {
-            val player = PlayerState.create(PlayerClass.KNIGHT, level = dungeon.referenceLevel)
-            val boss = dungeon.floors.last()
-            val base = CombatResolver.expectedReps(boss.standardRepCost, Difficulty.STANDARD, 8f)
-            // A warded enemy is meant to cost more when answered with the wrong movement; that is
-            // the weakness doing its job, not a balance miss.
-            val expected = (base * (1f + boss.wardFraction / CombatResolver.WARD_CHIP)).toInt()
-            val actual = repsToKill(player, boss.spawn(player, Difficulty.STANDARD, 8f, dungeon.referenceLevel), depth = 88f)
-            assertTrue(abs(actual - expected) <= maxOf(3, expected / 3),
-                "${dungeon.korean}: took $actual reps, authored for about $expected")
+            val player = PlayerState.create(PlayerClass.KNIGHT, level = 1)
+            for (floor in dungeon.floors) {
+                val enemy = floor.spawn(Difficulty.STANDARD, ExerciseType.PUSHUP)
+                // HP and ward are both counts of reps now, so the total is simply their sum.
+                val expected = enemy.maxHp + enemy.wardMaxHp
+                assertEquals(
+                    CombatResolver.expectedReps(floor.standardRepCost, Difficulty.STANDARD),
+                    enemy.maxHp,
+                    "${dungeon.korean} ${floor.korean}: HP is not the authored rep cost",
+                )
+                val actual = repsToKill(player, enemy, depth = 88f)
+                assertEquals(
+                    expected, actual,
+                    "${dungeon.korean} ${floor.korean}: took $actual reps, costs $expected",
+                )
+            }
         }
     }
 
@@ -280,7 +317,7 @@ class BalanceRegressionTest {
         val player = PlayerState.create(PlayerClass.KNIGHT, level = 18)
         val dungeon = Dungeons.ALL.last()
         val boss = dungeon.floors.last()
-        val enemy = boss.spawn(player, Difficulty.HELL, capacity = 100f, dungeon.referenceLevel)
+        val enemy = boss.spawn(Difficulty.HELL, ExerciseType.PUSHUP)
         val encounter = Encounter(player, enemy, Difficulty.HELL, rng = NoCritRng, startedAtMs = 0L)
 
         var t = 0L
@@ -302,32 +339,32 @@ class BalanceRegressionTest {
     fun `a ward is worn down rather than being a permanent damage tax`() {
         val player = PlayerState.create(PlayerClass.KNIGHT, level = 12)
         val template = Dungeons.byIndex(6)!!.floors.last()
-        val warded = template.spawn(player, Difficulty.STANDARD, 8f, 12)
-        assertTrue(warded.warded, "this enemy is supposed to have a ward")
+        val weakness = template.weakness
+        assertTrue(weakness != null, "this test needs an enemy with a weakness")
 
-        // Pushups alone must still get through it — slower, but never blocked.
-        var p = player
-        var e = warded
-        var reps = 0
-        while (e.warded && reps < 500) {
-            val r = resolver.resolve(p, e, RepInput(92f, com.pushuprpg.core.detect.RepGrade.DEEP), NoCritRng)
-            p = r.player; e = r.enemy; reps++
+        fun repsThrough(exercise: ExerciseType): Int {
+            val enemy = template.spawn(Difficulty.STANDARD, exercise)
+            assertTrue(enemy.warded, "this enemy is supposed to have a ward")
+            var p = player
+            var e = enemy
+            var reps = 0
+            while (e.warded && reps < 2000) {
+                val r = resolver.resolve(
+                    p, e,
+                    RepInput(92f, com.pushuprpg.core.detect.RepGrade.DEEP, exercise = exercise),
+                    NoCritRng,
+                )
+                p = r.player; e = r.enemy; reps++
+            }
+            assertTrue(!e.warded, "the ward never broke after $reps $exercise reps")
+            return reps
         }
-        assertTrue(!e.warded, "the ward never broke after $reps pushups")
 
-        // A plank is the intended answer and should be markedly faster.
-        var p2 = player
-        var e2 = template.spawn(player, Difficulty.STANDARD, 8f, 12)
-        var plankReps = 0
-        while (e2.warded && plankReps < 500) {
-            val r = resolver.resolve(
-                p2, e2,
-                RepInput(92f, com.pushuprpg.core.detect.RepGrade.DEEP, exercise = com.pushuprpg.core.detect.ExerciseType.PLANK),
-                NoCritRng,
-            )
-            p2 = r.player; e2 = r.enemy; plankReps++
-        }
-        assertTrue(plankReps < reps, "the plank answer ($plankReps) should beat brute force ($reps)")
+        // The intended answer is markedly cheaper, and the wrong movement is slower but never
+        // blocked — which is the difference between a weakness and a wall.
+        val answer = repsThrough(weakness!!)
+        val bruteForce = repsThrough(ExerciseType.PUSHUP.takeIf { it != weakness } ?: ExerciseType.SQUAT)
+        assertTrue(answer < bruteForce, "the answer ($answer) should beat brute force ($bruteForce)")
     }
 
     @Test

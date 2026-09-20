@@ -23,16 +23,25 @@ data class EnemyTemplate(
     /** Ward size as a fraction of the enemy's own HP; 0 for no ward. */
     val wardFraction: Float = 0f,
 ) {
+    /**
+     * HP here is a count of reps, so the only things that can change it are the movement and the
+     * difficulty the user chose. Neither the player's level nor their measured capacity enters into
+     * it any more — a tier that says 100 costs 100 for everybody, which is what makes it readable.
+     */
     fun spawn(
-        player: PlayerState,
         difficulty: Difficulty,
-        capacity: Float,
-        referenceLevel: Int = player.level,
+        exercise: ExerciseType,
     ): Enemy {
-        val hp = CombatResolver.enemyMaxHp(
-            standardRepCost, player, difficulty, capacity, defense, referenceLevel
-        )
-        val ward = (hp * wardFraction).toInt()
+        val hp = CombatResolver.enemyMaxHp(standardRepCost, difficulty, exercise)
+        // A ward is a weakness, not a wall. The movement it is weak to pays the ward's face value in
+        // reps; anything else pays several times over but always gets through. Priced here rather
+        // than per rep because a rep is worth exactly one and a fraction of one is not a rep.
+        val wardBase = hp * wardFraction
+        val ward = when {
+            wardFraction <= 0f -> 0
+            weakness == null || exercise == weakness -> wardBase.toInt()
+            else -> (wardBase / CombatResolver.WARD_CHIP).toInt()
+        }
         return Enemy(
             id = id,
             korean = korean,

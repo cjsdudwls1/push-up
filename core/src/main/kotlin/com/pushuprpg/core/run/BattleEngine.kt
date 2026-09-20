@@ -410,7 +410,7 @@ class BattleEngine(
     private fun spawnFloor(index: Int, atMs: Long): Encounter {
         enemyHurtAtMs = Long.MIN_VALUE
         val template = dungeon.floors[index]
-        val enemy = template.spawn(player, difficulty, capacity, dungeon.referenceLevel)
+        val enemy = template.spawn(difficulty, detector.config.exercise)
         return Encounter(
             initialPlayer = player,
             initialEnemy = enemy,

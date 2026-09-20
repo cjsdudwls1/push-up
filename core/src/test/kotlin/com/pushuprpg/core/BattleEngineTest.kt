@@ -2,6 +2,7 @@ package com.pushuprpg.core
 
 import com.pushuprpg.core.detect.*
 import com.pushuprpg.core.fixtures.PoseFixtures
+import com.pushuprpg.core.detect.ExerciseType
 import com.pushuprpg.core.game.*
 import com.pushuprpg.core.run.BattleEngine
 import com.pushuprpg.core.run.BattleState
@@ -128,41 +129,47 @@ class BattleEngineTest {
     }
 
     @Test
-    fun `resting in front of the camera does cost health`() {
+    fun `resting in front of the camera costs nothing`() {
+        // The test this replaces was named `resting in front of the camera does cost health`, and it
+        // was green. That name was the design decision being reversed: the no-punish rule covered a
+        // tracker dropout but not a user who is in frame and simply resting between sets.
         val e = engine()
-        // Arm, do one rep, then hold still in shot for a minute.
         val frames = mutableListOf<PoseFrame>()
-        var t = 0L
+        var t = 3_600_000L
         repeat(20) { frames += PoseFixtures.frame(t, 0f); t += 33 }
         frames += PoseFixtures.rep(t, peakDepth = 0.95f)
         t = frames.last().timestampMs + 33
-        repeat(1800) { frames += PoseFixtures.frame(t, 0f); t += 33 }
+        // Five motionless minutes in shot — longer than any rest a barbell asks for.
+        repeat(9000) { frames += PoseFixtures.frame(t, 0f); t += 33 }
 
         val state = play(e, frames)
-        assertTrue(state.playerHp < state.playerMaxHp,
-            "standing still in frame should draw fire, hp=${state.playerHp}")
+        assertEquals(
+            state.playerMaxHp, state.playerHp,
+            "five minutes of resting cost ${state.playerMaxHp - state.playerHp} health",
+        )
+        assertTrue(state.outcome == null, "resting ended the run")
     }
 
     @Test
-    fun `a lost run still banks every rep and its xp`() {
+    fun `stopping part way through banks every rep`() {
+        // There is no losing, so this can no longer be provoked by resting. What matters is the
+        // promise underneath it: quit at any point and the reps are still yours.
         val e = engine()
         val frames = mutableListOf<PoseFrame>()
-        var t = 0L
+        var t = 3_600_000L
         repeat(20) { frames += PoseFixtures.frame(t, 0f); t += 33 }
         repeat(3) {
             val r = PoseFixtures.rep(t, peakDepth = 0.95f)
             frames += r
             t = r.last().timestampMs + 33
         }
-        repeat(5000) { frames += PoseFixtures.frame(t, 0f); t += 33 }
+        play(e, frames)
 
-        val state = play(e, frames)
-        val outcome = state.outcome
-        assertTrue(outcome != null, "resting that long should end the run")
-        assertTrue(!outcome!!.cleared)
-        assertTrue(outcome.reps >= 3, "the reps performed must survive the loss, got ${outcome.reps}")
-        assertTrue(outcome.xpEarned > 0, "XP is earned per rep, so a loss cannot zero it")
-        assertTrue(outcome.crackFraction > 0f, "damage dealt should shorten the retry")
+        val outcome = e.quit()
+        assertTrue(!outcome.cleared)
+        assertTrue(outcome.reps >= 3, "the reps performed must survive, got ${outcome.reps}")
+        assertTrue(outcome.xpEarned > 0, "XP is earned per rep, so stopping cannot zero it")
+        assertTrue(outcome.crackFraction > 0f, "reps dealt should shorten the retry")
     }
 
     @Test
@@ -189,21 +196,20 @@ class BattleEngineTest {
     }
 
     @Test
-    fun `an athlete and a beginner both get a sane length run`() {
-        val beginner = engine(capacity = 8f)
-        val beginnerState = play(beginner, PoseFixtures.trace(count = 200, peakDepth = 0.95f, restMs = 200))
+    fun `a run costs the same reps whoever is doing it`() {
+        // This reverses the old rule on purpose. The run used to be sized from measured capacity so
+        // an athlete did more reps than a beginner for the same dungeon. Under the volume model the
+        // tier IS the rep count, so both pay it — the athlete simply finishes sooner in wall-clock
+        // time, and picks a harder difficulty if they want more work.
+        val beginner = play(engine(capacity = 8f), PoseFixtures.trace(count = 200, peakDepth = 0.95f, restMs = 200))
+        val athlete = play(engine(capacity = 100f), PoseFixtures.trace(count = 200, peakDepth = 0.95f, restMs = 200))
 
-        val athlete = engine(capacity = 100f)
-        val athleteState = play(athlete, PoseFixtures.trace(count = 300, peakDepth = 0.95f, restMs = 200))
-
-        assertTrue(beginnerState.outcome?.cleared == true)
-        assertTrue(athleteState.outcome?.cleared == true)
-
-        val beginnerReps = beginnerState.outcome!!.reps
-        val athleteReps = athleteState.outcome!!.reps
-        assertTrue(athleteReps > beginnerReps, "the athlete should work harder: $athleteReps vs $beginnerReps")
-        assertTrue(athleteReps < beginnerReps * 8,
-            "the athlete would be here all day: $athleteReps vs $beginnerReps")
+        assertTrue(beginner.outcome?.cleared == true)
+        assertTrue(athlete.outcome?.cleared == true)
+        assertEquals(
+            beginner.outcome!!.reps, athlete.outcome!!.reps,
+            "capacity still moved the rep cost: ${beginner.outcome!!.reps} vs ${athlete.outcome!!.reps}",
+        )
     }
 
     @Test
@@ -240,7 +246,7 @@ class PlankCombatTest {
     fun `a held plank damages the enemy and keeps the boss off the player`() {
         val player = com.pushuprpg.core.game.PlayerState.create(PlayerClass.MAGE, level = 1)
         val enemy = Dungeons.FREE_DUNGEON.floors.first()
-            .spawn(player, Difficulty.STANDARD, 8f, Dungeons.FREE_DUNGEON.referenceLevel)
+            .spawn(Difficulty.STANDARD, ExerciseType.PUSHUP)
         val encounter = Encounter(player, enemy, rng = NoCritRng, startedAtMs = 0L)
 
         var t = 0L
@@ -263,7 +269,7 @@ class PlankCombatTest {
         val template = Dungeons.byIndex(6)!!.floors.last()
 
         fun tickPlank(): Int {
-            val e = Encounter(player, template.spawn(player, Difficulty.STANDARD, 8f, 12), rng = NoCritRng, startedAtMs = 0L)
+            val e = Encounter(player, template.spawn(Difficulty.STANDARD, ExerciseType.PUSHUP), rng = NoCritRng, startedAtMs = 0L)
             var t = 0L
             var ticks = 0
             while (e.enemy.warded && ticks < 5000) {
@@ -338,26 +344,24 @@ class BattleEnginePresentationTest {
     }
 
     @Test
-    fun `the boss visibly charges rather than snapping into a warning`() {
-        // The charge is exposed across the whole approach to the threshold, not only once the
-        // telegraph fires, so the enemy is seen winding up. A user mid-rep is not reading the
-        // screen and needs the peripheral cue before the words arrive.
+    fun `nothing the boss does is measured in seconds`() {
+        // What this replaces asserted that the boss's charge built up while the user rested, and it
+        // was green. Under the volume model no threat may be keyed to wall clock, because rest is
+        // free and a rest is indistinguishable from not playing.
         val e = engine()
-        // Rage builds from resting far faster than from reps, which is what the warning is for.
-        val frames = PoseFixtures.trace(count = 1, peakDepth = 0.95f).toMutableList()
+        val frames = PoseFixtures.trace(count = 1, peakDepth = 0.95f, startMs = 3_600_000L).toMutableList()
         var t = frames.last().timestampMs + 33
         repeat(1800) { frames += PoseFixtures.frame(t, 0f); t += 33 }
 
-        var peak = 0f
-        var sawMidCharge = false
+        var peakCharge = 0f
+        var sawIncoming = false
         for (f in frames) {
             val s = e.onPoseFrame(f)
-            peak = maxOf(peak, s.telegraphCharge)
-            if (s.telegraphCharge in 0.2f..0.9f) sawMidCharge = true
-            if (s.outcome != null) break
+            peakCharge = maxOf(peakCharge, s.telegraphCharge)
+            if (s.ultimateIncoming) sawIncoming = true
         }
-        assertTrue(peak > 0f, "the charge never moved")
-        assertTrue(sawMidCharge, "the charge jumped straight to full, peaked at $peak")
+        assertEquals(0f, peakCharge, "the boss charged an ultimate while the user rested")
+        assertTrue(!sawIncoming, "an ultimate was announced during a rest")
     }
 
     @Test
