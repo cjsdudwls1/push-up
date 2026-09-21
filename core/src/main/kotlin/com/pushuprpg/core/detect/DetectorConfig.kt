@@ -68,6 +68,15 @@ data class DetectorConfig(
     val scaleTauSec: Float = 2.0f,
 
     // --- calibration ---
+    /**
+     * How the range follows the rest position before any rep has completed.
+     *
+     * False scales: `h` is a body proportion (arm over shoulder width, say), so a longer-limbed user
+     * reads proportionally higher at BOTH ends and the bottom moves by the same factor as the top.
+     * True shifts: the top is near zero and set by where the camera is rather than by the body, so
+     * the ratio means nothing and only the range is body-proportional. See [RangeCalibrator.observeRest].
+     */
+    val anchorByShift: Boolean = false,
     val hTopPrior: Float = 1.35f,
     val hBotPrior: Float = 0.70f,
     val rMin: Float = 0.35f,

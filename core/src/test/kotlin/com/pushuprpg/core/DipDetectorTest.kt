@@ -10,10 +10,10 @@ import kotlin.test.assertTrue
 /**
  * The tenth movement, and the first added after the project learned how these fail.
  *
- * A dip shares its signal pair AND its normal with a curl — stand still, curl a dumbbell from a
- * hanging arm, and the wrist closes the same gap with the same elbow angle. What separates them is
- * that a dip's elbow rises relative to the shoulder line as the body sinks past the bar, and a
- * curl's does not. So both witnesses are required, and both are tested here by being defeated.
+ * The movement is declared on the way into the run, so the detector no longer has to tell a dip
+ * from a curl; what it has to refuse is a wave — shoulders dropping toward the hands with the
+ * elbows never bending — and the elbow angle is the one witness that does that from any camera
+ * position. It is mandatory, and it is tested here by being defeated.
  */
 class DipDetectorTest {
 
@@ -45,30 +45,22 @@ class DipDetectorTest {
     }
 
     @Test
-    fun `a standing curl is refused, because the elbow never travels`() {
-        // The fake the travel witness exists for, built the way the movement actually is: the body
-        // does not move at all and the WRIST rises to meet a fixed shoulder. The shoulder-to-wrist
-        // gap closes exactly as in a dip and the elbow angle closes with it, so the primary signal
-        // and the joint check both pass. What a curl cannot do is move the elbow relative to the
-        // shoulder line, because the shoulder line is not going anywhere.
+    fun `a wave with straight arms is refused, because the elbow never bends`() {
+        // The fake the mandatory joint check exists for: the shoulders sink toward the hands as in
+        // a dip — the primary signal reads a textbook rep — but the elbow angle stays locked out.
+        // There is no travel witness any more (the elbow's projected travel reverses from a phone
+        // on the floor, and refused every honest dip from there), so this is the only second
+        // opinion, and it has to be enough on its own.
         val frames = PoseFixtures.dipTrace(count = 6, startMs = 3_600_000L) { t, d ->
-            val top = PoseFixtures.dipFrame(t, 0f)
             val moving = PoseFixtures.dipFrame(t, d)
-            val lm = top.landmarks.toMutableList()
-            // Only the wrists travel, up toward the stationary shoulders.
-            listOf(Lm.LEFT_WRIST, Lm.RIGHT_WRIST).forEach { i ->
-                val closed = top.landmarks[i].y -
-                    (top.landmarks[i].y - top.landmarks[Lm.LEFT_SHOULDER].y) * d
-                lm[i] = top.landmarks[i].copy(y = closed)
-            }
-            // The elbow angle closes honestly, so the joint check has nothing to object to.
-            top.copy(landmarks = lm, worldLandmarks = moving.worldLandmarks)
+            val locked = PoseFixtures.dipFrame(t, 0f)
+            moving.copy(worldLandmarks = locked.worldLandmarks)
         }
         val (reps, events) = run(frames)
-        assertEquals(0, reps, "a curl was counted as a dip")
+        assertEquals(0, reps, "a straight-armed wave was counted as a dip")
         assertTrue(
-            events.any { it is RepEvent.Abandoned },
-            "the curl was refused silently — it must surface as an Abandoned",
+            events.filterIsInstance<RepEvent.Abandoned>().any { it.reason == AbandonReason.INCONSISTENT },
+            "the wave was refused silently — it must surface as INCONSISTENT",
         )
     }
 

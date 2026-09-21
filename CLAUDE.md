@@ -41,6 +41,13 @@ are both confidently visible, and joints that anchor a drawn bone. The renderer 
 stray dot because it is never handed one. Do not add confidence checks in the UI; fix them in
 `SkeletonBuilder`.
 
+**A descriptor is validated on the rig, not on a fixture drawn to match it.** `Body3d` (core tests)
+is one skeleton with real segment lengths, posed by joint angles and projected through a pinhole
+camera; the primary signal, the joint check and the travel witness all come from that one body.
+Run a new or changed movement through `MovementRigTest` from the floor, waist height and chest
+height before believing its priors. Four descriptors shipped with the wrong sign or a witness that
+could not move, and every hand-placed fixture agreed with them.
+
 **The gauge reads its thresholds from `DetectorConfig`.** The line the user aims at must be the
 same value the rep counter uses. Never hardcode 70 or 88 in a composable.
 

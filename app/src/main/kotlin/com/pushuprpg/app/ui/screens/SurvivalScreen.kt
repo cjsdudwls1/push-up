@@ -87,6 +87,17 @@ fun SurvivalScreen(
                 style = Type.labelM,
                 color = Palette.TextSecondary,
             )
+            // The ceiling waits for the user to be in position, and says so — a still ceiling with
+            // no explanation reads as a broken one.
+            if (!state.started && state.alive) {
+                Spacer(Modifier.height(10.dp))
+                Text(
+                    text = stringResource(R.string.survival_waiting),
+                    style = Type.bodyM,
+                    color = Palette.TextSecondary,
+                    textAlign = TextAlign.Center,
+                )
+            }
         }
 
         // The tutorial explains itself once, before the ceiling starts moving. After that the

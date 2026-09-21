@@ -91,6 +91,32 @@ data class ExerciseDescriptor(
     /** Reps (or seconds, for a hold) in one day that keep a streak alive. */
     val streakBar: Int,
 ) {
+    /**
+     * Every landmark this movement reads: the signal pair, the joint check's three points and the
+     * travel witness's endpoints. The nose is left out — it is only ever a witness, and a witness
+     * that cannot be seen is skipped rather than required.
+     *
+     * Two things are derived from this rather than listed by hand: which bones the minimal overlay
+     * draws, and which body parts the user is told are out of shot. Both used to be "the arms",
+     * fixed, which showed someone doing lunges a skeleton of their arms.
+     */
+    val watchedLandmarks: Set<Int> by lazy {
+        val s = signal ?: return@lazy emptySet()
+        val out = HashSet<Int>()
+        fun add(p: LandmarkPair) { out += p.left; out += p.right }
+        fun add(p: BodyPoint) {
+            when (p) {
+                is BodyPoint.Single -> out += p.index
+                is BodyPoint.Midpoint -> add(p.pair)
+            }
+        }
+        add(s.proximal); add(s.distal)
+        s.jointCheck?.let { add(it.vertex); add(it.proximal); add(it.distal) }
+        s.bodyTravel?.let { add(it.from); add(it.to) }
+        out -= Lm.NOSE
+        out
+    }
+
     init {
         require(config.exercise == type) {
             "descriptor for $type carries a config for ${config.exercise}"
@@ -339,9 +365,12 @@ object Exercises {
     const val CURL_TOP_DEG = 168f
     const val CURL_BOTTOM_DEG = 42f
 
-    /** Elbow racked at the shoulder, and locked out overhead. */
-    const val PRESS_TOP_DEG = 62f
-    const val PRESS_BOTTOM_DEG = 170f
+    /**
+     * The upper arm against the torso in a press: tucked down and forward at the rack, vertical at
+     * lockout. Measured at the shoulder (hip–shoulder–elbow), not the elbow — see [OVERHEAD_PRESS].
+     */
+    const val PRESS_TOP_DEG = 50f
+    const val PRESS_BOTTOM_DEG = 150f
 
     /** Hip angle standing tall, and at the bottom of a hinge. */
     const val HIP_TOP_DEG = 175f
@@ -562,11 +591,36 @@ object Exercises {
     )
 
     /**
-     * An overhead press, measured at the elbow rather than the wrist.
+     * An overhead press, measured at the bar: `h` is the wrist against the shoulder line, about
+     * +0.5 at the rack (the bar at the collarbone, in front) and about −1.4 at lockout.
      *
-     * The wrist is the highest point on the body at lockout and the first thing to leave the top of
-     * the frame with a phone on the floor — a signal that vanishes at exactly the moment it counts.
-     * The elbow travels the same arc and stays in shot.
+     * It used to be measured at the elbow, on the argument that the wrist is the first thing to
+     * leave the top of the frame. The elbow is the wrong joint to watch in a press: it swings up
+     * and out in the FIRST half of the movement while the bar clears the face, and the elbow angle
+     * — the cross-check — only opens in the second half. Measured on a projected 3-D body, the
+     * elbow-height reading was 80% done at half bar height with the joint check reading 6 of 100,
+     * a 55-point disagreement at the count line from every camera position tried; 0 of 8, always
+     * INCONSISTENT. The bar goes straight up, which is what the elbow angle tracks.
+     *
+     * The cross-check is the SHOULDER angle — hip, shoulder, elbow — not the elbow's. The elbow angle
+     * is the obvious witness and it is useless here: it sits within a few degrees of the rack value
+     * until the bar is past the head and then opens 100 degrees in the last third, so against any
+     * height-based primary it disagrees by 50–60 points at the count line. The upper arm, by
+     * contrast, goes from tucked (about 50 degrees off the torso) to vertical (about 150) in step
+     * with the bar, and the two agree within ten points the whole way. What it gives up is the
+     * straight-arm front raise, which it reads the same as a press; that is a shoulder movement
+     * with a load in the hands and not a cheat this game needs to refuse.
+     *
+     * Nothing else on a pressing body moves — the head, hips and legs are the pull-up's rigid
+     * hanging body again — so there is no travel witness and the joint angle is mandatory. The
+     * wrist does reach high: with the phone at waist height it needs about two and a half metres to
+     * keep lockout in frame, and the placement line says so.
+     *
+     * Calibration anchors by SHIFT, not scale. `h` at the rack is close to zero — the bar sits at
+     * the collarbone, level with the shoulder line — and where exactly it lands is decided by the
+     * camera's height, not the body: −0.42 from the floor, −0.10 from chest height on the same
+     * body. A ratio anchored on a number near zero is noise; what is body-proportional is the
+     * RANGE, bar travel over shoulder width, and that is what a shift preserves.
      *
      * Note the orientation: in this pipeline depth 0 is the easy, re-arming end, which for a press
      * is the rack at the shoulder, and depth 100 is the lockout overhead. So the numbers here run
@@ -579,12 +633,11 @@ object Exercises {
         normalToward = HIPS,
         signal = RepSignal(
             proximal = SHOULDERS,
-            distal = ELBOWS,
+            distal = WRISTS,
             scale = ScaleReference.SHOULDER_WIDTH,
-            jointCheck = JointAngleCheck(ELBOWS, SHOULDERS, WRISTS, PRESS_TOP_DEG, PRESS_BOTTOM_DEG),
-            // The wrists rising past the shoulder line. Independent of the elbow the primary reads.
-            bodyTravel = BodyTravelCheck(BodyPoint.Midpoint(SHOULDERS), BodyPoint.Midpoint(WRISTS), invert = true),
-            crossCheck = CrossCheckPolicy.BEST_AVAILABLE,
+            jointCheck = JointAngleCheck(SHOULDERS, HIPS, ELBOWS, PRESS_TOP_DEG, PRESS_BOTTOM_DEG),
+            bodyTravel = null,
+            crossCheck = CrossCheckPolicy.JOINT_REQUIRED,
             allowJointFallback = false,
         ),
         config = DetectorConfig(
@@ -597,9 +650,20 @@ object Exercises {
             maxDescentSpeed = 400f, minAscentMs = 300, minRepPeriodMs = 1000,
             maxDescentMs = 4000, maxBottomMs = 4000,
             signalMinCutoff = 1.0f, signalBeta = 14f,
-            hTopPrior = 0.70f, hBotPrior = -0.75f, rMin = 0.70f,
-            topClampMin = 0.35f, topClampMax = 1.10f,
-            botClampMin = -1.20f, botClampMax = -0.20f,
+            // From the floor the bar's projected travel is compressed while the shoulder angle is
+            // not, so at the count line the two sit about 30 points apart; 45 leaves that placement
+            // headroom. The two witnesses are coherent — the wrist cannot rise without the upper arm
+            // — so a wider band opens no fake the narrow one refused.
+            maxSignalDisagreement = 45f,
+            // The range prior is deliberately on the small side. A phone on the floor compresses
+            // the bar's travel by almost half (0.73 widths against 1.36 from chest height), and a
+            // prior sized for the level camera would put the count line beyond the floor user's
+            // reach entirely. Sized for the floor, the level camera's first reps count early and
+            // the calibrator expands the bottom to the real one within a few reps.
+            anchorByShift = true,
+            hTopPrior = -0.25f, hBotPrior = -1.15f, rMin = 0.60f,
+            topClampMin = -0.80f, topClampMax = 0.40f,
+            botClampMin = -2.20f, botClampMax = -0.50f,
         ),
         damageCoefficient = 1.15f,
         sessionVolumeScale = 0.20f,
@@ -717,6 +781,23 @@ object Exercises {
      * as a clean pull, so the signal is blind precisely where the risk is. The hinge keeps the
      * movement pattern and drops the part the camera cannot see.
      *
+     * `h` is the KNEE measured from the WRIST, in that order. Standing, the hands hang at mid-thigh
+     * and the knee sits below them along the body normal: about +0.9 to +1.05 shoulder widths
+     * depending on where the phone is. At the bottom the hands are at the shin, below the knee, and
+     * it reads about −0.4 to −0.6. The pair was the other way round for a while — wrists from knees
+     * — which reads −0.9 standing and rises to +0.4 at the bottom: a signal that climbs with
+     * effort, against a prior of +1.40 that no camera position produces. That never armed and
+     * counted nothing, with the tracker reporting OK. Measured on a projected 3-D body from the
+     * floor, from waist height and from chest height; all three agree on the sign and roughly on
+     * the ends.
+     *
+     * The normal's sign is latched. At the bottom the shoulders are level with the hips or below
+     * them in the image, so a normal re-decided every frame flips exactly at the strike; the sign is
+     * unambiguous while standing and holds from there.
+     *
+     * Body travel: the shoulders come down toward the ankles, so the extent shrinks with depth —
+     * inverted, like the squat's. This too was declared the other way and rejected every rep.
+     *
      * Filmed from the front or slightly off it. A hinge rotates about the mediolateral axis, so the
      * shoulder line stays fronto-parallel at any yaw including zero — a true side view would
      * collapse it and refuse every frame.
@@ -725,12 +806,13 @@ object Exercises {
         type = ExerciseType.HINGE,
         kind = MovementKind.REP,
         normalToward = HIPS,
+        latchNormalSign = true,
         signal = RepSignal(
-            proximal = KNEES,
-            distal = WRISTS,
+            proximal = WRISTS,
+            distal = KNEES,
             scale = ScaleReference.SHOULDER_WIDTH,
             jointCheck = JointAngleCheck(HIPS, SHOULDERS, KNEES, HIP_TOP_DEG, HIP_BOTTOM_DEG),
-            bodyTravel = BodyTravelCheck(BodyPoint.Midpoint(SHOULDERS), BodyPoint.Midpoint(ANKLES), invert = false),
+            bodyTravel = BodyTravelCheck(BodyPoint.Midpoint(SHOULDERS), BodyPoint.Midpoint(ANKLES), invert = true),
             crossCheck = CrossCheckPolicy.BEST_AVAILABLE,
             allowJointFallback = false,
         ),
@@ -742,9 +824,9 @@ object Exercises {
             maxDescentSpeed = 420f, minAscentMs = 280, minRepPeriodMs = 1000,
             maxDescentMs = 5000, maxBottomMs = 5000,
             signalMinCutoff = 1.0f, signalBeta = 16f,
-            hTopPrior = 1.40f, hBotPrior = -0.35f, rMin = 0.70f,
-            topClampMin = 0.90f, topClampMax = 2.00f,
-            botClampMin = -0.90f, botClampMax = 0.60f,
+            hTopPrior = 1.00f, hBotPrior = -0.45f, rMin = 0.60f,
+            topClampMin = 0.50f, topClampMax = 1.80f,
+            botClampMin = -1.20f, botClampMax = 0.30f,
         ),
         damageCoefficient = 1.00f,
         sessionVolumeScale = 0.25f,
@@ -766,13 +848,17 @@ object Exercises {
      * of a dip rotates about the mediolateral axis, so the shoulder line stays fronto-parallel and
      * the hips stay squarely below it.
      *
-     * **Both witnesses are required, because each alone is defeated by a different fake.** A dip
-     * shares its signal pair AND its normal with a curl: stand still and curl a dumbbell from a
-     * hanging arm and the wrist closes the same gap with the same elbow angle, passing everything a
-     * pull-up asks for. What separates them is that a dip's ELBOW rises relative to the shoulder
-     * line as the body sinks past it, and a curl's does not — so the travel check is the one that
-     * refuses the curl, and the joint angle is the one that refuses a straight-armed front raise
-     * where the elbow travels but never bends.
+     * **The elbow angle is the witness, and it is required.** There used to be a travel check on
+     * the elbow as well — it rises relative to the shoulder line as the body sinks past the bar,
+     * which is what separates a dip from a standing curl doing the same thing to the same landmarks.
+     * It is a weak witness in the best case, geared well under 1:1 with the primary, and from a
+     * phone on the floor it reverses: the elbow swings BACKWARD as it rises, and from below a point
+     * moving away from the lens drops in the image faster than its rise lifts it. Measured on a
+     * projected 3-D body: −0.71 at lockout to −0.80 at the bottom from the floor, the wrong way, 0
+     * of 8. Since the movement is now declared on the way into the run rather than inferred, the
+     * curl it defended against is no longer a race the detector has to win; and the elbow angle —
+     * 172 to 85 degrees, in the frontal plane, from world landmarks — refuses a wave from any
+     * camera position, which is the fake that matters.
      *
      * Bar dips only. Bench dips put the hands behind the hips, inside the body silhouette from the
      * front, and filming them from the side collapses the shoulder axis into the near-side-torso
@@ -790,15 +876,7 @@ object Exercises {
             distal = WRISTS,
             scale = ScaleReference.SHOULDER_WIDTH,
             jointCheck = JointAngleCheck(ELBOWS, SHOULDERS, WRISTS, DIP_TOP_DEG, DIP_BOTTOM_DEG),
-            bodyTravel = BodyTravelCheck(
-                from = BodyPoint.Midpoint(SHOULDERS),
-                to = BodyPoint.Midpoint(ELBOWS),
-                invert = true,
-                // Geared about 1:1 with the primary rather than out-travelling it, and measured from
-                // the last frame of the top band, so the shared 0.30 is unreachable: honest reps sat
-                // at 0.190 against a 0.195 bar and were all refused.
-                minFraction = 0.15f,
-            ),
+            bodyTravel = null,
             crossCheck = CrossCheckPolicy.JOINT_REQUIRED,
             allowJointFallback = true,
         ),

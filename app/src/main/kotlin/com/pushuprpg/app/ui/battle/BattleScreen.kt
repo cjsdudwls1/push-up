@@ -36,6 +36,7 @@ import com.pushuprpg.app.ui.theme.Type
 import com.pushuprpg.core.detect.Exercises
 import com.pushuprpg.core.detect.MovementKind
 import com.pushuprpg.core.detect.PoseQuality
+import com.pushuprpg.core.pose.PoseLandmarks as Lm
 import com.pushuprpg.core.game.PlayerClass
 import com.pushuprpg.core.run.AlertKey
 import com.pushuprpg.core.run.BattleState
@@ -160,6 +161,7 @@ fun BattleScreen(
 
         QualityBanner(
             quality = state.quality,
+            missing = state.missingParts,
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .padding(bottom = 40.dp),
@@ -399,8 +401,12 @@ private fun AlertSlot(state: BattleState) {
  * here would look like the app had simply stopped counting their work.
  */
 @Composable
-private fun QualityBanner(quality: PoseQuality, modifier: Modifier = Modifier) {
-    val message = when (quality) {
+private fun QualityBanner(
+    quality: PoseQuality,
+    missing: List<Int>,
+    modifier: Modifier = Modifier,
+) {
+    val base = when (quality) {
         PoseQuality.OK -> null
         PoseQuality.NO_SUBJECT -> stringResource(R.string.quality_no_subject)
         PoseQuality.LOW_CONFIDENCE -> stringResource(R.string.quality_low_confidence)
@@ -409,6 +415,17 @@ private fun QualityBanner(quality: PoseQuality, modifier: Modifier = Modifier) {
         PoseQuality.SUBJECT_SWITCH -> stringResource(R.string.quality_subject_switch)
         PoseQuality.TORSO_ROTATED -> stringResource(R.string.quality_torso_rotated)
         PoseQuality.IMPLAUSIBLE_RATE -> stringResource(R.string.quality_implausible_rate)
+    }
+    // Name the parts, when there are any to name. "폰을 조금만 뒤로" is advice; "안 보이는 곳: 무릎,
+    // 발목" is the reason for it, and the reason is what lets the user fix the placement instead of
+    // guessing. Only while the pose is not OK, so it never nags mid-set about a witness that is
+    // merely faint.
+    // Resolved here, in composable scope, before being joined.
+    val parts = missing.map { bodyPartRes(it) }.distinct().map { stringResource(it) }
+    val message = when {
+        base == null -> null
+        parts.isEmpty() || quality == PoseQuality.NO_SUBJECT -> base
+        else -> base + "\n" + stringResource(R.string.quality_missing_parts, parts.joinToString(", "))
     }
 
     // Same reason as AlertSlot: without this, recovering from a lost track collapses the banner to
@@ -433,4 +450,14 @@ private fun QualityBanner(quality: PoseQuality, modifier: Modifier = Modifier) {
                 .padding(horizontal = 20.dp, vertical = 12.dp),
         )
     }
+}
+
+/** One name per joint, left and right folded together: the user has two knees and one problem. */
+private fun bodyPartRes(landmark: Int): Int = when (landmark) {
+    Lm.LEFT_SHOULDER, Lm.RIGHT_SHOULDER -> R.string.body_part_shoulder
+    Lm.LEFT_ELBOW, Lm.RIGHT_ELBOW -> R.string.body_part_elbow
+    Lm.LEFT_WRIST, Lm.RIGHT_WRIST -> R.string.body_part_wrist
+    Lm.LEFT_HIP, Lm.RIGHT_HIP -> R.string.body_part_hip
+    Lm.LEFT_KNEE, Lm.RIGHT_KNEE -> R.string.body_part_knee
+    else -> R.string.body_part_ankle
 }

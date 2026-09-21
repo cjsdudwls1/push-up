@@ -173,6 +173,9 @@ class RepDetectorImpl(
             calibration = calibrator.snapshot(),
             render = render,
             events = events,
+            missing = config.descriptor.watchedLandmarks
+                .filter { confidence[it] < config.minCoreConfidence }
+                .sorted(),
         )
     }
 
@@ -187,7 +190,9 @@ class RepDetectorImpl(
 
             RepPhase.READY_TOP -> {
                 hTopThisRep = maxOf(hTopThisRep, h)
-                if (!sample.bodyDrop.isNaN()) bodyDropAtTop = sample.bodyDrop
+                // The witness's rest position: the LEAST it has travelled while the rep was armed,
+                // not its value on the last frame before the descent. See [bodyDropAtTop].
+                if (!sample.bodyDrop.isNaN()) bodyDropAtTop = minOf(bodyDropAtTop, sample.bodyDrop)
                 if (depth > config.topExit) {
                     phase = RepPhase.DESCENDING
                     tTopExit = tMs
@@ -319,7 +324,7 @@ class RepDetectorImpl(
 
         if (signal?.bodyTravel != null &&
             !sample.bodyDrop.isNaN() &&
-            bodyDropAtTop != Float.NEGATIVE_INFINITY
+            bodyDropAtTop != Float.POSITIVE_INFINITY
         ) {
             // A part of the body the primary signal does not watch: the head for a pushup, the
             // shoulders for a squat. It has to have genuinely travelled since this rep armed, which
@@ -387,10 +392,23 @@ class RepDetectorImpl(
         struckThisRep = false
     }
 
-    private var bodyDropAtTop = Float.NEGATIVE_INFINITY
+    /**
+     * Where the travel witness sat at rest, for the rep in progress; +∞ until the first armed
+     * frame reports it.
+     *
+     * This used to be overwritten on every armed frame, so it held the value from the LAST frame
+     * before the descent began — depth already at topExit, a third of the way down — rather than
+     * from the top. The witness was then asked to travel 30% of the range inside the remaining
+     * third of the rep, which only a part geared faster than the primary signal can do. A curl
+     * measured 0.3271 where 0.3277 was required and every rep after the first was refused; a lunge
+     * 0.279 against 0.360; a dip 0.022 against 0.068. The check was meant to be "has this part
+     * moved since the top", and taking the minimum over the armed frames is what makes it that.
+     */
+    private var bodyDropAtTop = Float.POSITIVE_INFINITY
 
     private fun arm(h: Float) {
         phase = RepPhase.READY_TOP
+        bodyDropAtTop = Float.POSITIVE_INFINITY
         hTopThisRep = h
         hBotThisRep = Float.POSITIVE_INFINITY
         maxDepthThisRep = 0f
@@ -477,7 +495,7 @@ class RepDetectorImpl(
         tQualityOkSince = Long.MIN_VALUE
         tLastGoodPose = Long.MIN_VALUE
         tFirstFrame = Long.MIN_VALUE
-        bodyDropAtTop = Float.NEGATIVE_INFINITY
+        bodyDropAtTop = Float.POSITIVE_INFINITY
         repCount = 0
         combo = 0
         maxCombo = 0

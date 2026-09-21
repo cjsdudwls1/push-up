@@ -15,7 +15,9 @@ import com.pushuprpg.core.detect.DetectorConfig
 import com.pushuprpg.app.domain.capacityOf
 import com.pushuprpg.app.domain.withCapacity
 import com.pushuprpg.core.detect.ExerciseType
+import com.pushuprpg.core.detect.PoseQuality
 import com.pushuprpg.core.detect.PoseTick
+import com.pushuprpg.core.detect.RepPhase
 import com.pushuprpg.core.detect.RepDetectorImpl
 import com.pushuprpg.core.detect.RepEvent
 import com.pushuprpg.core.detect.SkeletonMode
@@ -78,7 +80,12 @@ class SurvivalViewModel(
             maxCombo = maxOf(maxCombo, strike.combo)
             handle(game.onRep(strike.grade, strike.depth, strike.tMs))
         }
-        handle(game.update(tick.tMs))
+        // The ceiling moves only while the user is in position and seen: armed at the top or
+        // somewhere inside a rep. Walking back from the phone, reading the card, or a tracking gap
+        // freezes the run rather than losing it.
+        val inPosition = tick.quality == PoseQuality.OK &&
+            tick.phase != RepPhase.IDLE && tick.phase != RepPhase.LOST
+        handle(game.update(tick.tMs, active = inPosition))
         _state.value = game.state()
     }
 

@@ -10,7 +10,10 @@ data class SurvivalState(
     /** 1.0 is safely at the top, 0.0 is the cat. */
     val height: Float = 1f,
     val score: Int = 0,
+    /** Played time. Time spent setting up or untracked is not in here; the ceiling did not move then. */
     val elapsedMs: Long = 0,
+    /** False until the first frame the user was in position; the ceiling has not moved yet. */
+    val started: Boolean = false,
     val reps: Int = 0,
     val combo: Int = 0,
     val bestCombo: Int = 0,
@@ -65,6 +68,8 @@ class CeilingSurvival(
     private var score = 0f
     private var startedAtMs = Long.MIN_VALUE
     private var lastUpdateMs = Long.MIN_VALUE
+    /** Time the run has actually been played, which is what the difficulty ramp runs on. */
+    private var activeMs = 0L
     private var reps = 0
     private var combo = 0
     private var bestCombo = 0
@@ -74,7 +79,8 @@ class CeilingSurvival(
     fun state(): SurvivalState = SurvivalState(
         height = height,
         score = score.roundToInt(),
-        elapsedMs = if (startedAtMs == Long.MIN_VALUE) 0 else lastUpdateMs - startedAtMs,
+        elapsedMs = activeMs,
+        started = startedAtMs != Long.MIN_VALUE,
         reps = reps,
         combo = combo,
         bestCombo = bestCombo,
@@ -82,9 +88,28 @@ class CeilingSurvival(
         intensity = (1f - height).coerceIn(0f, 1f).pow(0.7f),
     )
 
-    /** Advances the ceiling. Call every frame with the current pose timestamp. */
-    fun update(nowMs: Long): List<SurvivalEvent> {
+    /**
+     * Advances the ceiling. Call every frame with the current pose timestamp.
+     *
+     * [active] is whether the user is in position and being tracked — the detector is armed or
+     * mid-rep, and its quality is OK. While it is false the ceiling holds still, the score holds
+     * still and the difficulty ramp does not advance: the run is frozen, not lost.
+     *
+     * It used to fall unconditionally from the first pose frame. The camera binds while the user
+     * is still walking back to the mat, and at the starting rate the ceiling reaches the cat about
+     * twenty seconds after that — before a beginner has found the floor, before the tutorial card
+     * has been read, and with zero reps counted. Then it kept falling through every tracking gap.
+     * The rule this mode broke is the same one the dungeon keeps: a user must never lose for a
+     * tracking failure, and setting up is not playing.
+     */
+    fun update(nowMs: Long, active: Boolean = true): List<SurvivalEvent> {
         if (!alive) return emptyList()
+        if (!active) {
+            // Hold everything where it is. The next active frame integrates from here, so the
+            // frozen interval never turns into descent.
+            lastUpdateMs = nowMs
+            return emptyList()
+        }
         if (startedAtMs == Long.MIN_VALUE) {
             startedAtMs = nowMs
             lastUpdateMs = nowMs
@@ -96,7 +121,8 @@ class CeilingSurvival(
         if (dtMs == 0L) return emptyList()
 
         val dt = dtMs / 1000f
-        val elapsedSec = (nowMs - startedAtMs) / 1000f
+        activeMs += dtMs
+        val elapsedSec = activeMs / 1000f
 
         height = (height - descentPerSecond(elapsedSec) * dt).coerceIn(0f, 1f)
         // Surviving is itself worth points, so a cautious player still climbs the board.
@@ -112,7 +138,7 @@ class CeilingSurvival(
 
         if (height <= 0f) {
             alive = false
-            events += SurvivalEvent.GameOver(nowMs, score.roundToInt(), nowMs - startedAtMs)
+            events += SurvivalEvent.GameOver(nowMs, score.roundToInt(), activeMs)
         }
         return events
     }
@@ -185,6 +211,7 @@ class CeilingSurvival(
         score = 0f
         startedAtMs = Long.MIN_VALUE
         lastUpdateMs = Long.MIN_VALUE
+        activeMs = 0L
         reps = 0
         combo = 0
         bestCombo = 0

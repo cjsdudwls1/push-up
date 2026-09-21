@@ -41,6 +41,42 @@ class CeilingSurvivalTest {
     }
 
     @Test
+    fun `the ceiling holds still until the user is in position`() {
+        // Twenty seconds is longer than the whole starting run. The camera binds while the user is
+        // still walking back to the mat; nothing may happen until they are seen at the top.
+        val game = CeilingSurvival()
+        var t = 0L
+        repeat(600) { t += 33; game.update(t, active = false) }
+        assertEquals(1f, game.state().height, "the ceiling moved while nobody was in position")
+        assertEquals(0L, game.state().elapsedMs)
+        assertTrue(!game.state().started)
+    }
+
+    @Test
+    fun `an untracked gap is frozen time, not lost time`() {
+        val game = CeilingSurvival()
+        var t = 0L
+        repeat(90) { t += 33; game.update(t, active = true) }
+        val heightBefore = game.state().height
+        val elapsedBefore = game.state().elapsedMs
+        val scoreBefore = game.state().score
+
+        // Five seconds looking away from the phone.
+        repeat(150) { t += 33; game.update(t, active = false) }
+        assertEquals(heightBefore, game.state().height, "the ceiling fell during a tracking gap")
+        assertEquals(elapsedBefore, game.state().elapsedMs, "the difficulty ramp advanced during a gap")
+        assertEquals(scoreBefore, game.state().score)
+
+        // Resuming integrates from the resume frame, not across the gap.
+        t += 33
+        game.update(t, active = true)
+        assertTrue(
+            heightBefore - game.state().height < 0.01f,
+            "the frozen interval was integrated as descent on resume",
+        )
+    }
+
+    @Test
     fun `the ceiling falls on its own`() {
         val game = CeilingSurvival()
         var t = 0L

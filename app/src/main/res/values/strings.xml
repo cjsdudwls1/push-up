@@ -93,6 +93,14 @@
     <string name="quality_subject_switch">자세를 다시 잡는 동안 기다릴게요</string>
     <string name="quality_implausible_rate">천천히 한 개씩 세어 볼게요</string>
     <string name="quality_recovered">좋아요, 다시 보여요!</string>
+    <!-- Appended to a quality message: which of the parts this movement reads are out of shot. -->
+    <string name="quality_missing_parts">안 보이는 곳: %1$s</string>
+    <string name="body_part_shoulder">어깨</string>
+    <string name="body_part_elbow">팔꿈치</string>
+    <string name="body_part_wrist">손목</string>
+    <string name="body_part_hip">엉덩이</string>
+    <string name="body_part_knee">무릎</string>
+    <string name="body_part_ankle">발목</string>
     <string name="quality_paused_notice">추적이 끊긴 동안에는 보스도 멈춰 있어요</string>
 
     <!-- Result -->
@@ -192,12 +200,12 @@
     <string name="exercise_hint_squat">폰을 정면에 두고 2m쯤 떨어져 주세요. 무릎까지 나와야 해요.</string>
     <string name="exercise_hint_plank">폰을 바닥에 세워서 옆모습이 나오게 해주세요.</string>
     <string name="exercise_hint_pull_up">폰을 정면에 두고 온몸이 나오도록 멀리 놓아주세요.</string>
-    <string name="exercise_hint_curl">폰을 정면에 두고 허리 높이로 세워주세요. 양팔을 동시에 올렸다 내려요.</string>
-    <string name="exercise_hint_overhead_press">폰을 정면에 두고 허리 높이로 세워주세요. 팔을 다 펴도 화면 안에 있어야 해요.</string>
-    <string name="exercise_hint_lunge">폰을 정면에 두고 2m쯤 떨어져 주세요. 앞다리 기준으로 세요.</string>
+    <string name="exercise_hint_curl">폰을 정면에 두고 허리 높이로 세워주세요. 바닥에 세워도 괜찮아요. 양팔을 동시에 올렸다 내려요.</string>
+    <string name="exercise_hint_overhead_press">폰을 정면, 허리 높이에 2.5m쯤 떨어뜨려 주세요. 팔을 다 펴도 손이 화면 안에 있어야 해요. 바닥에 두면 인정까지는 세지만 깊게는 잘 안 나와요.</string>
+    <string name="exercise_hint_lunge">폰을 바닥에 세워 정면에서 2m쯤 떨어져 주세요. 무릎과 발목까지 나와야 해요. 허리 높이에 두면 앞무릎이 가까워 보여서 얕게 재요 — 바닥이 더 잘 돼요.</string>
     <string name="exercise_hint_bench_press">폰을 옆에서 벤치 전체가 보이게 세워주세요. 인식이 가장 불안정한 종목이에요.</string>
-    <string name="exercise_hint_hinge">폰을 정면 또는 살짝 비스듬하게, 2m쯤 떨어뜨려 허리 높이로 세워주세요. 완전한 옆모습은 어깨가 겹쳐서 인식이 안 돼요.</string>
-    <string name="exercise_hint_dip">폰을 평행봉 정면, 손 높이(허리쯤)에 세워 주세요. 바닥에 두면 몸을 앞으로 숙이는 만큼 안 세어져요.</string>
+    <string name="exercise_hint_hinge">폰을 정면 또는 살짝 비스듬하게, 허리 높이로 2m쯤 떨어뜨려 주세요. 무릎까지 나와야 해요. 완전한 옆모습은 어깨가 겹쳐서 인식이 안 돼요.</string>
+    <string name="exercise_hint_dip">폰을 평행봉 정면에 세워 주세요. 손 높이가 가장 좋고, 바닥에 두어도 세어져요.</string>
 
     <!-- Shown when a loaded exercise is selected. -->
     <string name="exercise_load_warning_title">중량 운동은 주의해 주세요</string>
@@ -210,6 +218,8 @@
     <string name="survival_score">%1$,d점</string>
     <string name="survival_best">최고 %1$,d점</string>
     <string name="survival_gameover">고냥이가 놀랐어요</string>
+    <!-- Before the first armed frame. The ceiling does not move until the user is in position. -->
+    <string name="survival_waiting">자세를 잡으면 천장이 내려오기 시작해요</string>
     <string name="tutorial_intro_title">먼저 몸을 풀어볼까요</string>
     <string name="tutorial_intro_body">천장이 내려와요. 푸쉬업으로 밀어 올려서 고냥이를 지켜주세요.\n할 수 있는 만큼만 하면 돼요 — 여기서 당신의 페이스를 배울게요.</string>
     <string name="tutorial_done_title">준비 끝!</string>

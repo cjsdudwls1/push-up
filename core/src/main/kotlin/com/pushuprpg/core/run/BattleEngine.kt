@@ -42,6 +42,8 @@ data class BattleState(
     val depthVelocity: Float = 0f,
     val phase: RepPhase = RepPhase.IDLE,
     val quality: PoseQuality = PoseQuality.NO_SUBJECT,
+    /** Landmark indices the movement needs and the tracker cannot see; what the quality line names. */
+    val missingParts: List<Int> = emptyList(),
     val calibrating: Boolean = true,
     val render: RenderSkeleton = RenderSkeleton.EMPTY,
     val reps: Int = 0,
@@ -415,6 +417,7 @@ class BattleEngine(
             depthVelocity = tick.depthVelocity,
             phase = tick.phase,
             quality = tick.quality,
+            missingParts = tick.missing,
             calibrating = tick.calibration.state == CalibrationState.BOOTSTRAP,
             render = tick.render,
             reps = repsTotal,

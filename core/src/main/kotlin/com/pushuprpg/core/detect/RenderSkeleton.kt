@@ -33,7 +33,7 @@ enum class SkeletonMode {
     /** Nothing drawn. The camera image is left completely clear. */
     OFF,
 
-    /** Arms and shoulder line only — the part that actually carries the rep. The default. */
+    /** The shoulder line and the limbs the chosen movement actually reads — arms for a pushup, legs for a squat. The default. */
     MINIMAL,
 
     /** Adds the torso and, when genuinely visible, the legs. */
@@ -49,9 +49,11 @@ enum class SkeletonMode {
  *  1. **A bone is drawn only when both of its endpoints are confident**, and a joint only when it
  *     belongs to at least one drawn bone. A knee the model is guessing at therefore produces no
  *     line *and* no dot — there is no code path that can draw one.
- *  2. **[SkeletonMode.MINIMAL] excludes the legs by allowlist**, not by threshold. With a phone on
- *     the floor the legs are usually out of frame or far away, so in the default mode they are not
- *     candidates for drawing at all.
+ *  2. **[SkeletonMode.MINIMAL] draws by allowlist**, not by threshold: the shoulder line plus the
+ *     limbs whose landmarks the movement's signal reads. For a pushup that is the arms and nothing
+ *     below, so the far-away legs are not even candidates. For a lunge it is the legs — drawing the
+ *     arms there, as a fixed allowlist did, showed a user doing lunges a skeleton of their arms,
+ *     and they reasonably concluded the app was watching the wrong limbs.
  *
  * Alpha fades smoothly with confidence instead of switching on and off, so a joint at the edge of
  * detectability dissolves rather than strobing.
@@ -68,7 +70,7 @@ class SkeletonBuilder(private val config: DetectorConfig) {
 
         val segments = when (mode) {
             SkeletonMode.OFF -> return RenderSkeleton.EMPTY
-            SkeletonMode.MINIMAL -> MINIMAL_SEGMENTS
+            SkeletonMode.MINIMAL -> minimalSegments
             SkeletonMode.FULL -> FULL_SEGMENTS
         }
 
@@ -93,11 +95,25 @@ class SkeletonBuilder(private val config: DetectorConfig) {
     private fun fade(c: Float): Float =
         Geometry.smoothstep(config.renderFadeLow, config.renderFadeHigh, c)
 
+    /**
+     * The shoulder line, plus every bone of [FULL_SEGMENTS] whose two ends the movement measures.
+     * Derived from [ExerciseDescriptor.watchedLandmarks] rather than listed per exercise, so a new
+     * movement draws the right limbs without anyone remembering to say so.
+     */
+    private val minimalSegments: Array<Pair<Int, Int>> = run {
+        if (config.descriptor.signal == null) return@run ARM_SEGMENTS
+        val watched = config.descriptor.watchedLandmarks
+        FULL_SEGMENTS.filter { (a, b) ->
+            (a == Lm.LEFT_SHOULDER && b == Lm.RIGHT_SHOULDER) || (a in watched && b in watched)
+        }.toTypedArray()
+    }
+
     companion object {
         /** Below this a joint contributes nothing but visual noise. */
         const val MIN_VISIBLE_ALPHA = 0.05f
 
-        val MINIMAL_SEGMENTS: Array<Pair<Int, Int>> = arrayOf(
+        /** Arms and the shoulder line: what a hold, which has no signal, draws. */
+        val ARM_SEGMENTS: Array<Pair<Int, Int>> = arrayOf(
             Lm.LEFT_SHOULDER to Lm.RIGHT_SHOULDER,
             Lm.LEFT_SHOULDER to Lm.LEFT_ELBOW,
             Lm.LEFT_ELBOW to Lm.LEFT_WRIST,
@@ -105,7 +121,7 @@ class SkeletonBuilder(private val config: DetectorConfig) {
             Lm.RIGHT_ELBOW to Lm.RIGHT_WRIST,
         )
 
-        val FULL_SEGMENTS: Array<Pair<Int, Int>> = MINIMAL_SEGMENTS + arrayOf(
+        val FULL_SEGMENTS: Array<Pair<Int, Int>> = ARM_SEGMENTS + arrayOf(
             Lm.LEFT_SHOULDER to Lm.LEFT_HIP,
             Lm.RIGHT_SHOULDER to Lm.RIGHT_HIP,
             Lm.LEFT_HIP to Lm.RIGHT_HIP,

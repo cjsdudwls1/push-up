@@ -23,6 +23,12 @@ data class PoseTick(
     val render: RenderSkeleton,
     /** Empty on most frames, never null. */
     val events: List<RepEvent> = emptyList(),
+    /**
+     * Landmarks this movement reads that the tracker cannot currently see, so the user can be
+     * told which part of them is out of shot rather than only that something is. Empty when
+     * everything needed is visible.
+     */
+    val missing: List<Int> = emptyList(),
 )
 
 /**

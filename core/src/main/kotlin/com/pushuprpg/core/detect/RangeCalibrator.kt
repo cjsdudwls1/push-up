@@ -132,9 +132,16 @@ class RangeCalibrator(
         // count line because their whole travel is compressed into the top of someone else's range.
         if (abs(mapRaw(h)) <= config.topEnter) return
 
-        val shape = if (abs(top) > Geometry.EPSILON) bottom / top else 0f
-        top = h
-        bottom = h * shape
+        if (config.anchorByShift) {
+            // The range is the body's; where it sits is the camera's. Keep one, move the other.
+            val span = top - bottom
+            top = h
+            bottom = h - span
+        } else {
+            val shape = if (abs(top) > Geometry.EPSILON) bottom / top else 0f
+            top = h
+            bottom = h * shape
+        }
         bottomBest = bottom
         applyGuards()
         bottomBest = min(bottomBest, bottom)
