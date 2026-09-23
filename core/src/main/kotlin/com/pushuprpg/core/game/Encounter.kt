@@ -1,6 +1,7 @@
 package com.pushuprpg.core.game
 
 import com.pushuprpg.core.detect.ExerciseType
+import kotlin.math.ceil
 import kotlin.math.min
 import kotlin.math.roundToInt
 
@@ -53,7 +54,7 @@ class Encounter(
     initialPlayer: PlayerState,
     initialEnemy: Enemy,
     private val difficulty: Difficulty = Difficulty.STANDARD,
-    private val resolver: CombatResolver = CombatResolver(),
+    private var resolver: CombatResolver = CombatResolver(),
     private val rng: Rng = SeededRng(0),
     /**
      * The timestamp this fight's deadlines are measured from. No default: the only sensible value
@@ -323,6 +324,24 @@ class Encounter(
      * that the volume model needs it, rather than being guessed at now.
      */
     private fun checkTelegraph(atMs: Long): List<CombatEvent> = emptyList()
+
+    /**
+     * The same fight, carried on with a different movement.
+     *
+     * [repriced] is this floor's enemy spawned fresh for the new movement. Whatever fraction of the
+     * enemy was left stays left, now counted in the new movement's reps — half a monster is half a
+     * monster whether it is finished with pushups or pull-ups. Rounded up, so a rep still owed is
+     * never rounded away, and an enemy already down stays down.
+     */
+    fun switchMovement(repriced: Enemy, resolver: CombatResolver) {
+        fun share(left: Int, of: Int, newTotal: Int): Int =
+            if (left <= 0 || of <= 0) 0 else ceil(newTotal * left.toDouble() / of).toInt().coerceIn(1, newTotal.coerceAtLeast(1))
+        enemy = repriced.copy(
+            hp = share(enemy.hp, enemy.maxHp, repriced.maxHp),
+            wardHp = share(enemy.wardHp, enemy.wardMaxHp, repriced.wardMaxHp),
+        )
+        this.resolver = resolver
+    }
 
     fun crackFraction(): Float =
         min(MAX_CRACK, 0.5f * damageDealt.toFloat() / enemy.maxHp.coerceAtLeast(1))

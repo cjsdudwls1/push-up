@@ -140,6 +140,18 @@ object Streak {
     fun maintained(exercise: ExerciseType, amount: Int): Boolean =
         amount >= Exercises.of(exercise).streakBar
 
+    /**
+     * Whether a day's work across several movements keeps the streak.
+     *
+     * Each movement contributes its share of its own bar, and the shares add: five pushups (half
+     * of ten) and eight squats (over half of fifteen) keep it, where judging either alone would
+     * not. For one movement this is exactly [maintained].
+     */
+    fun maintained(work: Map<ExerciseType, Int>): Boolean =
+        work.entries.sumOf { (exercise, amount) ->
+            amount.toDouble() / Exercises.of(exercise).streakBar
+        } >= 1.0 - 1e-9
+
     /** Bonus max HP from a streak, capped so it never becomes the reason to play. */
     fun hpBonus(days: Int): Float = (days * 0.01f).coerceAtMost(0.25f)
 

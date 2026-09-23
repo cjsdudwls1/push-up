@@ -35,6 +35,7 @@ import com.pushuprpg.core.progression.Levels
 import com.pushuprpg.core.progression.Streak
 import com.pushuprpg.core.run.BattleEngine
 import com.pushuprpg.core.run.BattleState
+import com.pushuprpg.core.run.ExerciseSegment
 import com.pushuprpg.core.run.Outcome
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -82,6 +83,17 @@ class BattleViewModel(
 
     /** finish() is reachable from both the pose thread and quit(); the run must bank exactly once. */
     private val saved = AtomicBoolean(false)
+
+    /**
+     * A movement switch, built on the main thread and waiting to be applied on the pose thread.
+     *
+     * The engine and the detector are single-threaded by design; swapping the detector while a
+     * frame is inside it would hand half a rep to the new movement. So the switch is posted and the
+     * pose thread takes it before its next frame, exactly as survival's restart does.
+     */
+    @Volatile private var pendingSwitch: RepDetector? = null
+    /** The starting calibration of [pendingSwitch], for the trace; written before it is. */
+    @Volatile private var pendingProfileNote: String = ""
 
     private val _levelsGained = MutableStateFlow(0)
     val levelsGained: StateFlow<Int> = _levelsGained.asStateFlow()
@@ -153,9 +165,41 @@ class BattleViewModel(
         }
     }
 
+    /**
+     * Carries the run on with [to] — as often as the user likes, because a session is pushups for a
+     * while, then pull-ups, then squats. The new movement starts from its own stored calibration.
+     */
+    fun switchExercise(to: ExerciseType) {
+        if (engine == null || to == exercise) return
+        viewModelScope.launch {
+            val profile = progressRepository.calibrationProfile(to)
+            val next = DetectorFactory.create(to, DetectorConfig.forExercise(to), profile)
+            next.skeletonMode = _settings.value.skeletonMode
+            pendingProfileNote = "${profile.topEwma}/${profile.botEwma}/${profile.sessionCount}"
+            pendingSwitch = next
+            // Remembered for the next entry picker too, as a choice made on the way in would be.
+            settingsRepository.update { it.copy(exercise = to) }
+        }
+    }
+
     /** Called on the pose callback thread. */
     fun onPoseFrame(frame: PoseFrame) {
         val e = engine ?: return
+        pendingSwitch?.let { next ->
+            pendingSwitch = null
+            val from = exercise
+            val retired = e.switchExercise(next)
+            detector = next
+            exercise = next.config.exercise
+            telemetry.setExercise(exercise)
+            traces.mark("switch=${frame.timestampMs}:${exercise.name}:$pendingProfileNote")
+            // Banked now rather than at the end: the retired detector is no longer fed frames, so
+            // it is safe to read here, and a run that is killed later keeps what it learned.
+            viewModelScope.launch {
+                val previous = progressRepository.calibrationProfile(from)
+                progressRepository.saveCalibrationProfile(from, retired.updatedProfile(previous))
+            }
+        }
         traces.record(frame)
         val next = e.onPoseFrame(frame)
         // Fired straight from this thread: routing it through a recomposition would spend most of
@@ -202,8 +246,21 @@ class BattleViewModel(
     private fun finish(outcome: Outcome) {
         if (!saved.compareAndSet(false, true)) return
 
-        val summary = detector?.sessionSummary()
-        val plankSeconds = ((summary?.holdMs ?: 0L) / 1000L).toInt()
+        // One entry per movement, in order. A run that never switched is one entry and banks
+        // exactly as a run always did; the segment list only matters once there is more than one.
+        val segments = outcome.segments.ifEmpty {
+            listOf(
+                ExerciseSegment(
+                    exercise = exercise, reps = outcome.reps, maxCombo = outcome.maxCombo,
+                    deepReps = outcome.deepReps, meanDepth = outcome.meanDepth,
+                    holdMs = detector?.sessionSummary()?.holdMs ?: 0L,
+                    durationMs = outcome.durationMs, plausibility = outcome.plausibility,
+                )
+            )
+        }
+        val single = segments.size == 1
+        // A stretch with nothing in it — switched away before a rep — is not worth a record row.
+        val worked = segments.filter { it.reps > 0 || it.holdMs >= 1_000L }.ifEmpty { listOf(segments.last()) }
 
         telemetry.log(
             Event.RunFinished(
@@ -218,41 +275,52 @@ class BattleViewModel(
         viewModelScope.launch {
             val epochDay = Instant.now().atZone(ZoneId.systemDefault()).toLocalDate().toEpochDay()
 
-            sessionRepository.insert(
-                SessionRecord(
-                    startedAtMs = System.currentTimeMillis() - outcome.durationMs,
-                    durationMs = outcome.durationMs,
-                    exercise = exercise,
-                    reps = outcome.reps,
-                    maxCombo = outcome.maxCombo,
-                    deepReps = outcome.deepReps,
-                    meanDepth = outcome.meanDepth,
-                    dungeonIndex = dungeonIndex,
-                    cleared = outcome.cleared,
-                    xpEarned = outcome.xpEarned,
-                    plausibility = outcome.plausibility,
+            // Each movement gets its own row, so the records screen says what was actually done.
+            // The run's clear and its XP belong to the run, so they ride on the last row only.
+            var startedAt = System.currentTimeMillis() - outcome.durationMs
+            worked.forEachIndexed { i, seg ->
+                val last = i == worked.lastIndex
+                sessionRepository.insert(
+                    SessionRecord(
+                        startedAtMs = startedAt,
+                        durationMs = if (single) outcome.durationMs else seg.durationMs,
+                        exercise = seg.exercise,
+                        reps = seg.reps,
+                        maxCombo = if (single) outcome.maxCombo else seg.maxCombo,
+                        deepReps = seg.deepReps,
+                        meanDepth = seg.meanDepth,
+                        dungeonIndex = dungeonIndex,
+                        cleared = outcome.cleared && last,
+                        xpEarned = if (last) outcome.xpEarned else 0,
+                        plausibility = seg.plausibility,
+                    )
                 )
-            )
+                startedAt += seg.durationMs
+            }
 
-            summary?.let {
-                detector?.let { det ->
-                    val previous = progressRepository.calibrationProfile(exercise)
-                    progressRepository.saveCalibrationProfile(exercise, det.updatedProfile(previous))
-                }
+            // The movement in progress at the end; each earlier one was banked when it was left.
+            detector?.let { det ->
+                val previous = progressRepository.calibrationProfile(exercise)
+                progressRepository.saveCalibrationProfile(exercise, det.updatedProfile(previous))
             }
 
             progressRepository.update { current ->
                 val levelled = Levels.apply(current.level, current.xpIntoLevel, outcome.xpEarned)
                 _levelsGained.value = levelled.levelsGained
-                val streak = advanceStreak(current, epochDay, outcome.reps, plankSeconds)
-                // Capacity is measured in the movement's own unit: reps for a counted exercise,
-                // seconds for a hold. A hold's best is its longest, not an average of its reps.
-                val measured = if (Exercises.of(exercise).kind == MovementKind.HOLD) {
-                    maxOf(current.capacityOf(exercise), plankSeconds.toFloat())
-                } else {
-                    Capacity.update(current.capacityOf(exercise), outcome.maxCombo)
-                }
-                current.withCapacity(exercise, measured).copy(
+                val streak = advanceStreak(current, epochDay, segments)
+                // Capacity is measured in each movement's own unit: reps for a counted exercise,
+                // seconds for a hold, and a hold's best is its longest, not an average. A movement
+                // done twice in one run is judged by its better stretch.
+                val measured = (if (single) segments else worked).groupBy { it.exercise }
+                    .mapValues { (type, segs) ->
+                        if (Exercises.of(type).kind == MovementKind.HOLD) {
+                            maxOf(current.capacityOf(type), segs.maxOf { it.holdMs / 1000L }.toFloat())
+                        } else {
+                            val best = if (single) outcome.maxCombo else segs.maxOf { it.maxCombo }
+                            Capacity.update(current.capacityOf(type), best)
+                        }
+                    }
+                measured.entries.fold(current) { p, (type, value) -> p.withCapacity(type, value) }.copy(
                     level = levelled.level,
                     xpIntoLevel = levelled.xpIntoLevel,
                     lifetimeReps = current.lifetimeReps + outcome.reps,
@@ -279,15 +347,17 @@ class BattleViewModel(
     private fun advanceStreak(
         current: PlayerProgress,
         epochDay: Long,
-        reps: Int,
-        plankSeconds: Int,
+        segments: List<ExerciseSegment>,
     ): Pair<Int, Long> {
         // The count has to be judged against the bar for the movement actually performed. Passing it
         // as pushups regardless meant a five-minute plank — which reports zero reps by construction
         // — lost the user their streak, and twelve squats kept it when fifteen are the bar. The bar
-        // now travels with the movement, so a new exercise cannot be measured against a pushup's.
-        val done = if (Exercises.of(exercise).kind == MovementKind.HOLD) plankSeconds else reps
-        if (!Streak.maintained(exercise, done)) {
+        // travels with each movement, and a mixed run adds each one's share of its own bar.
+        val work = segments.groupBy { it.exercise }.mapValues { (type, segs) ->
+            if (Exercises.of(type).kind == MovementKind.HOLD) (segs.sumOf { it.holdMs } / 1000L).toInt()
+            else segs.sumOf { it.reps }
+        }
+        if (!Streak.maintained(work)) {
             return current.streakDays to current.lastActiveEpochDay
         }
         return when (epochDay - current.lastActiveEpochDay) {

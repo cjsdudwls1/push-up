@@ -393,4 +393,82 @@ class BattleEnginePresentationTest {
         val outcome = e.quit()
         assertTrue(!outcome.cleared)
     }
+
+    // ------------------------------------------------------------ switching movement mid-run
+
+    private fun engineIn(dungeon: Dungeon) = BattleEngine(
+        dungeon = dungeon,
+        difficulty = Difficulty.STANDARD,
+        capacity = 8f,
+        initialPlayer = PlayerState.create(PlayerClass.KNIGHT, level = 1),
+        detector = RepDetectorImpl(DetectorConfig.pushup()),
+        resolver = CombatResolver(),
+    )
+
+    /** Plays [frames] without stopping at an outcome, and returns the last state. */
+    private fun feed(engine: BattleEngine, frames: List<PoseFrame>): BattleState {
+        var last = engine.currentState()
+        for (f in frames) last = engine.onPoseFrame(f)
+        return last
+    }
+
+    /**
+     * A real session is not one movement: pushups for a while, then pull-ups, then squats. The
+     * monster being fought keeps the share of it that was left, counted in the new movement — half
+     * a monster stays half a monster.
+     */
+    @Test
+    fun `switching movement mid-fight keeps the share of the enemy that was left`() {
+        val dungeon = Dungeons.byIndex(3)!!
+        val e = engineIn(dungeon)
+        val before = feed(e, PoseFixtures.trace(count = 4, peakDepth = 0.95f, restMs = 250))
+        assertEquals(0, before.floorIndex, "the fixture should still be on the first floor")
+        val leftBefore = before.enemyHp.toFloat() / before.enemyMaxHp
+        assertTrue(before.reps > 0 && leftBefore in 0.01f..0.99f, "no damage landed before the switch")
+
+        val retired = e.switchExercise(RepDetectorImpl(DetectorConfig.squat()))
+        val after = e.currentState()
+
+        assertEquals(DetectorConfig.pushup().exercise, retired.config.exercise)
+        assertEquals(ExerciseType.SQUAT, after.exercise)
+        val squatFloor = dungeon.floors[0].spawn(Difficulty.STANDARD, ExerciseType.SQUAT)
+        assertEquals(squatFloor.maxHp, after.enemyMaxHp, "the enemy was not re-priced in squats")
+        val leftAfter = after.enemyHp.toFloat() / after.enemyMaxHp
+        assertTrue(
+            leftAfter >= leftBefore && leftAfter - leftBefore <= 1f / after.enemyMaxHp + 1e-4f,
+            "left $leftBefore of the enemy in pushups, $leftAfter in squats",
+        )
+        // The total is still the honest remaining cost: done so far, this enemy, and every floor
+        // to come, all in squats now.
+        val rest = dungeon.floors.drop(1).sumOf {
+            CombatResolver.expectedReps(it.standardRepCost, Difficulty.STANDARD, ExerciseType.SQUAT)
+        }
+        assertEquals(after.reps + after.enemyHp + rest, after.runTotalReps)
+    }
+
+    @Test
+    fun `a mixed run banks each movement as its own segment, and every rep counts`() {
+        val e = engineIn(Dungeons.byIndex(3)!!)
+        val pushups = PoseFixtures.trace(count = 5, peakDepth = 0.95f, restMs = 250)
+        feed(e, pushups)
+        val pushupReps = e.currentState().reps
+        e.switchExercise(RepDetectorImpl(DetectorConfig.squat()))
+        feed(e, PoseFixtures.squatTrace(count = 5, startMs = pushups.last().timestampMs + 33))
+        val outcome = e.quit()
+
+        assertEquals(listOf(ExerciseType.PUSHUP, ExerciseType.SQUAT), outcome.segments.map { it.exercise })
+        assertEquals(pushupReps, outcome.segments[0].reps)
+        assertTrue(outcome.segments[1].reps > 0, "the squats after the switch did not count")
+        assertEquals(outcome.reps, outcome.segments.sumOf { it.reps }, "a rep went missing between segments")
+    }
+
+    @Test
+    fun `a run that never switches is one segment, the whole run`() {
+        val e = engine()
+        feed(e, PoseFixtures.trace(count = 6, peakDepth = 0.95f, restMs = 250))
+        val outcome = e.quit()
+        assertEquals(1, outcome.segments.size)
+        assertEquals(ExerciseType.PUSHUP, outcome.segments.single().exercise)
+        assertEquals(outcome.reps, outcome.segments.single().reps)
+    }
 }

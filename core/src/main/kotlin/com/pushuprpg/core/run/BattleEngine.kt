@@ -133,6 +133,27 @@ data class Outcome(
     val plausibility: Float,
     /** How deep the run was, graded against the detector's own 인정 and 깊게 lines. */
     val stars: Stars = Stars.ONE,
+    /** The run movement by movement, in the order they were done. One entry if it never switched. */
+    val segments: List<ExerciseSegment> = emptyList(),
+)
+
+/**
+ * One stretch of a run done with one movement.
+ *
+ * A dungeon run can change movement as often as the user likes — a real session goes pushups,
+ * pull-ups, squats — so what it banks is kept per movement: each one's reps, best set and hold
+ * time feed that movement's own records and capacity, not a pushup's.
+ */
+data class ExerciseSegment(
+    val exercise: ExerciseType,
+    val reps: Int,
+    val maxCombo: Int,
+    val deepReps: Int,
+    val meanDepth: Float,
+    /** Time held, for a hold. Zero for a counted movement. */
+    val holdMs: Long,
+    val durationMs: Long,
+    val plausibility: Float,
 )
 
 /**
@@ -149,10 +170,13 @@ class BattleEngine(
     private val difficulty: Difficulty,
     private val capacity: Float,
     initialPlayer: PlayerState,
-    private val detector: RepDetector,
-    private val resolver: CombatResolver,
+    detector: RepDetector,
+    resolver: CombatResolver,
     private val rngSeed: Long = 0L,
 ) {
+    /** The movement being done now; replaced by [switchExercise]. */
+    private var detector: RepDetector = detector
+    private var resolver: CombatResolver = resolver
     private var player: PlayerState = initialPlayer
     private var floorIndex = 0
     private var encounter: Encounter = spawnFloor(0, 0L)
@@ -174,13 +198,21 @@ class BattleEngine(
     private var xpTotal = 0
     private var shallowStreak = 0
 
+    // The movement in progress, since the run started or last switched.
+    private val segments = mutableListOf<ExerciseSegment>()
+    private var segStartMs = Long.MIN_VALUE
+    private var segReps = 0
+    private var segDeep = 0
+    private var segDepthSum = 0f
+    private var segMaxCombo = 0
+
     /**
      * What the run costs in total, computed once at spawn from the same rule the entry screen quoted.
      *
      * Every floor's HP is a rep count, so the sum is the run's whole rep cost — the number the entry
      * picker promised, which the HUD can now show the user working through.
      */
-    private val runTotalReps: Int = dungeon.repCost(difficulty, detector.config.exercise)
+    private var runTotalReps: Int = dungeon.repCost(difficulty, detector.config.exercise)
 
     private var state = BattleState(
         playerHp = initialPlayer.hp,
@@ -201,6 +233,7 @@ class BattleEngine(
         val tick = detector.onFrame(frame)
         if (startedAtMs == Long.MIN_VALUE) {
             startedAtMs = tick.tMs
+            segStartMs = tick.tMs
             // Floor 0's encounter was built before a frame existed, so this is the first moment its
             // deadlines can be anchored to the clock the rest of the run will use.
             encounter.startAt(tick.tMs)
@@ -259,6 +292,12 @@ class BattleEngine(
                                 depthSum += event.depth
                                 xpTotal += ce.result.xp
                                 if (ce.result.deep) deepReps++
+                                segReps++
+                                segDepthSum += event.depth
+                                if (ce.result.deep) segDeep++
+                                // The detector's own combo: it restarts with each movement and at
+                                // each rest, so its peak is this movement's longest set.
+                                segMaxCombo = maxOf(segMaxCombo, event.combo)
                                 animator.onStrike(event.tMs, ce.result.deep, ce.result.crit)
                                 enemyHurtAtMs = event.tMs
 
@@ -429,6 +468,7 @@ class BattleEngine(
             enemyName = encounter.enemy.korean,
             enemyHp = encounter.enemy.hp,
             enemyMaxHp = encounter.enemy.maxHp,
+            runTotalReps = runTotalReps,
             floorIndex = floorIndex,
             ultimateIncoming = telegraphed && outcome == null,
             damages = damages,
@@ -451,6 +491,63 @@ class BattleEngine(
 
     /** Gives up the run. Everything earned so far is still banked — that is the whole promise. */
     fun quit(): Outcome = finish(cleared = false, atMs = lastFrameMs)
+
+    /**
+     * Carries on the run with a different movement, as often as the user likes.
+     *
+     * The enemy being fought keeps the fraction of it that was left, re-priced in the new movement's
+     * reps, and every floor still to come is priced in it too — so the total on screen stays the
+     * honest remaining cost of the run. What was done so far is kept as a segment and banked with
+     * its own movement at the end.
+     *
+     * Returns the detector that was retired. The caller banks its calibration: it is no longer fed
+     * frames, so reading it from another thread is now safe.
+     */
+    fun switchExercise(next: RepDetector, atMs: Long = lastFrameMs): RepDetector {
+        val retired = detector
+        segments += segmentSoFar(atMs)
+        segStartMs = if (startedAtMs == Long.MIN_VALUE) Long.MIN_VALUE else atMs
+        segReps = 0
+        segDeep = 0
+        segDepthSum = 0f
+        segMaxCombo = 0
+
+        detector = next
+        resolver = CombatResolver(next.config)
+        val to = next.config.exercise
+        encounter.switchMovement(dungeon.floors[floorIndex].spawn(difficulty, to), resolver)
+        runTotalReps = repsTotal + encounter.enemy.hp + dungeon.floors.drop(floorIndex + 1)
+            .sumOf { CombatResolver.expectedReps(it.standardRepCost, difficulty, to) }
+
+        // The retired movement's rhythm says nothing about the new one's.
+        lastStrikeMs = Long.MIN_VALUE
+        readyTopSinceMs = Long.MIN_VALUE
+        plankHolding = false
+
+        state = state.copy(
+            exercise = to,
+            countEnter = next.config.countEnter,
+            deepEnter = next.config.deepEnter,
+            runTotalReps = runTotalReps,
+            enemyHp = encounter.enemy.hp,
+            enemyMaxHp = encounter.enemy.maxHp,
+        )
+        return retired
+    }
+
+    private fun segmentSoFar(atMs: Long): ExerciseSegment {
+        val summary = detector.sessionSummary()
+        return ExerciseSegment(
+            exercise = detector.config.exercise,
+            reps = segReps,
+            maxCombo = segMaxCombo,
+            deepReps = segDeep,
+            meanDepth = if (segReps == 0) 0f else segDepthSum / segReps,
+            holdMs = summary.holdMs,
+            durationMs = if (segStartMs == Long.MIN_VALUE) 0 else (atMs - segStartMs).coerceAtLeast(0),
+            plausibility = summary.plausibility,
+        )
+    }
 
     private fun advanceFloor(atMs: Long): Outcome? {
         // Checked before incrementing so the final floor stays the reported floor; incrementing
@@ -480,7 +577,7 @@ class BattleEngine(
     }
 
     private fun finish(cleared: Boolean, atMs: Long): Outcome {
-        val summary = detector.sessionSummary()
+        val all = segments + segmentSoFar(atMs)
         val bonus = if (cleared) encounter.clearBonusXp() else 0
         return Outcome(
             cleared = cleared,
@@ -496,7 +593,10 @@ class BattleEngine(
                 countEnter = detector.config.countEnter,
                 deepEnter = detector.config.deepEnter,
             ),
-            plausibility = summary.plausibility,
+            // Weighted by reps, so a long clean set is not outvoted by a two-rep stretch.
+            plausibility = if (repsTotal == 0) all.last().plausibility
+            else all.sumOf { (it.plausibility * it.reps).toDouble() }.toFloat() / repsTotal,
+            segments = all,
         )
     }
 

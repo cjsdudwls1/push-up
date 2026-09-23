@@ -332,6 +332,7 @@ fun PushupRpgApp(
                             gaugeOnRight = settings.gaugeOnRight,
                             showGaugeNumber = settings.showGaugeNumber,
                             audioOnly = settings.audioOnly,
+                            onSwitchExercise = vm::switchExercise,
                             onQuit = {
                                 lastOutcome = vm.quit()
                                 lastLevelsGained = vm.levelsGained.value

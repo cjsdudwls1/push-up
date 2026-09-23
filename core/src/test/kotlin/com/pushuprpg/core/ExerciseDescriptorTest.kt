@@ -40,6 +40,22 @@ class ExerciseDescriptorTest {
     }
 
     @Test
+    fun `a streak kept across several movements adds each one's share of its own bar`() {
+        // One movement: exactly the single-movement rule, at every bar.
+        ExerciseType.entries.forEach { type ->
+            val bar = Exercises.of(type).streakBar
+            assertTrue(Streak.maintained(mapOf(type to bar)), "$type at its bar")
+            assertTrue(!Streak.maintained(mapOf(type to bar - 1)), "$type one short of its bar")
+        }
+        val pushBar = Exercises.of(ExerciseType.PUSHUP).streakBar
+        val squatBar = Exercises.of(ExerciseType.SQUAT).streakBar
+        // Half of each is a whole day; half of one alone is not.
+        assertTrue(Streak.maintained(mapOf(ExerciseType.PUSHUP to (pushBar + 1) / 2, ExerciseType.SQUAT to (squatBar + 1) / 2)))
+        assertTrue(!Streak.maintained(mapOf(ExerciseType.PUSHUP to pushBar / 2)))
+        assertTrue(!Streak.maintained(emptyMap()))
+    }
+
+    @Test
     fun `counted movements carry a signal and holds deliberately do not`() {
         ExerciseType.entries.forEach { type ->
             val d = Exercises.of(type)

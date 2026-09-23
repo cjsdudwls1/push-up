@@ -37,6 +37,11 @@ class RunTraces(private val device: String) {
         }
     }
 
+    /** Adds to the current recording's notes — a movement switch, say — so a replay can follow it. */
+    fun mark(note: String) {
+        synchronized(lock) { notes = "$notes $note" }
+    }
+
     fun record(frame: PoseFrame) {
         if (!enabled) return
         synchronized(lock) {

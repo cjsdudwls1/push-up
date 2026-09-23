@@ -12,6 +12,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
@@ -29,10 +30,13 @@ import com.pushuprpg.app.R
 import com.pushuprpg.app.pose.CameraPreview
 import com.pushuprpg.app.pose.PoseLandmarkerSource
 import com.pushuprpg.app.ui.components.KeepScreenOn
+import com.pushuprpg.app.ui.components.exerciseHintRes
+import com.pushuprpg.app.ui.components.exerciseLabelRes
 import com.pushuprpg.app.ui.theme.LocalGameColors
 import com.pushuprpg.app.ui.theme.LocalReduceMotion
 import com.pushuprpg.app.ui.theme.Palette
 import com.pushuprpg.app.ui.theme.Type
+import com.pushuprpg.core.detect.ExerciseType
 import com.pushuprpg.core.detect.Exercises
 import com.pushuprpg.core.detect.MovementKind
 import com.pushuprpg.core.detect.PoseQuality
@@ -61,9 +65,21 @@ fun BattleScreen(
     showGaugeNumber: Boolean,
     audioOnly: Boolean,
     onQuit: () -> Unit,
+    onSwitchExercise: (ExerciseType) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     KeepScreenOn()
+
+    var picking by remember { mutableStateOf(false) }
+    // Where to put the phone for the movement just switched to — the one thing worth reading at
+    // that moment — shown for a few seconds and then out of the way.
+    var placementFor by remember { mutableStateOf<ExerciseType?>(null) }
+    LaunchedEffect(placementFor) {
+        if (placementFor != null) {
+            kotlinx.coroutines.delay(PLACEMENT_HINT_MS)
+            placementFor = null
+        }
+    }
 
     val reduceMotion = LocalReduceMotion.current
     val configuration = LocalConfiguration.current
@@ -166,8 +182,141 @@ fun BattleScreen(
                 .align(Alignment.BottomCenter)
                 .padding(bottom = 40.dp),
         )
+
+        // Top right, opposite the close button: switching is a between-sets act, done standing in
+        // front of the phone, so it can sit where the hands are not.
+        Row(
+            Modifier
+                .align(Alignment.TopEnd)
+                .windowInsetsPadding(WindowInsets.safeDrawing)
+                .padding(end = 16.dp, top = 8.dp)
+                .height(48.dp)
+                .clip(CircleShape)
+                .background(Palette.ScrimPanelHigh)
+                .clickable { picking = true }
+                .padding(horizontal = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = stringResource(exerciseLabelRes(state.exercise)),
+                style = Type.labelL,
+                color = Palette.TextPrimary,
+            )
+            Spacer(Modifier.width(6.dp))
+            Icon(
+                imageVector = Icons.Filled.SwapHoriz,
+                contentDescription = stringResource(R.string.battle_switch_title),
+                tint = Palette.TextPrimary,
+                modifier = Modifier.size(20.dp),
+            )
+        }
+
+        placementFor?.let { exercise ->
+            Text(
+                text = stringResource(exerciseLabelRes(exercise)) + " · " + stringResource(exerciseHintRes(exercise)),
+                style = Type.bodyM,
+                color = Palette.TextPrimary,
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(start = 20.dp, end = 20.dp, bottom = 120.dp)
+                    .clip(RoundedCornerShape(18.dp))
+                    .background(Palette.ScrimPanelHigh)
+                    .padding(horizontal = 18.dp, vertical = 12.dp),
+            )
+        }
+
+        if (picking) {
+            ExerciseSwitcher(
+                current = state.exercise,
+                onPick = { picked ->
+                    picking = false
+                    if (picked != state.exercise) {
+                        onSwitchExercise(picked)
+                        placementFor = picked
+                    }
+                },
+                onDismiss = { picking = false },
+            )
+        }
     }
 }
+
+/**
+ * Every movement, two to a row, over the camera.
+ *
+ * Big targets and nothing to read but names: this is opened standing up between sets, often with
+ * chalky or sweaty hands, and the only decision is which movement is next.
+ */
+@Composable
+private fun BoxScope.ExerciseSwitcher(
+    current: ExerciseType,
+    onPick: (ExerciseType) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    Box(
+        Modifier
+            .matchParentSize()
+            .background(Palette.ScrimPanelHigh)
+            .clickable(onClick = onDismiss),
+    )
+    Column(
+        modifier = Modifier
+            .align(Alignment.Center)
+            .fillMaxWidth()
+            .windowInsetsPadding(WindowInsets.safeDrawing)
+            .padding(horizontal = 20.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Text(
+            text = stringResource(R.string.battle_switch_title),
+            style = Type.titleL,
+            color = Palette.TextPrimary,
+        )
+        Text(
+            text = stringResource(R.string.battle_switch_sub),
+            style = Type.bodyM,
+            color = Palette.TextSecondary,
+        )
+        Spacer(Modifier.height(4.dp))
+        ExerciseType.entries.chunked(2).forEach { row ->
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                row.forEach { exercise ->
+                    val isCurrent = exercise == current
+                    Text(
+                        text = stringResource(exerciseLabelRes(exercise)) +
+                            if (isCurrent) " · " + stringResource(R.string.battle_switch_current) else "",
+                        style = Type.labelL,
+                        color = if (isCurrent) Palette.TextOnAccent else Palette.TextPrimary,
+                        textAlign = TextAlign.Center,
+                        maxLines = 1,
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(if (isCurrent) Palette.Brand500 else Palette.Bg3)
+                            .clickable { onPick(exercise) }
+                            .padding(vertical = 16.dp),
+                    )
+                }
+                if (row.size == 1) Spacer(Modifier.weight(1f))
+            }
+        }
+        Spacer(Modifier.height(4.dp))
+        Text(
+            text = stringResource(R.string.action_close),
+            style = Type.labelL,
+            color = Palette.TextSecondary,
+            textAlign = TextAlign.Center,
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(14.dp))
+                .clickable(onClick = onDismiss)
+                .padding(vertical = 14.dp),
+        )
+    }
+}
+
+private const val PLACEMENT_HINT_MS = 7_000L
 
 @Composable
 private fun BoxScope.BattleHudLayout(
