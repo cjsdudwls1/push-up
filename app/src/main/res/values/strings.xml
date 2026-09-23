@@ -40,6 +40,10 @@
     <string name="class_mage_desc">버티기의 힘. 아래에서 멈추고 플랭크로 마나를 모아요.</string>
     <string name="class_archer">궁수</string>
     <string name="class_archer_desc">빠르고 일정하게. 리듬을 지키면 배로 들어가요.</string>
+    <string name="class_change_title">직업 바꾸기</string>
+    <string name="class_change_body">싸우는 방식만 바뀌어요. 레벨과 기록은 그대로고, 몇 번이든 다시 바꿀 수 있어요.</string>
+    <string name="class_current">지금 직업</string>
+    <string name="home_class_change">바꾸기</string>
 
     <!-- Prep / framing -->
     <string name="prep_title">자리 잡기</string>
@@ -159,6 +163,12 @@
     <string name="settings_haptics_light">약하게</string>
     <string name="settings_haptics_medium">보통</string>
     <string name="settings_haptics_strong">강하게</string>
+    <string name="settings_theme">화면 테마</string>
+    <string name="settings_theme_sub">운동하는 화면은 카메라 위에 그려져서 늘 어둡게 보여요.</string>
+    <string name="settings_theme_dark">다크</string>
+    <string name="settings_theme_light">라이트</string>
+    <string name="theme_switch_to_light">라이트 모드로 바꾸기</string>
+    <string name="theme_switch_to_dark">다크 모드로 바꾸기</string>
     <string name="settings_cvd">색각 보정</string>
     <string name="settings_cvd_none">없음</string>
     <string name="settings_cvd_blue_yellow">파랑-노랑</string>

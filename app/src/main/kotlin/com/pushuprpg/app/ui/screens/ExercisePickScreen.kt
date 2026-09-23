@@ -176,7 +176,7 @@ private fun ExerciseRow(
             Text(
                 text = stringResource(R.string.pick_exercise_start),
                 style = Type.labelL,
-                color = Palette.TextPrimary,
+                color = Palette.TextOnBrand,
                 textAlign = TextAlign.Center,
                 modifier = Modifier
                     .fillMaxWidth()

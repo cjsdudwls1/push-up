@@ -104,6 +104,11 @@ sealed class Event(val name: String, val params: Map<String, Any> = emptyMap()) 
     data class ClassPicked(val playerClass: String) :
         Event("class_picked", mapOf("class" to playerClass))
 
+    /** A later change, from the hub or settings. Kept apart from [ClassPicked] so onboarding's
+     *  choice is not blurred by people trying the others. */
+    data class ClassChanged(val from: String, val to: String) :
+        Event("class_changed", mapOf("from" to from, "to" to to))
+
     data class PermissionResolved(val granted: Boolean) :
         Event("camera_permission", mapOf("granted" to granted))
 

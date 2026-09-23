@@ -51,6 +51,9 @@ fun DepthGauge(
     val colors = LocalGameColors.current
     val density = LocalDensity.current
     val textMeasurer = rememberTextMeasurer()
+    // Read here rather than inside the Canvas: it follows the theme, and a draw block is not
+    // composition.
+    val trackInk = Palette.Bg0
 
     Column(
         modifier = modifier,
@@ -81,7 +84,7 @@ fun DepthGauge(
             val corner = CornerRadius(trackWidth / 2f)
 
             drawRoundRect(
-                color = Palette.Bg0.copy(alpha = 0.72f),
+                color = trackInk.copy(alpha = 0.72f),
                 topLeft = Offset(trackLeft, top),
                 size = Size(trackWidth, span),
                 cornerRadius = corner,
@@ -152,7 +155,7 @@ fun DepthGauge(
                 )
             }
             drawRoundRect(
-                color = Palette.Bg0.copy(alpha = 0.85f),
+                color = trackInk.copy(alpha = 0.85f),
                 topLeft = Offset(thumbLeft - 2f, thumbY - thumbHeight / 2f - 2f),
                 size = Size(thumbWidth + 4f, thumbHeight + 4f),
                 cornerRadius = CornerRadius(thumbHeight),

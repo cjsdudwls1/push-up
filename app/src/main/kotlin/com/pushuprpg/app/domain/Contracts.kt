@@ -113,9 +113,18 @@ data class AppSettings(
      */
     val exercise: ExerciseType = ExerciseType.PUSHUP,
     val difficulty: Difficulty = Difficulty.STANDARD,
+    /** The menus' look. The run is dark either way — it is drawn over the camera. */
+    val themeMode: ThemeMode = ThemeMode.DARK,
 )
 
 enum class HapticStrength { OFF, LIGHT, MEDIUM, STRONG }
+
+enum class ThemeMode {
+    DARK,
+    LIGHT;
+
+    fun toggled(): ThemeMode = if (this == DARK) LIGHT else DARK
+}
 
 interface SettingsRepository {
     val settings: Flow<AppSettings>

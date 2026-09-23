@@ -10,6 +10,9 @@ object Routes {
     const val BOOT = "boot"
     const val ONBOARDING = "onboarding"
     const val CLASS_PICK = "class_pick"
+
+    /** The same picker after onboarding, reached from the hub or settings. Pops back when done. */
+    const val CLASS_CHANGE = "class_change"
     const val PERMISSION = "permission"
     const val HOME = "home"
     const val DUNGEON_SELECT = "dungeon_select"
@@ -46,4 +49,13 @@ object Routes {
     const val RESULT = "$RESULT_BASE/{dungeonIndex}"
 
     fun result(dungeonIndex: Int) = "$RESULT_BASE/$dungeonIndex"
+
+    /**
+     * The run, which is dark whatever the user picked for the menus.
+     *
+     * Each of these destinations wraps its screen in `AlwaysDark`; this set is what tells the
+     * system bars the same thing, since they sit outside any one screen. A new camera destination
+     * needs both.
+     */
+    val ALWAYS_DARK = setOf(BATTLE, RESULT, SURVIVAL)
 }

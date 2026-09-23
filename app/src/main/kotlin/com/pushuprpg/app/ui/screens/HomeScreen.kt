@@ -1,5 +1,6 @@
 package com.pushuprpg.app.ui.screens
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -13,11 +14,13 @@ import com.pushuprpg.app.R
 import com.pushuprpg.app.domain.Entitlement
 import com.pushuprpg.app.domain.FreeTier
 import com.pushuprpg.app.domain.PlayerProgress
+import com.pushuprpg.app.domain.ThemeMode
 import com.pushuprpg.app.ui.components.*
 import com.pushuprpg.app.ui.theme.LocalGameColors
 import com.pushuprpg.app.ui.theme.Palette
 import com.pushuprpg.app.ui.theme.Type
 import com.pushuprpg.core.game.Dungeons
+import com.pushuprpg.core.game.PlayerClass
 import com.pushuprpg.core.progression.Levels
 import com.pushuprpg.core.progression.RankProgress
 
@@ -44,6 +47,9 @@ data class HomeUiState(
 @Composable
 fun HomeScreen(
     state: HomeUiState,
+    themeMode: ThemeMode,
+    onToggleTheme: () -> Unit,
+    onChangeClass: () -> Unit,
     onStartDungeon: (Int) -> Unit,
     onRequestPaywall: () -> Unit,
     onDungeonSelect: () -> Unit,
@@ -69,7 +75,9 @@ fun HomeScreen(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Column {
+            // Weighted so the count gives way on a narrow phone rather than pushing the streak and
+            // the theme toggle off the edge.
+            Column(Modifier.weight(1f)) {
                 Text(
                     text = stringResource(R.string.home_today_reps, state.todayReps),
                     style = Type.headline,
@@ -82,7 +90,10 @@ fun HomeScreen(
                     color = Palette.TextSecondary,
                 )
             }
+            Spacer(Modifier.width(12.dp))
             StreakChip(days = state.progress.streakDays)
+            Spacer(Modifier.width(8.dp))
+            ThemeToggle(mode = themeMode, onToggle = onToggleTheme)
         }
 
         // A nudge only when there is something to nudge about. Saying it every day would make the
@@ -139,6 +150,9 @@ fun HomeScreen(
         Spacer(Modifier.height(26.dp))
         RankCard(rankProgress = rank, modifier = Modifier.fillMaxWidth())
 
+        Spacer(Modifier.height(12.dp))
+        ClassCard(playerClass = state.progress.playerClass, onClick = onChangeClass)
+
         Spacer(Modifier.height(24.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             SecondaryButton(
@@ -152,5 +166,44 @@ fun HomeScreen(
                 modifier = Modifier.weight(1f),
             )
         }
+    }
+}
+
+/**
+ * The current class, and the way to a different one.
+ *
+ * On the hub rather than only in settings: the class-pick screen promises the choice can be
+ * changed any time, and that promise is only kept if the way back is somewhere people look.
+ */
+@Composable
+private fun ClassCard(playerClass: PlayerClass, onClick: () -> Unit) {
+    val (nameRes, descRes) = classStrings(playerClass)
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .cardSurface()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 20.dp, vertical = 16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(
+                text = stringResource(nameRes),
+                style = Type.titleM,
+                color = Palette.TextPrimary,
+            )
+            Spacer(Modifier.height(4.dp))
+            Text(
+                text = stringResource(descRes),
+                style = Type.bodyM,
+                color = Palette.TextSecondary,
+            )
+        }
+        Spacer(Modifier.width(12.dp))
+        Text(
+            text = stringResource(R.string.home_class_change),
+            style = Type.labelL,
+            color = Palette.Brand400,
+        )
     }
 }

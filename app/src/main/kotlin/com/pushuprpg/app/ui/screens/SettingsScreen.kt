@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.dp
 import com.pushuprpg.app.R
 import com.pushuprpg.app.domain.AppSettings
 import com.pushuprpg.app.domain.HapticStrength
+import com.pushuprpg.app.domain.ThemeMode
 import com.pushuprpg.app.ui.components.SectionHeader
 import com.pushuprpg.app.ui.components.cardSurface
 import com.pushuprpg.app.ui.theme.LocalGameColors
@@ -30,6 +31,7 @@ fun SettingsScreen(
     settings: AppSettings,
     onChange: ((AppSettings) -> AppSettings) -> Unit,
     onRecalibrate: () -> Unit,
+    onChangeClass: () -> Unit,
     onOpenPrivacy: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -61,6 +63,22 @@ fun SettingsScreen(
 
         Spacer(Modifier.height(10.dp))
         SectionHeader(text = "표시")
+        SegmentedSetting(
+            title = stringResource(R.string.settings_theme),
+            // Said here so that a dark battle screen after picking light does not read as a bug.
+            subtitle = stringResource(R.string.settings_theme_sub),
+            options = ThemeMode.entries,
+            labelFor = {
+                stringResource(
+                    when (it) {
+                        ThemeMode.DARK -> R.string.settings_theme_dark
+                        ThemeMode.LIGHT -> R.string.settings_theme_light
+                    }
+                )
+            },
+            selected = settings.themeMode,
+            onSelect = { v -> onChange { it.copy(themeMode = v) } },
+        )
         SegmentedSetting(
             title = stringResource(R.string.settings_overlay),
             options = SkeletonMode.entries,
@@ -159,6 +177,10 @@ fun SettingsScreen(
             labelFor = { it.korean },
             selected = settings.difficulty,
             onSelect = { v -> onChange { it.copy(difficulty = v) } },
+        )
+        ActionSetting(
+            title = stringResource(R.string.class_change_title),
+            onClick = onChangeClass,
         )
         ActionSetting(
             title = stringResource(R.string.settings_recalibrate),
@@ -260,6 +282,7 @@ private fun <T> SegmentedSetting(
     labelFor: @Composable (T) -> String,
     selected: T,
     onSelect: (T) -> Unit,
+    subtitle: String? = null,
 ) {
     Column(
         modifier = Modifier
@@ -268,6 +291,10 @@ private fun <T> SegmentedSetting(
             .padding(16.dp),
     ) {
         Text(text = title, style = Type.bodyL, color = Palette.TextPrimary)
+        if (subtitle != null) {
+            Spacer(Modifier.height(4.dp))
+            Text(text = subtitle, style = Type.bodyM, color = Palette.TextSecondary)
+        }
         Spacer(Modifier.height(10.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             options.forEach { option ->

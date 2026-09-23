@@ -122,14 +122,16 @@ private fun DifficultyRow(
                 Text(
                     text = difficulty.korean,
                     style = Type.labelL,
-                    color = if (active) Palette.TextPrimary else Palette.TextSecondary,
+                    color = if (active) Palette.TextOnBrand else Palette.TextSecondary,
                 )
                 if (difficulty == recommended) {
                     Spacer(Modifier.height(2.dp))
                     Text(
                         text = stringResource(R.string.difficulty_recommended),
                         style = Type.labelS,
-                        color = colors.accept,
+                        // On the selected chip the fill is brand purple, and the light theme's
+                        // deep green all but disappears into it.
+                        color = if (active) Palette.TextOnBrand else colors.accept,
                     )
                 }
             }

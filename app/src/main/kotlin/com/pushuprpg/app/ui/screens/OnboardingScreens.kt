@@ -13,41 +13,73 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.pushuprpg.app.R
+import com.pushuprpg.app.domain.ThemeMode
 import com.pushuprpg.app.ui.components.Pill
 import com.pushuprpg.app.ui.components.PrimaryButton
+import com.pushuprpg.app.ui.components.ThemeToggle
 import com.pushuprpg.app.ui.components.cardSurface
 import com.pushuprpg.app.ui.theme.LocalGameColors
 import com.pushuprpg.app.ui.theme.Palette
 import com.pushuprpg.app.ui.theme.Type
 import com.pushuprpg.core.game.PlayerClass
 
-/** One screen, one idea, one button. A carousel here would only lose people before the workout. */
+/**
+ * One screen, one idea, one button. A carousel here would only lose people before the workout.
+ *
+ * The theme toggle is the exception, and it sits in a corner rather than in the flow: this is the
+ * first screen anyone sees, so it is where the look should be choosable, but it is not a question
+ * anybody has to answer before starting.
+ */
 @Composable
-fun OnboardingScreen(onContinue: () -> Unit, modifier: Modifier = Modifier) {
-    Column(
+fun OnboardingScreen(
+    themeMode: ThemeMode,
+    onToggleTheme: () -> Unit,
+    onContinue: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Box(
         modifier = modifier
             .fillMaxSize()
-            .windowInsetsPadding(WindowInsets.safeDrawing)
-            .padding(horizontal = 24.dp)
-            .padding(top = 80.dp, bottom = 32.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
+            .windowInsetsPadding(WindowInsets.safeDrawing),
     ) {
-        Text(
-            text = stringResource(R.string.onboarding_title),
-            style = Type.headline,
-            color = Palette.TextPrimary,
-            textAlign = TextAlign.Center,
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 24.dp)
+                .padding(top = 80.dp, bottom = 32.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Text(
+                text = stringResource(R.string.onboarding_title),
+                style = Type.headline,
+                color = Palette.TextPrimary,
+                textAlign = TextAlign.Center,
+            )
+            Spacer(Modifier.height(14.dp))
+            Text(
+                text = stringResource(R.string.onboarding_body),
+                style = Type.bodyL,
+                color = Palette.TextSecondary,
+                textAlign = TextAlign.Center,
+            )
+            Spacer(Modifier.weight(1f))
+            PrimaryButton(text = stringResource(R.string.action_start), onClick = onContinue)
+        }
+        ThemeToggle(
+            mode = themeMode,
+            onToggle = onToggleTheme,
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(top = 12.dp, end = 16.dp),
         )
-        Spacer(Modifier.height(14.dp))
-        Text(
-            text = stringResource(R.string.onboarding_body),
-            style = Type.bodyL,
-            color = Palette.TextSecondary,
-            textAlign = TextAlign.Center,
-        )
-        Spacer(Modifier.weight(1f))
-        PrimaryButton(text = stringResource(R.string.action_start), onClick = onContinue)
     }
+}
+
+/** A class's name and its one line about the training it rewards, as string resources. */
+internal fun classStrings(playerClass: PlayerClass): Pair<Int, Int> = when (playerClass) {
+    PlayerClass.KNIGHT -> R.string.class_knight to R.string.class_knight_desc
+    PlayerClass.MAGE -> R.string.class_mage to R.string.class_mage_desc
+    PlayerClass.ARCHER -> R.string.class_archer to R.string.class_archer_desc
 }
 
 /**
@@ -57,12 +89,18 @@ fun OnboardingScreen(onContinue: () -> Unit, modifier: Modifier = Modifier) {
  * actually is — the knight is for people who like slow heavy reps, the mage for people who would
  * rather hold a position than do many, the archer for people who like pace. Framing it as numbers
  * would make it a min-max puzzle instead of a question about their own body.
+ *
+ * The same screen changes the class later: pass the player's [current] class and it is marked,
+ * and the copy says what a change keeps. Null means onboarding, where nothing has been chosen.
+ * A change costs nothing: level, XP and records belong to the player rather than the class, and a
+ * fight's HP is a count of reps that is the same whichever class is doing them.
  */
 @Composable
 fun ClassPickScreen(
     capacity: Float,
     onPick: (PlayerClass) -> Unit,
     modifier: Modifier = Modifier,
+    current: PlayerClass? = null,
 ) {
     val colors = LocalGameColors.current
     // Isometric holds turn time under tension into damage, which is the one route that works for
@@ -78,29 +116,33 @@ fun ClassPickScreen(
             .padding(top = 60.dp, bottom = 32.dp),
     ) {
         Text(
-            text = stringResource(R.string.class_pick_title),
+            text = stringResource(
+                if (current == null) R.string.class_pick_title else R.string.class_change_title
+            ),
             style = Type.headline,
             color = Palette.TextPrimary,
         )
         Spacer(Modifier.height(8.dp))
         Text(
-            text = stringResource(R.string.class_pick_body),
+            text = stringResource(
+                if (current == null) R.string.class_pick_body else R.string.class_change_body
+            ),
             style = Type.bodyL,
             color = Palette.TextSecondary,
         )
         Spacer(Modifier.height(22.dp))
 
         PlayerClass.entries.forEach { playerClass ->
-            val (nameRes, descRes) = when (playerClass) {
-                PlayerClass.KNIGHT -> R.string.class_knight to R.string.class_knight_desc
-                PlayerClass.MAGE -> R.string.class_mage to R.string.class_mage_desc
-                PlayerClass.ARCHER -> R.string.class_archer to R.string.class_archer_desc
-            }
+            val (nameRes, descRes) = classStrings(playerClass)
+            val isCurrent = playerClass == current
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(bottom = 12.dp)
-                    .cardSurface(shape = RoundedCornerShape(18.dp))
+                    .cardSurface(
+                        shape = RoundedCornerShape(18.dp),
+                        borderColor = if (isCurrent) Palette.Brand500 else Palette.StrokeSoft,
+                    )
                     .clickable { onPick(playerClass) }
                     .padding(18.dp),
             ) {
@@ -110,7 +152,11 @@ fun ClassPickScreen(
                         style = Type.titleL,
                         color = Palette.TextPrimary,
                     )
-                    if (playerClass == recommended) {
+                    // One pill per card. Where you are now outranks a recommendation.
+                    if (isCurrent) {
+                        Spacer(Modifier.width(8.dp))
+                        Pill(text = stringResource(R.string.class_current), tint = Palette.Brand400)
+                    } else if (playerClass == recommended) {
                         Spacer(Modifier.width(8.dp))
                         Pill(text = stringResource(R.string.difficulty_recommended), tint = colors.accept)
                     }

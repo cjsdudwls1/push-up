@@ -4,6 +4,7 @@ import androidx.annotation.StringRes
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,13 +20,18 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.DarkMode
+import androidx.compose.material.icons.rounded.LightMode
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalView
@@ -33,11 +39,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.pushuprpg.app.R
+import com.pushuprpg.app.domain.ThemeMode
 import com.pushuprpg.app.ui.theme.LocalGameColors
 import com.pushuprpg.app.ui.theme.Palette
 import com.pushuprpg.app.ui.theme.Type
@@ -52,7 +60,10 @@ val CardShape: Shape = RoundedCornerShape(20.dp)
 /**
  * Card chrome as a modifier rather than a wrapper composable, so callers stay free to be a Row, a
  * Column or a clickable — every hub surface is a different shape of the same card.
+ *
+ * Composable only because its default colours follow the theme; it holds no state.
  */
+@Composable
 fun Modifier.cardSurface(
     shape: Shape = CardShape,
     color: Color = Palette.Bg2,
@@ -141,6 +152,8 @@ fun StatTile(
 }
 
 /** Rank tiers share the four colours the palette already defines for loot rarity. */
+@Composable
+@ReadOnlyComposable
 fun rankColour(rank: Rank): Color = when (rank) {
     Rank.SEEDLING, Rank.TRAINEE -> Palette.TierCommon
     Rank.WARRIOR, Rank.VETERAN -> Palette.TierRare
@@ -296,6 +309,35 @@ fun StreakChip(days: Int, modifier: Modifier = Modifier) {
             style = Type.labelL,
             color = if (alive) Palette.TextPrimary else Palette.TextSecondary,
             maxLines = 1,
+        )
+    }
+}
+
+/**
+ * Dark or light, as one tap.
+ *
+ * The icon is the mode a tap switches *to* — a sun on the dark screen, a moon on the light one —
+ * and the spoken label says so in words, because an icon alone can be read either way.
+ */
+@Composable
+fun ThemeToggle(mode: ThemeMode, onToggle: () -> Unit, modifier: Modifier = Modifier) {
+    val toLight = mode == ThemeMode.DARK
+    Box(
+        modifier = modifier
+            .size(48.dp)
+            .clip(CircleShape)
+            .background(Palette.Bg2)
+            .border(1.dp, Palette.StrokeSoft, CircleShape)
+            .clickable(role = Role.Button, onClick = onToggle),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            imageVector = if (toLight) Icons.Rounded.LightMode else Icons.Rounded.DarkMode,
+            contentDescription = stringResource(
+                if (toLight) R.string.theme_switch_to_light else R.string.theme_switch_to_dark
+            ),
+            tint = Palette.TextPrimary,
+            modifier = Modifier.size(22.dp),
         )
     }
 }

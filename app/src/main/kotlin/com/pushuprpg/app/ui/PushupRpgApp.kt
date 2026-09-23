@@ -24,16 +24,21 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
 import android.widget.Toast
+import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
+import androidx.activity.enableEdgeToEdge
 import androidx.core.net.toUri
 import com.pushuprpg.app.AppContainer
 import com.pushuprpg.app.domain.AppSettings
 import com.pushuprpg.app.domain.FreeTier
+import com.pushuprpg.app.domain.ThemeMode
 import com.pushuprpg.app.domain.capacityOf
 import com.pushuprpg.core.detect.ExerciseType
 import com.pushuprpg.app.pose.PoseFrameSink
@@ -46,6 +51,7 @@ import com.pushuprpg.app.ui.result.ResultScreen
 import com.pushuprpg.app.ui.screens.*
 import androidx.compose.material3.Text
 import com.pushuprpg.app.R
+import com.pushuprpg.app.ui.theme.AlwaysDark
 import com.pushuprpg.app.ui.theme.Palette
 import com.pushuprpg.app.ui.theme.Type
 import com.pushuprpg.app.ui.theme.PushupRpgTheme
@@ -77,10 +83,12 @@ fun PushupRpgApp(
     val scope = rememberCoroutineScope()
     val navController = rememberNavController()
 
-    val settings by container.settingsRepository.settings.collectAsState(initial = AppSettings())
     // Collected nullably so "not loaded yet" is distinguishable from "not onboarded". With a
     // non-null default the graph starts at onboarding for a returning user and then rebuilds when
-    // the real value lands.
+    // the real value lands. Settings the same way, because the theme is one: a default there would
+    // draw a light-mode user's first frames dark.
+    val settingsState by container.settingsRepository.settings.collectAsState(initial = null)
+    val settings = settingsState ?: AppSettings()
     val progressState by container.progressRepository.progress.collectAsState(initial = null)
     val progress = progressState ?: com.pushuprpg.app.domain.PlayerProgress()
     val entitlement by container.entitlementRepository.entitlement.collectAsState(
@@ -113,13 +121,28 @@ fun PushupRpgApp(
         onDispose { poseSource.close() }
     }
 
+    val darkTheme = settings.themeMode == ThemeMode.DARK
+    val backStackEntry by navController.currentBackStackEntryAsState()
+    SystemBars(darkSurface = darkTheme || backStackEntry?.destination?.route in Routes.ALWAYS_DARK)
+
+    val toggleTheme: () -> Unit = {
+        scope.launch {
+            container.settingsRepository.update { it.copy(themeMode = it.themeMode.toggled()) }
+        }
+    }
+    val changeClass: () -> Unit = {
+        navController.navigate(Routes.CLASS_CHANGE) { launchSingleTop = true }
+    }
+
     PushupRpgTheme(
+        darkTheme = darkTheme,
         colourBlindSafe = settings.colourBlindSafe,
         reduceMotion = settings.reduceMotion,
     ) {
         Box(Modifier.fillMaxSize().background(Palette.Bg1)) {
-            // Nothing is drawn until persisted progress has landed; see the nullable collect above.
-            if (progressState == null) return@Box
+            // Nothing is drawn until persisted progress and settings have landed; see the nullable
+            // collects above.
+            if (progressState == null || settingsState == null) return@Box
 
             // NavHost memoises its graph on startDestination, and a changed one wipes the whole
             // back stack. It is therefore decided exactly once.
@@ -137,7 +160,11 @@ fun PushupRpgApp(
                 startDestination = startDestination,
             ) {
                 composable(Routes.ONBOARDING) {
-                    OnboardingScreen(onContinue = { navController.navigate(Routes.CLASS_PICK) })
+                    OnboardingScreen(
+                        themeMode = settings.themeMode,
+                        onToggleTheme = toggleTheme,
+                        onContinue = { navController.navigate(Routes.CLASS_PICK) },
+                    )
                 }
 
                 composable(Routes.CLASS_PICK) {
@@ -159,6 +186,29 @@ fun PushupRpgApp(
                             ) {
                                 popUpTo(Routes.ONBOARDING) { inclusive = true }
                             }
+                        },
+                    )
+                }
+
+                composable(Routes.CLASS_CHANGE) {
+                    ClassPickScreen(
+                        capacity = progress.capacityOf(ExerciseType.PUSHUP),
+                        current = progress.playerClass,
+                        onPick = { playerClass: PlayerClass ->
+                            val from = progress.playerClass
+                            if (playerClass != from) {
+                                scope.launch {
+                                    container.progressRepository.update {
+                                        it.copy(playerClass = playerClass)
+                                    }
+                                    container.telemetry.log(
+                                        Event.ClassChanged(from = from.name, to = playerClass.name)
+                                    )
+                                }
+                            }
+                            // By route rather than a bare pop, so a second tap that lands before
+                            // the screen has gone cannot pop the hub along with it.
+                            navController.popBackStack(Routes.CLASS_CHANGE, inclusive = true)
                         },
                     )
                 }
@@ -186,6 +236,9 @@ fun PushupRpgApp(
                     val state by vm.state.collectAsState()
                     HomeScreen(
                         state = state,
+                        themeMode = settings.themeMode,
+                        onToggleTheme = toggleTheme,
+                        onChangeClass = changeClass,
                         onStartDungeon = { navController.navigate(Routes.exercisePick(it)) },
                         onRequestPaywall = {
                             container.telemetry.log(Event.PaywallShown("home"))
@@ -268,22 +321,24 @@ fun PushupRpgApp(
                         }
                     }
 
-                    BattleScreen(
-                        state = state,
-                        playerClass = progress.playerClass,
-                        poseSource = poseSource,
-                        sessionBestDepth = vm.currentSessionBestDepth(),
-                        gaugeOnRight = settings.gaugeOnRight,
-                        showGaugeNumber = settings.showGaugeNumber,
-                        audioOnly = settings.audioOnly,
-                        onQuit = {
-                            lastOutcome = vm.quit()
-                            lastLevelsGained = vm.levelsGained.value
-                            navController.navigate(Routes.result(dungeonIndex)) {
-                                popUpTo(Routes.BATTLE) { inclusive = true }
-                            }
-                        },
-                    )
+                    AlwaysDark {
+                        BattleScreen(
+                            state = state,
+                            playerClass = progress.playerClass,
+                            poseSource = poseSource,
+                            sessionBestDepth = vm.currentSessionBestDepth(),
+                            gaugeOnRight = settings.gaugeOnRight,
+                            showGaugeNumber = settings.showGaugeNumber,
+                            audioOnly = settings.audioOnly,
+                            onQuit = {
+                                lastOutcome = vm.quit()
+                                lastLevelsGained = vm.levelsGained.value
+                                navController.navigate(Routes.result(dungeonIndex)) {
+                                    popUpTo(Routes.BATTLE) { inclusive = true }
+                                }
+                            },
+                        )
+                    }
                 }
 
                 composable(
@@ -297,51 +352,53 @@ fun PushupRpgApp(
                             navController.navigate(Routes.HOME) { popUpTo(Routes.HOME) { inclusive = true } }
                         }
                     } else {
-                        ResultScreen(
-                            outcome = outcome,
-                            dungeonName = Dungeons.byIndex(dungeonIndex)?.korean.orEmpty(),
-                            lifetimeReps = progress.lifetimeReps,
-                            level = progress.level,
-                            levelsGained = lastLevelsGained,
-                            hasNextDungeon = dungeonIndex < Dungeons.ALL.size,
-                            onNextDungeon = {
-                                val next = dungeonIndex + 1
-                                // The same gate the dungeon list applies; without it the clear
-                                // screen was a way past the paywall.
-                                val route = if (FreeTier.canPlayDungeon(next, entitlement)) {
-                                    Routes.exercisePick(next)
-                                } else {
-                                    Routes.PAYWALL
-                                }
-                                navController.navigate(route) {
-                                    popUpTo(Routes.RESULT) { inclusive = true }
-                                }
-                            },
-                            onRetry = {
-                                navController.navigate(Routes.exercisePick(dungeonIndex)) {
-                                    popUpTo(Routes.RESULT) { inclusive = true }
-                                }
-                            },
-                            onShare = {
-                                onShare(
-                                    ShareCardData.Dungeon(
-                                        dungeonName = Dungeons.byIndex(dungeonIndex)?.korean.orEmpty(),
-                                        cleared = outcome.cleared,
-                                        reps = outcome.reps,
-                                        maxCombo = outcome.maxCombo,
-                                        seconds = (outcome.durationMs / 1000).toInt(),
-                                        rankKorean = Rank.forLifetimeReps(progress.lifetimeReps).korean,
-                                        lifetimeReps = progress.lifetimeReps,
+                        AlwaysDark {
+                            ResultScreen(
+                                outcome = outcome,
+                                dungeonName = Dungeons.byIndex(dungeonIndex)?.korean.orEmpty(),
+                                lifetimeReps = progress.lifetimeReps,
+                                level = progress.level,
+                                levelsGained = lastLevelsGained,
+                                hasNextDungeon = dungeonIndex < Dungeons.ALL.size,
+                                onNextDungeon = {
+                                    val next = dungeonIndex + 1
+                                    // The same gate the dungeon list applies; without it the clear
+                                    // screen was a way past the paywall.
+                                    val route = if (FreeTier.canPlayDungeon(next, entitlement)) {
+                                        Routes.exercisePick(next)
+                                    } else {
+                                        Routes.PAYWALL
+                                    }
+                                    navController.navigate(route) {
+                                        popUpTo(Routes.RESULT) { inclusive = true }
+                                    }
+                                },
+                                onRetry = {
+                                    navController.navigate(Routes.exercisePick(dungeonIndex)) {
+                                        popUpTo(Routes.RESULT) { inclusive = true }
+                                    }
+                                },
+                                onShare = {
+                                    onShare(
+                                        ShareCardData.Dungeon(
+                                            dungeonName = Dungeons.byIndex(dungeonIndex)?.korean.orEmpty(),
+                                            cleared = outcome.cleared,
+                                            reps = outcome.reps,
+                                            maxCombo = outcome.maxCombo,
+                                            seconds = (outcome.durationMs / 1000).toInt(),
+                                            rankKorean = Rank.forLifetimeReps(progress.lifetimeReps).korean,
+                                            lifetimeReps = progress.lifetimeReps,
+                                        )
                                     )
-                                )
-                            },
-                            onRecords = { navController.navigate(Routes.RECORDS) },
-                            onHome = {
-                                navController.navigate(Routes.HOME) {
-                                    popUpTo(Routes.HOME) { inclusive = true }
-                                }
-                            },
-                        )
+                                },
+                                onRecords = { navController.navigate(Routes.RECORDS) },
+                                onHome = {
+                                    navController.navigate(Routes.HOME) {
+                                        popUpTo(Routes.HOME) { inclusive = true }
+                                    }
+                                },
+                            )
+                        }
                     }
                 }
 
@@ -360,24 +417,26 @@ fun PushupRpgApp(
                         onDispose { frameSink.detach(consumer) }
                     }
 
-                    SurvivalScreen(
-                        state = state,
-                        bestScore = best,
-                        poseSource = poseSource,
-                        isTutorial = isTutorial,
-                        onRetry = vm::restart,
-                        onShare = onShare,
-                        onHome = {
-                            if (isTutorial) {
-                                vm.finishTutorial()
-                                navController.navigate(Routes.HOME) {
-                                    popUpTo(Routes.SURVIVAL) { inclusive = true }
+                    AlwaysDark {
+                        SurvivalScreen(
+                            state = state,
+                            bestScore = best,
+                            poseSource = poseSource,
+                            isTutorial = isTutorial,
+                            onRetry = vm::restart,
+                            onShare = onShare,
+                            onHome = {
+                                if (isTutorial) {
+                                    vm.finishTutorial()
+                                    navController.navigate(Routes.HOME) {
+                                        popUpTo(Routes.SURVIVAL) { inclusive = true }
+                                    }
+                                } else {
+                                    navController.popBackStack()
                                 }
-                            } else {
-                                navController.popBackStack()
-                            }
-                        },
-                    )
+                            },
+                        )
+                    }
                 }
 
                 composable(Routes.RECORDS) {
@@ -415,6 +474,7 @@ fun PushupRpgApp(
                                 }
                             }
                         },
+                        onChangeClass = changeClass,
                         onOpenPrivacy = { openUrl(context, context.getString(R.string.privacy_policy_url)) },
                     )
                 }
@@ -439,17 +499,20 @@ fun PushupRpgApp(
             // Both delegates failing leaves a live preview with a counter frozen at zero. Saying
             // so is the difference between a broken app and a recoverable one.
             poseError?.let {
-                Text(
-                    text = stringResource(R.string.error_model_load),
-                    style = Type.bodyM,
-                    color = Palette.TextPrimary,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .fillMaxWidth()
-                        .background(Palette.ScrimPanelHigh)
-                        .padding(horizontal = 20.dp, vertical = 14.dp),
-                )
+                // Over whichever screen is up, camera included, on a fixed dark scrim.
+                AlwaysDark {
+                    Text(
+                        text = stringResource(R.string.error_model_load),
+                        style = Type.bodyM,
+                        color = Palette.TextPrimary,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .fillMaxWidth()
+                            .background(Palette.ScrimPanelHigh)
+                            .padding(horizontal = 20.dp, vertical = 14.dp),
+                    )
+                }
             }
         }
     }
@@ -471,6 +534,33 @@ internal var lastOutcome: com.pushuprpg.core.run.Outcome? = null
 
 /** Travels with [lastOutcome]; the battle entry is popped before the result screen composes. */
 internal var lastLevelsGained: Int = 0
+
+/**
+ * Status and navigation bar icons that match the surface under them.
+ *
+ * The bars are drawn edge to edge, so only their icons (and the navigation scrim below API 29) are
+ * ours to choose. Left at [enableEdgeToEdge]'s defaults they follow the *system* theme, which put
+ * dark icons over this app's dark screens for anyone whose phone is in light mode — and, now that
+ * the menus can be light, would do the reverse as well.
+ */
+@Composable
+private fun SystemBars(darkSurface: Boolean) {
+    val activity = LocalContext.current as? ComponentActivity ?: return
+    DisposableEffect(activity, darkSurface) {
+        activity.enableEdgeToEdge(
+            statusBarStyle = SystemBarStyle.auto(
+                android.graphics.Color.TRANSPARENT,
+                android.graphics.Color.TRANSPARENT,
+            ) { darkSurface },
+            navigationBarStyle = SystemBarStyle.auto(LIGHT_NAV_SCRIM, DARK_NAV_SCRIM) { darkSurface },
+        )
+        onDispose {}
+    }
+}
+
+/** [enableEdgeToEdge]'s own default scrims, which it keeps private. */
+private val LIGHT_NAV_SCRIM = android.graphics.Color.argb(0xE6, 0xFF, 0xFF, 0xFF)
+private val DARK_NAV_SCRIM = android.graphics.Color.argb(0x80, 0x1B, 0x1B, 0x1B)
 
 /**
  * Opens a link in whatever the device uses for the web.
