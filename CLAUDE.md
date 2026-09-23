@@ -68,6 +68,10 @@ stops attacking. A user must never lose health because the tracker blinked.
 view all let it keep coming. It is a sprint, and a sprint you can pause by sitting up is not one. Do
 not "fix" it back to pausing.
 
+The cat's fear, its lines and its sounds are decided by `CatCompanion` in `:core`, from the run's
+state and events; the screen draws the `CatView` it is given and plays the sounds, and decides
+nothing about how the cat feels. It never changes the game — `CatCompanionTest` pins when it speaks.
+
 ## Copy
 
 Korean is the default locale, not a translation. Voice is 해요체 — an encouraging training partner,

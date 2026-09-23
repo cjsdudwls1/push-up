@@ -47,6 +47,8 @@ private val KEY_EXERCISE = stringPreferencesKey("exercise")
 private val KEY_DIFFICULTY = stringPreferencesKey("difficulty")
 private val KEY_THEME_MODE = stringPreferencesKey("theme_mode")
 private val KEY_RECORD_TRACES = booleanPreferencesKey("record_traces")
+private val KEY_CAT_NAME = stringPreferencesKey("cat_name")
+private val KEY_CAT_COAT = stringPreferencesKey("cat_coat")
 
 private fun Preferences.toSettings(): AppSettings = AppSettings(
     skeletonMode = enumOrDefault(this[KEY_SKELETON_MODE], SETTINGS_DEFAULT.skeletonMode),
@@ -65,6 +67,8 @@ private fun Preferences.toSettings(): AppSettings = AppSettings(
     difficulty = enumOrDefault(this[KEY_DIFFICULTY], SETTINGS_DEFAULT.difficulty),
     themeMode = enumOrDefault(this[KEY_THEME_MODE], SETTINGS_DEFAULT.themeMode),
     recordTraces = this[KEY_RECORD_TRACES] ?: SETTINGS_DEFAULT.recordTraces,
+    catName = this[KEY_CAT_NAME] ?: SETTINGS_DEFAULT.catName,
+    catCoat = enumOrDefault(this[KEY_CAT_COAT], SETTINGS_DEFAULT.catCoat),
 )
 
 private fun MutablePreferences.writeSettings(s: AppSettings) {
@@ -84,6 +88,8 @@ private fun MutablePreferences.writeSettings(s: AppSettings) {
     this[KEY_DIFFICULTY] = s.difficulty.name
     this[KEY_THEME_MODE] = s.themeMode.name
     this[KEY_RECORD_TRACES] = s.recordTraces
+    this[KEY_CAT_NAME] = s.catName
+    this[KEY_CAT_COAT] = s.catCoat.name
 }
 
 /**

@@ -58,6 +58,9 @@ object Type {
 
     /** The floor for anything drawn over the camera image. */
     val bodyM = text(15, 22, FontWeight.Normal)
+
+    /** A text field's floating label, once it has floated. Not for prose; see AppTypography. */
+    val bodyS = text(13, 18, FontWeight.Normal)
     val labelL = text(14, 18, FontWeight.SemiBold, 0.01f)
     val labelM = text(13, 16, FontWeight.SemiBold, 0.02f)
 

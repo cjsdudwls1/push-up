@@ -120,9 +120,32 @@ data class AppSettings(
      * builds; see [com.pushuprpg.app.trace.RunTraces].
      */
     val recordTraces: Boolean = false,
+    /**
+     * What the user calls the cat in 고냥이 지켜줘. Blank means the default, which is a string
+     * resource rather than a literal here, so it follows the locale like every other word.
+     */
+    val catName: String = "",
+    val catCoat: CatCoat = CatCoat.CREAM,
 )
 
 enum class HapticStrength { OFF, LIGHT, MEDIUM, STRONG }
+
+/**
+ * The cat's coat. A cat someone has named and coloured like their own is a cat they protect
+ * harder, which is the whole of this mode — so it is a setting, not a reward to be unlocked.
+ */
+enum class CatCoat {
+    /** The original, and the share card's default. */
+    CREAM,
+    /** 치즈 — orange tabby. */
+    CHEESE,
+    /** 고등어 — grey mackerel tabby. */
+    MACKEREL,
+    /** 턱시도 — black with a white bib and socks. */
+    TUXEDO,
+    /** 삼색 — white with orange and black patches. */
+    CALICO,
+}
 
 enum class ThemeMode {
     DARK,

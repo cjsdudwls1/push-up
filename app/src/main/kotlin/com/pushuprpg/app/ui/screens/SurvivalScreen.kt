@@ -1,24 +1,34 @@
 package com.pushuprpg.app.ui.screens
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.pushuprpg.app.R
+import com.pushuprpg.app.domain.CatCoat
 import com.pushuprpg.app.pose.CameraPreview
 import com.pushuprpg.app.pose.PoseLandmarkerSource
 import com.pushuprpg.app.share.ShareCardData
@@ -26,11 +36,19 @@ import com.pushuprpg.app.ui.components.KeepScreenOn
 import com.pushuprpg.app.ui.components.PrimaryButton
 import com.pushuprpg.app.ui.components.SecondaryButton
 import com.pushuprpg.app.ui.components.cardSurface
+import com.pushuprpg.app.ui.components.catHeadTop
+import com.pushuprpg.app.ui.components.drawCat
+import com.pushuprpg.app.ui.components.drawHearts
+import com.pushuprpg.app.ui.theme.LocalReduceMotion
 import com.pushuprpg.app.ui.theme.Palette
 import com.pushuprpg.app.ui.theme.Type
 import com.pushuprpg.app.ui.components.exerciseHintRes
 import com.pushuprpg.app.ui.components.exerciseLabelRes
 import com.pushuprpg.core.detect.ExerciseType
+import com.pushuprpg.core.survival.CatLine
+import com.pushuprpg.core.survival.CatName
+import com.pushuprpg.core.survival.CatSpeech
+import com.pushuprpg.core.survival.CatView
 import com.pushuprpg.core.survival.SurvivalState
 
 /**
@@ -51,10 +69,15 @@ fun SurvivalScreen(
     onShare: (ShareCardData) -> Unit,
     onHome: () -> Unit,
     modifier: Modifier = Modifier,
+    cat: CatView = CatView(),
+    /** As the user typed it; blank is the default name. */
+    catName: String = "",
+    catCoat: CatCoat = CatCoat.CREAM,
 ) {
     KeepScreenOn()
+    val name = catName.ifBlank { stringResource(R.string.cat_default_name) }
 
-    Box(modifier.fillMaxSize().background(Color(0xFF1A1208))) {
+    BoxWithConstraints(modifier.fillMaxSize().background(Color(0xFF1A1208))) {
 
         CameraPreview(source = poseSource, modifier = Modifier.fillMaxSize())
 
@@ -71,7 +94,19 @@ fun SurvivalScreen(
                 )
         )
 
-        CeilingAndCat(state = state, modifier = Modifier.fillMaxSize())
+        CeilingAndCat(state = state, cat = cat, coat = catCoat, modifier = Modifier.fillMaxSize())
+
+        // Above the cat's head, where a speech bubble belongs. The canvas places the cat by the same
+        // proportions, so this lands on it at any screen size.
+        val bubbleBottom = catHeadTop(baseY = maxHeight.value * FLOOR_AT, scale = maxWidth.value / CAT_SCALE_WIDTH, mood = cat.mood)
+        CatBubbleSlot(
+            speech = cat.speech,
+            name = name,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = (maxHeight.value - bubbleBottom).dp + 6.dp)
+                .padding(horizontal = 32.dp),
+        )
 
         Column(
             modifier = Modifier
@@ -130,6 +165,7 @@ fun SurvivalScreen(
                 )
             } else {
                 GameOverCard(
+                    catName = name,
                     score = state.score,
                     bestScore = bestScore,
                     onRetry = onRetry,
@@ -159,9 +195,20 @@ fun SurvivalScreen(
  * information on screen, which is exactly the point.
  */
 @Composable
-private fun CeilingAndCat(state: SurvivalState, modifier: Modifier = Modifier) {
+private fun CeilingAndCat(state: SurvivalState, cat: CatView, coat: CatCoat, modifier: Modifier = Modifier) {
+    // The cat's own clock, for the tail's sway and a frightened tremble. Read only inside the draw
+    // lambda, so it redraws the canvas without recomposing the screen. Still under reduced motion.
+    val reduceMotion = LocalReduceMotion.current
+    val clock = rememberInfiniteTransition(label = "cat")
+    val phase by clock.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(tween(durationMillis = 4_000, easing = LinearEasing)),
+        label = "cat-phase",
+    )
+
     Canvas(modifier) {
-        val floorY = size.height * 0.82f
+        val floorY = size.height * FLOOR_AT
         val topY = size.height * 0.10f
         val travel = floorY - topY
         val ceilingBottom = topY + travel * (1f - state.height.coerceIn(0f, 1f))
@@ -184,7 +231,7 @@ private fun CeilingAndCat(state: SurvivalState, modifier: Modifier = Modifier) {
         val toothWidth = size.width / 14f
         for (i in 0 until 14) {
             drawPath(
-                path = androidx.compose.ui.graphics.Path().apply {
+                path = Path().apply {
                     moveTo(i * toothWidth, ceilingBottom)
                     lineTo((i + 0.5f) * toothWidth, ceilingBottom + toothWidth * 0.55f)
                     lineTo((i + 1f) * toothWidth, ceilingBottom)
@@ -194,7 +241,24 @@ private fun CeilingAndCat(state: SurvivalState, modifier: Modifier = Modifier) {
             )
         }
 
-        drawCat(centerX = size.width / 2f, baseY = floorY, scale = size.width / 420f, alarm = danger)
+        val scale = size.width / CAT_SCALE_WIDTH
+        drawCat(
+            centerX = size.width / 2f,
+            baseY = floorY,
+            scale = scale,
+            coat = coat,
+            mood = cat.mood,
+            alarm = danger,
+            cheer = cat.cheer,
+            phase = if (reduceMotion) 0f else phase,
+        )
+        drawHearts(
+            centerX = size.width / 2f,
+            headTopY = catHeadTop(floorY, scale, cat.mood),
+            scale = scale,
+            count = cat.hearts,
+            cheer = cat.cheer,
+        )
 
         drawRect(
             color = Color(0xFF3A2A18),
@@ -204,132 +268,82 @@ private fun CeilingAndCat(state: SurvivalState, modifier: Modifier = Modifier) {
     }
 }
 
+/** Where the floor is, as a fraction of the screen's height. The bubble is placed by it too. */
+private const val FLOOR_AT = 0.82f
+
+/** The screen width, in the cat's own units, that draws it at scale 1. */
+private const val CAT_SCALE_WIDTH = 420f
+
 /**
- * 고냥이.
+ * The speech bubble, popping in for each new line and gone between them.
  *
- * The same cat the share card draws, and that is the reason it is not just three circles: this is
- * the mascot, and the first thing anyone who has not installed the app ever sees. The parts that
- * make it read as a cat rather than a snowman — tall swept ears, whiskers, a tail — cost a handful
- * of draw calls and are worth every one.
- *
- * [alarm] is the only thing that moves: ears flatten and eyes widen as the ceiling closes in. That
- * is the whole emotional read of the mode, and it is carried by shape so it survives greyscale.
+ * Words matter here more than anywhere else in the app: a cat that says 살려 줘요 is a cat the user
+ * pushes harder for. The name tag is the user's own name for it, which is why naming it is offered
+ * at all.
  */
-private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawCat(
-    centerX: Float,
-    baseY: Float,
-    scale: Float,
-    alarm: Float,
-) {
-    val body = 46f * scale
-    val head = 30f * scale
-    val headY = baseY - body * 1.05f - head * 0.72f
-    val fur = Color(0xFFF3D9A8)
-    val ear = Color(0xFFE0A88C)
-    val dark = Color(0xFF3A2A18)
-
-    // Tail first: the body edge hides where it joins.
-    drawPath(
-        path = androidx.compose.ui.graphics.Path().apply {
-            moveTo(centerX + body * 0.82f, baseY - body * 0.18f)
-            cubicTo(
-                centerX + body * 1.62f, baseY - body * 0.30f,
-                centerX + body * 1.55f, baseY - body * 0.74f,
-                centerX + body * 1.48f, baseY - body * 0.98f,
-            )
-            cubicTo(
-                centerX + body * 1.36f, baseY - body * 1.46f,
-                centerX + body * 1.16f, baseY - body * 1.44f,
-                centerX + body * 0.98f, baseY - body * 1.40f,
-            )
+@Composable
+private fun CatBubbleSlot(speech: CatSpeech?, name: String, modifier: Modifier = Modifier) {
+    val reduceMotion = LocalReduceMotion.current
+    AnimatedContent(
+        targetState = speech,
+        transitionSpec = {
+            if (reduceMotion) fadeIn(tween(0)) togetherWith fadeOut(tween(0))
+            else (fadeIn(tween(120)) + scaleIn(tween(160), initialScale = 0.85f)) togetherWith fadeOut(tween(160))
         },
-        color = fur,
-        style = Stroke(width = head * 0.30f, cap = StrokeCap.Round),
-    )
-
-    drawRoundRect(
-        color = fur,
-        topLeft = Offset(centerX - body, baseY - body * 1.05f),
-        size = Size(body * 2f, body * 1.05f),
-        cornerRadius = CornerRadius(body * 0.62f),
-    )
-
-    // Ears before the head, so their bases vanish under it. Flattening is clamped so an alarmed cat
-    // still has ears — a cat with none reads as a bug rather than as fear.
-    val lift = 1f - 0.42f * alarm
-    listOf(-1f, 1f).forEach { side ->
-        drawPath(
-            path = androidx.compose.ui.graphics.Path().apply {
-                moveTo(centerX + side * head * 0.16f, headY - head * 0.62f)
-                lineTo(centerX + side * head * (0.74f + 0.30f * alarm), headY - head * 1.58f * lift)
-                lineTo(centerX + side * head * 1.00f, headY - head * 0.34f)
-                close()
-            },
-            color = fur,
-        )
-        drawPath(
-            path = androidx.compose.ui.graphics.Path().apply {
-                moveTo(centerX + side * head * 0.36f, headY - head * 0.66f)
-                lineTo(centerX + side * head * (0.71f + 0.28f * alarm), headY - head * 1.28f * lift)
-                lineTo(centerX + side * head * 0.84f, headY - head * 0.52f)
-                close()
-            },
-            color = ear,
-        )
+        contentAlignment = Alignment.BottomCenter,
+        modifier = modifier,
+        label = "cat-bubble",
+    ) { shown ->
+        if (shown != null) CatBubble(name = name, text = catLineText(shown))
     }
+}
 
-    drawCircle(color = fur, radius = head, center = Offset(centerX, headY))
-
-    val eyeY = headY - head * 0.10f
-    val eyeR = head * (0.15f + 0.07f * alarm)
-    listOf(-1f, 1f).forEach { side ->
-        drawCircle(color = dark, radius = eyeR, center = Offset(centerX + side * head * 0.36f, eyeY))
+@Composable
+private fun CatBubble(name: String, text: String, modifier: Modifier = Modifier) {
+    val paper = Color(0xFFFFF8EC)
+    Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
+        Column(
+            Modifier
+                .background(paper, RoundedCornerShape(18.dp))
+                .padding(horizontal = 14.dp, vertical = 9.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Text(text = name, style = Type.labelM, color = Color(0xFFB0662A))
+            Text(text = text, style = Type.bodyL, color = Color(0xFF3A2A18), textAlign = TextAlign.Center)
+        }
+        Canvas(Modifier.size(width = 18.dp, height = 10.dp)) {
+            drawPath(
+                Path().apply {
+                    moveTo(0f, 0f)
+                    lineTo(size.width, 0f)
+                    lineTo(size.width / 2f, size.height)
+                    close()
+                },
+                color = paper,
+            )
+        }
     }
+}
 
-    val noseY = eyeY + head * 0.30f
-    drawPath(
-        path = androidx.compose.ui.graphics.Path().apply {
-            moveTo(centerX - head * 0.10f, noseY)
-            lineTo(centerX + head * 0.10f, noseY)
-            lineTo(centerX, noseY + head * 0.11f)
-            close()
-        },
-        color = dark,
-    )
-
-    val stroke = head * 0.055f
-    val mouthY = noseY + head * 0.12f
-    drawLine(
-        color = dark,
-        start = Offset(centerX, mouthY),
-        end = Offset(centerX - head * 0.14f, mouthY + head * 0.12f),
-        strokeWidth = stroke,
-        cap = StrokeCap.Round,
-    )
-    drawLine(
-        color = dark,
-        start = Offset(centerX, mouthY),
-        end = Offset(centerX + head * 0.14f, mouthY + head * 0.12f),
-        strokeWidth = stroke,
-        cap = StrokeCap.Round,
-    )
-
-    listOf(-1f, 1f).forEach { side ->
-        val from = centerX + side * head * 0.42f
-        drawLine(
-            color = dark,
-            start = Offset(from, noseY - head * 0.04f),
-            end = Offset(from + side * head * 0.72f, noseY - head * 0.22f),
-            strokeWidth = stroke,
-            cap = StrokeCap.Round,
-        )
-        drawLine(
-            color = dark,
-            start = Offset(from, noseY + head * 0.12f),
-            end = Offset(from + side * head * 0.76f, noseY + head * 0.16f),
-            strokeWidth = stroke,
-            cap = StrokeCap.Round,
-        )
+/** The words for a line, rotating through its wordings so the same moment is not said the same way twice running. */
+@Composable
+private fun catLineText(speech: CatSpeech): String {
+    val wordings = when (speech.line) {
+        CatLine.WAITING -> listOf(R.string.cat_line_waiting_1, R.string.cat_line_waiting_2)
+        CatLine.HELLO -> listOf(R.string.cat_line_hello_1, R.string.cat_line_hello_2)
+        CatLine.CALM -> listOf(R.string.cat_line_calm_1, R.string.cat_line_calm_2, R.string.cat_line_calm_3)
+        CatLine.NEAR_MISS -> listOf(R.string.cat_line_near_miss_1, R.string.cat_line_near_miss_2)
+        CatLine.UNEASY -> listOf(R.string.cat_line_uneasy_1, R.string.cat_line_uneasy_2)
+        CatLine.MILESTONE -> listOf(R.string.cat_line_milestone_1, R.string.cat_line_milestone_2)
+        CatLine.COMBO -> listOf(R.string.cat_line_combo_1, R.string.cat_line_combo_2)
+        CatLine.SCARED -> listOf(R.string.cat_line_scared_1, R.string.cat_line_scared_2)
+        CatLine.PANIC -> listOf(R.string.cat_line_panic_1, R.string.cat_line_panic_2)
+        CatLine.SAVED -> listOf(R.string.cat_line_saved_1, R.string.cat_line_saved_2, R.string.cat_line_saved_3)
+    }
+    val id = wordings[speech.serial % wordings.size]
+    return when (speech.line) {
+        CatLine.MILESTONE, CatLine.COMBO -> stringResource(id, speech.arg)
+        else -> stringResource(id)
     }
 }
 
@@ -399,6 +413,7 @@ private fun TutorialDoneCard(
 
 @Composable
 private fun GameOverCard(
+    catName: String,
     score: Int,
     bestScore: Int,
     onRetry: () -> Unit,
@@ -415,7 +430,7 @@ private fun GameOverCard(
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(
-            text = stringResource(R.string.survival_gameover),
+            text = stringResource(R.string.survival_gameover, catName + CatName.subjectParticle(catName)),
             style = Type.titleL,
             color = Palette.TextPrimary,
             textAlign = TextAlign.Center,

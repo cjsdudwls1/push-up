@@ -6,6 +6,8 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.pushuprpg.app.AppContainer
+import com.pushuprpg.app.audio.GameAudio
+import com.pushuprpg.app.domain.SettingsRepository
 import com.pushuprpg.app.domain.ProgressRepository
 import com.pushuprpg.app.telemetry.Event
 import com.pushuprpg.app.telemetry.Telemetry
@@ -24,6 +26,8 @@ import com.pushuprpg.core.detect.RepPhase
 import com.pushuprpg.core.detect.RepEvent
 import com.pushuprpg.core.detect.SkeletonMode
 import com.pushuprpg.core.progression.Capacity
+import com.pushuprpg.core.survival.CatCompanion
+import com.pushuprpg.core.survival.CatView
 import com.pushuprpg.core.survival.CeilingSurvival
 import com.pushuprpg.core.survival.SurvivalEvent
 import com.pushuprpg.core.survival.SurvivalState
@@ -37,6 +41,8 @@ class SurvivalViewModel(
     private val sessionRepository: SessionRepository,
     private val telemetry: Telemetry,
     private val traces: RunTraces,
+    private val settingsRepository: SettingsRepository,
+    private val audio: GameAudio,
     /** Chosen on the way in; always pushups for the tutorial (see Routes.survival). */
     private val exercise: ExerciseType,
 ) : ViewModel() {
@@ -57,7 +63,18 @@ class SurvivalViewModel(
     private val _bestScore = MutableStateFlow(0)
     val bestScore: StateFlow<Int> = _bestScore.asStateFlow()
 
+    // The cat's face, words and voice. It reads the run and changes nothing in it.
+    private val cat = CatCompanion()
+    private val _cat = MutableStateFlow(cat.view())
+    val catView: StateFlow<CatView> = _cat.asStateFlow()
+
     init {
+        viewModelScope.launch {
+            settingsRepository.settings.collect {
+                audio.soundEnabled = it.sfxEnabled
+                audio.hapticStrength = it.hapticStrength
+            }
+        }
         // One recording for the whole visit, restarts included: the run worth sending is often the
         // one before the retry. Replays with the defaults — survival starts from no calibration.
         traces.begin("mode=survival exercise=${exercise.name} profile=none")
@@ -83,15 +100,16 @@ class SurvivalViewModel(
         val tick: PoseTick = detector.onFrame(frame)
         if (startedAtMs == 0L) startedAtMs = tick.tMs
 
+        val events = mutableListOf<SurvivalEvent>()
         for (event in tick.events) {
             when (event) {
                 is RepEvent.Strike -> {
                     reps++
                     maxCombo = maxOf(maxCombo, event.combo)
-                    handle(game.onRep(event.grade, event.depth, event.tMs))
+                    events += game.onRep(event.grade, event.depth, event.tMs)
                 }
                 // A hold pushes for as long as it is held, in the detector's own tick steps.
-                is RepEvent.HoldTick -> handle(game.onHold(event.score, HOLD_TICK_SECONDS, event.tMs))
+                is RepEvent.HoldTick -> events += game.onHold(event.score, HOLD_TICK_SECONDS, event.tMs)
                 else -> Unit
             }
         }
@@ -99,8 +117,14 @@ class SurvivalViewModel(
         // that the ceiling never stops: resting is not a pause. See CeilingSurvival.update.
         val inPosition = tick.quality == PoseQuality.OK &&
             tick.phase != RepPhase.IDLE && tick.phase != RepPhase.LOST
-        handle(game.update(tick.tMs, inPosition = inPosition))
-        _state.value = game.state()
+        events += game.update(tick.tMs, inPosition = inPosition)
+        handle(events)
+
+        val now = game.state()
+        // Straight from this thread, like the dungeon's: a push has to be heard as it lands.
+        audio.play(cat.update(now, events, tick.tMs))
+        _state.value = now
+        _cat.value = cat.view()
     }
 
     /**
@@ -118,6 +142,8 @@ class SurvivalViewModel(
     private fun applyRestart() {
         game.reset()
         detector.reset()
+        cat.reset()
+        _cat.value = cat.view()
         reps = 0
         maxCombo = 0
         startedAtMs = 0L
@@ -203,6 +229,8 @@ class SurvivalViewModel(
                     container.sessionRepository,
                     container.telemetry,
                     container.traces,
+                    container.settingsRepository,
+                    container.audio,
                     exercise,
                 )
             }

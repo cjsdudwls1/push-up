@@ -409,6 +409,13 @@ fun PushupRpgApp(
                     ExercisePickScreen(
                         dungeon = null,
                         survival = true,
+                        catName = settings.catName,
+                        catCoat = settings.catCoat,
+                        onCatChange = { name, coat ->
+                            scope.launch {
+                                container.settingsRepository.update { it.copy(catName = name, catCoat = coat) }
+                            }
+                        },
                         initial = settings.exercise,
                         onStart = { picked ->
                             // Remembered as the last choice, for this picker and the dungeon one.
@@ -439,6 +446,7 @@ fun PushupRpgApp(
                         viewModel(factory = SurvivalViewModel.factory(container, exercise))
                     val state by vm.state.collectAsState()
                     val best by vm.bestScore.collectAsState()
+                    val cat by vm.catView.collectAsState()
 
                     DisposableEffect(vm) {
                         val consumer: (com.pushuprpg.core.pose.PoseFrame) -> Unit = vm::onPoseFrame
@@ -450,6 +458,9 @@ fun PushupRpgApp(
                         SurvivalScreen(
                             state = state,
                             bestScore = best,
+                            cat = cat,
+                            catName = settings.catName,
+                            catCoat = settings.catCoat,
                             poseSource = poseSource,
                             exercise = exercise,
                             isTutorial = isTutorial,

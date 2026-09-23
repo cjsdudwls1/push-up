@@ -8,7 +8,7 @@ never mask each other: form feedback dry and high (1.5-4 kHz), combat impacts we
 (60-250 Hz). Synthesising them is the only way to guarantee that precisely, and it makes the whole
 palette a diff rather than a folder of binaries nobody can adjust.
 
-Run:  python3 tools/generate_sfx.py
+Run:  python3 tools/generate_sfx.py [sfx_name ...]
 Needs: numpy, and ffmpeg on PATH (or FFMPEG env var) to encode OGG.
 """
 
@@ -214,6 +214,156 @@ def ceiling_push():
     return normalise(a + b, 0.8)
 
 
+# --- 고냥이 and its room ---------------------------------------------------------------------
+#
+# The cat's band sits between the other two (roughly 300 Hz-1.4 kHz) because that is where a voice
+# lives, and because a phone speaker reproduces almost nothing below 200 Hz: a purr synthesised at
+# its true 25 Hz would be silence on the device it is for. So the purr is heard as its pulse
+# rather than its pitch, and even the heartbeat carries a little upper harmonic to survive.
+
+
+def resonate(x, freq, q):
+    """Two-pole resonator: rings at freq, which is what turns a click into wood or a buzz into a vowel."""
+    w = 2 * math.pi * freq / SR
+    r = math.exp(-w / (2 * q))
+    a1, a2 = -2 * r * math.cos(w), r * r
+    y = np.zeros_like(x)
+    y1 = y2 = 0.0
+    for i, v in enumerate(x):
+        y0 = v - a1 * y1 - a2 * y2
+        y[i] = y0
+        y2, y1 = y1, y0
+    return y * (1 - r)
+
+
+def voice(f0_points, formant_points, dur, vibrato_hz=5.5, vibrato_depth=0.02, breath=0.05, seed=1):
+    """
+    A cat's voice: a harmonic source whose pitch follows f0_points, shaped by formants that move
+    between vowels as formant_points says. Both are lists of (fraction of dur, value) pairs; the
+    formant values are (F1, F2). Moving formants are what make "mi-a-ow" rather than a whistle.
+    """
+    n = secs(dur)
+    t = np.arange(n) / SR
+    frac = t / dur
+    fx, fy = zip(*f0_points)
+    f0 = np.interp(frac, fx, fy) * (1 + vibrato_depth * np.sin(2 * np.pi * vibrato_hz * t))
+    phase = 2 * np.pi * np.cumsum(f0) / SR
+    px, pf = zip(*formant_points)
+    f1 = np.interp(frac, px, [f[0] for f in pf])
+    f2 = np.interp(frac, px, [f[1] for f in pf])
+    out = np.zeros(n)
+    for k in range(1, 14):
+        fk = k * f0
+        weight = np.exp(-((fk - f1) / 260.0) ** 2) + 0.6 * np.exp(-((fk - f2) / 420.0) ** 2) + 0.08 / k
+        out += np.sin(k * phase) * weight
+    rng = np.random.default_rng(seed)
+    out += highpass(rng.uniform(-1, 1, n), 1_500) * breath
+    a, r = secs(0.035), secs(0.12)
+    shape = np.ones(n)
+    shape[:a] = np.linspace(0, 1, a)
+    shape[-r:] = np.linspace(1, 0, r) ** 1.5
+    return out * shape
+
+
+def cat_meow():
+    """A worried "mi-a-ow" — the ceiling has started to come down and the cat has noticed."""
+    x = voice(
+        f0_points=[(0, 540), (0.3, 720), (0.7, 620), (1, 430)],
+        formant_points=[(0, (380, 2000)), (0.35, (820, 1350)), (0.75, (650, 950)), (1, (500, 850))],
+        dur=0.55,
+    )
+    return normalise(x, 0.8)
+
+
+def cat_cry():
+    """The frightened cry: higher, longer, shakier. Played faster still when it is close to the end."""
+    x = voice(
+        f0_points=[(0, 640), (0.25, 930), (0.6, 880), (1, 600)],
+        formant_points=[(0, (420, 1900)), (0.3, (900, 1450)), (0.8, (700, 1000)), (1, (520, 900))],
+        dur=0.8,
+        vibrato_hz=8.5,
+        vibrato_depth=0.045,
+        breath=0.12,
+        seed=2,
+    )
+    return normalise(x, 0.9)
+
+
+def cat_happy():
+    """살았다냥 — a short rising chirp with a rolled start, the sound a cat makes greeting you."""
+    n = secs(0.3)
+    x = voice(
+        f0_points=[(0, 430), (0.45, 560), (1, 820)],
+        formant_points=[(0, (500, 1200)), (0.5, (700, 1500)), (1, (450, 2100))],
+        dur=0.3,
+        vibrato_depth=0.0,
+        breath=0.03,
+        seed=3,
+    )
+    t = np.arange(n) / SR
+    trill = np.where(t < 0.13, 0.55 + 0.45 * np.abs(np.sin(2 * np.pi * 14 * t)), 1.0)
+    return normalise(x * trill, 0.8)
+
+
+def cat_purr():
+    """
+    A contented purr: two breaths, the out-breath louder, each a train of pulses at the purr's own
+    ~25 Hz. Filtered noise rather than a tone, so it is heard as texture on a speaker that cannot
+    play the fundamental.
+    """
+    n = secs(1.3)
+    t = np.arange(n) / SR
+    rng = np.random.default_rng(4)
+    grain = resonate(rng.uniform(-1, 1, n), 420, 1.6) + 0.5 * resonate(rng.uniform(-1, 1, n), 780, 2.0)
+    pulse = np.abs(np.sin(np.pi * 25 * t)) ** 3
+    breath = np.zeros(n)
+    for start, end, gain in ((0.0, 0.58, 0.65), (0.66, 1.3, 1.0)):
+        a, b = secs(start), secs(end)
+        m = b - a
+        breath[a:b] = np.sin(np.linspace(0, np.pi, m)) ** 0.8 * gain
+    return normalise(grain * pulse * breath, 0.7)
+
+
+def ceiling_creak():
+    """
+    The ceiling: a wooden creak, as stick-slip friction — clicks at an uneven, rising rate, each
+    ringing the same two wood resonances. It has to sound heavy and slow, never like a door.
+    """
+    n = secs(0.75)
+    rng = np.random.default_rng(5)
+    clicks = np.zeros(n)
+    pos = 0.0
+    while True:
+        frac = pos / n
+        rate = 38 + 70 * frac  # the creak climbs as the joint gives
+        pos += SR / rate * (1 + rng.uniform(-0.25, 0.25))
+        if pos >= n:
+            break
+        clicks[int(pos)] = rng.uniform(0.6, 1.0)
+    wood = resonate(clicks, 360, 9) + 0.6 * resonate(clicks, 910, 12) + 0.25 * resonate(clicks, 1_450, 14)
+    swell = np.sin(np.linspace(0, np.pi, n)) ** 0.6
+    return normalise(wood * swell, 0.8)
+
+
+def heartbeat():
+    """
+    Lub-dub. The pulse itself is below what a phone speaker plays, so each beat also carries a
+    short knock a couple of octaves up: on the device that knock is the heartbeat, and the sub-bass
+    is only there for headphones.
+    """
+    n = secs(0.46)
+    out = np.zeros(n)
+    for offset, f_from, f_to, gain in ((0.0, 72, 44, 1.0), (0.17, 86, 52, 0.7)):
+        start = secs(offset)
+        m = secs(0.2)
+        low = np.tanh(sweep(f_from, f_to, m) * 3.0) * env(m, attack=0.004, decay=0.05) * 0.55
+        k = secs(0.09)
+        knock = sweep(f_from * 4.4, f_from * 2.2, k) * env(k, attack=0.002, decay=0.022)
+        out[start:start + m] += low * gain
+        out[start:start + k] += knock * gain
+    return normalise(out, 0.9)
+
+
 SOUNDS = {
     "sfx_rep_accept": rep_accept,
     "sfx_rep_deep": rep_deep,
@@ -230,6 +380,12 @@ SOUNDS = {
     "sfx_countdown": countdown,
     "sfx_go": go,
     "sfx_ceiling_push": ceiling_push,
+    "sfx_heartbeat": heartbeat,
+    "sfx_cat_purr": cat_purr,
+    "sfx_cat_meow": cat_meow,
+    "sfx_cat_cry": cat_cry,
+    "sfx_cat_happy": cat_happy,
+    "sfx_ceiling_creak": ceiling_creak,
 }
 
 
@@ -246,7 +402,15 @@ def write_wav(path, samples):
 def main():
     ffmpeg = os.environ.get("FFMPEG", "ffmpeg")
     os.makedirs(OUT, exist_ok=True)
+    # Names on the command line regenerate only those, so adding a sound does not re-encode (and
+    # churn the bytes of) every other one.
+    wanted = set(sys.argv[1:])
+    unknown = wanted - SOUNDS.keys()
+    if unknown:
+        sys.exit(f"no such sound: {', '.join(sorted(unknown))}")
     for name, fn in SOUNDS.items():
+        if wanted and name not in wanted:
+            continue
         wav = os.path.join(OUT, name + ".wav")
         ogg = os.path.join(OUT, name + ".ogg")
         write_wav(wav, fn())

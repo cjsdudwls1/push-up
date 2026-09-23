@@ -246,7 +246,8 @@
     <string name="survival_body">천장이 내려와요. 밀어 올려서 고냥이를 지켜주세요!</string>
     <string name="survival_score">%1$,d점</string>
     <string name="survival_best">최고 %1$,d점</string>
-    <string name="survival_gameover">고냥이가 놀랐어요</string>
+    <!-- %1$s is the cat's name with its particle already attached: 치즈가, 호박이. -->
+    <string name="survival_gameover">%1$s 놀랐어요</string>
     <!-- Before the first armed frame. The ceiling does not move until the user is in position. -->
     <string name="survival_waiting">자세를 잡으면 천장이 내려오기 시작해요</string>
     <string name="survival_waiting_with">%1$s 자세를 잡으면 천장이 내려오기 시작해요</string>
@@ -259,6 +260,43 @@
     <string name="tutorial_continue">던전으로 가기</string>
     <string name="survival_share">자랑하기</string>
     <string name="survival_share_text">푸쉬업 RPG에서 고냥이를 %1$,d점만큼 지켰어요! 🐱💪</string>
+
+    <!-- The cat. Its default name is the mode's; the user can rename it on the survival picker. -->
+    <string name="cat_default_name">고냥이</string>
+    <string name="cat_card_title">우리 고양이</string>
+    <string name="cat_card_sub">이름과 털 색을 정해 주세요. 천장 아래에서 이 아이가 기다려요.</string>
+    <string name="cat_name_label">이름</string>
+    <string name="cat_coat_cream">크림</string>
+    <string name="cat_coat_cheese">치즈</string>
+    <string name="cat_coat_mackerel">고등어</string>
+    <string name="cat_coat_tuxedo">턱시도</string>
+    <string name="cat_coat_calico">삼색이</string>
+
+    <!-- What the cat says during a run. Several wordings per moment, taken in turn so a line does
+         not repeat word for word. The cat is never disappointed in the user: every line either
+         asks for help or thanks them. -->
+    <string name="cat_line_waiting_1">천장이 무서워요… 지켜 줄 거죠?</string>
+    <string name="cat_line_waiting_2">같이 있어 줘요, 냥</string>
+    <string name="cat_line_hello_1">믿어요, 냥!</string>
+    <string name="cat_line_hello_2">시작이다냥! 힘내요!</string>
+    <string name="cat_line_calm_1">든든해요, 냥~</string>
+    <string name="cat_line_calm_2">좋아요, 그대로요!</string>
+    <string name="cat_line_calm_3">골골… 편안해요</string>
+    <string name="cat_line_near_miss_1">조금만 더 깊게요, 냥!</string>
+    <string name="cat_line_near_miss_2">거의 다 왔어요! 한 번 더!</string>
+    <string name="cat_line_uneasy_1">어… 천장이 내려와요, 냥?</string>
+    <string name="cat_line_uneasy_2">조금 무서워지는데요…</string>
+    <string name="cat_line_milestone_1">%1$d초나 버텼어요, 냥!</string>
+    <string name="cat_line_milestone_2">벌써 %1$d초! 멋져요!</string>
+    <string name="cat_line_combo_1">%1$d번 연속! 최고예요, 냥!</string>
+    <string name="cat_line_combo_2">%1$d연속! 계속 가요!</string>
+    <string name="cat_line_scared_1">무서워요, 냥…!</string>
+    <string name="cat_line_scared_2">천장이 너무 가까워요!</string>
+    <string name="cat_line_panic_1">살려 줘요, 냥!!</string>
+    <string name="cat_line_panic_2">제발 밀어 줘요!!</string>
+    <string name="cat_line_saved_1">살았다냥!</string>
+    <string name="cat_line_saved_2">고마워요, 냥! 살았어요!</string>
+    <string name="cat_line_saved_3">휴… 살았다냥!</string>
 
     <!-- Paywall -->
     <string name="paywall_title">모든 던전을 열어요</string>

@@ -28,7 +28,14 @@ data class SurvivalState(
 sealed interface SurvivalEvent {
     val atMs: Long
 
-    data class Pushed(override val atMs: Long, val lift: Float, val deep: Boolean, val combo: Int) : SurvivalEvent
+    /** [hold] marks a stretch of a hold rather than a rep: it arrives twice a second, not once a rep. */
+    data class Pushed(
+        override val atMs: Long,
+        val lift: Float,
+        val deep: Boolean,
+        val combo: Int,
+        val hold: Boolean = false,
+    ) : SurvivalEvent
 
     /** A rep that did not go deep enough to lift anything. A near miss, not a punishment. */
     data class NearMiss(override val atMs: Long) : SurvivalEvent
@@ -240,7 +247,7 @@ class CeilingSurvival(
         val lift = (LIFT + (DEEP_LIFT - LIFT) * quality) * pushups
         height = (height + lift).coerceAtMost(1f)
         score += SCORE_PER_REP * pushups * (1f + (DEEP_SCORE_MULTIPLIER - 1f) * quality)
-        return listOf(SurvivalEvent.Pushed(atMs, lift, deep = quality >= 1f, combo = 0))
+        return listOf(SurvivalEvent.Pushed(atMs, lift, deep = quality >= 1f, combo = 0, hold = true))
     }
 
     fun reset() {

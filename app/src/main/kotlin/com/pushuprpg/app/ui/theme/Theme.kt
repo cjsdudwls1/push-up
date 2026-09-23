@@ -80,6 +80,10 @@ private val AppTypography = Typography(
     titleMedium = Type.titleM,
     bodyLarge = Type.bodyL,
     bodyMedium = Type.bodyM,
+    // Never left to Material's default. A text field animates its label from bodyLarge to
+    // bodySmall, and interpolating our em letter-spacing with the default's sp throws ("Cannot
+    // perform operation for Em and Sp") the moment the field is focused.
+    bodySmall = Type.bodyS,
     labelLarge = Type.labelL,
     labelMedium = Type.labelM,
     labelSmall = Type.labelS,

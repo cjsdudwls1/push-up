@@ -31,7 +31,8 @@ class GameAudio(context: Context) {
     private val appContext = context.applicationContext
 
     private val pool: SoundPool = SoundPool.Builder()
-        // Enough voices for a deep rep landing on a crit while the boss is winding up.
+        // Enough voices for a deep rep landing on a crit while the boss is winding up — or, in
+        // 고냥이, a push landing over a creak, a heartbeat and a cry.
         .setMaxStreams(8)
         .setAudioAttributes(
             AudioAttributes.Builder()
@@ -109,6 +110,7 @@ class GameAudio(context: Context) {
             SoundCue.HIT_HEAVY -> 40L
             SoundCue.PLAYER_HURT -> 80L
             SoundCue.ENEMY_DOWN -> 90L
+            SoundCue.HEARTBEAT -> 35L
             else -> 22L
         }
         runCatching {
@@ -139,6 +141,12 @@ class GameAudio(context: Context) {
             SoundCue.COUNTDOWN to R.raw.sfx_countdown,
             SoundCue.GO to R.raw.sfx_go,
             SoundCue.CEILING_PUSH to R.raw.sfx_ceiling_push,
+            SoundCue.HEARTBEAT to R.raw.sfx_heartbeat,
+            SoundCue.CAT_PURR to R.raw.sfx_cat_purr,
+            SoundCue.CAT_MEOW to R.raw.sfx_cat_meow,
+            SoundCue.CAT_CRY to R.raw.sfx_cat_cry,
+            SoundCue.CAT_HAPPY to R.raw.sfx_cat_happy,
+            SoundCue.CEILING_CREAK to R.raw.sfx_ceiling_creak,
         )
     }
 }

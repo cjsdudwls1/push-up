@@ -3,12 +3,16 @@ package com.pushuprpg.core.audio
 import kotlin.math.pow
 
 /**
- * The sound palette, in two deliberately separated bands.
+ * The sound palette, in deliberately separated bands.
  *
  * FORM cues are dry and high (1.5–4 kHz); COMBAT cues are wet and low (60–250 Hz). Keeping them
  * apart spectrally is what lets both play on the same rep without either masking the other — and a
  * counted rep does fire both, because they answer different questions: "did that one count?" and
  * "did it hurt the thing?".
+ *
+ * CAT is 고냥이 and its room, in the gap between them (roughly 300 Hz–1.4 kHz): a voice sits there
+ * naturally, and it is the one band that never vibrates — a phone buzzing every time the cat purrs
+ * would teach the user to ignore the buzz.
  */
 enum class SoundCue(val band: Band) {
     REP_ACCEPT(Band.FORM),
@@ -27,9 +31,17 @@ enum class SoundCue(val band: Band) {
     VICTORY(Band.COMBAT),
     DEFEAT(Band.COMBAT),
     CEILING_PUSH(Band.COMBAT),
+    /** Felt as well as heard: the one survival sound worth a buzz, because it is a pulse. */
+    HEARTBEAT(Band.COMBAT),
+
+    CAT_PURR(Band.CAT),
+    CAT_MEOW(Band.CAT),
+    CAT_CRY(Band.CAT),
+    CAT_HAPPY(Band.CAT),
+    CEILING_CREAK(Band.CAT),
     ;
 
-    enum class Band { FORM, COMBAT }
+    enum class Band { FORM, COMBAT, CAT }
 }
 
 /** One sound to play. [rate] is a playback-speed multiplier, [volume] a 0..1 gain. */
