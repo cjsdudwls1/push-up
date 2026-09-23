@@ -6,11 +6,14 @@ import com.pushuprpg.core.detect.ConfidenceEstimator
 import com.pushuprpg.core.detect.DepthSignal
 import com.pushuprpg.core.detect.ExerciseType
 import com.pushuprpg.core.detect.Exercises
+import com.pushuprpg.core.detect.PoseQuality
 import com.pushuprpg.core.detect.RepDetectorImpl
 import com.pushuprpg.core.detect.RepEvent
 import com.pushuprpg.core.fixtures.Body3d
 import com.pushuprpg.core.fixtures.Body3d.Camera
 import com.pushuprpg.core.pose.PoseLandmarks as Lm
+import kotlin.math.cos
+import kotlin.math.sin
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -37,10 +40,16 @@ class MovementRigTest {
         val shallow get() = events.count { it is RepEvent.Shallow }
     }
 
-    private fun run(type: ExerciseType, pose: (Float) -> Body3d.Skeleton, camera: Camera, count: Int = 8): Run {
+    private fun run(
+        type: ExerciseType,
+        pose: (Float) -> Body3d.Skeleton,
+        camera: Camera,
+        count: Int = 8,
+        peakDepth: Float = 0.95f,
+    ): Run {
         val detector = RepDetectorImpl(Exercises.of(type).config)
         val events = mutableListOf<RepEvent>()
-        Body3d.trace(pose, camera, count).forEach { events += detector.onFrame(it).events }
+        Body3d.trace(pose, camera, count, peakDepth = peakDepth).forEach { events += detector.onFrame(it).events }
         return Run(detector.sessionSummary().repCount, events)
     }
 
@@ -170,5 +179,58 @@ class MovementRigTest {
         val r = run(ExerciseType.HINGE, Body3d::hinge, chest)
         assertTrue(AbandonReason.INCONSISTENT !in r.refusals, "the normal flipped mid-rep: ${r.refusals.distinct()}")
         assertEquals(8, r.reps)
+    }
+
+    // ---------------------------------------------------------------- the pushup
+
+    /** A pushup with the shoulders over the origin and the head turned [yawDeg] away from the lens. */
+    private fun pushupAt(yawDeg: Float): (Float) -> Body3d.Skeleton {
+        val yaw = Math.toRadians(yawDeg.toDouble())
+        val heading = Body3d.V3(-sin(yaw).toFloat(), 0f, cos(yaw).toFloat())
+        return { depth -> Body3d.pushup(depth, heading, Body3d.V3(0f, 0f, 0f)) }
+    }
+
+    /**
+     * The device report this answers: 고냥이 지켜줘 starts and stops on the pose, but pushups never
+     * push the ceiling back. From in front of the head and from a diagonal the first rep counted
+     * and every one after it was refused as INCONSISTENT — alternately by the elbow check, for an
+     * elbow bent past 82 degrees, and by the nose witness, which a head held in line with the body
+     * moves 0.23-0.53 of the range against 0.30 required. Survival counts pushups and nothing else,
+     * so the mode could not be won.
+     */
+    @Test
+    fun `a pushup counts from in front of the head and from a diagonal, near and far`() {
+        for (yaw in listOf(0f, 30f, 60f)) {
+            for ((distance, tilt) in listOf(1.3f to 12f, 2.0f to 8f)) {
+                assertCounts(
+                    ExerciseType.PUSHUP, pushupAt(yaw), Camera.onFloor(distance, tilt),
+                    "the floor ${distance}m away, ${yaw.toInt()} degrees off the head",
+                )
+            }
+        }
+    }
+
+    @Test
+    fun `a half pushup reads shallow rather than counting`() {
+        val r = run(ExerciseType.PUSHUP, pushupAt(0f), Camera.onFloor(1.3f, 12f), peakDepth = 0.6f)
+        assertEquals(0, r.reps, "a half pushup counted")
+        assertEquals(8, r.shallow, "a half pushup was not reported as shallow")
+    }
+
+    /**
+     * Side on, the shoulder pair projects onto itself, the pushup's frame has no scale, and it
+     * never arms. The placement line used to send people exactly there. This pins why it no longer
+     * does: if the pushup is given a side-view frame, as the bench press has, this fails, and the
+     * line in strings.xml can say "옆모습" again.
+     */
+    @Test
+    fun `side on, the pushup cannot find its frame and says so`() {
+        val detector = RepDetectorImpl(Exercises.PUSHUP.config)
+        val qualities = Body3d.trace(pushupAt(90f), Camera.onFloor(2.0f, 8f), 4).map { detector.onFrame(it).quality }
+        assertEquals(0, detector.sessionSummary().repCount)
+        assertTrue(
+            qualities.count { it == PoseQuality.LOW_CONFIDENCE } > qualities.size * 9 / 10,
+            "side on now tracks — the placement line can offer the side view again",
+        )
     }
 }

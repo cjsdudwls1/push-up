@@ -306,6 +306,59 @@ object Body3d {
         return s
     }
 
+    /**
+     * A pushup, on the hands and toes. [depth] 0 is lockout, arms straight; 1 is the chest about a
+     * fist off the floor, shoulders 0.26 m up, with the elbow near 55 degrees. The body is one
+     * rigid plank pivoting at the feet. The hands stay planted a little wider than the shoulders,
+     * the shoulders travel slightly forward of them on the way down as they do in a real pushup, and
+     * the elbows go back toward the feet and out — the two-link arm puts them wherever the
+     * shoulders' height requires.
+     *
+     * [heading] is the horizontal direction the head points and [shoulderAt] the point on the floor
+     * the shoulders sit over. The default lies across the lens with the head to the viewer's left:
+     * the side view the placement line asks for.
+     */
+    fun pushup(
+        depth: Float,
+        heading: V3 = V3(-1f, 0f, 0f),
+        shoulderAt: V3 = V3(-0.55f, 0f, 0f),
+    ): Skeleton {
+        val s = Skeleton()
+        val h = heading.unit()
+        val down = V3(0f, -1f, 0f)
+        // The subject's left, for a body facing the floor: head x facing, as for a standing body.
+        val left = V3(h.y * down.z - h.z * down.y, h.z * down.x - h.x * down.z, h.x * down.y - h.y * down.x)
+        val handY = 0.04f
+        val handHalfWidth = 0.25f
+        val lateral = handHalfWidth - SHOULDER_WIDTH / 2f
+        val reachTop = sqrt(UPPER_ARM * UPPER_ARM + FOREARM * FOREARM - 2f * UPPER_ARM * FOREARM * cos(deg(172f)))
+        val forwardTop = 0.05f
+        val topY = handY + sqrt(reachTop * reachTop - lateral * lateral - forwardTop * forwardTop)
+        val shoulderY = topY + (0.26f - topY) * depth
+        val forward = forwardTop + (0.12f - forwardTop) * depth
+        val hands = V3(shoulderAt.x, handY, shoulderAt.z)
+        val shoulderMid = hands + h * forward + V3(0f, shoulderY - handY, 0f)
+        for ((side, shoulder, elbow, wrist) in SIDES_ARM) {
+            s[wrist] = hands + left * (side * handHalfWidth)
+            s[shoulder] = shoulderMid + left * (side * SHOULDER_WIDTH / 2f)
+            s[elbow] = midJoint(s[shoulder], s[wrist], UPPER_ARM, FOREARM, h * -1f + left * (side * 0.8f))
+        }
+        val bodyLength = TORSO + THIGH + SHANK
+        val drop = shoulderY - ANKLE_HEIGHT
+        val toFeet = (h * -sqrt(bodyLength * bodyLength - drop * drop) + V3(0f, -drop, 0f)).unit()
+        val hipMid = shoulderMid + toFeet * TORSO
+        for ((side, hip, knee, ankle) in SIDES_LEG) {
+            val x = left * (side * HIP_WIDTH / 2f)
+            s[hip] = hipMid + x
+            s[knee] = hipMid + toFeet * THIGH + x
+            s[ankle] = hipMid + toFeet * (THIGH + SHANK) + x
+        }
+        // The head in line with the body, face to the floor.
+        val faceDown = (down - toFeet * down.dot(toFeet)).unit()
+        s[Lm.NOSE] = shoulderMid - toFeet * NOSE_ABOVE_SHOULDER + faceDown * NOSE_FORWARD
+        return s
+    }
+
     private data class Leg(val side: Float, val hip: Int, val knee: Int, val ankle: Int)
     private data class Arm(val side: Float, val shoulder: Int, val elbow: Int, val wrist: Int)
     private data class Shoulder(val side: Float, val shoulder: Int)

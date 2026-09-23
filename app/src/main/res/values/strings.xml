@@ -206,7 +206,7 @@
     <string name="exercise_dip">딥스</string>
 
     <!-- Camera placement. Getting this wrong is the single most common reason a set counts nothing. -->
-    <string name="exercise_hint_pushup">폰을 바닥에 세워서 옆모습이 나오게 해주세요.</string>
+    <string name="exercise_hint_pushup">폰을 머리 앞쪽 바닥에 1~2m 떨어뜨려 세워 주세요. 얼굴과 두 어깨가 보여야 해요. 조금 비스듬한 건 괜찮지만, 완전히 옆에서 찍으면 세지 못해요.</string>
     <string name="exercise_hint_squat">폰을 정면에 두고 2m쯤 떨어져 주세요. 무릎까지 나와야 해요.</string>
     <string name="exercise_hint_plank">폰을 바닥에 세워서 옆모습이 나오게 해주세요.</string>
     <string name="exercise_hint_pull_up">폰을 정면에 두고 온몸이 나오도록 멀리 놓아주세요.</string>

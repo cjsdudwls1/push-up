@@ -312,7 +312,14 @@ class RepDetectorImpl(
         val signal = config.descriptor.signal
 
         if (!sample.jointDepth.isNaN()) {
-            if (abs(depth - sample.jointDepth) > config.maxSignalDisagreement) {
+            // One-sided. The fake this catches is a primary signal running ahead of the body —
+            // the wrists moved, the elbow did not — so only a joint reading SHALLOWER than the
+            // primary is a disagreement. A deeper one is a joint bent past its reference bottom:
+            // the elbow scale tops out at 82 degrees and a pushup to the floor keeps going, so an
+            // honest full-range rep reads 100 on the elbow while the primary is still at the count
+            // line. Measured on the rig that gap was 34-37 against a limit of 35, and it refused
+            // the pushups of exactly the people going deepest.
+            if (depth - sample.jointDepth > config.maxSignalDisagreement) {
                 return AbandonReason.INCONSISTENT
             }
         } else if (signal?.crossCheck == CrossCheckPolicy.JOINT_REQUIRED) {

@@ -211,15 +211,14 @@ data class BodyTravelCheck(
     /**
      * How far the witness must travel, as a fraction of the calibrated range, before a rep counts.
      *
-     * Per-movement because the witness is not geared the same way in each. A pushup's nose
-     * out-travels the primary signal, so the shared 0.30 is easy. A dip's elbow is geared about 1:1
+     * Per-movement because the witness is not geared the same way in each. A dip's elbow is geared about 1:1
      * with it, and the reference is taken on the last frame of the top band rather than at lockout,
      * so the witness only ever sees the middle of the rep — against 0.30 an honest dip measured
      * 0.190 where 0.195 was required and every rep was refused, 0 of 8.
      *
-     * Null keeps [RepDetectorImpl.MIN_BODY_DROP_FRACTION], so the nine movements that predate this
-     * are bit-identical. Worth noting the shared value is thin everywhere: a pushup clears it by
-     * only about 1.4x.
+     * Null keeps [RepDetectorImpl.MIN_BODY_DROP_FRACTION]. The pushup was once described here as
+     * clearing that comfortably; that was a hand-placed fixture, and on a projected body it did
+     * not — see [Exercises.PUSHUP].
      */
     val minFraction: Float? = null,
 )
@@ -396,6 +395,13 @@ object Exercises {
                 to = BodyPoint.Single(Lm.NOSE),
                 // n̂ points at the floor, the nose moves toward the floor: already grows with depth.
                 invert = false,
+                // Measured on the rig, not assumed. With the head held in line with the body —
+                // which is how a pushup is taught — the nose travels 0.23-0.53 of the range by the
+                // count line, depending on where the phone is; 0.30 refused every rep after the
+                // first from two metres away, and from 15 degrees off-axis at any distance. The
+                // fakes this exists for, arms waved at the lens and a body hanging from a bar, put
+                // the nose nowhere relative to the shoulders at all.
+                minFraction = 0.15f,
             ),
             crossCheck = CrossCheckPolicy.BEST_AVAILABLE,
             allowJointFallback = true,

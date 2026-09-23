@@ -97,6 +97,17 @@ fun SurvivalScreen(
                     color = Palette.TextSecondary,
                     textAlign = TextAlign.Center,
                 )
+                // Where the phone goes, said before the first rep. The dungeons show this on the
+                // way in, but survival — and the tutorial, which is survival — never went through
+                // that screen, and a phone put side-on tracks the pose but can count nothing.
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    text = stringResource(R.string.exercise_hint_pushup),
+                    style = Type.bodyM,
+                    color = Palette.TextSecondary,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(horizontal = 28.dp),
+                )
             }
         }
 
