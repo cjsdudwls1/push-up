@@ -12,14 +12,15 @@ import com.pushuprpg.app.telemetry.Telemetry
 import com.pushuprpg.app.trace.RunTraces
 import com.pushuprpg.app.domain.SessionRecord
 import com.pushuprpg.app.domain.SessionRepository
-import com.pushuprpg.core.detect.DetectorConfig
+import com.pushuprpg.core.detect.DetectorFactory
 import com.pushuprpg.app.domain.capacityOf
 import com.pushuprpg.app.domain.withCapacity
 import com.pushuprpg.core.detect.ExerciseType
+import com.pushuprpg.core.detect.PlankConfig
 import com.pushuprpg.core.detect.PoseQuality
 import com.pushuprpg.core.detect.PoseTick
+import com.pushuprpg.core.detect.RepDetector
 import com.pushuprpg.core.detect.RepPhase
-import com.pushuprpg.core.detect.RepDetectorImpl
 import com.pushuprpg.core.detect.RepEvent
 import com.pushuprpg.core.detect.SkeletonMode
 import com.pushuprpg.core.progression.Capacity
@@ -36,18 +37,19 @@ class SurvivalViewModel(
     private val sessionRepository: SessionRepository,
     private val telemetry: Telemetry,
     private val traces: RunTraces,
+    /** Chosen on the way in; always pushups for the tutorial (see Routes.survival). */
+    private val exercise: ExerciseType,
 ) : ViewModel() {
 
-    private val game = CeilingSurvival()
+    // Any movement, each worth what it is worth everywhere else: a pull-up moves the ceiling about
+    // as far as three pushups. See CeilingSurvival.forExercise.
+    private val game = CeilingSurvival.forExercise(exercise)
 
-    // Pushups, fixed — and unlike a dungeon there is no picker, because the mode only means one
-    // thing. The fiction is pushing a ceiling off a cat, so a curl does not apply; the copy says
-    // 푸쉬업으로 밀어 올려서 in as many words; and this run is the calibration set that seeds PUSHUP
-    // capacity, which every dungeon's enemy HP is derived from.
-    //
-    // The overlay is off by default here: the mode's whole appeal is that it looks like a toy, and
-    // a joint diagram over the top would undo that immediately.
-    private val detector = RepDetectorImpl(DetectorConfig.pushup(), skeletonMode = SkeletonMode.OFF)
+    // Through the factory, like a dungeon run, so a plank gets the hold detector rather than a rep
+    // state machine that would count nothing. The overlay is off: the mode's whole appeal is that
+    // it looks like a toy, and a joint diagram over the top would undo that immediately.
+    private val detector: RepDetector =
+        DetectorFactory.create(exercise).also { it.skeletonMode = SkeletonMode.OFF }
 
     private val _state = MutableStateFlow(game.state())
     val state: StateFlow<SurvivalState> = _state.asStateFlow()
@@ -58,7 +60,7 @@ class SurvivalViewModel(
     init {
         // One recording for the whole visit, restarts included: the run worth sending is often the
         // one before the retry. Replays with the defaults — survival starts from no calibration.
-        traces.begin("mode=survival exercise=PUSHUP profile=none")
+        traces.begin("mode=survival exercise=${exercise.name} profile=none")
         // Scoped to the destination, so without loading it back the mode reported "최고 0점" every
         // time the user returned — in the one place the product is built around a score.
         viewModelScope.launch { _bestScore.value = progressRepository.current().bestSurvivalScore }
@@ -81,10 +83,17 @@ class SurvivalViewModel(
         val tick: PoseTick = detector.onFrame(frame)
         if (startedAtMs == 0L) startedAtMs = tick.tMs
 
-        tick.events.filterIsInstance<RepEvent.Strike>().forEach { strike ->
-            reps++
-            maxCombo = maxOf(maxCombo, strike.combo)
-            handle(game.onRep(strike.grade, strike.depth, strike.tMs))
+        for (event in tick.events) {
+            when (event) {
+                is RepEvent.Strike -> {
+                    reps++
+                    maxCombo = maxOf(maxCombo, event.combo)
+                    handle(game.onRep(event.grade, event.depth, event.tMs))
+                }
+                // A hold pushes for as long as it is held, in the detector's own tick steps.
+                is RepEvent.HoldTick -> handle(game.onHold(event.score, HOLD_TICK_SECONDS, event.tMs))
+                else -> Unit
+            }
         }
         // The ceiling moves only while the user is in position and seen: armed at the top or
         // somewhere inside a rep. Walking back from the phone, reading the card, or a tracking gap
@@ -144,8 +153,8 @@ class SurvivalViewModel(
             progressRepository.update { current ->
                 current
                     .withCapacity(
-                        ExerciseType.PUSHUP,
-                        Capacity.update(current.capacityOf(ExerciseType.PUSHUP), observed),
+                        exercise,
+                        Capacity.update(current.capacityOf(exercise), observed),
                     )
                     .copy(onboarded = true)
             }
@@ -163,7 +172,7 @@ class SurvivalViewModel(
                 SessionRecord(
                     startedAtMs = System.currentTimeMillis() - over.survivedMs,
                     durationMs = over.survivedMs,
-                    exercise = ExerciseType.PUSHUP,
+                    exercise = exercise,
                     reps = repsDone,
                     maxCombo = combo,
                     deepReps = 0,
@@ -186,13 +195,16 @@ class SurvivalViewModel(
     }
 
     companion object {
-        fun factory(container: AppContainer): ViewModelProvider.Factory = viewModelFactory {
+        private val HOLD_TICK_SECONDS = 1f / PlankConfig().dotTickHz
+
+        fun factory(container: AppContainer, exercise: ExerciseType): ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 SurvivalViewModel(
                     container.progressRepository,
                     container.sessionRepository,
                     container.telemetry,
                     container.traces,
+                    exercise,
                 )
             }
         }

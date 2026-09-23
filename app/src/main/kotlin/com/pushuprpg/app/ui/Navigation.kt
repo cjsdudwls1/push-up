@@ -1,5 +1,7 @@
 package com.pushuprpg.app.ui
 
+import com.pushuprpg.core.detect.ExerciseType
+
 /**
  * Route names.
  *
@@ -20,10 +22,19 @@ object Routes {
     const val SETTINGS = "settings"
     const val PAYWALL = "paywall"
     private const val SURVIVAL_BASE = "survival"
-    const val SURVIVAL = "$SURVIVAL_BASE/{tutorial}"
+    const val SURVIVAL = "$SURVIVAL_BASE/{tutorial}/{exercise}"
     const val ARG_TUTORIAL = "tutorial"
+    const val ARG_EXERCISE = "exercise"
 
-    fun survival(tutorial: Boolean = false) = "$SURVIVAL_BASE/$tutorial"
+    /**
+     * The tutorial is always pushups: it is the calibration set that seeds pushup capacity, and a
+     * first-time user has not been asked about any other movement yet.
+     */
+    fun survival(tutorial: Boolean = false, exercise: ExerciseType = ExerciseType.PUSHUP) =
+        "$SURVIVAL_BASE/$tutorial/${exercise.name}"
+
+    /** Choosing the movement for 고냥이 지켜줘, the same way a dungeon run chooses one. */
+    const val SURVIVAL_PICK = "survival_pick"
 
     const val ARG_DUNGEON_INDEX = "dungeonIndex"
 

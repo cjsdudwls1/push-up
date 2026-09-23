@@ -146,14 +146,14 @@
     <string name="records_best_streak">최고 연속</string>
 
     <!-- Settings -->
-    <string name="settings_overlay">오버레이 표시</string>
+    <string name="settings_overlay">뼈대 선 표시</string>
     <string name="settings_overlay_off">끄기</string>
-    <string name="settings_overlay_minimal">간결</string>
-    <string name="settings_overlay_full">전체</string>
-    <string name="settings_gauge_side">게이지 위치</string>
+    <string name="settings_overlay_minimal">운동 부위만</string>
+    <string name="settings_overlay_full">온몸</string>
+    <string name="settings_gauge_side">깊이 막대 위치</string>
     <string name="settings_gauge_right">오른쪽</string>
     <string name="settings_gauge_left">왼쪽</string>
-    <string name="settings_gauge_number">게이지 숫자 표시</string>
+    <string name="settings_gauge_number">깊이 숫자 표시</string>
     <string name="settings_sfx">효과음</string>
     <string name="settings_music">배경 음악</string>
     <string name="settings_voice">음성 안내</string>
@@ -199,7 +199,7 @@
     <string name="battle_remaining_seconds">남은 %1$,d초</string>
     <string name="pick_exercise_cost_seconds">%1$,d초</string>
     <string name="settings_privacy">개인정보 처리방침</string>
-    <string name="settings_recalibrate">범위 다시 측정</string>
+    <string name="settings_recalibrate">깊이 기준 초기화</string>
 
     <!-- Exercises -->
     <string name="exercise_pushup">푸쉬업</string>
@@ -238,6 +238,9 @@
     <string name="survival_gameover">고냥이가 놀랐어요</string>
     <!-- Before the first armed frame. The ceiling does not move until the user is in position. -->
     <string name="survival_waiting">자세를 잡으면 천장이 내려오기 시작해요</string>
+    <string name="survival_waiting_with">%1$s 자세를 잡으면 천장이 내려오기 시작해요</string>
+    <string name="pick_survival_title">뭐로 밀어 올릴까요?</string>
+    <string name="pick_survival_sub">고른 운동 한 번마다 천장이 올라가요. 턱걸이처럼 힘든 운동은 한 번에 더 많이 올라가고, 플랭크는 버티는 동안 계속 올라가요.</string>
     <string name="tutorial_intro_title">먼저 몸을 풀어볼까요</string>
     <string name="tutorial_intro_body">천장이 내려와요. 푸쉬업으로 밀어 올려서 고냥이를 지켜주세요.\n할 수 있는 만큼만 하면 돼요 — 여기서 당신의 페이스를 배울게요.</string>
     <string name="tutorial_done_title">준비 끝!</string>
@@ -324,9 +327,9 @@
     <string name="settings_section_sound">소리와 진동</string>
     <string name="settings_section_exercise">운동</string>
     <string name="settings_section_about">앱 정보</string>
-    <string name="settings_overlay_sub">카메라 위에 뼈대를 얼마나 그릴지 정해요.</string>
-    <string name="settings_gauge_side_sub">보기 편한 쪽에 두면 눈이 덜 움직여요.</string>
-    <string name="settings_gauge_number_sub">깊이를 숫자로도 같이 보여줘요.</string>
+    <string name="settings_overlay_sub">운동할 때 카메라 화면 속 내 몸 위에 관절을 잇는 선을 그려요. 카메라가 나를 잘 잡고 있는지 볼 때 좋아요.</string>
+    <string name="settings_gauge_side_sub">운동 화면에서 얼마나 내려갔는지 보여주는 막대예요. 보기 편한 쪽에 두세요.</string>
+    <string name="settings_gauge_number_sub">깊이 막대 옆에 숫자로도 같이 보여줘요.</string>
     <string name="settings_large_text_sub">멀리서도 잘 보이도록 글씨를 키워요.</string>
     <string name="settings_reduce_motion_sub">화면 흔들림과 번쩍임을 줄여요.</string>
     <string name="settings_cvd_sub">초록·빨강 대신 파랑·노랑으로 구분해요.</string>
@@ -335,7 +338,8 @@
     <string name="settings_exercise_sub">고른 운동으로 몬스터를 공격해요.</string>
     <string name="settings_difficulty">난이도</string>
     <string name="settings_difficulty_sub">몬스터가 버티는 개수가 달라져요. 언제든 바꿀 수 있어요.</string>
-    <string name="settings_recalibrate_sub">오늘 몸 상태에 맞춰 깊이 범위를 다시 재요. 30초면 끝나요.</string>
+    <string name="settings_recalibrate_sub">개수가 잘 안 세지거나 너무 쉽게 세질 때, 폰 위치를 바꿨을 때 눌러요. 다음 운동의 처음 몇 개로 내 몸에 다시 맞춰요.</string>
+    <string name="settings_recalibrate_done">깊이 기준을 초기화했어요. 다음 운동 처음 몇 개로 다시 맞춰요.</string>
     <string name="settings_audio_only_on">지금 켜져 있어요</string>
     <string name="settings_audio_only_off">지금 꺼져 있어요</string>
     <string name="settings_privacy_sub">무엇을 저장하고 무엇을 저장하지 않는지 적어두었어요.</string>

@@ -58,6 +58,8 @@ import com.pushuprpg.core.game.Difficulty
  *
  * One tap starts the run. The last choice is pre-expanded so the common case — the same movement as
  * yesterday — is that one tap and no reading.
+ *
+ * With [survival] it picks the movement for 고냥이 지켜줘 instead: no dungeon, so no cost to quote.
  */
 @Composable
 fun ExercisePickScreen(
@@ -67,6 +69,7 @@ fun ExercisePickScreen(
     onStart: (ExerciseType) -> Unit,
     modifier: Modifier = Modifier,
     difficulty: Difficulty = Difficulty.STANDARD,
+    survival: Boolean = false,
 ) {
     var expanded by remember { mutableStateOf(initial) }
 
@@ -80,19 +83,19 @@ fun ExercisePickScreen(
     ) {
         item {
             Text(
-                text = dungeon?.korean.orEmpty(),
+                text = if (survival) stringResource(R.string.survival_title) else dungeon?.korean.orEmpty(),
                 style = Type.labelL,
                 color = Palette.TextSecondary,
             )
             Spacer(Modifier.height(4.dp))
             Text(
-                text = stringResource(R.string.pick_exercise_title),
+                text = stringResource(if (survival) R.string.pick_survival_title else R.string.pick_exercise_title),
                 style = Type.headline,
                 color = Palette.TextPrimary,
             )
             Spacer(Modifier.height(6.dp))
             Text(
-                text = stringResource(R.string.pick_exercise_sub),
+                text = stringResource(if (survival) R.string.pick_survival_sub else R.string.pick_exercise_sub),
                 style = Type.bodyM,
                 color = Palette.TextSecondary,
             )

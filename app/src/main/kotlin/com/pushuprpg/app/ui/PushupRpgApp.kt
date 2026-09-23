@@ -247,7 +247,7 @@ fun PushupRpgApp(
                             navController.navigate(Routes.PAYWALL)
                         },
                         onDungeonSelect = { navController.navigate(Routes.DUNGEON_SELECT) },
-                        onSurvival = { navController.navigate(Routes.survival()) },
+                        onSurvival = { navController.navigate(Routes.SURVIVAL_PICK) },
                         onRecords = { navController.navigate(Routes.RECORDS) },
                         onSettings = { navController.navigate(Routes.SETTINGS) },
                     )
@@ -404,12 +404,38 @@ fun PushupRpgApp(
                     }
                 }
 
+                composable(Routes.SURVIVAL_PICK) {
+                    ExercisePickScreen(
+                        dungeon = null,
+                        survival = true,
+                        initial = settings.exercise,
+                        onStart = { picked ->
+                            // Remembered as the last choice, for this picker and the dungeon one.
+                            // Not awaited: unlike a battle, the survival run takes its movement from
+                            // the route, so there is nothing for the write to race.
+                            scope.launch {
+                                container.settingsRepository.update { it.copy(exercise = picked) }
+                            }
+                            navController.navigate(Routes.survival(exercise = picked)) {
+                                popUpTo(Routes.SURVIVAL_PICK) { inclusive = true }
+                            }
+                        },
+                    )
+                }
+
                 composable(
                     route = Routes.SURVIVAL,
-                    arguments = listOf(navArgument(Routes.ARG_TUTORIAL) { type = NavType.BoolType }),
+                    arguments = listOf(
+                        navArgument(Routes.ARG_TUTORIAL) { type = NavType.BoolType },
+                        navArgument(Routes.ARG_EXERCISE) { type = NavType.StringType },
+                    ),
                 ) { entry ->
                     val isTutorial = entry.arguments?.getBoolean(Routes.ARG_TUTORIAL) ?: false
-                    val vm: SurvivalViewModel = viewModel(factory = SurvivalViewModel.factory(container))
+                    val exerciseName = entry.arguments?.getString(Routes.ARG_EXERCISE)
+                    val exercise = ExerciseType.entries.firstOrNull { it.name == exerciseName }
+                        ?: ExerciseType.PUSHUP
+                    val vm: SurvivalViewModel =
+                        viewModel(factory = SurvivalViewModel.factory(container, exercise))
                     val state by vm.state.collectAsState()
                     val best by vm.bestScore.collectAsState()
 
@@ -424,6 +450,7 @@ fun PushupRpgApp(
                             state = state,
                             bestScore = best,
                             poseSource = poseSource,
+                            exercise = exercise,
                             isTutorial = isTutorial,
                             onRetry = vm::restart,
                             onShare = onShare,
@@ -474,6 +501,9 @@ fun PushupRpgApp(
                                         com.pushuprpg.core.detect.UserProfile.empty(),
                                     )
                                 }
+                                // It used to finish in silence, and a reset nobody can see looks
+                                // exactly like a button that does nothing.
+                                toast(context, R.string.settings_recalibrate_done)
                             }
                         },
                         onChangeClass = changeClass,

@@ -1,6 +1,8 @@
 package com.pushuprpg.core
 
 import com.pushuprpg.core.detect.DetectorConfig
+import com.pushuprpg.core.detect.ExerciseType
+import com.pushuprpg.core.detect.Exercises
 import com.pushuprpg.core.detect.RepGrade
 import com.pushuprpg.core.survival.CeilingSurvival
 import com.pushuprpg.core.survival.SurvivalEvent
@@ -225,5 +227,76 @@ class CeilingSurvivalTest {
         }
         assertTrue(milestones.isNotEmpty(), "a run of ${game.state().elapsedMs}ms announced nothing")
         assertEquals(milestones.sorted(), milestones)
+    }
+
+    // ------------------------------------------------------------ every movement, not only pushups
+
+    /** How far one counted rep of [type] lifts a ceiling that has room to rise. */
+    private fun liftOfOneRep(type: ExerciseType): Float {
+        val game = CeilingSurvival.forExercise(type)
+        var t = 0L
+        repeat(400) { t += 33; game.update(t) } // down to about 0.4, so no lift is capped at the top
+        val before = game.state().height
+        val depth = Exercises.of(type).config.countEnter
+        game.onRep(RepGrade.COUNTED, depth, t)
+        return game.state().height - before
+    }
+
+    @Test
+    fun `a pull-up moves the ceiling as far as the pushups it is worth`() {
+        // A person manages about a third as many pull-ups as pushups; the ceiling is written in
+        // pushups, so one pull-up has to move it about three times as far or the mode is unwinnable.
+        val pushup = liftOfOneRep(ExerciseType.PUSHUP)
+        val pullUp = liftOfOneRep(ExerciseType.PULL_UP)
+        val worth = 1f / Exercises.of(ExerciseType.PULL_UP).sessionVolumeScale
+        assertEquals(pushup * worth, pullUp, 0.001f)
+    }
+
+    @Test
+    fun `a pushup run is exactly what it was before movements were added`() {
+        assertEquals(liftOfOneRep(ExerciseType.PUSHUP), run {
+            val game = CeilingSurvival()
+            var t = 0L
+            repeat(400) { t += 33; game.update(t) }
+            val before = game.state().height
+            game.onRep(RepGrade.COUNTED, DetectorConfig.pushup().countEnter, t)
+            game.state().height - before
+        }, 0.0001f)
+    }
+
+    @Test
+    fun `a held plank pushes the ceiling, and good form pushes harder`() {
+        fun liftOf(formScore: Float): Float {
+            val game = CeilingSurvival.forExercise(ExerciseType.PLANK)
+            var t = 0L
+            repeat(150) { t += 33; game.update(t) }
+            val before = game.state().height
+            game.onHold(formScore, 0.5f, t)
+            return game.state().height - before
+        }
+        val passable = liftOf(60f)
+        val perfect = liftOf(100f)
+        assertTrue(passable > 0f, "a plank held at the holding line pushed nothing")
+        assertTrue(perfect > passable, "perfect form $perfect did not beat passable $passable")
+    }
+
+    /**
+     * A plank has no cadence to speed up, so the ramp alone has to end it: held perfectly it
+     * should outlast the opening — a good hold is winning at first — and still lose inside a
+     * few minutes, like every other run.
+     */
+    @Test
+    fun `a perfect plank outlasts the opening and still ends`() {
+        val game = CeilingSurvival.forExercise(ExerciseType.PLANK)
+        var t = 0L
+        while (game.state().alive && t < 600_000) {
+            t += 33
+            game.update(t)
+            if (t % 500 < 33) game.onHold(100f, 0.5f, t)
+        }
+        val survivedS = game.state().elapsedMs / 1000
+        assertTrue(!game.state().alive, "a plank survived ten minutes")
+        assertTrue(survivedS in 40..180, "a perfect plank lasted ${survivedS}s")
+        assertEquals(0, game.state().reps, "plank seconds are not reps, here or in a dungeon")
     }
 }

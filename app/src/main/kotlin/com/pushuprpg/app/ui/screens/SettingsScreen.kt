@@ -84,6 +84,7 @@ fun SettingsScreen(
         )
         SegmentedSetting(
             title = stringResource(R.string.settings_overlay),
+            subtitle = stringResource(R.string.settings_overlay_sub),
             options = SkeletonMode.entries,
             labelFor = {
                 stringResource(
@@ -99,6 +100,7 @@ fun SettingsScreen(
         )
         SegmentedSetting(
             title = stringResource(R.string.settings_gauge_side),
+            subtitle = stringResource(R.string.settings_gauge_side_sub),
             options = listOf(true, false),
             labelFor = {
                 stringResource(if (it) R.string.settings_gauge_right else R.string.settings_gauge_left)
@@ -108,21 +110,23 @@ fun SettingsScreen(
         )
         SwitchSetting(
             title = stringResource(R.string.settings_gauge_number),
+            subtitle = stringResource(R.string.settings_gauge_number_sub),
             checked = settings.showGaugeNumber,
             onCheckedChange = { v -> onChange { it.copy(showGaugeNumber = v) } },
         )
-        SwitchSetting(
-            title = stringResource(R.string.settings_large_text),
-            checked = settings.largeText,
-            onCheckedChange = { v -> onChange { it.copy(largeText = v) } },
-        )
+        // 큰 글씨, 배경 음악, 음성 안내 and 자막 were listed here and did nothing: no screen read them,
+        // and the app ships no music or voice. A switch that changes nothing teaches people that
+        // settings do not work, so they stay off the screen until they are real. Their stored values
+        // are kept, so bringing one back needs no migration.
         SwitchSetting(
             title = stringResource(R.string.settings_reduce_motion),
+            subtitle = stringResource(R.string.settings_reduce_motion_sub),
             checked = settings.reduceMotion,
             onCheckedChange = { v -> onChange { it.copy(reduceMotion = v) } },
         )
         SegmentedSetting(
             title = stringResource(R.string.settings_cvd),
+            subtitle = stringResource(R.string.settings_cvd_sub),
             options = listOf(false, true),
             labelFor = {
                 stringResource(if (it) R.string.settings_cvd_blue_yellow else R.string.settings_cvd_none)
@@ -137,21 +141,6 @@ fun SettingsScreen(
             title = stringResource(R.string.settings_sfx),
             checked = settings.sfxEnabled,
             onCheckedChange = { v -> onChange { it.copy(sfxEnabled = v) } },
-        )
-        SwitchSetting(
-            title = stringResource(R.string.settings_music),
-            checked = settings.musicEnabled,
-            onCheckedChange = { v -> onChange { it.copy(musicEnabled = v) } },
-        )
-        SwitchSetting(
-            title = stringResource(R.string.settings_voice),
-            checked = settings.voiceEnabled,
-            onCheckedChange = { v -> onChange { it.copy(voiceEnabled = v) } },
-        )
-        SwitchSetting(
-            title = stringResource(R.string.settings_captions),
-            checked = settings.captionsEnabled,
-            onCheckedChange = { v -> onChange { it.copy(captionsEnabled = v) } },
         )
         SegmentedSetting(
             title = stringResource(R.string.settings_haptics),
@@ -176,6 +165,7 @@ fun SettingsScreen(
         // being made and where the per-exercise camera placement and load warning are worth reading.
         SegmentedSetting(
             title = "난이도",
+            subtitle = stringResource(R.string.settings_difficulty_sub),
             options = Difficulty.entries,
             labelFor = { it.korean },
             selected = settings.difficulty,
@@ -187,6 +177,7 @@ fun SettingsScreen(
         )
         ActionSetting(
             title = stringResource(R.string.settings_recalibrate),
+            subtitle = stringResource(R.string.settings_recalibrate_sub),
             onClick = onRecalibrate,
         )
 
@@ -346,16 +337,19 @@ private fun <T> SegmentedSetting(
 }
 
 @Composable
-private fun ActionSetting(title: String, onClick: () -> Unit) {
-    Text(
-        text = title,
-        style = Type.bodyL,
-        color = Palette.Brand400,
+private fun ActionSetting(title: String, onClick: () -> Unit, subtitle: String? = null) {
+    Column(
         modifier = Modifier
             .fillMaxWidth()
             .cardSurface(shape = RoundedCornerShape(16.dp))
             .clickable(onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 16.dp),
-    )
+    ) {
+        Text(text = title, style = Type.bodyL, color = Palette.Brand400)
+        if (subtitle != null) {
+            Spacer(Modifier.height(4.dp))
+            Text(text = subtitle, style = Type.bodyM, color = Palette.TextSecondary)
+        }
+    }
 }
 

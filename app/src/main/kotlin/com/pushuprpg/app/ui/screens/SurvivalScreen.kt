@@ -28,6 +28,9 @@ import com.pushuprpg.app.ui.components.SecondaryButton
 import com.pushuprpg.app.ui.components.cardSurface
 import com.pushuprpg.app.ui.theme.Palette
 import com.pushuprpg.app.ui.theme.Type
+import com.pushuprpg.app.ui.components.exerciseHintRes
+import com.pushuprpg.app.ui.components.exerciseLabelRes
+import com.pushuprpg.core.detect.ExerciseType
 import com.pushuprpg.core.survival.SurvivalState
 
 /**
@@ -42,6 +45,7 @@ fun SurvivalScreen(
     state: SurvivalState,
     bestScore: Int,
     poseSource: PoseLandmarkerSource,
+    exercise: ExerciseType,
     isTutorial: Boolean,
     onRetry: () -> Unit,
     onShare: (ShareCardData) -> Unit,
@@ -92,17 +96,17 @@ fun SurvivalScreen(
             if (!state.started && state.alive) {
                 Spacer(Modifier.height(10.dp))
                 Text(
-                    text = stringResource(R.string.survival_waiting),
+                    text = stringResource(R.string.survival_waiting_with, stringResource(exerciseLabelRes(exercise))),
                     style = Type.bodyM,
                     color = Palette.TextSecondary,
                     textAlign = TextAlign.Center,
                 )
-                // Where the phone goes, said before the first rep. The dungeons show this on the
-                // way in, but survival — and the tutorial, which is survival — never went through
-                // that screen, and a phone put side-on tracks the pose but can count nothing.
+                // Where the phone goes, said before the first rep. The picker shows it too, but the
+                // tutorial never went through a picker, and a phone put where the movement cannot be
+                // seen tracks the pose but counts nothing.
                 Spacer(Modifier.height(6.dp))
                 Text(
-                    text = stringResource(R.string.exercise_hint_pushup),
+                    text = stringResource(exerciseHintRes(exercise)),
                     style = Type.bodyM,
                     color = Palette.TextSecondary,
                     textAlign = TextAlign.Center,

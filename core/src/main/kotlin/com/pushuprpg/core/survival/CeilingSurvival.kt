@@ -1,6 +1,9 @@
 package com.pushuprpg.core.survival
 
 import com.pushuprpg.core.detect.DetectorConfig
+import com.pushuprpg.core.detect.ExerciseType
+import com.pushuprpg.core.detect.Exercises
+import com.pushuprpg.core.detect.PlankConfig
 import com.pushuprpg.core.detect.RepGrade
 import kotlin.math.pow
 import kotlin.math.roundToInt
@@ -58,11 +61,22 @@ sealed interface SurvivalEvent {
  * human sustains. A beginner managing about one rep every two seconds and starting to fade drowns
  * somewhere around 40-60s; someone strong holding a rep a second reaches the low hundreds; the
  * theoretical ceiling for a machine is a little over five minutes.
+ *
+ * ## Other movements
+ *
+ * The curve above is written in pushups, and every other movement is converted into them rather
+ * than given a curve of its own: a rep is worth [pushupsPerRep] pushups of lift and score, and a
+ * second of a hold the same. The number is the movement's own
+ * [com.pushuprpg.core.detect.ExerciseDescriptor.sessionVolumeScale] — the one a dungeon's rep cost
+ * is converted by — so a pull-up, which a person manages about a third as many of, moves the ceiling
+ * about three times as far, and a movement is worth the same here as everywhere else in the game.
  */
 class CeilingSurvival(
     private val config: DetectorConfig = DetectorConfig.pushup(),
     private val baseDescent: Float = BASE_DESCENT,
     private val rampSeconds: Float = RAMP_SECONDS,
+    /** Pushups one rep of this movement is worth — or, for a hold, one second of it. */
+    private val pushupsPerRep: Float = 1f,
 ) {
     private var height = 1f
     private var score = 0f
@@ -195,15 +209,38 @@ class CeilingSurvival(
         // Consecutive deep reps are worth compounding, which is what makes a good run feel good
         // rather than merely long.
         val comboBonus = 1f + COMBO_SCORE_BONUS * (combo - 1).coerceAtLeast(0)
-        score += SCORE_PER_REP * (if (isDeep) DEEP_SCORE_MULTIPLIER else 1f) * comboBonus
+        score += SCORE_PER_REP * pushupsPerRep * (if (isDeep) DEEP_SCORE_MULTIPLIER else 1f) * comboBonus
 
-        height = (height + lift).coerceAtMost(1f)
+        height = (height + lift * pushupsPerRep).coerceAtMost(1f)
 
         return if (counted) {
-            listOf(SurvivalEvent.Pushed(atMs, lift, isDeep, combo))
+            listOf(SurvivalEvent.Pushed(atMs, lift * pushupsPerRep, isDeep, combo))
         } else {
-            listOf(SurvivalEvent.Pushed(atMs, lift, false, combo), SurvivalEvent.NearMiss(atMs))
+            listOf(SurvivalEvent.Pushed(atMs, lift * pushupsPerRep, false, combo), SurvivalEvent.NearMiss(atMs))
         }
+    }
+
+    /**
+     * A stretch of a hold the detector has scored — a plank, where there is no rep to count.
+     *
+     * [formScore] is the detector's own 0-100 score for the stretch and [seconds] how long it was.
+     * Form at the detector's holding line pushes like a counted rep and perfect form like a deep
+     * one, in proportion to the time held. The detector reports a stretch only while the hold is
+     * on, so a hold that has broken pushes nothing without this needing to know why — the same
+     * rule as a rep: one component decides whether it counts.
+     */
+    fun onHold(formScore: Float, seconds: Float, atMs: Long): List<SurvivalEvent> {
+        if (!alive || seconds <= 0f) return emptyList()
+        if (startedAtMs == Long.MIN_VALUE) {
+            startedAtMs = atMs
+            lastUpdateMs = atMs
+        }
+        val quality = ((formScore - HOLD_LINE) / (100f - HOLD_LINE)).coerceIn(0f, 1f)
+        val pushups = seconds * pushupsPerRep
+        val lift = (LIFT + (DEEP_LIFT - LIFT) * quality) * pushups
+        height = (height + lift).coerceAtMost(1f)
+        score += SCORE_PER_REP * pushups * (1f + (DEEP_SCORE_MULTIPLIER - 1f) * quality)
+        return listOf(SurvivalEvent.Pushed(atMs, lift, deep = quality >= 1f, combo = 0))
     }
 
     fun reset() {
@@ -223,6 +260,15 @@ class CeilingSurvival(
         baseDescent * (1f + elapsedSec / rampSeconds)
 
     companion object {
+        /** The survival run for [type], worth what that movement is worth everywhere else. */
+        fun forExercise(type: ExerciseType): CeilingSurvival {
+            val descriptor = Exercises.of(type)
+            return CeilingSurvival(config = descriptor.config, pushupsPerRep = 1f / descriptor.sessionVolumeScale)
+        }
+
+        /** The form score a plank must hold to count as holding at all; see [PlankConfig]. */
+        private val HOLD_LINE = PlankConfig().holdingScore
+
         /** Height units per second at the very start of a run. */
         const val BASE_DESCENT = 0.040f
 

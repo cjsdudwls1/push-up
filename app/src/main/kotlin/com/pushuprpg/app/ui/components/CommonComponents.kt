@@ -406,6 +406,21 @@ fun exerciseLabelRes(exercise: ExerciseType): Int = when (exercise) {
  * into a dungeon and this is the screen that has to carry the warning — the moment before the set
  * is the moment it is worth reading.
  */
+/** Where to put the phone for [exercise], as a string resource. */
+@StringRes
+fun exerciseHintRes(exercise: ExerciseType): Int = when (exercise) {
+    ExerciseType.PUSHUP -> R.string.exercise_hint_pushup
+    ExerciseType.SQUAT -> R.string.exercise_hint_squat
+    ExerciseType.PLANK -> R.string.exercise_hint_plank
+    ExerciseType.PULL_UP -> R.string.exercise_hint_pull_up
+    ExerciseType.CURL -> R.string.exercise_hint_curl
+    ExerciseType.OVERHEAD_PRESS -> R.string.exercise_hint_overhead_press
+    ExerciseType.LUNGE -> R.string.exercise_hint_lunge
+    ExerciseType.BENCH_PRESS -> R.string.exercise_hint_bench_press
+    ExerciseType.HINGE -> R.string.exercise_hint_hinge
+    ExerciseType.DIP -> R.string.exercise_hint_dip
+}
+
 @Composable
 fun ExerciseNotes(exercise: ExerciseType) {
     val colors = LocalGameColors.current
@@ -415,18 +430,7 @@ fun ExerciseNotes(exercise: ExerciseType) {
         ExerciseType.OVERHEAD_PRESS,
         ExerciseType.CURL,
     )
-    val hint = when (exercise) {
-        ExerciseType.PUSHUP -> R.string.exercise_hint_pushup
-        ExerciseType.SQUAT -> R.string.exercise_hint_squat
-        ExerciseType.PLANK -> R.string.exercise_hint_plank
-        ExerciseType.PULL_UP -> R.string.exercise_hint_pull_up
-        ExerciseType.CURL -> R.string.exercise_hint_curl
-        ExerciseType.OVERHEAD_PRESS -> R.string.exercise_hint_overhead_press
-        ExerciseType.LUNGE -> R.string.exercise_hint_lunge
-        ExerciseType.BENCH_PRESS -> R.string.exercise_hint_bench_press
-        ExerciseType.HINGE -> R.string.exercise_hint_hinge
-        ExerciseType.DIP -> R.string.exercise_hint_dip
-    }
+    val hint = exerciseHintRes(exercise)
 
     Column(
         Modifier
