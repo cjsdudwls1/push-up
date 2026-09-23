@@ -1,5 +1,6 @@
 package com.pushuprpg.app.data
 
+import com.pushuprpg.core.detect.ExerciseType
 import com.pushuprpg.app.domain.DailyTotal
 import com.pushuprpg.app.domain.SessionRecord
 import com.pushuprpg.app.domain.SessionRepository
@@ -24,7 +25,7 @@ class RoomSessionRepository(
 ) : SessionRepository {
 
     override fun recent(limit: Int): Flow<List<SessionRecord>> =
-        dao.recent(limit.coerceAtLeast(1))
+        dao.recent(ExerciseType.entries.map { it.name }, limit.coerceAtLeast(1))
             .map { rows -> rows.map(SessionEntity::toRecord) }
             .flowOn(Dispatchers.IO)
 

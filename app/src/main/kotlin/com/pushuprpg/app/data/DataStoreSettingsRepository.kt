@@ -35,7 +35,8 @@ private val KEY_SKELETON_MODE = stringPreferencesKey("skeleton_mode")
 private val KEY_GAUGE_ON_RIGHT = booleanPreferencesKey("gauge_on_right")
 private val KEY_SHOW_GAUGE_NUMBER = booleanPreferencesKey("show_gauge_number")
 private val KEY_SFX = booleanPreferencesKey("sfx_enabled")
-private val KEY_MUSIC = booleanPreferencesKey("music_enabled")
+// A track name. The older "music_enabled" boolean was never read by anything that played music.
+private val KEY_MUSIC = stringPreferencesKey("music_track")
 private val KEY_VOICE = booleanPreferencesKey("voice_enabled")
 private val KEY_CAPTIONS = booleanPreferencesKey("captions_enabled")
 private val KEY_HAPTIC = stringPreferencesKey("haptic_strength")
@@ -55,7 +56,7 @@ private fun Preferences.toSettings(): AppSettings = AppSettings(
     gaugeOnRight = this[KEY_GAUGE_ON_RIGHT] ?: SETTINGS_DEFAULT.gaugeOnRight,
     showGaugeNumber = this[KEY_SHOW_GAUGE_NUMBER] ?: SETTINGS_DEFAULT.showGaugeNumber,
     sfxEnabled = this[KEY_SFX] ?: SETTINGS_DEFAULT.sfxEnabled,
-    musicEnabled = this[KEY_MUSIC] ?: SETTINGS_DEFAULT.musicEnabled,
+    music = enumOrDefault(this[KEY_MUSIC], SETTINGS_DEFAULT.music),
     voiceEnabled = this[KEY_VOICE] ?: SETTINGS_DEFAULT.voiceEnabled,
     captionsEnabled = this[KEY_CAPTIONS] ?: SETTINGS_DEFAULT.captionsEnabled,
     hapticStrength = enumOrDefault(this[KEY_HAPTIC], SETTINGS_DEFAULT.hapticStrength),
@@ -76,7 +77,7 @@ private fun MutablePreferences.writeSettings(s: AppSettings) {
     this[KEY_GAUGE_ON_RIGHT] = s.gaugeOnRight
     this[KEY_SHOW_GAUGE_NUMBER] = s.showGaugeNumber
     this[KEY_SFX] = s.sfxEnabled
-    this[KEY_MUSIC] = s.musicEnabled
+    this[KEY_MUSIC] = s.music.name
     this[KEY_VOICE] = s.voiceEnabled
     this[KEY_CAPTIONS] = s.captionsEnabled
     this[KEY_HAPTIC] = s.hapticStrength.name

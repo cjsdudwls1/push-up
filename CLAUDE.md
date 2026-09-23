@@ -53,6 +53,15 @@ Run a new or changed movement through `MovementRigTest` from the floor, waist he
 height before believing its priors. Four descriptors shipped with the wrong sign or a witness that
 could not move, and every hand-placed fixture agreed with them.
 
+**The placement coach never contradicts the detector.** `PlacementCoach` says 좋아요 only when the
+detector's own quality is OK and it has armed; every other line is geometry measured on the frame
+the detector refused. Placement advice lives there and in one line per movement on the picker —
+not in paragraphs. A plank is filmed like a pushup, from the head: side on, the shoulder pair
+collapses and it never holds, which the old placement line told people to do.
+
+**Bodyweight movements only**, by the owner's decision: pushup, squat, plank, pull-up, lunge, dip.
+The weighted ones were removed; stored names that point at them read back tolerantly.
+
 **The gauge reads its thresholds from `DetectorConfig`.** The line the user aims at must be the
 same value the rep counter uses. Never hardcode 70 or 88 in a composable.
 

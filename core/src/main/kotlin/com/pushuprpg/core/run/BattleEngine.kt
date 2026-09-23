@@ -48,6 +48,8 @@ data class BattleState(
     val quality: PoseQuality = PoseQuality.NO_SUBJECT,
     /** Landmark indices the movement needs and the tracker cannot see; what the quality line names. */
     val missingParts: List<Int> = emptyList(),
+    /** What to tell the user about where they and the phone are, or nothing. See [PlacementCoach]. */
+    val placement: Placement = Placement(PlacementAdvice.STEP_INTO_VIEW),
     val calibrating: Boolean = true,
     val render: RenderSkeleton = RenderSkeleton.EMPTY,
     val reps: Int = 0,
@@ -184,6 +186,7 @@ class BattleEngine(
 ) {
     /** The movement being done now; replaced by [switchExercise]. */
     private var detector: RepDetector = detector
+    private var coach = PlacementCoach(detector.config.exercise, detector.config)
     private var resolver: CombatResolver = resolver
     private var player: PlayerState = initialPlayer
     private var floorIndex = 0
@@ -239,6 +242,7 @@ class BattleEngine(
 
     fun onPoseFrame(frame: PoseFrame): BattleState {
         val tick = detector.onFrame(frame)
+        val placement = coach.update(frame, tick)
         if (startedAtMs == Long.MIN_VALUE) {
             startedAtMs = tick.tMs
             segStartMs = tick.tMs
@@ -482,6 +486,7 @@ class BattleEngine(
             phase = tick.phase,
             quality = tick.quality,
             missingParts = tick.missing,
+            placement = placement,
             calibrating = tick.calibration.state == CalibrationState.BOOTSTRAP,
             render = tick.render,
             reps = repsTotal,
@@ -540,6 +545,8 @@ class BattleEngine(
         segMaxCombo = 0
 
         detector = next
+        // A new movement wants the phone somewhere else, and gets talked into position afresh.
+        coach = PlacementCoach(next.config.exercise, next.config)
         resolver = CombatResolver(next.config)
         val to = next.config.exercise
         encounter.switchMovement(dungeon.floors[floorIndex].spawn(difficulty, to), resolver)

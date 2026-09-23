@@ -76,7 +76,10 @@ object Body3d {
         val height: Int = 640,
     ) {
         private val forward = (target - position).unit()
-        private val right = V3(forward.z, 0f, -forward.x).unit() // horizontal, perpendicular to forward
+        // forward × world-up: horizontal, and to the viewer's right. It used to be the negation of
+        // this, which rotated every image 180 degrees. Nothing that measures relative geometry
+        // could tell; the placement coach, which reads which edge a foot left by, could.
+        private val right = V3(-forward.z, 0f, forward.x).unit()
         private val up = V3(
             right.y * forward.z - right.z * forward.y,
             right.z * forward.x - right.x * forward.z,
@@ -184,47 +187,6 @@ object Body3d {
     }
 
     /**
-     * A standing dumbbell curl, both arms. [depth] 0 is the hang, elbow at 168 degrees; 1 is peak
-     * contraction at 42. The upper arm stays pinned to the side, which is the honest version.
-     */
-    fun curl(depth: Float): Skeleton {
-        val s = Skeleton()
-        standingLegs(s)
-        uprightTorso(s, V3(0f, STANDING_HIP_Y, 0f))
-        val theta = deg(168f - depth * (168f - 42f))
-        for ((side, shoulder, elbow, wrist) in SIDES_ARM) {
-            val upperDir = V3(0f, -cos(deg(5f)), sin(deg(5f)))
-            s[elbow] = s[shoulder] + upperDir * UPPER_ARM
-            // The forearm makes angle theta with the upper arm, swinging up and forward.
-            val toShoulder = upperDir * -1f
-            val fwd = V3(0f, sin(deg(5f)), cos(deg(5f)))
-            s[wrist] = s[elbow] + (toShoulder * cos(theta) + fwd * sin(theta)) * FOREARM
-        }
-        return s
-    }
-
-    /**
-     * A standing overhead press with a vertical bar path, which is what a press is: the wrists go
-     * straight up from the collarbone to over the shoulder, and the elbows are wherever a
-     * two-link arm has to put them — under and in front of the bar at the rack, out to the side at
-     * lockout. [depth] 0 is the rack, elbow at about 62 degrees; 1 is lockout at about 170.
-     */
-    fun press(depth: Float): Skeleton {
-        val s = Skeleton()
-        standingLegs(s)
-        uprightTorso(s, V3(0f, STANDING_HIP_Y, 0f))
-        for ((side, shoulder, elbow, wrist) in SIDES_ARM) {
-            val rack = s[shoulder] + V3(side * 0.02f, 0.02f, 0.26f)
-            val lockout = s[shoulder] + V3(side * 0.02f, 0.575f, 0.03f)
-            s[wrist] = rack + (lockout - rack) * depth
-            // The elbow starts under the bar and forward, and swings out and back to the side.
-            val bend = V3(side * (0.35f + 0.65f * depth), -(1f - 0.75f * depth), 0.55f * (1f - depth))
-            s[elbow] = midJoint(s[shoulder], s[wrist], UPPER_ARM, FOREARM, bend)
-        }
-        return s
-    }
-
-    /**
      * A split squat — the lunge as it is actually repeated: feet stay split, the body goes down and
      * up. Left leg forward, toward the camera. [depth] 0 is standing tall in the split, 1 is both
      * knees at about ninety degrees.
@@ -246,33 +208,6 @@ object Body3d {
         }
         uprightTorso(s, hipMid)
         hangingArms(s)
-        return s
-    }
-
-    /**
-     * A Romanian deadlift with a dumbbell. [depth] 0 is standing tall; 1 is the torso 85 degrees
-     * from vertical, hips pushed back, hands at the shin. The hip angle runs 175 to about 75.
-     */
-    fun hinge(depth: Float): Skeleton {
-        val s = Skeleton()
-        val phi = deg(85f * depth)
-        val hipMid = V3(0f, STANDING_HIP_Y - 0.06f * depth, -0.15f * depth)
-        for ((side, hip, knee, ankle) in SIDES_LEG) {
-            val x = side * HIP_WIDTH / 2f
-            s[hip] = hipMid + V3(x, 0f, 0f)
-            s[ankle] = V3(x, ANKLE_HEIGHT, 0f)
-            s[knee] = midJoint(s[hip], s[ankle], THIGH, SHANK, V3(0f, 0f, 1f))
-        }
-        val torsoDir = V3(0f, cos(phi), sin(phi))
-        for ((side, shoulder) in SIDES_SHOULDER) {
-            s[shoulder] = hipMid + V3(side * SHOULDER_WIDTH / 2f, 0f, 0f) + torsoDir * TORSO
-        }
-        s[Lm.NOSE] = hipMid + torsoDir * (TORSO + NOSE_ABOVE_SHOULDER) + V3(0f, 0f, NOSE_FORWARD)
-        // Arms hang straight down under gravity, holding the weight.
-        for ((side, shoulder, elbow, wrist) in SIDES_ARM) {
-            s[elbow] = s[shoulder] + V3(0f, -UPPER_ARM, 0f)
-            s[wrist] = s[elbow] + V3(0f, -FOREARM, 0f)
-        }
         return s
     }
 

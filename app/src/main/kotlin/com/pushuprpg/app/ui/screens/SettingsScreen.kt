@@ -1,5 +1,6 @@
 package com.pushuprpg.app.ui.screens
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -15,6 +16,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.pushuprpg.app.R
+import com.pushuprpg.app.domain.MusicTrack
 import com.pushuprpg.app.domain.AppSettings
 import com.pushuprpg.app.domain.HapticStrength
 import com.pushuprpg.app.domain.ThemeMode
@@ -37,6 +39,8 @@ fun SettingsScreen(
     /** Debug builds only: the recorder behind a bug report. See [com.pushuprpg.app.trace.RunTraces]. */
     traceTools: Boolean = false,
     onSendTrace: () -> Unit = {},
+    /** Plays a few seconds of the track just picked, so the choice is made by ear. */
+    onPreviewMusic: (MusicTrack) -> Unit = {},
 ) {
     Column(
         modifier = modifier
@@ -143,6 +147,17 @@ fun SettingsScreen(
             onCheckedChange = { v -> onChange { it.copy(sfxEnabled = v) } },
         )
         SegmentedSetting(
+            title = stringResource(R.string.settings_music),
+            subtitle = stringResource(R.string.settings_music_sub),
+            options = MusicTrack.entries,
+            labelFor = { stringResource(musicLabelRes(it)) },
+            selected = settings.music,
+            onSelect = { v ->
+                onChange { it.copy(music = v) }
+                onPreviewMusic(v)
+            },
+        )
+        SegmentedSetting(
             title = stringResource(R.string.settings_haptics),
             options = HapticStrength.entries,
             labelFor = {
@@ -162,7 +177,7 @@ fun SettingsScreen(
         Spacer(Modifier.height(10.dp))
         SectionHeader(text = "운동")
         // No exercise picker here. It lives on the way into a dungeon, where the choice is actually
-        // being made and where the per-exercise camera placement and load warning are worth reading.
+        // being made and where the per-exercise camera placement is worth reading.
         SegmentedSetting(
             title = "난이도",
             subtitle = stringResource(R.string.settings_difficulty_sub),
@@ -353,3 +368,12 @@ private fun ActionSetting(title: String, onClick: () -> Unit, subtitle: String? 
     }
 }
 
+
+@StringRes
+private fun musicLabelRes(track: MusicTrack): Int = when (track) {
+    MusicTrack.OFF -> R.string.settings_music_off
+    MusicTrack.ADVENTURE -> R.string.settings_music_adventure
+    MusicTrack.BATTLE -> R.string.settings_music_battle
+    MusicTrack.FOCUS -> R.string.settings_music_focus
+    MusicTrack.CALM -> R.string.settings_music_calm
+}

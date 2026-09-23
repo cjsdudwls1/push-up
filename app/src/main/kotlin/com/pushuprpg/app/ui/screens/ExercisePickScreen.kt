@@ -60,8 +60,8 @@ import com.pushuprpg.core.survival.CatName
  *
  * Entry is also simply the right place to ask. In settings the choice was made minutes before it
  * mattered and then silently applied to every later run; here it is made while the user is standing
- * in front of the phone deciding what they are about to do, which is the moment the camera-placement
- * line and the load warning are worth reading.
+ * in front of the phone deciding what they are about to do, which is the moment the one-line
+ * camera placement is worth reading. The rest of the placement is said live, once the phone is down.
  *
  * One tap starts the run. The last choice is pre-expanded so the common case — the same movement as
  * yesterday — is that one tap and no reading.
@@ -156,7 +156,7 @@ private fun ExerciseRow(
                 shape = RoundedCornerShape(18.dp),
                 color = if (expanded) Palette.Bg3 else Palette.Bg1,
             )
-            // Tapping a collapsed row opens it rather than starting the run. Nine movements on one
+            // Tapping a collapsed row opens it rather than starting the run. Six movements on one
             // screen means a mis-tap is likely, and a mis-tap that begins a set with the wrong
             // detector loaded costs the whole set.
             .clickable { if (expanded) onStart() else onExpand() }

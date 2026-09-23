@@ -82,8 +82,8 @@ data class ExerciseDescriptor(
      * damage coefficient for this gave 154 pull-ups and 471 bench reps for a 400-rep tier, neither
      * of which is a session that exists.
      *
-     * Anchored on a trained pushup session of ~150 reps: pull-up 45, bench 30, overhead press 30,
-     * curl 45, squat 100, lunge 130, hinge 37. A hold is in seconds, not reps.
+     * Anchored on a trained pushup session of ~150 reps: pull-up 45, dip 45, squat 100, lunge 130.
+     * A hold is in seconds, not reps.
      */
     val sessionVolumeScale: Float,
     /** Starting capacity for a user who has never done this movement — reps, or seconds for a hold. */
@@ -360,21 +360,6 @@ object Exercises {
     /** Knee angle with the thigh parallel to the floor. */
     const val KNEE_BOTTOM_DEG = 88f
 
-    /** Elbow at the hang of a curl, and at peak contraction. */
-    const val CURL_TOP_DEG = 168f
-    const val CURL_BOTTOM_DEG = 42f
-
-    /**
-     * The upper arm against the torso in a press: tucked down and forward at the rack, vertical at
-     * lockout. Measured at the shoulder (hip–shoulder–elbow), not the elbow — see [OVERHEAD_PRESS].
-     */
-    const val PRESS_TOP_DEG = 50f
-    const val PRESS_BOTTOM_DEG = 150f
-
-    /** Hip angle standing tall, and at the bottom of a hinge. */
-    const val HIP_TOP_DEG = 175f
-    const val HIP_BOTTOM_DEG = 75f
-
     /**
      * Shoulders descend toward fixed hands; `h` is the shrinking shoulder-to-wrist gap.
      *
@@ -535,148 +520,6 @@ object Exercises {
         streakBar = 60,
     )
 
-
-    /**
-     * A curl is the best-conditioned signal in the app and the worst-conditioned incentive.
-     *
-     * Best-conditioned because the movement happens in the frontal plane, perpendicular to the
-     * lens — the opposite of the pushup, whose forearm swings away from it — and because the
-     * elbow angle finally moves through its whole range in the image plane, so the cross-check is
-     * a real second opinion rather than a formality. Normalised by shoulder width the hand travels
-     * about 1.20 shoulder widths, a wider range than the pushup's 0.65, so the "small movement,
-     * more jitter" worry is backwards in the units this pipeline actually uses.
-     *
-     * Worst-conditioned because of how it fails. A pushup degrades into a shallow pushup and a
-     * squat into a quarter squat — in both cases the thing that got worse is the thing `h`
-     * measures, so the gauge sees it and grades it SHALLOW. A curl degrades into hip drive, and
-     * the wrist still travels from thigh to shoulder, so the primary signal reads a textbook rep.
-     * The cheat is invisible in the one quantity the detector is built on. The forearm-rise travel
-     * check below is the only thing watching for it, and it is a weak witness.
-     *
-     * Two arms at once. A scalar `h` cannot express alternating arms, and pretending otherwise
-     * with a min or a max over sides would count half-reps as whole ones.
-     */
-    val CURL = ExerciseDescriptor(
-        type = ExerciseType.CURL,
-        kind = MovementKind.REP,
-        // Toward the hips: the wrist pair's sign margin collapses near peak contraction, on the
-        // noisiest landmark in the body, while the hips stay rigid against the shoulders all rep.
-        normalToward = HIPS,
-        signal = RepSignal(
-            proximal = SHOULDERS,
-            distal = WRISTS,
-            scale = ScaleReference.SHOULDER_WIDTH,
-            jointCheck = JointAngleCheck(ELBOWS, SHOULDERS, WRISTS, CURL_TOP_DEG, CURL_BOTTOM_DEG),
-            // The forearm shortening against the body axis. It moves only if the elbow stays put,
-            // which is exactly the thing a cheat curl stops doing.
-            bodyTravel = BodyTravelCheck(BodyPoint.Midpoint(ELBOWS), BodyPoint.Midpoint(WRISTS), invert = true),
-            crossCheck = CrossCheckPolicy.BEST_AVAILABLE,
-            allowJointFallback = false,
-        ),
-        config = DetectorConfig(
-            exercise = ExerciseType.CURL,
-            // Tighter at the top than a pushup: full extension at the hang is a gravity-assisted
-            // mechanical stop that costs nothing, and the half-rep people actually skip is the
-            // bottom of the curl, not the top.
-            topEnter = 15f, topExit = 28f,
-            countEnter = 72f, countExit = 56f,
-            deepEnter = 90f, deepExit = 82f,
-            maxDescentSpeed = 380f, minAscentMs = 250, minRepPeriodMs = 900,
-            maxDescentMs = 4000, maxBottomMs = 4000,
-            signalMinCutoff = 1.0f, signalBeta = 16f,
-            hTopPrior = 1.50f, hBotPrior = 0.30f, rMin = 0.55f,
-            topClampMin = 1.10f, topClampMax = 1.90f,
-            botClampMin = -0.20f, botClampMax = 0.90f,
-        ),
-        // A curl moves one limb's worth of load through a short path. Against a pushup, which
-        // moves most of a bodyweight, the honest number is small.
-        damageCoefficient = 0.35f,
-        sessionVolumeScale = 0.30f,
-        defaultCapacity = 12f,
-        streakBar = 15,
-    )
-
-    /**
-     * An overhead press, measured at the bar: `h` is the wrist against the shoulder line, about
-     * +0.5 at the rack (the bar at the collarbone, in front) and about −1.4 at lockout.
-     *
-     * It used to be measured at the elbow, on the argument that the wrist is the first thing to
-     * leave the top of the frame. The elbow is the wrong joint to watch in a press: it swings up
-     * and out in the FIRST half of the movement while the bar clears the face, and the elbow angle
-     * — the cross-check — only opens in the second half. Measured on a projected 3-D body, the
-     * elbow-height reading was 80% done at half bar height with the joint check reading 6 of 100,
-     * a 55-point disagreement at the count line from every camera position tried; 0 of 8, always
-     * INCONSISTENT. The bar goes straight up, which is what the elbow angle tracks.
-     *
-     * The cross-check is the SHOULDER angle — hip, shoulder, elbow — not the elbow's. The elbow angle
-     * is the obvious witness and it is useless here: it sits within a few degrees of the rack value
-     * until the bar is past the head and then opens 100 degrees in the last third, so against any
-     * height-based primary it disagrees by 50–60 points at the count line. The upper arm, by
-     * contrast, goes from tucked (about 50 degrees off the torso) to vertical (about 150) in step
-     * with the bar, and the two agree within ten points the whole way. What it gives up is the
-     * straight-arm front raise, which it reads the same as a press; that is a shoulder movement
-     * with a load in the hands and not a cheat this game needs to refuse.
-     *
-     * Nothing else on a pressing body moves — the head, hips and legs are the pull-up's rigid
-     * hanging body again — so there is no travel witness and the joint angle is mandatory. The
-     * wrist does reach high: with the phone at waist height it needs about two and a half metres to
-     * keep lockout in frame, and the placement line says so.
-     *
-     * Calibration anchors by SHIFT, not scale. `h` at the rack is close to zero — the bar sits at
-     * the collarbone, level with the shoulder line — and where exactly it lands is decided by the
-     * camera's height, not the body: −0.42 from the floor, −0.10 from chest height on the same
-     * body. A ratio anchored on a number near zero is noise; what is body-proportional is the
-     * RANGE, bar travel over shoulder width, and that is what a shift preserves.
-     *
-     * Note the orientation: in this pipeline depth 0 is the easy, re-arming end, which for a press
-     * is the rack at the shoulder, and depth 100 is the lockout overhead. So the numbers here run
-     * the opposite way round from every other exercise in physical space while behaving identically
-     * in `h`, which is the whole point of the abstraction.
-     */
-    val OVERHEAD_PRESS = ExerciseDescriptor(
-        type = ExerciseType.OVERHEAD_PRESS,
-        kind = MovementKind.REP,
-        normalToward = HIPS,
-        signal = RepSignal(
-            proximal = SHOULDERS,
-            distal = WRISTS,
-            scale = ScaleReference.SHOULDER_WIDTH,
-            jointCheck = JointAngleCheck(SHOULDERS, HIPS, ELBOWS, PRESS_TOP_DEG, PRESS_BOTTOM_DEG),
-            bodyTravel = null,
-            crossCheck = CrossCheckPolicy.JOINT_REQUIRED,
-            allowJointFallback = false,
-        ),
-        config = DetectorConfig(
-            exercise = ExerciseType.OVERHEAD_PRESS,
-            topEnter = 18f, topExit = 32f,
-            // Higher than a pushup: the overhead lockout is a real mechanical stop, so asking for
-            // it costs an honest lifter nothing.
-            countEnter = 74f, countExit = 58f,
-            deepEnter = 90f, deepExit = 82f,
-            maxDescentSpeed = 400f, minAscentMs = 300, minRepPeriodMs = 1000,
-            maxDescentMs = 4000, maxBottomMs = 4000,
-            signalMinCutoff = 1.0f, signalBeta = 14f,
-            // From the floor the bar's projected travel is compressed while the shoulder angle is
-            // not, so at the count line the two sit about 30 points apart; 45 leaves that placement
-            // headroom. The two witnesses are coherent — the wrist cannot rise without the upper arm
-            // — so a wider band opens no fake the narrow one refused.
-            maxSignalDisagreement = 45f,
-            // The range prior is deliberately on the small side. A phone on the floor compresses
-            // the bar's travel by almost half (0.73 widths against 1.36 from chest height), and a
-            // prior sized for the level camera would put the count line beyond the floor user's
-            // reach entirely. Sized for the floor, the level camera's first reps count early and
-            // the calibrator expands the bottom to the real one within a few reps.
-            anchorByShift = true,
-            hTopPrior = -0.25f, hBotPrior = -1.15f, rMin = 0.60f,
-            topClampMin = -0.80f, topClampMax = 0.40f,
-            botClampMin = -2.20f, botClampMax = -0.50f,
-        ),
-        damageCoefficient = 1.15f,
-        sessionVolumeScale = 0.20f,
-        defaultCapacity = 8f,
-        streakBar = 10,
-    )
-
     /**
      * A lunge is a squat whose two sides disagree on purpose.
      *
@@ -723,123 +566,6 @@ object Exercises {
         defaultCapacity = 12f,
         streakBar = 15,
     )
-
-    /**
-     * Bench press, filmed from the side — the only exercise here that needed the frame itself
-     * rebuilt.
-     *
-     * Three things would have made it count exactly zero, none of them visible from the signal
-     * definition. The shoulder pair projects almost onto itself from the side, so the frame's
-     * scale fell under [DetectorConfig.minScale] and every frame was refused; the far shoulder's
-     * confidence never cleared the core gate, so a `min` across the pair reported LOW_CONFIDENCE
-     * forever; and the normal's sign, re-decided every frame, flips near the hard end where the
-     * projection approaches zero — which is the strike frame. Hence [AxisSource.NEAR_SIDE_TORSO],
-     * [CoreConfidence.NEAR_SIDE] and [ExerciseDescriptor.latchNormalSign].
-     *
-     * Even so this is the least trustworthy signal in the app, and it is marked as such: the bar
-     * and plates cross the frame at wrist height and occlude the wrists at the top of every rep,
-     * the bench and thigh occlude the near hip that now carries the scale, and BlazePose's weakest
-     * regime is a supine subject. The maths is sound; the landmarks are not reliably there.
-     */
-    val BENCH_PRESS = ExerciseDescriptor(
-        type = ExerciseType.BENCH_PRESS,
-        kind = MovementKind.REP,
-        normalToward = WRISTS,
-        axisSource = AxisSource.NEAR_SIDE_TORSO,
-        coreConfidence = CoreConfidence.NEAR_SIDE,
-        latchNormalSign = true,
-        signal = RepSignal(
-            proximal = SHOULDERS,
-            distal = WRISTS,
-            scale = ScaleReference.SHOULDER_WIDTH,
-            jointCheck = JointAngleCheck(ELBOWS, SHOULDERS, WRISTS, ELBOW_TOP_DEG, ELBOW_BOTTOM_DEG),
-            // Nothing on a benched body moves independently of the arms; a travel check here would
-            // be the squat's dead nose cross-check all over again.
-            bodyTravel = null,
-            crossCheck = CrossCheckPolicy.JOINT_REQUIRED,
-            allowJointFallback = true,
-        ),
-        config = DetectorConfig(
-            exercise = ExerciseType.BENCH_PRESS,
-            topEnter = 20f, topExit = 34f,
-            countEnter = 70f, countExit = 55f,
-            deepEnter = 88f, deepExit = 80f,
-            maxDescentSpeed = 400f, minAscentMs = 300, minRepPeriodMs = 1000,
-            maxDescentMs = 5000, maxBottomMs = 4000,
-            signalMinCutoff = 1.0f, signalBeta = 14f,
-            hTopPrior = 1.00f, hBotPrior = 0.17f, rMin = 0.45f,
-            topClampMin = 0.60f, topClampMax = 1.50f,
-            botClampMin = 0.00f, botClampMax = 0.70f,
-        ),
-        damageCoefficient = 0.85f,
-        sessionVolumeScale = 0.20f,
-        defaultCapacity = 8f,
-        streakBar = 10,
-    )
-
-    /**
-     * A hip hinge — Romanian deadlift with a dumbbell, kettlebell or an unloaded bar.
-     *
-     * Deliberately not the floor barbell pull. Forty-five centimetre plates occlude the shins,
-     * ankles and part of the near knee at exactly the bottom position where the detector re-arms,
-     * and the thing that fails in a fatigued deadlift is the spine — where BlazePose has no
-     * landmark at all between the shoulders and the hips. A rounding back produces the same trace
-     * as a clean pull, so the signal is blind precisely where the risk is. The hinge keeps the
-     * movement pattern and drops the part the camera cannot see.
-     *
-     * `h` is the KNEE measured from the WRIST, in that order. Standing, the hands hang at mid-thigh
-     * and the knee sits below them along the body normal: about +0.9 to +1.05 shoulder widths
-     * depending on where the phone is. At the bottom the hands are at the shin, below the knee, and
-     * it reads about −0.4 to −0.6. The pair was the other way round for a while — wrists from knees
-     * — which reads −0.9 standing and rises to +0.4 at the bottom: a signal that climbs with
-     * effort, against a prior of +1.40 that no camera position produces. That never armed and
-     * counted nothing, with the tracker reporting OK. Measured on a projected 3-D body from the
-     * floor, from waist height and from chest height; all three agree on the sign and roughly on
-     * the ends.
-     *
-     * The normal's sign is latched. At the bottom the shoulders are level with the hips or below
-     * them in the image, so a normal re-decided every frame flips exactly at the strike; the sign is
-     * unambiguous while standing and holds from there.
-     *
-     * Body travel: the shoulders come down toward the ankles, so the extent shrinks with depth —
-     * inverted, like the squat's. This too was declared the other way and rejected every rep.
-     *
-     * Filmed from the front or slightly off it. A hinge rotates about the mediolateral axis, so the
-     * shoulder line stays fronto-parallel at any yaw including zero — a true side view would
-     * collapse it and refuse every frame.
-     */
-    val HINGE = ExerciseDescriptor(
-        type = ExerciseType.HINGE,
-        kind = MovementKind.REP,
-        normalToward = HIPS,
-        latchNormalSign = true,
-        signal = RepSignal(
-            proximal = WRISTS,
-            distal = KNEES,
-            scale = ScaleReference.SHOULDER_WIDTH,
-            jointCheck = JointAngleCheck(HIPS, SHOULDERS, KNEES, HIP_TOP_DEG, HIP_BOTTOM_DEG),
-            bodyTravel = BodyTravelCheck(BodyPoint.Midpoint(SHOULDERS), BodyPoint.Midpoint(ANKLES), invert = true),
-            crossCheck = CrossCheckPolicy.BEST_AVAILABLE,
-            allowJointFallback = false,
-        ),
-        config = DetectorConfig(
-            exercise = ExerciseType.HINGE,
-            topEnter = 18f, topExit = 32f,
-            countEnter = 68f, countExit = 52f,
-            deepEnter = 88f, deepExit = 80f,
-            maxDescentSpeed = 420f, minAscentMs = 280, minRepPeriodMs = 1000,
-            maxDescentMs = 5000, maxBottomMs = 5000,
-            signalMinCutoff = 1.0f, signalBeta = 16f,
-            hTopPrior = 1.00f, hBotPrior = -0.45f, rMin = 0.60f,
-            topClampMin = 0.50f, topClampMax = 1.80f,
-            botClampMin = -1.20f, botClampMax = 0.30f,
-        ),
-        damageCoefficient = 1.00f,
-        sessionVolumeScale = 0.25f,
-        defaultCapacity = 10f,
-        streakBar = 12,
-    )
-
     /**
      * A dip is a pull-up's mirror: the hands are fixed and the body travels PAST them rather than
      * toward them. At lockout the acromion sits an arm's length above the wrists; at the bottom it
@@ -868,7 +594,7 @@ object Exercises {
      *
      * Bar dips only. Bench dips put the hands behind the hips, inside the body silhouette from the
      * front, and filming them from the side collapses the shoulder axis into the near-side-torso
-     * territory that BENCH_PRESS needs. That is a second descriptor, not this one.
+     * territory, which this game does not film. That would be a second descriptor, not this one.
      *
      * Camera: level with the bar, front on. Placed on the floor a forward-leaning dip loses about a
      * quarter of its range to parallax and counted 0 of 6.
@@ -910,7 +636,7 @@ object Exercises {
     )
 
     val ALL: List<ExerciseDescriptor> = listOf(
-        PUSHUP, SQUAT, PULL_UP, PLANK, CURL, OVERHEAD_PRESS, LUNGE, BENCH_PRESS, HINGE, DIP,
+        PUSHUP, SQUAT, PULL_UP, PLANK, LUNGE, DIP,
     )
 
     private val byType: Map<ExerciseType, ExerciseDescriptor> = ALL.associateBy { it.type }

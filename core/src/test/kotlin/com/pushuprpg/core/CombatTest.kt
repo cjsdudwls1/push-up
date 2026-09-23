@@ -174,15 +174,15 @@ class CombatTest {
 
     @Test
     fun `a movement's tier cost is its own session, not a pushup's`() {
-        // Authored in pushups, converted by session volume. A bench session is 20-40 working reps
+        // Authored in pushups, converted by session volume. A pull-up session is about 45 reps
         // where a pushup session is 150, so the same tier cannot ask both for the same number.
         val standard = CombatResolver.expectedReps(100, Difficulty.STANDARD, ExerciseType.PUSHUP)
-        val bench = CombatResolver.expectedReps(100, Difficulty.STANDARD, ExerciseType.BENCH_PRESS)
+        val squat = CombatResolver.expectedReps(100, Difficulty.STANDARD, ExerciseType.SQUAT)
         val pullUp = CombatResolver.expectedReps(100, Difficulty.STANDARD, ExerciseType.PULL_UP)
 
         assertEquals(100, standard)
-        assertTrue(bench < standard / 3, "a bench tier asked for $bench reps against a pushup's $standard")
-        assertTrue(pullUp < standard / 2, "a pull-up tier asked for $pullUp reps against a pushup's $standard")
+        assertTrue(squat < standard, "a squat tier asked for $squat reps against a pushup's $standard")
+        assertTrue(pullUp < standard / 3, "a pull-up tier asked for $pullUp reps against a pushup's $standard")
     }
 }
 

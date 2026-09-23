@@ -73,42 +73,7 @@ class MovementRigTest {
         return DepthSignal.compute(f, body, conf, config)?.h ?: error("$type: no sample at depth $depth")
     }
 
-    // ---------------------------------------------------------------- the shared detector rule
-
-    /**
-     * The regression this file exists for. The travel witness used to be referenced from the last
-     * armed frame — a third of the way down — instead of from rest, so a witness geared under 1:1
-     * with the primary could never travel 30% of the range in the window it was given. A curl from
-     * a phone on the floor measured 0.3271 against 0.3277 and counted 1 of 8, the first rep only,
-     * which is exactly the "counts one then stalls" the device showed.
-     */
-    @Test
-    fun `a curl from a phone on the floor counts every rep, not just the first`() {
-        assertCounts(ExerciseType.CURL, Body3d::curl, floor30, "the floor")
-    }
-
     // ---------------------------------------------------------------- per movement
-
-    @Test
-    fun `a curl counts from the floor, from waist height and from chest height`() {
-        assertCounts(ExerciseType.CURL, Body3d::curl, Camera.onFloor(2.2f, 45f), "the floor at 45°")
-        assertCounts(ExerciseType.CURL, Body3d::curl, waist, "waist height")
-        assertCounts(ExerciseType.CURL, Body3d::curl, chest, "chest height")
-    }
-
-    @Test
-    fun `an overhead press counts from the floor, from waist height and from chest height`() {
-        assertCounts(ExerciseType.OVERHEAD_PRESS, Body3d::press, floor30, "the floor")
-        assertCounts(ExerciseType.OVERHEAD_PRESS, Body3d::press, waist, "waist height")
-        assertCounts(ExerciseType.OVERHEAD_PRESS, Body3d::press, chest, "chest height")
-    }
-
-    @Test
-    fun `a hinge counts from the floor, from waist height and from chest height`() {
-        assertCounts(ExerciseType.HINGE, Body3d::hinge, floor30, "the floor")
-        assertCounts(ExerciseType.HINGE, Body3d::hinge, waist, "waist height")
-        assertCounts(ExerciseType.HINGE, Body3d::hinge, chest, "chest height")
-    }
 
     @Test
     fun `a dip counts from the floor — where the phone was — as well as from bar height`() {
@@ -142,16 +107,13 @@ class MovementRigTest {
     // ---------------------------------------------------------------- the sign, per movement
 
     /**
-     * The one rule a descriptor author must get right, measured rather than assumed. The hinge had
-     * it backwards: wrists from knees reads −0.9 standing and rises to +0.4 at the bottom, against
-     * a prior of +1.40 that no camera produces, and never armed.
+     * The one rule a descriptor author must get right, measured rather than assumed. A hinge once
+     * had it backwards — wrists from knees read −0.9 standing and rose to +0.4 at the bottom,
+     * against a prior of +1.40 that no camera produces — and never armed.
      */
     @Test
     fun `h falls with effort from every camera, for every standing movement`() {
         val movements = listOf<Pair<ExerciseType, (Float) -> Body3d.Skeleton>>(
-            ExerciseType.CURL to Body3d::curl,
-            ExerciseType.OVERHEAD_PRESS to Body3d::press,
-            ExerciseType.HINGE to Body3d::hinge,
             ExerciseType.LUNGE to Body3d::lunge,
             ExerciseType.DIP to { d -> Body3d.dip(d) },
         )
@@ -167,18 +129,6 @@ class MovementRigTest {
                 )
             }
         }
-    }
-
-    /**
-     * At the bottom of a hinge the hips sit level with the shoulders in the image, so a normal
-     * re-decided every frame flips on the strike frame. Latched, it holds — and this asserts the
-     * bottom reading keeps its sign from chest height, the placement where it used to flip.
-     */
-    @Test
-    fun `the hinge's normal does not flip at the bottom from chest height`() {
-        val r = run(ExerciseType.HINGE, Body3d::hinge, chest)
-        assertTrue(AbandonReason.INCONSISTENT !in r.refusals, "the normal flipped mid-rep: ${r.refusals.distinct()}")
-        assertEquals(8, r.reps)
     }
 
     // ---------------------------------------------------------------- the pushup
@@ -220,8 +170,8 @@ class MovementRigTest {
     /**
      * Side on, the shoulder pair projects onto itself, the pushup's frame has no scale, and it
      * never arms. The placement line used to send people exactly there. This pins why it no longer
-     * does: if the pushup is given a side-view frame, as the bench press has, this fails, and the
-     * line in strings.xml can say "옆모습" again.
+     * does: if the pushup is ever given a side-view frame, this fails, and the line in strings.xml
+     * can say "옆모습" again.
      */
     @Test
     fun `side on, the pushup cannot find its frame and says so`() {

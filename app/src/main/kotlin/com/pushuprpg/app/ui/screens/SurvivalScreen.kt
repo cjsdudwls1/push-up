@@ -42,9 +42,10 @@ import com.pushuprpg.app.ui.components.drawHearts
 import com.pushuprpg.app.ui.theme.LocalReduceMotion
 import com.pushuprpg.app.ui.theme.Palette
 import com.pushuprpg.app.ui.theme.Type
-import com.pushuprpg.app.ui.components.exerciseHintRes
+import com.pushuprpg.app.ui.components.PlacementBanner
 import com.pushuprpg.app.ui.components.exerciseLabelRes
 import com.pushuprpg.core.detect.ExerciseType
+import com.pushuprpg.core.detect.Placement
 import com.pushuprpg.core.survival.CatLine
 import com.pushuprpg.core.survival.CatName
 import com.pushuprpg.core.survival.CatSpeech
@@ -70,6 +71,7 @@ fun SurvivalScreen(
     onHome: () -> Unit,
     modifier: Modifier = Modifier,
     cat: CatView = CatView(),
+    placement: Placement = Placement(),
     /** As the user typed it; blank is the default name. */
     catName: String = "",
     catCoat: CatCoat = CatCoat.CREAM,
@@ -136,16 +138,17 @@ fun SurvivalScreen(
                     color = Palette.TextSecondary,
                     textAlign = TextAlign.Center,
                 )
-                // Where the phone goes, said before the first rep. The picker shows it too, but the
-                // tutorial never went through a picker, and a phone put where the movement cannot be
-                // seen tracks the pose but counts nothing.
-                Spacer(Modifier.height(6.dp))
-                Text(
-                    text = stringResource(exerciseHintRes(exercise)),
-                    style = Type.bodyM,
-                    color = Palette.TextSecondary,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(horizontal = 28.dp),
+            }
+            // Where the phone and the user are, live: before the first rep, and again whenever the
+            // camera loses them — which matters more here than anywhere, because the ceiling does
+            // not wait. The tutorial never went through a picker, so this is its only placement
+            // advice, and a phone put where the movement cannot be seen counts nothing.
+            if (state.alive) {
+                Spacer(Modifier.height(10.dp))
+                PlacementBanner(
+                    placement = placement,
+                    exercise = exercise,
+                    modifier = Modifier.padding(horizontal = 20.dp),
                 )
             }
         }

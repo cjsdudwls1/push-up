@@ -97,7 +97,8 @@ data class AppSettings(
     val gaugeOnRight: Boolean = true,
     val showGaugeNumber: Boolean = false,
     val sfxEnabled: Boolean = true,
-    val musicEnabled: Boolean = true,
+    /** The background music during a run, or [MusicTrack.OFF]. */
+    val music: MusicTrack = MusicTrack.ADVENTURE,
     val voiceEnabled: Boolean = true,
     val captionsEnabled: Boolean = false,
     val hapticStrength: HapticStrength = HapticStrength.MEDIUM,
@@ -129,6 +130,19 @@ data class AppSettings(
 )
 
 enum class HapticStrength { OFF, LIGHT, MEDIUM, STRONG }
+
+/** Background music for a run: one of the synthesised loops (tools/generate_music.py), or none. */
+enum class MusicTrack {
+    OFF,
+    /** 모험 — bright and bouncing; the default. */
+    ADVENTURE,
+    /** 전투 — minor key, four on the floor. */
+    BATTLE,
+    /** 집중 — lo-fi, for a long steady set. */
+    FOCUS,
+    /** 잔잔 — soft marimba; 고냥이's room. */
+    CALM,
+}
 
 /**
  * The cat's coat. A cat someone has named and coloured like their own is a cat they protect

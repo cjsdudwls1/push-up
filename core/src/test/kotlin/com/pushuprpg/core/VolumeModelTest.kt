@@ -130,27 +130,22 @@ class VolumeModelTest {
     }
 
     @Test
-    fun `a loaded movement's ladder is shorter than a bodyweight one's`() {
+    fun `a hard movement's ladder is shorter than an easy one's`() {
         // The reason sessionVolumeScale exists rather than reusing damageCoefficient. A trained
-        // pushup session is around 150 reps; a trained bench session is 20-40 working reps. So the
-        // same ladder cannot ask both for the same number, and the loaded movements must ask for
+        // pushup session is around 150 reps; a trained pull-up or dip session is about 45. So the
+        // same ladder cannot ask both for the same number, and the hard movements must ask for
         // markedly less. Measured totals across all eight dungeons: pushup 446, squat 298,
-        // lunge 388, pull-up 137, curl 137, hinge 115, bench 90, overhead press 90.
+        // lunge 388, pull-up 137, dip 137.
         fun ladder(exercise: ExerciseType) = Dungeons.ALL.sumOf { d ->
             d.floors.sumOf { CombatResolver.expectedReps(it.standardRepCost, Difficulty.STANDARD, exercise) }
         }
 
         val pushup = ladder(ExerciseType.PUSHUP)
-        listOf(
-            ExerciseType.BENCH_PRESS,
-            ExerciseType.OVERHEAD_PRESS,
-            ExerciseType.PULL_UP,
-            ExerciseType.HINGE,
-        ).forEach { loaded ->
-            val total = ladder(loaded)
+        listOf(ExerciseType.PULL_UP, ExerciseType.DIP).forEach { hard ->
+            val total = ladder(hard)
             assertTrue(
                 total < pushup / 2,
-                "$loaded asks for $total against a pushup's $pushup — a session that does not exist",
+                "$hard asks for $total against a pushup's $pushup — a session that does not exist",
             )
         }
 

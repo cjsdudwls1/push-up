@@ -31,6 +31,7 @@ import com.pushuprpg.app.pose.CameraPreview
 import com.pushuprpg.app.pose.PoseLandmarkerSource
 import com.pushuprpg.app.ui.components.KeepScreenOn
 import com.pushuprpg.app.ui.components.exerciseHintRes
+import com.pushuprpg.app.ui.components.PlacementBanner
 import com.pushuprpg.app.ui.components.exerciseLabelRes
 import com.pushuprpg.app.ui.theme.LocalGameColors
 import com.pushuprpg.app.ui.theme.LocalReduceMotion
@@ -39,8 +40,6 @@ import com.pushuprpg.app.ui.theme.Type
 import com.pushuprpg.core.detect.ExerciseType
 import com.pushuprpg.core.detect.Exercises
 import com.pushuprpg.core.detect.MovementKind
-import com.pushuprpg.core.detect.PoseQuality
-import com.pushuprpg.core.pose.PoseLandmarks as Lm
 import com.pushuprpg.core.game.PlayerClass
 import com.pushuprpg.core.run.AlertKey
 import com.pushuprpg.core.run.BattleState
@@ -175,12 +174,14 @@ fun BattleScreen(
             )
         }
 
-        QualityBanner(
-            quality = state.quality,
-            missing = state.missingParts,
+        // Where the phone and the user are, said live while it matters and silent when it does
+        // not. When tracking drops mid-fight this is also what explains the boss standing still.
+        PlacementBanner(
+            placement = state.placement,
+            exercise = state.exercise,
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .padding(bottom = 40.dp),
+                .padding(start = 20.dp, end = 20.dp, bottom = 40.dp),
         )
 
         // Top right, opposite the close button: switching is a between-sets act, done standing in
@@ -441,7 +442,7 @@ private fun BoxScope.BattleHudLayout(
             answers = state.ultimateAnswers,
             answersNeeded = com.pushuprpg.core.game.Encounter.ANSWERS_TO_BLOCK,
             playerClass = playerClass,
-            hold = Exercises.of(state.exercise).kind == MovementKind.HOLD,
+            exercise = state.exercise,
         )
         Spacer(Modifier.height(10.dp))
         AlertSlot(state)
@@ -554,70 +555,3 @@ private fun AlertSlot(state: BattleState) {
     }
 }
 
-/**
- * Says why the game is waiting.
- *
- * The boss stops attacking whenever tracking is lost, and the user has to be told that — silence
- * here would look like the app had simply stopped counting their work.
- */
-@Composable
-private fun QualityBanner(
-    quality: PoseQuality,
-    missing: List<Int>,
-    modifier: Modifier = Modifier,
-) {
-    val base = when (quality) {
-        PoseQuality.OK -> null
-        PoseQuality.NO_SUBJECT -> stringResource(R.string.quality_no_subject)
-        PoseQuality.LOW_CONFIDENCE -> stringResource(R.string.quality_low_confidence)
-        PoseQuality.OUT_OF_FRAME -> stringResource(R.string.quality_out_of_frame)
-        PoseQuality.UNSTABLE_CAMERA -> stringResource(R.string.quality_unstable_camera)
-        PoseQuality.SUBJECT_SWITCH -> stringResource(R.string.quality_subject_switch)
-        PoseQuality.TORSO_ROTATED -> stringResource(R.string.quality_torso_rotated)
-        PoseQuality.IMPLAUSIBLE_RATE -> stringResource(R.string.quality_implausible_rate)
-    }
-    // Name the parts, when there are any to name. "폰을 조금만 뒤로" is advice; "안 보이는 곳: 무릎,
-    // 발목" is the reason for it, and the reason is what lets the user fix the placement instead of
-    // guessing. Only while the pose is not OK, so it never nags mid-set about a witness that is
-    // merely faint.
-    // Resolved here, in composable scope, before being joined.
-    val parts = missing.map { bodyPartRes(it) }.distinct().map { stringResource(it) }
-    val message = when {
-        base == null -> null
-        parts.isEmpty() || quality == PoseQuality.NO_SUBJECT -> base
-        else -> base + "\n" + stringResource(R.string.quality_missing_parts, parts.joinToString(", "))
-    }
-
-    // Same reason as AlertSlot: without this, recovering from a lost track collapses the banner to
-    // an empty pill and fades that instead of the sentence.
-    var lastMessage by remember { mutableStateOf("") }
-    if (message != null) lastMessage = message
-
-    AnimatedVisibility(
-        visible = message != null,
-        enter = fadeIn(tween(200)),
-        exit = fadeOut(tween(300)),
-        modifier = modifier,
-    ) {
-        Text(
-            text = lastMessage,
-            style = Type.bodyL,
-            color = Palette.TextPrimary,
-            textAlign = TextAlign.Center,
-            modifier = Modifier
-                .clip(RoundedCornerShape(18.dp))
-                .background(Palette.ScrimPanelHigh)
-                .padding(horizontal = 20.dp, vertical = 12.dp),
-        )
-    }
-}
-
-/** One name per joint, left and right folded together: the user has two knees and one problem. */
-private fun bodyPartRes(landmark: Int): Int = when (landmark) {
-    Lm.LEFT_SHOULDER, Lm.RIGHT_SHOULDER -> R.string.body_part_shoulder
-    Lm.LEFT_ELBOW, Lm.RIGHT_ELBOW -> R.string.body_part_elbow
-    Lm.LEFT_WRIST, Lm.RIGHT_WRIST -> R.string.body_part_wrist
-    Lm.LEFT_HIP, Lm.RIGHT_HIP -> R.string.body_part_hip
-    Lm.LEFT_KNEE, Lm.RIGHT_KNEE -> R.string.body_part_knee
-    else -> R.string.body_part_ankle
-}

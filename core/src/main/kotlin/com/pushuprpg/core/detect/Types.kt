@@ -6,9 +6,13 @@ package com.pushuprpg.core.detect
  * The behaviour of each one lives in [Exercises], not here: adding an entry without adding its
  * descriptor fails loudly at first use rather than producing a selectable exercise that counts
  * nothing. Persisted by `name`, so entries may be appended freely but never renamed or reordered.
+ *
+ * Bodyweight only, by the owner's decision. Curl, overhead press, bench press and hinge were
+ * removed; every stored name is read back tolerantly, so a record or setting that still names one
+ * of them falls back rather than failing to load.
  */
 enum class ExerciseType {
-    PUSHUP, SQUAT, PLANK, PULL_UP, CURL, OVERHEAD_PRESS, LUNGE, BENCH_PRESS, HINGE, DIP
+    PUSHUP, SQUAT, PLANK, PULL_UP, LUNGE, DIP
 }
 
 /**

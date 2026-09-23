@@ -3,6 +3,7 @@ package com.pushuprpg.app
 import android.content.Context
 import android.os.Build
 import com.pushuprpg.app.audio.GameAudio
+import com.pushuprpg.app.audio.MusicPlayer
 import com.pushuprpg.app.billing.PlayEntitlementRepository
 import com.pushuprpg.app.telemetry.Telemetry
 import com.pushuprpg.app.data.AppDatabase
@@ -57,6 +58,9 @@ class AppContainer(context: Context) {
      * enough to be audible as a gap on the first rep of every run.
      */
     val audio: GameAudio by lazy { GameAudio(appContext) }
+
+    /** One player for the whole app, so leaving one run and entering the next never plays two. */
+    val music: MusicPlayer by lazy { MusicPlayer(appContext) }
 
     val telemetry: Telemetry by lazy { Telemetry(appContext) }
 

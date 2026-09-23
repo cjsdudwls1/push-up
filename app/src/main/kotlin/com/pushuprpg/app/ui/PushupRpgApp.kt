@@ -48,6 +48,7 @@ import com.pushuprpg.app.share.ShareCardData
 import com.pushuprpg.app.telemetry.Event
 import com.pushuprpg.app.pose.PoseLandmarkerSource
 import com.pushuprpg.app.ui.battle.BattleScreen
+import com.pushuprpg.app.ui.components.RunMusic
 import com.pushuprpg.app.ui.battle.BattleViewModel
 import com.pushuprpg.app.ui.result.ResultScreen
 import com.pushuprpg.app.ui.screens.*
@@ -307,6 +308,7 @@ fun PushupRpgApp(
                     val state by vm.state.collectAsState()
 
                     LaunchedEffect(dungeonIndex) { vm.start(dungeonIndex) }
+                    RunMusic(track = settings.music, player = container.music)
                     DisposableEffect(vm) {
                         val consumer: (com.pushuprpg.core.pose.PoseFrame) -> Unit = vm::onPoseFrame
                         frameSink.attach(consumer)
@@ -447,6 +449,8 @@ fun PushupRpgApp(
                     val state by vm.state.collectAsState()
                     val best by vm.bestScore.collectAsState()
                     val cat by vm.catView.collectAsState()
+                    val placement by vm.placement.collectAsState()
+                    RunMusic(track = settings.music, player = container.music)
 
                     DisposableEffect(vm) {
                         val consumer: (com.pushuprpg.core.pose.PoseFrame) -> Unit = vm::onPoseFrame
@@ -459,6 +463,7 @@ fun PushupRpgApp(
                             state = state,
                             bestScore = best,
                             cat = cat,
+                            placement = placement,
                             catName = settings.catName,
                             catCoat = settings.catCoat,
                             poseSource = poseSource,
@@ -496,11 +501,14 @@ fun PushupRpgApp(
                 }
 
                 composable(Routes.SETTINGS) {
+                    // A preview started here ends here, not over the home screen.
+                    DisposableEffect(Unit) { onDispose { container.music.stop() } }
                     SettingsScreen(
                         settings = settings,
                         onChange = { transform ->
                             scope.launch { container.settingsRepository.update(transform) }
                         },
+                        onPreviewMusic = container.music::preview,
                         onRecalibrate = {
                             scope.launch {
                                 // Every movement's range, not just the last one played. The button

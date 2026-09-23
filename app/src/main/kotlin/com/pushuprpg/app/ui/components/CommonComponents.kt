@@ -385,86 +385,46 @@ fun exerciseLabelRes(exercise: ExerciseType): Int = when (exercise) {
     ExerciseType.SQUAT -> R.string.exercise_squat
     ExerciseType.PLANK -> R.string.exercise_plank
     ExerciseType.PULL_UP -> R.string.exercise_pull_up
-    ExerciseType.CURL -> R.string.exercise_curl
-    ExerciseType.OVERHEAD_PRESS -> R.string.exercise_overhead_press
     ExerciseType.LUNGE -> R.string.exercise_lunge
-    ExerciseType.BENCH_PRESS -> R.string.exercise_bench_press
-    ExerciseType.HINGE -> R.string.exercise_hinge
     ExerciseType.DIP -> R.string.exercise_dip
 }
 
 /**
- * Where to put the phone, and — for the loaded movements — what the camera cannot do for you.
+ * Where to put the phone for [exercise], in one line.
  *
- * The placement line earns its place: getting the phone wrong is the single most common reason a
- * whole set counts nothing, and every exercise wants it somewhere different.
- *
- * The warning is deliberately not a disclaimer. It says the one true thing the user cannot see for
- * themselves: that the game is pushing them to keep going and has no idea what is on the bar.
- *
- * Shared rather than private to the settings screen, because the exercise is now chosen on the way
- * into a dungeon and this is the screen that has to carry the warning — the moment before the set
- * is the moment it is worth reading.
+ * One line because the rest is said live: [PlacementBanner] watches the camera and tells the user
+ * what to move while the phone is actually in their hands. A paragraph here was read before the
+ * set and forgotten by the time the phone was on the floor.
  */
-/** Where to put the phone for [exercise], as a string resource. */
 @StringRes
 fun exerciseHintRes(exercise: ExerciseType): Int = when (exercise) {
     ExerciseType.PUSHUP -> R.string.exercise_hint_pushup
     ExerciseType.SQUAT -> R.string.exercise_hint_squat
     ExerciseType.PLANK -> R.string.exercise_hint_plank
     ExerciseType.PULL_UP -> R.string.exercise_hint_pull_up
-    ExerciseType.CURL -> R.string.exercise_hint_curl
-    ExerciseType.OVERHEAD_PRESS -> R.string.exercise_hint_overhead_press
     ExerciseType.LUNGE -> R.string.exercise_hint_lunge
-    ExerciseType.BENCH_PRESS -> R.string.exercise_hint_bench_press
-    ExerciseType.HINGE -> R.string.exercise_hint_hinge
     ExerciseType.DIP -> R.string.exercise_hint_dip
 }
 
+/** The expanded picker row: where the phone goes, and whether the movement is still being tried out. */
 @Composable
 fun ExerciseNotes(exercise: ExerciseType) {
-    val colors = LocalGameColors.current
-    val loaded = exercise in setOf(
-        ExerciseType.BENCH_PRESS,
-        ExerciseType.HINGE,
-        ExerciseType.OVERHEAD_PRESS,
-        ExerciseType.CURL,
-    )
-    val hint = exerciseHintRes(exercise)
-
-    Column(
-        Modifier
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
             .fillMaxWidth()
-            .padding(top = 8.dp)
-            .cardSurface(shape = RoundedCornerShape(14.dp), color = Palette.Bg2)
-            .padding(14.dp),
+            .padding(top = 8.dp),
     ) {
         Text(
-            text = stringResource(hint),
+            text = stringResource(exerciseHintRes(exercise)),
             style = Type.bodyM,
             color = Palette.TextSecondary,
+            modifier = Modifier.weight(1f),
         )
+        // Honest in two words rather than a sentence: no real body has confirmed the count yet.
         if (!Exercises.of(exercise).validatedOnDevice) {
-            Spacer(Modifier.height(8.dp))
-            Text(
-                text = stringResource(R.string.exercise_unvalidated),
-                style = Type.bodyM,
-                color = Palette.TextTertiary,
-            )
-        }
-        if (loaded) {
-            Spacer(Modifier.height(12.dp))
-            Text(
-                text = stringResource(R.string.exercise_load_warning_title),
-                style = Type.labelL,
-                color = colors.deep,
-            )
-            Spacer(Modifier.height(6.dp))
-            Text(
-                text = stringResource(R.string.exercise_load_warning_body),
-                style = Type.bodyM,
-                color = Palette.TextSecondary,
-            )
+            Spacer(Modifier.width(8.dp))
+            Pill(text = stringResource(R.string.exercise_unvalidated), tint = Palette.TextTertiary)
         }
     }
 }

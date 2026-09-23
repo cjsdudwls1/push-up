@@ -16,8 +16,15 @@ data class DailyTotalRow(
 @Dao
 interface SessionDao {
 
-    @Query("SELECT * FROM sessions ORDER BY startedAtMs DESC, id DESC LIMIT :limit")
-    fun recent(limit: Int): Flow<List<SessionEntity>>
+    /**
+     * The latest sessions of the movements the app still offers. A row naming one that was taken
+     * out (the weighted movements) stays in the table — its reps are still in every total — but is
+     * not listed, because the converter can only read it back as some other movement.
+     */
+    @Query(
+        "SELECT * FROM sessions WHERE exercise IN (:movements) ORDER BY startedAtMs DESC, id DESC LIMIT :limit"
+    )
+    fun recent(movements: List<String>, limit: Int): Flow<List<SessionEntity>>
 
     @Query(
         """

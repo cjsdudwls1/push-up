@@ -18,6 +18,9 @@ import com.pushuprpg.core.detect.DetectorFactory
 import com.pushuprpg.app.domain.capacityOf
 import com.pushuprpg.app.domain.withCapacity
 import com.pushuprpg.core.detect.ExerciseType
+import com.pushuprpg.core.detect.Placement
+import com.pushuprpg.core.detect.PlacementAdvice
+import com.pushuprpg.core.detect.PlacementCoach
 import com.pushuprpg.core.detect.PlankConfig
 import com.pushuprpg.core.detect.PoseQuality
 import com.pushuprpg.core.detect.PoseTick
@@ -63,6 +66,11 @@ class SurvivalViewModel(
     private val _bestScore = MutableStateFlow(0)
     val bestScore: StateFlow<Int> = _bestScore.asStateFlow()
 
+    // Talks the user into a placement that counts, before the first rep and whenever it is lost.
+    private val coach = PlacementCoach(exercise, detector.config)
+    private val _placement = MutableStateFlow(Placement(PlacementAdvice.STEP_INTO_VIEW))
+    val placement: StateFlow<Placement> = _placement.asStateFlow()
+
     // The cat's face, words and voice. It reads the run and changes nothing in it.
     private val cat = CatCompanion()
     private val _cat = MutableStateFlow(cat.view())
@@ -99,6 +107,7 @@ class SurvivalViewModel(
         }
         val tick: PoseTick = detector.onFrame(frame)
         if (startedAtMs == 0L) startedAtMs = tick.tMs
+        _placement.value = coach.update(frame, tick)
 
         val events = mutableListOf<SurvivalEvent>()
         for (event in tick.events) {
@@ -144,6 +153,7 @@ class SurvivalViewModel(
         detector.reset()
         cat.reset()
         _cat.value = cat.view()
+        coach.reset()
         reps = 0
         maxCombo = 0
         startedAtMs = 0L
