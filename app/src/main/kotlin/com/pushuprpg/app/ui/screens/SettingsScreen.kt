@@ -34,6 +34,9 @@ fun SettingsScreen(
     onChangeClass: () -> Unit,
     onOpenPrivacy: () -> Unit,
     modifier: Modifier = Modifier,
+    /** Debug builds only: the recorder behind a bug report. See [com.pushuprpg.app.trace.RunTraces]. */
+    traceTools: Boolean = false,
+    onSendTrace: () -> Unit = {},
 ) {
     Column(
         modifier = modifier
@@ -187,6 +190,21 @@ fun SettingsScreen(
             onClick = onRecalibrate,
         )
 
+        if (traceTools) {
+            Spacer(Modifier.height(10.dp))
+            SectionHeader(text = stringResource(R.string.settings_test_section))
+            SwitchSetting(
+                title = stringResource(R.string.settings_record_traces),
+                subtitle = stringResource(R.string.settings_record_traces_sub),
+                checked = settings.recordTraces,
+                onCheckedChange = { v -> onChange { it.copy(recordTraces = v) } },
+            )
+            ActionSetting(
+                title = stringResource(R.string.settings_send_trace),
+                onClick = onSendTrace,
+            )
+        }
+
         Spacer(Modifier.height(16.dp))
         // The privacy line lives on the settings screen as well as in the permission flow: it is
         // the single biggest objection a camera fitness app faces, and it is true, so it should be
@@ -256,6 +274,7 @@ private fun SwitchSetting(
     title: String,
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
+    subtitle: String? = null,
 ) {
     val colors = LocalGameColors.current
     Row(
@@ -266,7 +285,14 @@ private fun SwitchSetting(
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(text = title, style = Type.bodyL, color = Palette.TextPrimary, modifier = Modifier.weight(1f))
+        Column(Modifier.weight(1f)) {
+            Text(text = title, style = Type.bodyL, color = Palette.TextPrimary)
+            if (subtitle != null) {
+                Spacer(Modifier.height(4.dp))
+                Text(text = subtitle, style = Type.bodyM, color = Palette.TextSecondary)
+            }
+        }
+        Spacer(Modifier.width(12.dp))
         Switch(
             checked = checked,
             onCheckedChange = onCheckedChange,

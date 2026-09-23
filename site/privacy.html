@@ -26,7 +26,7 @@
 <div class="legal wrap">
 
 <h1>개인정보처리방침</h1>
-<p class="updated">시행일: 2026년 9월 14일 · 최종 수정일: 2026년 9월 14일</p>
+<p class="updated">시행일: 2026년 9월 14일 · 최종 수정일: 2026년 9월 23일</p>
 
 <div class="callout">
   <p><strong>가장 중요한 것 하나.</strong> 카메라 영상은 저장되지 않고 어디로도 전송되지 않습니다.
@@ -54,6 +54,14 @@
   <li>동작 인식으로 추출된 관절 좌표(스켈레톤 데이터) — 화면에 표시된 뒤 폐기되며, 저장하지 않습니다.</li>
   <li>배경에 촬영된 공간, 사물, 다른 사람에 대한 어떠한 정보도 처리하지 않습니다.</li>
 </ul>
+<h3>테스트용 빌드의 동작 기록</h3>
+<p>
+  Google Play로 배포되는 앱에는 이 기능이 없습니다. 개발 중 시험을 위해 따로 배포하는 테스트용 빌드에서만,
+  이용자가 설정에서 "동작 기록 남기기"를 직접 켠 경우에 가장 최근 운동 한 번의 관절 좌표를 기기 메모리에
+  보관합니다. 이미지나 영상은 포함되지 않습니다. 이 기록은 이용자가 "보내기"를 누르고 보낼 곳을 직접 고른
+  경우에만 기기 밖으로 나가며, 앱이 스스로 전송하는 일은 없습니다. 다음 운동을 시작하거나 앱을 종료하면
+  사라집니다.
+</p>
 <h3>처리 방식</h3>
 <p>
   카메라 프레임은 기기 안에서 Google의 온디바이스 자세 인식 모델(MediaPipe Pose Landmarker)로
@@ -116,6 +124,7 @@
   <tr><th>이벤트</th><th>함께 전송되는 값</th></tr>
   <tr><td>온보딩 시작</td><td>없음</td></tr>
   <tr><td>직업 선택</td><td>선택한 직업</td></tr>
+  <tr><td>직업 변경</td><td>바꾸기 전 직업, 바꾼 직업</td></tr>
   <tr><td>카메라 권한 응답</td><td>허용 여부</td></tr>
   <tr><td>튜토리얼 완료</td><td>개수, 소요 시간</td></tr>
   <tr><td>운동 시작</td><td>던전 번호, 난이도, 운동 종류</td></tr>
@@ -230,7 +239,9 @@
 <p>
   <strong>Push-up RPG does not record or transmit camera footage.</strong> Pose detection runs
   entirely on the device using an on-device model bundled with the app; no frames and no extracted
-  joint coordinates ever leave the phone.
+  joint coordinates ever leave the phone. (A separately distributed test build, not the Play
+  release, can keep the joint coordinates of the latest workout in memory when the user turns that
+  on, and they leave the device only if the user taps send and chooses where.)
 </p>
 <p>
   The app has no accounts and collects no directly identifying information — no name, email,
@@ -240,7 +251,7 @@
 <p>
   Two things are sent off the device. Firebase Crashlytics receives crash stack traces with device
   model, OS version and app version (retained up to 90 days). Firebase Analytics receives the
-  specific product events listed in section 4-2 — onboarding, class choice, camera permission
+  specific product events listed in section 4-2 — onboarding, class choice and later class changes, camera permission
   outcome, tutorial completion, run start and finish, tracking loss, paywall and purchase steps,
   and streak length — together with an app instance identifier and country-level region (retained
   up to 14 months). Neither includes images, video, or pose data.

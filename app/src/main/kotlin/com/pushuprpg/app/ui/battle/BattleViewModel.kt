@@ -9,6 +9,7 @@ import com.pushuprpg.app.AppContainer
 import com.pushuprpg.app.audio.GameAudio
 import com.pushuprpg.app.telemetry.Event
 import com.pushuprpg.app.telemetry.Telemetry
+import com.pushuprpg.app.trace.RunTraces
 import com.pushuprpg.app.domain.AppSettings
 import com.pushuprpg.app.domain.PlayerProgress
 import com.pushuprpg.app.domain.ProgressRepository
@@ -59,6 +60,7 @@ class BattleViewModel(
     private val settingsRepository: SettingsRepository,
     private val audio: GameAudio,
     private val telemetry: Telemetry,
+    private val traces: RunTraces,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(BattleState())
@@ -127,6 +129,13 @@ class BattleViewModel(
             )
             val dungeon = Dungeons.byIndex(dungeonIndex) ?: Dungeons.FREE_DUNGEON
 
+            // Before the engine exists, so no frame of this run lands in the last one's recording.
+            // The profile is what the detector starts from, and a replay needs the same start.
+            traces.begin(
+                "mode=battle dungeon=$dungeonIndex exercise=${exercise.name} " +
+                    "difficulty=${settings.difficulty.name} " +
+                    "profile=${profile.topEwma}/${profile.botEwma}/${profile.sessionCount}"
+            )
             engine = BattleEngine(
                 dungeon = dungeon,
                 difficulty = settings.difficulty,
@@ -147,6 +156,7 @@ class BattleViewModel(
     /** Called on the pose callback thread. */
     fun onPoseFrame(frame: PoseFrame) {
         val e = engine ?: return
+        traces.record(frame)
         val next = e.onPoseFrame(frame)
         // Fired straight from this thread: routing it through a recomposition would spend most of
         // the ~90ms budget between the rep bottoming out and the user hearing it.
@@ -298,6 +308,7 @@ class BattleViewModel(
                     container.settingsRepository,
                     container.audio,
                     container.telemetry,
+                    container.traces,
                 )
             }
         }

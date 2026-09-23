@@ -1,6 +1,7 @@
 package com.pushuprpg.app
 
 import android.content.Context
+import android.os.Build
 import com.pushuprpg.app.audio.GameAudio
 import com.pushuprpg.app.billing.PlayEntitlementRepository
 import com.pushuprpg.app.telemetry.Telemetry
@@ -12,9 +13,11 @@ import com.pushuprpg.app.domain.EntitlementRepository
 import com.pushuprpg.app.domain.ProgressRepository
 import com.pushuprpg.app.domain.SessionRepository
 import com.pushuprpg.app.domain.SettingsRepository
+import com.pushuprpg.app.trace.RunTraces
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 /**
  * Manual dependency injection.
@@ -56,6 +59,21 @@ class AppContainer(context: Context) {
     val audio: GameAudio by lazy { GameAudio(appContext) }
 
     val telemetry: Telemetry by lazy { Telemetry(appContext) }
+
+    /**
+     * The latest run's landmarks, for a bug report. Follows the setting, and only in a debug build:
+     * the Play build must keep the privacy policy's promise that pose data is never stored.
+     */
+    val traces: RunTraces by lazy {
+        RunTraces(
+            device = "${Build.MANUFACTURER} ${Build.MODEL}, Android ${Build.VERSION.RELEASE}, " +
+                BuildConfig.VERSION_NAME,
+        ).also { recorder ->
+            if (BuildConfig.DEBUG) {
+                appScope.launch { settingsRepository.settings.collect { recorder.enabled = it.recordTraces } }
+            }
+        }
+    }
 
     /** The billing client, for the paywall's purchase flow. */
     val billing get() = (entitlementRepository as PlayEntitlementRepository).billing

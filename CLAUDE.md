@@ -12,8 +12,13 @@
 ```bash
 scripts/test-core.sh          # no Android SDK needed; ~20s
 scripts/check-resources.sh    # duplicate/missing/misused <string>s; <1s
+scripts/replay-trace.sh f.json  # a run recorded on a phone, replayed rep by rep; no SDK needed
 ./gradlew :app:assembleDebug  # needs the SDK
 ```
+
+When a device report says reps are not counting, ask for a trace rather than guessing: debug builds
+have 설정 → 테스트 → 동작 기록 남기기 / 방금 한 운동 기록 보내기, which shares the latest run's landmarks as
+JSON. `replay-trace.sh` shows which check refused each rep, and the file can become a test.
 
 Run `check-resources.sh` before every push that touches `strings.xml`. A duplicated or missing
 string is not a Kotlin error, so `test-core.sh` cannot see it and it surfaces four minutes later as

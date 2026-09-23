@@ -115,6 +115,11 @@ data class AppSettings(
     val difficulty: Difficulty = Difficulty.STANDARD,
     /** The menus' look. The run is dark either way — it is drawn over the camera. */
     val themeMode: ThemeMode = ThemeMode.DARK,
+    /**
+     * Keep the latest run's landmarks so they can be sent as a bug report. Honoured only in debug
+     * builds; see [com.pushuprpg.app.trace.RunTraces].
+     */
+    val recordTraces: Boolean = false,
 )
 
 enum class HapticStrength { OFF, LIGHT, MEDIUM, STRONG }

@@ -1,8 +1,12 @@
 package com.pushuprpg.core
 
+import com.pushuprpg.core.detect.ExerciseType
+import com.pushuprpg.core.detect.Exercises
 import com.pushuprpg.core.detect.RepEvent
+import com.pushuprpg.core.fixtures.Body3d
 import com.pushuprpg.core.fixtures.PoseFixtures
 import com.pushuprpg.core.trace.PoseTrace
+import com.pushuprpg.core.trace.TraceFrame
 import com.pushuprpg.core.trace.TraceRecorder
 import com.pushuprpg.core.trace.TraceReplay
 import kotlin.test.Test
@@ -77,5 +81,52 @@ class PoseTraceTest {
         assertEquals(50, recorder.frameCount)
         // It keeps the most recent window, which is the part a bug report is about.
         assertEquals(499 * 33L, recorder.build().frames.last().t)
+    }
+
+    /**
+     * What gets sent from a phone is the quantized trace, so it is the one that has to replay
+     * faithfully. A projected pushup rather than a hand-placed fixture: it carries world landmarks
+     * and model confidence, which are exactly the fields quantization touches.
+     */
+    @Test
+    fun `a quantized trace replays to the same reps at the same moments`() {
+        val recorder = TraceRecorder(480, 640, device = "rig")
+        Body3d.trace({ Body3d.pushup(it, Body3d.V3(0f, 0f, 1f), Body3d.V3(0f, 0f, 0f)) },
+            Body3d.Camera.onFloor(1.3f, 12f), count = 8).forEach(recorder::record)
+        val original = recorder.build()
+        val quantized = original.quantized()
+
+        val config = Exercises.of(ExerciseType.PUSHUP).config
+        val a = TraceReplay.run(original, config)
+        val b = TraceReplay.run(quantized, config)
+        assertEquals(8, a.repCount)
+        assertEquals(a.repCount, b.repCount)
+        assertEquals(
+            a.events.filterIsInstance<RepEvent.Strike>().map { it.tMs },
+            b.events.filterIsInstance<RepEvent.Strike>().map { it.tMs },
+        )
+        assertEquals(quantized, PoseTrace.decode(PoseTrace.encode(quantized)))
+    }
+
+    /**
+     * The rig leaves twenty landmarks at zero, which already prints short, so the size claim is
+     * measured on frames filled the way the model fills them: every landmark, every field.
+     */
+    @Test
+    fun `quantizing takes about half off a trace the model actually produced`() {
+        val random = java.util.Random(7)
+        val frames = List(300) { n ->
+            TraceFrame(
+                t = n * 33L,
+                lm = FloatArray(33 * TraceRecorder.STRIDE) { i ->
+                    if (i % TraceRecorder.STRIDE >= 3) 0.5f + 0.5f * random.nextFloat() else random.nextFloat()
+                },
+                world = FloatArray(33 * TraceRecorder.WORLD_STRIDE) { random.nextFloat() - 0.5f },
+            )
+        }
+        val trace = PoseTrace(imageWidth = 480, imageHeight = 640, frames = frames)
+        val full = PoseTrace.encode(trace).length
+        val small = java.io.ByteArrayOutputStream().also { PoseTrace.encodeTo(trace.quantized(), it) }.size()
+        assertTrue(small < full * 0.65, "quantized $small bytes against $full")
     }
 }

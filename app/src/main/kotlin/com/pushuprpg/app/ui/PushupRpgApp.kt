@@ -36,6 +36,8 @@ import androidx.activity.SystemBarStyle
 import androidx.activity.enableEdgeToEdge
 import androidx.core.net.toUri
 import com.pushuprpg.app.AppContainer
+import com.pushuprpg.app.BuildConfig
+import com.pushuprpg.app.trace.TraceFiles
 import com.pushuprpg.app.domain.AppSettings
 import com.pushuprpg.app.domain.FreeTier
 import com.pushuprpg.app.domain.ThemeMode
@@ -476,6 +478,22 @@ fun PushupRpgApp(
                         },
                         onChangeClass = changeClass,
                         onOpenPrivacy = { openUrl(context, context.getString(R.string.privacy_policy_url)) },
+                        traceTools = BuildConfig.DEBUG,
+                        onSendTrace = {
+                            scope.launch {
+                                val trace = container.traces.latest()
+                                val uri = trace?.let { TraceFiles.write(context, it) }
+                                when {
+                                    trace == null -> toast(context, R.string.trace_none)
+                                    uri == null -> toast(context, R.string.trace_write_failed)
+                                    else -> try {
+                                        context.startActivity(TraceFiles.chooser(context, uri))
+                                    } catch (e: ActivityNotFoundException) {
+                                        toast(context, R.string.share_unavailable)
+                                    }
+                                }
+                            }
+                        },
                     )
                 }
 
@@ -561,6 +579,10 @@ private fun SystemBars(darkSurface: Boolean) {
 /** [enableEdgeToEdge]'s own default scrims, which it keeps private. */
 private val LIGHT_NAV_SCRIM = android.graphics.Color.argb(0xE6, 0xFF, 0xFF, 0xFF)
 private val DARK_NAV_SCRIM = android.graphics.Color.argb(0x80, 0x1B, 0x1B, 0x1B)
+
+private fun toast(context: Context, message: Int) {
+    Toast.makeText(context, context.getString(message), Toast.LENGTH_SHORT).show()
+}
 
 /**
  * Opens a link in whatever the device uses for the web.

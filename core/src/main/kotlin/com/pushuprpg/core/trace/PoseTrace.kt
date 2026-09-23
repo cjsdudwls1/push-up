@@ -10,8 +10,12 @@ import com.pushuprpg.core.detect.UserProfile
 import com.pushuprpg.core.pose.Landmark
 import com.pushuprpg.core.pose.PoseFrame
 import com.pushuprpg.core.pose.PoseLandmarks
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.encodeToStream
+import java.io.OutputStream
+import kotlin.math.roundToLong
 
 /**
  * A recorded session, as landmarks rather than video.
@@ -36,6 +40,30 @@ data class PoseTrace(
     val notes: String = "",
     val frames: List<TraceFrame>,
 ) {
+    /**
+     * The trace at the precision a report needs rather than the precision a float carries.
+     *
+     * Image coordinates to a ten-thousandth of the frame (a tenth of a pixel at 1080p), confidence
+     * to a hundredth, world coordinates to a tenth of a millimetre — each far below the model's own
+     * noise. Together they take roughly half the characters off every number, which matters for a
+     * file sent from a phone. A quantized replay counts what the original counted; a test holds it
+     * to that.
+     */
+    fun quantized(): PoseTrace = copy(
+        frames = frames.map { f ->
+            TraceFrame(
+                t = f.t,
+                lm = FloatArray(f.lm.size) { i ->
+                    val field = i % TraceRecorder.STRIDE
+                    // Visibility and presence are -1 when the model did not report them; rounding
+                    // to a hundredth keeps that exactly, and it must stay exact.
+                    round(f.lm[i], if (field >= 3) 100.0 else 10_000.0)
+                },
+                world = FloatArray(f.world.size) { i -> round(f.world[i], 10_000.0) },
+            )
+        },
+    )
+
     companion object {
         const val FORMAT_VERSION = 1
 
@@ -45,6 +73,16 @@ data class PoseTrace(
         }
 
         fun encode(trace: PoseTrace): String = json.encodeToString(trace)
+
+        /**
+         * Writes the JSON straight to [out]. Four minutes of frames is more than ten megabytes of
+         * text, and a phone should not have to hold it as one string before writing it.
+         */
+        @OptIn(ExperimentalSerializationApi::class)
+        fun encodeTo(trace: PoseTrace, out: OutputStream) = json.encodeToStream(trace, out)
+
+        private fun round(value: Float, scale: Double): Float =
+            ((value * scale).roundToLong() / scale).toFloat()
 
         fun decode(text: String): PoseTrace = json.decodeFromString(text)
     }

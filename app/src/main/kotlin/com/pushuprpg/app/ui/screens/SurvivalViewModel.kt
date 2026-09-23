@@ -9,6 +9,7 @@ import com.pushuprpg.app.AppContainer
 import com.pushuprpg.app.domain.ProgressRepository
 import com.pushuprpg.app.telemetry.Event
 import com.pushuprpg.app.telemetry.Telemetry
+import com.pushuprpg.app.trace.RunTraces
 import com.pushuprpg.app.domain.SessionRecord
 import com.pushuprpg.app.domain.SessionRepository
 import com.pushuprpg.core.detect.DetectorConfig
@@ -34,6 +35,7 @@ class SurvivalViewModel(
     private val progressRepository: ProgressRepository,
     private val sessionRepository: SessionRepository,
     private val telemetry: Telemetry,
+    private val traces: RunTraces,
 ) : ViewModel() {
 
     private val game = CeilingSurvival()
@@ -54,6 +56,9 @@ class SurvivalViewModel(
     val bestScore: StateFlow<Int> = _bestScore.asStateFlow()
 
     init {
+        // One recording for the whole visit, restarts included: the run worth sending is often the
+        // one before the retry. Replays with the defaults — survival starts from no calibration.
+        traces.begin("mode=survival exercise=PUSHUP profile=none")
         // Scoped to the destination, so without loading it back the mode reported "최고 0점" every
         // time the user returned — in the one place the product is built around a score.
         viewModelScope.launch { _bestScore.value = progressRepository.current().bestSurvivalScore }
@@ -68,6 +73,7 @@ class SurvivalViewModel(
     private var restartRequested = false
 
     fun onPoseFrame(frame: com.pushuprpg.core.pose.PoseFrame) {
+        traces.record(frame)
         if (restartRequested) {
             restartRequested = false
             applyRestart()
@@ -186,6 +192,7 @@ class SurvivalViewModel(
                     container.progressRepository,
                     container.sessionRepository,
                     container.telemetry,
+                    container.traces,
                 )
             }
         }

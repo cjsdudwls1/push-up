@@ -46,6 +46,7 @@ private val KEY_LARGE_TEXT = booleanPreferencesKey("large_text")
 private val KEY_EXERCISE = stringPreferencesKey("exercise")
 private val KEY_DIFFICULTY = stringPreferencesKey("difficulty")
 private val KEY_THEME_MODE = stringPreferencesKey("theme_mode")
+private val KEY_RECORD_TRACES = booleanPreferencesKey("record_traces")
 
 private fun Preferences.toSettings(): AppSettings = AppSettings(
     skeletonMode = enumOrDefault(this[KEY_SKELETON_MODE], SETTINGS_DEFAULT.skeletonMode),
@@ -63,6 +64,7 @@ private fun Preferences.toSettings(): AppSettings = AppSettings(
     exercise = enumOrDefault(this[KEY_EXERCISE], SETTINGS_DEFAULT.exercise),
     difficulty = enumOrDefault(this[KEY_DIFFICULTY], SETTINGS_DEFAULT.difficulty),
     themeMode = enumOrDefault(this[KEY_THEME_MODE], SETTINGS_DEFAULT.themeMode),
+    recordTraces = this[KEY_RECORD_TRACES] ?: SETTINGS_DEFAULT.recordTraces,
 )
 
 private fun MutablePreferences.writeSettings(s: AppSettings) {
@@ -81,6 +83,7 @@ private fun MutablePreferences.writeSettings(s: AppSettings) {
     this[KEY_EXERCISE] = s.exercise.name
     this[KEY_DIFFICULTY] = s.difficulty.name
     this[KEY_THEME_MODE] = s.themeMode.name
+    this[KEY_RECORD_TRACES] = s.recordTraces
 }
 
 /**

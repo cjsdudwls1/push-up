@@ -170,6 +170,14 @@
     <string name="theme_switch_to_light">라이트 모드로 바꾸기</string>
     <string name="theme_switch_to_dark">다크 모드로 바꾸기</string>
     <string name="settings_cvd">색각 보정</string>
+    <string name="settings_test_section">테스트</string>
+    <string name="settings_record_traces">동작 기록 남기기</string>
+    <string name="settings_record_traces_sub">방금 한 운동 하나의 관절 위치만 폰 메모리에 남겨요. 영상은 없고, 보내기를 눌러야만 밖으로 나가요.</string>
+    <string name="settings_send_trace">방금 한 운동 기록 보내기</string>
+    <string name="trace_share_title">동작 기록 보내기</string>
+    <string name="trace_share_subject">푸쉬업 RPG 동작 기록</string>
+    <string name="trace_none">보낼 기록이 없어요. 동작 기록을 켜고 운동을 한 번 해 주세요.</string>
+    <string name="trace_write_failed">기록 파일을 만들지 못했어요. 저장 공간을 확인해 주세요.</string>
     <string name="settings_cvd_none">없음</string>
     <string name="settings_cvd_blue_yellow">파랑-노랑</string>
     <string name="settings_reduce_motion">모션 줄이기</string>

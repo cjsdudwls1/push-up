@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  The only thing this app ever hands to another app: a rendered share card in the cache directory.
+  The only things this app ever hands to another app, both in the cache directory: a rendered share
+  card, and — in a debug build, when the user asks — a landmark trace of their latest run.
   Scoped to that one subdirectory on purpose — a broader path would expose the Room database and the
   DataStore preferences to any app the user picks in a chooser.
 -->
