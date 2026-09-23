@@ -365,21 +365,23 @@ private fun BoxScope.BattleHudLayout(
         }
 
         Spacer(Modifier.height(6.dp))
-        // Neither of these is health. A run is a count of reps and nothing can hurt the player, so
-        // a draining player bar would be a threat the game does not contain. The left bar is what
-        // the user has done, the right is what this monster still owes, and both are counted in the
-        // movement they chose.
+        // The big bars are counts, not health: the left is what the user has done, the right what
+        // this monster still owes, both in the movement they chose. Health is the thin strip under
+        // the left one — only a monster's unanswered ultimate touches it, and never a rest.
         val hold = Exercises.of(state.exercise).kind == MovementKind.HOLD
         val unit = if (hold) R.string.battle_count_seconds else R.string.battle_count_reps
         Row(verticalAlignment = Alignment.Top) {
-            HealthBar(
-                name = stringResource(R.string.battle_player_label),
-                hp = state.reps,
-                maxHp = state.runTotalReps.coerceAtLeast(1),
-                color = colors.playerHp,
-                label = stringResource(unit, state.reps) + " / " + state.runTotalReps,
-                modifier = Modifier.weight(1f),
-            )
+            Column(Modifier.weight(1f)) {
+                HealthBar(
+                    name = stringResource(R.string.battle_player_label),
+                    hp = state.reps,
+                    maxHp = state.runTotalReps.coerceAtLeast(1),
+                    color = colors.playerHp,
+                    label = stringResource(unit, state.reps) + " / " + state.runTotalReps,
+                )
+                Spacer(Modifier.height(4.dp))
+                HpStrip(hp = state.playerHp, maxHp = state.playerMaxHp)
+            }
             Spacer(Modifier.width(20.dp))
             HealthBar(
                 name = state.enemyName,
@@ -433,7 +435,14 @@ private fun BoxScope.BattleHudLayout(
             .padding(bottom = 104.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        UltimateWarning(visible = state.ultimateIncoming)
+        UltimateWarning(
+            visible = state.ultimateIncoming,
+            repsLeft = state.ultimateRepsLeft,
+            answers = state.ultimateAnswers,
+            answersNeeded = com.pushuprpg.core.game.Encounter.ANSWERS_TO_BLOCK,
+            playerClass = playerClass,
+            hold = Exercises.of(state.exercise).kind == MovementKind.HOLD,
+        )
         Spacer(Modifier.height(10.dp))
         AlertSlot(state)
         Spacer(Modifier.height(10.dp))
@@ -526,6 +535,8 @@ private fun AlertSlot(state: BattleState) {
             AlertKey.IDLE -> stringResource(R.string.battle_idle)
             AlertKey.BOSS_LOW_HP -> stringResource(R.string.battle_boss_low_hp)
             AlertKey.ULTIMATE_INCOMING -> stringResource(R.string.battle_ultimate_incoming)
+            AlertKey.ULTIMATE_BLOCKED -> stringResource(R.string.battle_ultimate_blocked)
+            AlertKey.ULTIMATE_HIT -> stringResource(R.string.battle_ultimate_hit, current?.arg ?: 0)
             AlertKey.DEEP_STRIKE -> stringResource(R.string.battle_deep_strike)
             AlertKey.QUALITY_LOST -> stringResource(R.string.quality_paused_notice)
             AlertKey.QUALITY_RECOVERED -> stringResource(R.string.quality_recovered)

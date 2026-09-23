@@ -103,4 +103,138 @@ class EncounterTest {
         // Most XP must already be banked per rep, so defeat can never cost much.
         assertTrue(e.clearBonusXp() < e.runXp, "clear bonus ${e.clearBonusXp()} vs run XP ${e.runXp}")
     }
+
+    // ------------------------------------------------------------ the rep-counted ultimate
+
+    /** A 20-rep monster: big enough for a wind-up and a full answer window. */
+    private fun bigFight(playerClass: PlayerClass = PlayerClass.KNIGHT, hp: Int? = null): Encounter {
+        val p = PlayerState.create(playerClass, level = 1).let { if (hp != null) it.copy(hp = hp) else it }
+        val enemy = Enemy(id = "test", korean = "시험용", maxHp = 20, hp = 20, ultimateFraction = 0.40f)
+        return Encounter(p, enemy, rng = NoCritRng, startedAtMs = 0L)
+    }
+
+    /** Counted but not deep, not fast, not held: never an answer, for any class. */
+    private fun plainRep() = RepInput(72f, RepGrade.COUNTED, ExerciseType.PUSHUP, cycleMs = 3000)
+
+    /** Reps until the wind-up starts; returns the time of the last one. */
+    private fun untilTelegraph(e: Encounter): Long {
+        var t = 0L
+        while (!e.ultimateWindingUp) {
+            t += 3000
+            e.onRep(plainRep(), t)
+            assertTrue(t < 60_000, "no wind-up in 20 reps")
+        }
+        return t
+    }
+
+    @Test
+    fun `the wind-up starts with the monster worn down to sixty percent`() {
+        val e = bigFight()
+        untilTelegraph(e)
+        assertTrue(e.enemy.hp <= 12 && e.enemy.hp >= 11, "wound up at ${e.enemy.hp}/20")
+        assertEquals(Encounter.ANSWER_WINDOW_REPS, e.answerRepsLeft)
+    }
+
+    @Test
+    fun `five reps with no answers and it lands`() {
+        val e = bigFight()
+        var t = untilTelegraph(e)
+        val full = e.player.hp
+        val hits = mutableListOf<CombatEvent.Ultimate>()
+        repeat(Encounter.ANSWER_WINDOW_REPS) { t += 3000; hits += e.onRep(plainRep(), t).filterIsInstance<CombatEvent.Ultimate>() }
+        assertEquals(1, hits.size)
+        assertEquals(e.ultimateDamage, hits.single().damage)
+        assertEquals(full - e.ultimateDamage, e.player.hp)
+        assertTrue(!e.ultimateWindingUp)
+    }
+
+    @Test
+    fun `three deep reps in the window block it completely`() {
+        val e = bigFight()
+        var t = untilTelegraph(e)
+        val full = e.player.hp
+        val events = mutableListOf<CombatEvent>()
+        repeat(Encounter.ANSWERS_TO_BLOCK) { t += 3000; events += e.onRep(deepRep(), t) }
+        val ultimate = events.filterIsInstance<CombatEvent.Ultimate>().single()
+        assertEquals(0, ultimate.damage)
+        assertEquals(Mitigation.FULL, ultimate.mitigation)
+        assertEquals(full, e.player.hp)
+    }
+
+    @Test
+    fun `every answer made takes a share off the hit`() {
+        val e = bigFight()
+        var t = untilTelegraph(e)
+        t += 3000; e.onRep(deepRep(), t)
+        var hit: CombatEvent.Ultimate? = null
+        repeat(Encounter.ANSWER_WINDOW_REPS - 1) {
+            t += 3000
+            hit = hit ?: e.onRep(plainRep(), t).filterIsInstance<CombatEvent.Ultimate>().firstOrNull()
+        }
+        assertEquals(Mitigation.PARTIAL, hit!!.mitigation)
+        assertTrue(hit!!.damage < e.ultimateDamage, "one answer took nothing off")
+    }
+
+    @Test
+    fun `resting while it winds up costs nothing — it is counted in reps, not seconds`() {
+        val e = bigFight()
+        val t = untilTelegraph(e)
+        val hp = e.player.hp
+        // Ten minutes, out of view half of it.
+        e.setTracking(false, t + 300_000)
+        assertTrue(e.advanceTo(t + 600_000).isEmpty())
+        assertEquals(hp, e.player.hp)
+        assertTrue(e.ultimateWindingUp, "the wind-up expired by itself")
+        assertEquals(Encounter.ANSWER_WINDOW_REPS, e.answerRepsLeft)
+    }
+
+    @Test
+    fun `finishing the monster inside the window means it never lands`() {
+        val p = PlayerState.create(PlayerClass.KNIGHT, level = 1)
+        val e = Encounter(p, Enemy(id = "t", korean = "t", maxHp = 8, hp = 8), rng = NoCritRng, startedAtMs = 0L)
+        var t = 0L
+        val events = mutableListOf<CombatEvent>()
+        while (!e.finished) { t += 3000; events += e.onRep(plainRep(), t) }
+        assertTrue(events.any { it is CombatEvent.Telegraph }, "an 8-rep monster should still wind up")
+        assertTrue(events.none { it is CombatEvent.Ultimate }, "the ultimate landed after the monster died")
+        assertEquals(p.hp, e.player.hp)
+    }
+
+    @Test
+    fun `each class answers in its own style as well as with depth`() {
+        fun blockedWith(playerClass: PlayerClass, rep: RepInput): Boolean {
+            val e = bigFight(playerClass)
+            var t = untilTelegraph(e)
+            val events = mutableListOf<CombatEvent>()
+            repeat(Encounter.ANSWERS_TO_BLOCK) { t += 1500; events += e.onRep(rep, t) }
+            return events.filterIsInstance<CombatEvent.Ultimate>().any { it.mitigation == Mitigation.FULL }
+        }
+        val fast = RepInput(72f, RepGrade.COUNTED, ExerciseType.PUSHUP, cycleMs = 1500)
+        val held = RepInput(72f, RepGrade.COUNTED, ExerciseType.PUSHUP, cycleMs = 3000, bottomHoldMs = 1200)
+        assertTrue(blockedWith(PlayerClass.ARCHER, fast), "an archer's pace did not answer")
+        assertTrue(blockedWith(PlayerClass.MAGE, held), "a mage's hold did not answer")
+        assertTrue(!blockedWith(PlayerClass.KNIGHT, fast), "pace answered for a knight")
+    }
+
+    @Test
+    fun `a hit that empties the player's health ends the run, not the reps`() {
+        val e = bigFight(hp = 5)
+        var t = untilTelegraph(e)
+        val reps = e.repsCounted
+        val events = mutableListOf<CombatEvent>()
+        repeat(Encounter.ANSWER_WINDOW_REPS) { t += 3000; events += e.onRep(plainRep(), t) }
+        assertTrue(events.any { it is CombatEvent.Exhausted }, "health reached ${e.player.hp} without ending the run")
+        assertTrue(e.finished)
+        assertEquals(reps + Encounter.ANSWER_WINDOW_REPS, e.repsCounted, "reps done in the window were lost")
+    }
+
+    @Test
+    fun `a monster too small for a window never winds up`() {
+        val p = PlayerState.create(PlayerClass.KNIGHT, level = 1)
+        val e = Encounter(p, Enemy(id = "t", korean = "t", maxHp = 7, hp = 7), rng = NoCritRng, startedAtMs = 0L)
+        var t = 0L
+        val events = mutableListOf<CombatEvent>()
+        while (!e.finished) { t += 3000; events += e.onRep(plainRep(), t) }
+        assertTrue(events.none { it is CombatEvent.Telegraph })
+    }
 }

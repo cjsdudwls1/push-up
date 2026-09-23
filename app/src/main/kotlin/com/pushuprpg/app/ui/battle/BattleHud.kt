@@ -23,6 +23,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.pushuprpg.app.R
+import com.pushuprpg.core.game.PlayerClass
 import com.pushuprpg.app.ui.theme.LocalGameColors
 import com.pushuprpg.app.ui.theme.Palette
 import com.pushuprpg.app.ui.theme.Type
@@ -169,6 +170,43 @@ fun HealthBar(
     }
 }
 
+/**
+ * The player's health, as a thin strip under the progress bar.
+ *
+ * Thin because it moves rarely — only a monster's ultimate that went unanswered touches it — and
+ * the progress bar above it is what changes every rep.
+ */
+@Composable
+fun HpStrip(hp: Int, maxHp: Int, modifier: Modifier = Modifier) {
+    val colors = LocalGameColors.current
+    val fraction by animateFloatAsState(
+        targetValue = (hp.toFloat() / maxHp.coerceAtLeast(1)).coerceIn(0f, 1f),
+        animationSpec = tween(durationMillis = 360),
+        label = "playerHp",
+    )
+    Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically) {
+        CameraText(text = stringResource(R.string.battle_hp_label), style = Type.labelM, color = Palette.TextSecondary)
+        Spacer(Modifier.width(6.dp))
+        Box(
+            Modifier
+                .weight(1f)
+                .height(6.dp)
+                .clip(RoundedCornerShape(3.dp))
+                .background(Palette.Bg0.copy(alpha = 0.75f))
+        ) {
+            Box(
+                Modifier
+                    .fillMaxWidth(fraction)
+                    .fillMaxHeight()
+                    .clip(RoundedCornerShape(3.dp))
+                    .background(if (fraction < 0.34f) colors.bossHp else colors.playerHp)
+            )
+        }
+        Spacer(Modifier.width(6.dp))
+        CameraText(text = hp.toString(), style = Type.labelM, color = Palette.TextSecondary)
+    }
+}
+
 /** The combo pill. Colour and size both climb with the streak so it reads without being counted. */
 @Composable
 fun ComboPill(combo: Int, modifier: Modifier = Modifier) {
@@ -232,22 +270,59 @@ fun RepCounter(
 
 /** The boss wind-up warning. Red, unmissable, and early enough to physically respond to. */
 @Composable
-fun UltimateWarning(visible: Boolean, modifier: Modifier = Modifier) {
+fun UltimateWarning(
+    visible: Boolean,
+    repsLeft: Int,
+    answers: Int,
+    answersNeeded: Int,
+    playerClass: PlayerClass,
+    hold: Boolean,
+    modifier: Modifier = Modifier,
+) {
     AnimatedVisibility(
         visible = visible,
         enter = fadeIn(tween(160)),
         exit = fadeOut(tween(240)),
         modifier = modifier,
     ) {
-        Text(
-            text = stringResource(R.string.battle_ultimate_incoming),
-            style = Type.titleL,
-            color = Palette.TextPrimary,
-            textAlign = TextAlign.Center,
+        // What to do, in the player's own style, and how much room is left to do it — a wind-up
+        // with no instruction is only a threat.
+        val how = stringResource(
+            when {
+                hold -> R.string.battle_ultimate_how_hold
+                playerClass == PlayerClass.ARCHER -> R.string.battle_ultimate_how_archer
+                playerClass == PlayerClass.MAGE -> R.string.battle_ultimate_how_mage
+                else -> R.string.battle_ultimate_how_knight
+            },
+            answersNeeded,
+        )
+        Column(
             modifier = Modifier
                 .clip(RoundedCornerShape(22.dp))
                 .background(Palette.Danger)
-                .padding(horizontal = 20.dp, vertical = 8.dp),
-        )
+                .padding(horizontal = 20.dp, vertical = 10.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Text(
+                text = stringResource(R.string.battle_ultimate_incoming),
+                style = Type.titleL,
+                color = Palette.TextPrimary,
+                textAlign = TextAlign.Center,
+            )
+            Spacer(Modifier.height(2.dp))
+            Text(
+                text = how,
+                style = Type.labelL,
+                color = Palette.TextPrimary,
+                textAlign = TextAlign.Center,
+            )
+            Spacer(Modifier.height(4.dp))
+            Text(
+                text = stringResource(R.string.battle_ultimate_progress, repsLeft, answers, answersNeeded),
+                style = Type.labelM,
+                color = Palette.TextPrimary.copy(alpha = 0.85f),
+                textAlign = TextAlign.Center,
+            )
+        }
     }
 }

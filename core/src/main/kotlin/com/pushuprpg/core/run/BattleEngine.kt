@@ -34,6 +34,10 @@ data class Toast(val textKey: AlertKey, val arg: Int = 0, val atMs: Long)
 enum class AlertKey {
     BOOTSTRAP, CALIBRATED, SHALLOW_TWICE, SHALLOW_FOUR, COMBO_BROKEN, COMBO_MILESTONE,
     IDLE, BOSS_LOW_HP, ULTIMATE_INCOMING, DEEP_STRIKE, QUALITY_LOST, QUALITY_RECOVERED,
+    /** The ultimate was answered in full. */
+    ULTIMATE_BLOCKED,
+    /** The ultimate landed; the toast's arg is the damage taken. */
+    ULTIMATE_HIT,
 }
 
 /** Everything the battle screen draws, as one immutable snapshot. */
@@ -62,6 +66,10 @@ data class BattleState(
     /** The movement being counted, so the screen can say 개 or 초 without guessing. */
     val exercise: ExerciseType = ExerciseType.PUSHUP,
     val ultimateIncoming: Boolean = false,
+    /** Reps left in the open answer window; zero when nothing is winding up. */
+    val ultimateRepsLeft: Int = 0,
+    /** Answers landed in the open window, out of [com.pushuprpg.core.game.Encounter.ANSWERS_TO_BLOCK]. */
+    val ultimateAnswers: Int = 0,
     val ultimateDeadlineMs: Long = 0,
     val damages: List<FloatingDamage> = emptyList(),
     val alert: Toast? = null,
@@ -252,6 +260,27 @@ class BattleEngine(
         var shake = (state.shake - SHAKE_DECAY).coerceAtLeast(0f)
         var outcome = state.outcome
 
+        // The ultimate's three outcomes, whether a rep or a held plank decided them.
+        fun onUltimate(ce: CombatEvent) {
+            when (ce) {
+                is CombatEvent.Telegraph -> {
+                    alert = Toast(AlertKey.ULTIMATE_INCOMING, ce.answersNeeded, ce.atMs)
+                    sounds += SoundRequest(SoundCue.TELEGRAPH)
+                }
+                is CombatEvent.Ultimate -> if (ce.damage > 0) {
+                    shake = 1f
+                    animator.onHurt(ce.atMs)
+                    sounds += SoundRequest(SoundCue.PLAYER_HURT, volume = 1f)
+                    alert = Toast(AlertKey.ULTIMATE_HIT, ce.damage, ce.atMs)
+                } else {
+                    alert = Toast(AlertKey.ULTIMATE_BLOCKED, 0, ce.atMs)
+                    sounds += SoundRequest(SoundCue.COMBO_UP)
+                }
+                is CombatEvent.Exhausted -> outcome = finish(cleared = false, atMs = ce.atMs)
+                else -> Unit
+            }
+        }
+
         // Holding the top with the elbows locked counts as a defensive stance: it is genuine
         // isometric work, and it gives someone whose arms are finished a way to stay in the fight
         // instead of choosing between quitting and being hit.
@@ -331,6 +360,8 @@ class BattleEngine(
                                 enemyDiedAtMs = event.tMs
                                 sounds += SoundRequest(SoundCue.ENEMY_DOWN)
                             }
+                            is CombatEvent.Telegraph, is CombatEvent.Ultimate, is CombatEvent.Exhausted ->
+                                onUltimate(ce)
                             else -> alert = alertFor(ce) ?: alert
                         }
                     }
@@ -360,6 +391,8 @@ class BattleEngine(
                                 )
                             }
                             is CombatEvent.EnemyDefeated -> enemyDiedAtMs = event.tMs
+                            is CombatEvent.Telegraph, is CombatEvent.Ultimate, is CombatEvent.Exhausted ->
+                                onUltimate(ce)
                             else -> Unit
                         }
                     }
@@ -407,16 +440,8 @@ class BattleEngine(
                         sounds += SoundRequest(SoundCue.PLAYER_HURT)
                         alert = Toast(AlertKey.IDLE, 0, ce.atMs)
                     }
-                    is CombatEvent.Telegraph -> {
-                        alert = Toast(AlertKey.ULTIMATE_INCOMING, 0, ce.atMs)
-                        sounds += SoundRequest(SoundCue.TELEGRAPH)
-                    }
-                    is CombatEvent.Ultimate -> if (ce.damage > 0) {
-                        shake = 1f
-                        animator.onHurt(ce.atMs)
-                        sounds += SoundRequest(SoundCue.PLAYER_HURT, volume = 1f)
-                    }
-                    is CombatEvent.Exhausted -> outcome = finish(cleared = false, atMs = ce.atMs)
+                    is CombatEvent.Telegraph, is CombatEvent.Ultimate, is CombatEvent.Exhausted ->
+                        onUltimate(ce)
                     else -> Unit
                 }
             }
@@ -424,7 +449,7 @@ class BattleEngine(
 
         player = encounter.player
 
-        val telegraphed = encounter.rage >= encounter.enemy.rageThreshold - Encounter.TELEGRAPH_LEAD
+        val telegraphed = encounter.ultimateWindingUp
 
         // Advance once the enemy has finished shattering.
         if (enemyDiedAtMs != Long.MIN_VALUE && tick.tMs - enemyDiedAtMs >= DEATH_MS && outcome == null) {
@@ -446,10 +471,10 @@ class BattleEngine(
         else (deathElapsed.toFloat() / DEATH_MS).coerceIn(0f, 1f)
         val dying = enemyDiedAtMs != Long.MIN_VALUE
 
-        // Charge rises across the whole approach to the threshold, not just at the telegraph, so
-        // the enemy visibly winds up rather than snapping into a warning.
-        val charge = (encounter.rage.toFloat() / encounter.enemy.rageThreshold.coerceAtLeast(1))
-            .coerceIn(0f, 1f)
+        // The monster visibly winds up across the answer window, so the reps left are readable off
+        // its body as well as off the banner.
+        val charge = if (!telegraphed) 0f
+        else 1f - encounter.answerRepsLeft.toFloat() / Encounter.ANSWER_WINDOW_REPS
 
         state = state.copy(
             depth = tick.depth,
@@ -471,6 +496,8 @@ class BattleEngine(
             runTotalReps = runTotalReps,
             floorIndex = floorIndex,
             ultimateIncoming = telegraphed && outcome == null,
+            ultimateRepsLeft = encounter.answerRepsLeft,
+            ultimateAnswers = encounter.answersLanded,
             damages = damages,
             alert = alert,
             shake = shake,

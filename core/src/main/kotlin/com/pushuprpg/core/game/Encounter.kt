@@ -15,8 +15,12 @@ sealed interface CombatEvent {
     /** The boss punished a rest. [index] escalates while the player stays idle. */
     data class BossTick(override val atMs: Long, val damage: Int, val index: Int) : CombatEvent
 
-    /** "필살기 온다" — the wind-up, fired early enough to physically respond to. */
-    data class Telegraph(override val atMs: Long, val deadlineMs: Long) : CombatEvent
+    /**
+     * "필살기 준비" — the wind-up. It lands after [windowReps] more reps unless [answersNeeded] of
+     * them are answers; see [Encounter.isAnswer]. Counted in reps, never in seconds, so resting
+     * while it winds up costs nothing.
+     */
+    data class Telegraph(override val atMs: Long, val windowReps: Int, val answersNeeded: Int) : CombatEvent
 
     data class Ultimate(
         override val atMs: Long,
@@ -96,13 +100,21 @@ class Encounter(
     private var telegraphed = false
     private var telegraphAtMs = 0L
     private var repsSinceTelegraph = 0
-    private var deepRepsSinceTelegraph = 0
-    private var fastRepsSinceTelegraph = 0
-    private var mageAnswerReady = false
     private var staggeredUntilMs = 0L
     private var holdingSinceMs: Long? = null
     private var plankHeldMs = 0
     private var repsSinceRage = 0
+    private var ultimatesStarted = 0
+
+    /** True while an ultimate is winding up and the answer window is open. */
+    val ultimateWindingUp: Boolean get() = telegraphed
+
+    /** Reps still to come in the open answer window; zero when none is open. */
+    val answerRepsLeft: Int get() = if (telegraphed) (ANSWER_WINDOW_REPS - repsSinceTelegraph).coerceAtLeast(0) else 0
+
+    /** Answers landed in the open window so far. */
+    var answersLanded: Int = 0
+        private set
 
     /** Roughly how many reps this fight should take, used to pace the boss's rage. */
     private val expectedReps: Int =
@@ -212,25 +224,60 @@ class Encounter(
             defenseGaugeMs = min(DEFENSE_GAUGE_MS, defenseGaugeMs + GAUGE_REFILL_MS)
         }
 
-        // Rage no longer accrues; see checkTelegraph. The counters stay so BattleState keeps its
-        // shape and the UI needs no change in the same commit as the rule.
-
         if (telegraphed) {
             repsSinceTelegraph++
-            if (rep.depth >= DEEP_ANSWER_DEPTH) deepRepsSinceTelegraph++
-            if (rep.cycleMs <= FAST_ANSWER_CYCLE_MS) fastRepsSinceTelegraph++
-            if (rep.depth >= MAGE_ANSWER_DEPTH && rep.bottomHoldMs >= MAGE_ANSWER_HOLD_MS) {
-                mageAnswerReady = true
-            }
+            if (isAnswer(rep, result)) answersLanded++
         }
 
+        // Finishing the monster is the best answer of all: whatever it was winding up never lands.
         if (enemy.isDead) {
             finished = true
+            telegraphed = false
             events += CombatEvent.EnemyDefeated(atMs, enemy)
             return events
         }
 
-        events += checkTelegraph(atMs)
+        events += resolveUltimate(atMs)
+        if (!finished) events += checkTelegraph(atMs)
+        return events
+    }
+
+    /**
+     * Whether a rep in the answer window counts as an answer.
+     *
+     * A deep rep, for everyone — the thing the gauge already asks for. Each class also answers in
+     * its own style, because a class is a way of training: an archer with pace (a fast rep), a mage
+     * with stillness (a rep held at the bottom). The knight's style is depth, which everybody has.
+     */
+    private fun isAnswer(rep: RepInput, result: AttackResult): Boolean = result.deep || when (player.playerClass) {
+        PlayerClass.ARCHER -> rep.cycleMs <= FAST_ANSWER_CYCLE_MS
+        PlayerClass.MAGE -> rep.bottomHoldMs >= MAGE_ANSWER_HOLD_MS
+        PlayerClass.KNIGHT -> false
+    }
+
+    /**
+     * Ends an open window once it is decided: blocked the moment enough answers land, or landed
+     * when its reps run out — lighter for every answer that was made.
+     */
+    private fun resolveUltimate(atMs: Long): List<CombatEvent> {
+        if (!telegraphed) return emptyList()
+        if (answersLanded >= ANSWERS_TO_BLOCK) {
+            telegraphed = false
+            return listOf(CombatEvent.Ultimate(atMs, damage = 0, mitigation = Mitigation.FULL))
+        }
+        if (repsSinceTelegraph < ANSWER_WINDOW_REPS) return emptyList()
+
+        telegraphed = false
+        val damage = (ultimateDamage * (1f - answersLanded.toFloat() / ANSWERS_TO_BLOCK))
+            .roundToInt().coerceAtLeast(1)
+        player = player.copy(hp = (player.hp - damage).coerceAtLeast(0))
+        val events = mutableListOf<CombatEvent>(
+            CombatEvent.Ultimate(atMs, damage, if (answersLanded > 0) Mitigation.PARTIAL else Mitigation.NONE)
+        )
+        if (player.hp <= 0) {
+            finished = true
+            events += CombatEvent.Exhausted(atMs, crackFraction())
+        }
         return events
     }
 
@@ -257,6 +304,12 @@ class Encounter(
         damageDealt += dealt
         lastRepAtMs = atMs
         tickIndex = 0
+        // A held plank is the defensive stance: every tick of it answers, so holding through a
+        // wind-up blocks it. Ticks advance the window the way reps do.
+        if (telegraphed) {
+            repsSinceTelegraph++
+            answersLanded++
+        }
 
         events += CombatEvent.Hit(
             atMs,
@@ -274,7 +327,10 @@ class Encounter(
 
         if (enemy.isDead) {
             finished = true
+            telegraphed = false
             events += CombatEvent.EnemyDefeated(atMs, enemy)
+        } else {
+            events += resolveUltimate(atMs)
         }
         return events
     }
@@ -311,19 +367,33 @@ class Encounter(
     }
 
     /**
-     * The boss no longer winds up an ultimate, and this returns nothing.
+     * Starts an ultimate when the monster is worn down far enough — counted in reps, never time.
      *
-     * It is kept as a seam rather than torn out because the idea is sound and only its *unit* was
-     * wrong. The ultimate had to be answered inside `TELEGRAPH_WINDOW_MS` — ten seconds of wall
-     * clock — so it punished a pause exactly as the idle timer did, just less often. Under a model
-     * where a run is a count of reps and rest is free, nothing may be measured in seconds.
+     * The old ultimate was answered inside ten seconds of wall clock, so it punished a pause exactly
+     * as the idle timer did, and both were removed. This is the version that note asked for: the
+     * wind-up opens a window of [ANSWER_WINDOW_REPS] reps, and it lands only when those reps are
+     * done without enough answers. Resting while it winds up costs nothing, and so does a tracking
+     * gap — no rep, no progress.
      *
-     * If the monster is to act again it has to demand reps, not time: "answer within five reps"
-     * holds its meaning whether those five take twenty seconds or four minutes. That is a design
-     * with a cost — it makes a set someone cannot finish into a threat — so it waits for evidence
-     * that the volume model needs it, rather than being guessed at now.
+     * Once when a monster is down to [FIRST_ULTIMATE_AT] of its health, and for a boss again at
+     * [SECOND_ULTIMATE_AT]. A monster too small to leave room for a window never starts one.
      */
-    private fun checkTelegraph(atMs: Long): List<CombatEvent> = emptyList()
+    private fun checkTelegraph(atMs: Long): List<CombatEvent> {
+        if (telegraphed || enemy.maxHp < MIN_HP_FOR_ULTIMATE) return emptyList()
+        val left = enemy.hp.toFloat() / enemy.maxHp
+        val due = when (ultimatesStarted) {
+            0 -> left <= FIRST_ULTIMATE_AT
+            1 -> enemy.isBoss && left <= SECOND_ULTIMATE_AT
+            else -> false
+        }
+        if (!due) return emptyList()
+        telegraphed = true
+        ultimatesStarted++
+        repsSinceTelegraph = 0
+        answersLanded = 0
+        telegraphAtMs = atMs
+        return listOf(CombatEvent.Telegraph(atMs, ANSWER_WINDOW_REPS, ANSWERS_TO_BLOCK))
+    }
 
     /**
      * The same fight, carried on with a different movement.
@@ -367,5 +437,13 @@ class Encounter(
         const val MAGE_ANSWER_DEPTH = 92f
         const val MAGE_ANSWER_HOLD_MS = 1_000
         const val FAST_ANSWER_CYCLE_MS = 1_800
+
+        /** Reps the wind-up gives the player, and how many of them must be answers to block it. */
+        const val ANSWER_WINDOW_REPS = 5
+        const val ANSWERS_TO_BLOCK = 3
+        /** A monster must be at least this many reps for an ultimate to have room to happen. */
+        const val MIN_HP_FOR_ULTIMATE = 8
+        const val FIRST_ULTIMATE_AT = 0.60f
+        const val SECOND_ULTIMATE_AT = 0.25f
     }
 }
