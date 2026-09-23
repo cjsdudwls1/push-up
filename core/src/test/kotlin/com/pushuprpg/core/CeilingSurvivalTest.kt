@@ -48,34 +48,37 @@ class CeilingSurvivalTest {
         // still walking back to the mat; nothing may happen until they are seen at the top.
         val game = CeilingSurvival()
         var t = 0L
-        repeat(600) { t += 33; game.update(t, active = false) }
+        repeat(600) { t += 33; game.update(t, inPosition = false) }
         assertEquals(1f, game.state().height, "the ceiling moved while nobody was in position")
         assertEquals(0L, game.state().elapsedMs)
         assertTrue(!game.state().started)
     }
 
+    /**
+     * The owner's rule for this mode: once it has started it never pauses. Sitting up, standing,
+     * walking out of view — the ceiling keeps coming, and only the next rep holds it off.
+     */
     @Test
-    fun `an untracked gap is frozen time, not lost time`() {
+    fun `once started, the ceiling keeps coming when the user stops`() {
         val game = CeilingSurvival()
         var t = 0L
-        repeat(90) { t += 33; game.update(t, active = true) }
+        repeat(90) { t += 33; game.update(t, inPosition = true) }
         val heightBefore = game.state().height
         val elapsedBefore = game.state().elapsedMs
-        val scoreBefore = game.state().score
 
-        // Five seconds looking away from the phone.
-        repeat(150) { t += 33; game.update(t, active = false) }
-        assertEquals(heightBefore, game.state().height, "the ceiling fell during a tracking gap")
-        assertEquals(elapsedBefore, game.state().elapsedMs, "the difficulty ramp advanced during a gap")
-        assertEquals(scoreBefore, game.state().score)
+        // Five seconds sitting up, out of position.
+        repeat(150) { t += 33; game.update(t, inPosition = false) }
+        assertTrue(heightBefore - game.state().height > 0.15f, "the ceiling paused while the user rested")
+        assertTrue(game.state().elapsedMs - elapsedBefore >= 4_900, "the difficulty ramp paused while the user rested")
+    }
 
-        // Resuming integrates from the resume frame, not across the gap.
-        t += 33
-        game.update(t, active = true)
-        assertTrue(
-            heightBefore - game.state().height < 0.01f,
-            "the frozen interval was integrated as descent on resume",
-        )
+    @Test
+    fun `resting out of position loses the run`() {
+        val game = CeilingSurvival()
+        var t = 0L
+        game.update(t, inPosition = true)
+        while (game.state().alive && t < 120_000) { t += 33; game.update(t, inPosition = false) }
+        assertTrue(!game.state().alive, "a run with no reps and nobody in position never ended")
     }
 
     @Test

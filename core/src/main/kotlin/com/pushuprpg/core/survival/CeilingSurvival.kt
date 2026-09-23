@@ -13,7 +13,7 @@ data class SurvivalState(
     /** 1.0 is safely at the top, 0.0 is the cat. */
     val height: Float = 1f,
     val score: Int = 0,
-    /** Played time. Time spent setting up or untracked is not in here; the ceiling did not move then. */
+    /** Played time, from the first frame in position. Setting up is not in here. */
     val elapsedMs: Long = 0,
     /** False until the first frame the user was in position; the ceiling has not moved yet. */
     val started: Boolean = false,
@@ -105,22 +105,22 @@ class CeilingSurvival(
     /**
      * Advances the ceiling. Call every frame with the current pose timestamp.
      *
-     * [active] is whether the user is in position and being tracked — the detector is armed or
-     * mid-rep, and its quality is OK. While it is false the ceiling holds still, the score holds
-     * still and the difficulty ramp does not advance: the run is frozen, not lost.
+     * [inPosition] — the detector is armed or mid-rep with good tracking — only starts the run.
+     * Until the first such frame nothing moves: the camera binds while the user is still walking
+     * back to the mat, and at the starting rate the ceiling would reach the cat about twenty seconds
+     * later, before a beginner has found the floor. Setting up is not playing.
      *
-     * It used to fall unconditionally from the first pose frame. The camera binds while the user
-     * is still walking back to the mat, and at the starting rate the ceiling reaches the cat about
-     * twenty seconds after that — before a beginner has found the floor, before the tutorial card
-     * has been read, and with zero reps counted. Then it kept falling through every tracking gap.
-     * The rule this mode broke is the same one the dungeon keeps: a user must never lose for a
-     * tracking failure, and setting up is not playing.
+     * Once started, the ceiling never stops. Resting, standing up, stepping out of view — it keeps
+     * coming, and the only thing that holds it off is the next rep. This mode used to freeze
+     * whenever the user was out of position, by the same rule the dungeon keeps (never punish a
+     * tracking failure), and that made it something you could pause by sitting up. The mode is a
+     * sprint for a cat, and a sprint you can pause is not one; this is the deliberate exception to
+     * that rule, and CLAUDE.md says so.
      */
-    fun update(nowMs: Long, active: Boolean = true): List<SurvivalEvent> {
+    fun update(nowMs: Long, inPosition: Boolean = true): List<SurvivalEvent> {
         if (!alive) return emptyList()
-        if (!active) {
-            // Hold everything where it is. The next active frame integrates from here, so the
-            // frozen interval never turns into descent.
+        if (startedAtMs == Long.MIN_VALUE && !inPosition) {
+            // Not started: hold everything, so the wait never turns into descent.
             lastUpdateMs = nowMs
             return emptyList()
         }

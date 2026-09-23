@@ -95,12 +95,11 @@ class SurvivalViewModel(
                 else -> Unit
             }
         }
-        // The ceiling moves only while the user is in position and seen: armed at the top or
-        // somewhere inside a rep. Walking back from the phone, reading the card, or a tracking gap
-        // freezes the run rather than losing it.
+        // Being in position — seen, and armed at the top or inside a rep — starts the run. After
+        // that the ceiling never stops: resting is not a pause. See CeilingSurvival.update.
         val inPosition = tick.quality == PoseQuality.OK &&
             tick.phase != RepPhase.IDLE && tick.phase != RepPhase.LOST
-        handle(game.update(tick.tMs, active = inPosition))
+        handle(game.update(tick.tMs, inPosition = inPosition))
         _state.value = game.state()
     }
 

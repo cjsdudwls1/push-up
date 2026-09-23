@@ -63,6 +63,11 @@ Korean and the code has to keep it.
 **Never punish a tracking failure.** When `PoseQuality != OK` the game clock stops and the boss
 stops attacking. A user must never lose health because the tracker blinked.
 
+고냥이 지켜줘 is the one deliberate exception, by the owner's decision: being in position only
+*starts* the run, and after that the ceiling never stops — resting, standing up and stepping out of
+view all let it keep coming. It is a sprint, and a sprint you can pause by sitting up is not one. Do
+not "fix" it back to pausing.
+
 ## Copy
 
 Korean is the default locale, not a translation. Voice is 해요체 — an encouraging training partner,
