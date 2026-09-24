@@ -17,7 +17,7 @@ sealed interface CombatEvent {
 
     /**
      * "필살기 준비" — the wind-up. It lands after [windowReps] more reps unless [answersNeeded] of
-     * them are answers; see [Encounter.isAnswer]. Counted in reps, never in seconds, so resting
+     * them are answers; see [Encounter.onDeep]. Counted in reps, never in seconds, so resting
      * while it winds up costs nothing.
      */
     data class Telegraph(override val atMs: Long, val windowReps: Int, val answersNeeded: Int) : CombatEvent
@@ -34,6 +34,12 @@ sealed interface CombatEvent {
     data class Exhausted(override val atMs: Long, val crackFraction: Float) : CombatEvent
 
     data class ComboBroken(override val atMs: Long, val finalCombo: Int) : CombatEvent
+
+    /**
+     * How a rep measured up to the class's way of doing it, once that is known: at the strike for a
+     * 궁수, at the deep line or the rep's end for a 기사. [miss] is null for a whole rep.
+     */
+    data class Style(override val atMs: Long, val miss: StyleMiss?) : CombatEvent
 }
 
 enum class Mitigation {
@@ -116,6 +122,16 @@ class Encounter(
     var answersLanded: Int = 0
         private set
 
+    /** Reps done the class's way, whole reps off the count. */
+    var styleReps: Int = 0
+        private set
+
+    // The rep in progress, from its strike to its end: a 기사's is not decided until it has either
+    // reached the deep line or come back up without it.
+    private var repOpen = false
+    private var repReachedDeep = false
+    private var repAnswered = false
+
     /** Roughly how many reps this fight should take, used to pace the boss's rage. */
     private val expectedReps: Int =
         (initialEnemy.maxHp / (initialPlayer.attack * initialPlayer.playerClass.expectedDprCoefficient)
@@ -192,14 +208,26 @@ class Encounter(
         if (finished) return emptyList()
         val events = mutableListOf<CombatEvent>()
 
+        // The last rep is over whether or not its end was reported (an abandoned rep never is).
+        events += closeRep(atMs)
+        if (finished) return events
+
         // A rest long enough to break the combo does so before the rep lands, so the rep starts
         // the new chain rather than extending a chain the player already lost.
+        val startsSet = player.combo == 0 || atMs - lastRepAtMs > player.playerClass.comboWindowMs
         if (player.combo > 0 && atMs - lastRepAtMs > player.playerClass.comboWindowMs) {
             events += CombatEvent.ComboBroken(atMs, player.combo)
             player = player.copy(combo = 0, tempoStreak = 0)
         }
 
-        val result = resolver.resolve(player, enemy, rep, rng)
+        // What the rep is worth now. A 궁수's is known at the strike; a 기사's first half lands here
+        // and the second at the deep line, if the way down was slow.
+        val halves = when (player.playerClass) {
+            PlayerClass.ARCHER -> ClassStyle.archerHalves(rep.exercise, rep.cycleMs, startsSet)
+            PlayerClass.KNIGHT -> 1
+        }
+
+        val result = resolver.resolve(player, enemy, rep, rng, halves)
         player = result.player
         lastRepAtMs = atMs
         tickIndex = 0
@@ -214,6 +242,14 @@ class Encounter(
         repsCounted++
         runXp += result.xp
         events += CombatEvent.Hit(atMs, result)
+        repOpen = true
+        repReachedDeep = false
+        repAnswered = false
+
+        if (player.playerClass == PlayerClass.ARCHER) {
+            if (halves == 2) styleReps++
+            events += CombatEvent.Style(atMs, if (halves == 2) null else StyleMiss.LAGGING)
+        }
 
         // Pushing through without resting earns a little health back.
         if (repsCounted % REGEN_EVERY_REPS == 0) {
@@ -226,46 +262,98 @@ class Encounter(
 
         if (telegraphed) {
             repsSinceTelegraph++
-            if (isAnswer(rep, result)) answersLanded++
+            if (answersAtStrike(rep)) answer()
         }
 
         // Finishing the monster is the best answer of all: whatever it was winding up never lands.
-        if (enemy.isDead) {
-            finished = true
-            telegraphed = false
-            events += CombatEvent.EnemyDefeated(atMs, enemy)
-            return events
-        }
+        if (enemy.isDead) return events + defeated(atMs)
 
-        events += resolveUltimate(atMs)
+        events += blockIfAnswered(atMs)
         if (!finished) events += checkTelegraph(atMs)
         return events
     }
 
     /**
-     * Whether a rep in the answer window counts as an answer.
+     * The rep in progress reached the deep line. [loweringMs] is how long the way down took, top
+     * band to deep line; for a 기사 it decides whether the rep is whole.
      *
-     * A deep rep, for everyone — the thing the gauge already asks for. Each class also answers in
-     * its own style, because a class is a way of training: an archer with pace (a fast rep), a mage
-     * with stillness (a rep held at the bottom). The knight's style is depth, which everybody has.
+     * Also where depth answers an ultimate, for everyone. It used to be read at the strike, but the
+     * strike fires on crossing the count line, before anybody has gone deeper — so "깊게 막아요"
+     * almost never counted.
      */
-    private fun isAnswer(rep: RepInput, result: AttackResult): Boolean = result.deep || when (player.playerClass) {
-        PlayerClass.ARCHER -> rep.cycleMs <= FAST_ANSWER_CYCLE_MS
-        PlayerClass.MAGE -> rep.bottomHoldMs >= MAGE_ANSWER_HOLD_MS
-        PlayerClass.KNIGHT -> false
+    fun onDeep(loweringMs: Int, atMs: Long): List<CombatEvent> {
+        if (finished || !repOpen || repReachedDeep) return emptyList()
+        repReachedDeep = true
+        val events = mutableListOf<CombatEvent>()
+        if (player.playerClass == PlayerClass.KNIGHT) {
+            if (ClassStyle.knightSlowEnough(loweringMs)) {
+                enemy = enemy.spend(1)
+                styleReps++
+                events += CombatEvent.Style(atMs, null)
+                if (telegraphed) answer()
+                if (enemy.isDead) return events + defeated(atMs)
+            } else {
+                events += CombatEvent.Style(atMs, StyleMiss.TOO_QUICK)
+            }
+        } else if (telegraphed) {
+            answer()
+        }
+        events += blockIfAnswered(atMs)
+        return events
     }
 
     /**
-     * Ends an open window once it is decided: blocked the moment enough answers land, or landed
-     * when its reps run out — lighter for every answer that was made.
+     * The rep in progress is over: back at the top, or abandoned. A 기사's rep that never reached
+     * the deep line stays half, and an answer window whose reps are all done is decided now that
+     * every one of them is known.
      */
-    private fun resolveUltimate(atMs: Long): List<CombatEvent> {
-        if (!telegraphed) return emptyList()
-        if (answersLanded >= ANSWERS_TO_BLOCK) {
-            telegraphed = false
-            return listOf(CombatEvent.Ultimate(atMs, damage = 0, mitigation = Mitigation.FULL))
+    fun onRepEnd(atMs: Long): List<CombatEvent> = if (finished) emptyList() else closeRep(atMs)
+
+    private fun closeRep(atMs: Long): List<CombatEvent> {
+        val events = mutableListOf<CombatEvent>()
+        if (repOpen && !repReachedDeep && player.playerClass == PlayerClass.KNIGHT) {
+            events += CombatEvent.Style(atMs, StyleMiss.NOT_FULL)
         }
-        if (repsSinceTelegraph < ANSWER_WINDOW_REPS) return emptyList()
+        repOpen = false
+        events += landIfSpent(atMs)
+        return events
+    }
+
+    private fun answer() {
+        if (repAnswered) return
+        repAnswered = true
+        answersLanded++
+    }
+
+    private fun defeated(atMs: Long): List<CombatEvent> {
+        finished = true
+        telegraphed = false
+        repOpen = false
+        return listOf(CombatEvent.EnemyDefeated(atMs, enemy))
+    }
+
+    /**
+     * Whether a rep answers the ultimate at its strike. A 궁수 answers with pace. Depth answers for
+     * everyone, and a 기사 with a slow, full rep — both at the deep line, in [onDeep].
+     */
+    private fun answersAtStrike(rep: RepInput): Boolean =
+        player.playerClass == PlayerClass.ARCHER && rep.cycleMs <= ClassStyle.briskCycleMs(rep.exercise)
+
+    /** Blocks the ultimate the moment enough answers have landed. */
+    private fun blockIfAnswered(atMs: Long): List<CombatEvent> {
+        if (!telegraphed || answersLanded < ANSWERS_TO_BLOCK) return emptyList()
+        telegraphed = false
+        return listOf(CombatEvent.Ultimate(atMs, damage = 0, mitigation = Mitigation.FULL))
+    }
+
+    /**
+     * Lands the ultimate once its window's reps are all done and decided — lighter for every answer
+     * that was made. Decided at the end of the last rep rather than its strike, because a 기사's
+     * answer, and anyone's deep one, arrives after the strike.
+     */
+    private fun landIfSpent(atMs: Long): List<CombatEvent> {
+        if (!telegraphed || repsSinceTelegraph < ANSWER_WINDOW_REPS) return emptyList()
+        if (answersLanded >= ANSWERS_TO_BLOCK) return blockIfAnswered(atMs)
 
         telegraphed = false
         val damage = (ultimateDamage * (1f - answersLanded.toFloat() / ANSWERS_TO_BLOCK))
@@ -326,11 +414,10 @@ class Encounter(
         runXp += 1
 
         if (enemy.isDead) {
-            finished = true
-            telegraphed = false
-            events += CombatEvent.EnemyDefeated(atMs, enemy)
+            events += defeated(atMs)
         } else {
-            events += resolveUltimate(atMs)
+            events += blockIfAnswered(atMs)
+            events += landIfSpent(atMs)
         }
         return events
     }
@@ -434,9 +521,6 @@ class Encounter(
         const val MAX_CRACK = 0.30f
 
         const val DEEP_ANSWER_DEPTH = 88f
-        const val MAGE_ANSWER_DEPTH = 92f
-        const val MAGE_ANSWER_HOLD_MS = 1_000
-        const val FAST_ANSWER_CYCLE_MS = 1_800
 
         /** Reps the wind-up gives the player, and how many of them must be answers to block it. */
         const val ANSWER_WINDOW_REPS = 5

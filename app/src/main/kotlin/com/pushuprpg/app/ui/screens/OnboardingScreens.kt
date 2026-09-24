@@ -78,7 +78,6 @@ fun OnboardingScreen(
 /** A class's name and its one line about the training it rewards, as string resources. */
 internal fun classStrings(playerClass: PlayerClass): Pair<Int, Int> = when (playerClass) {
     PlayerClass.KNIGHT -> R.string.class_knight to R.string.class_knight_desc
-    PlayerClass.MAGE -> R.string.class_mage to R.string.class_mage_desc
     PlayerClass.ARCHER -> R.string.class_archer to R.string.class_archer_desc
 }
 
@@ -105,7 +104,8 @@ fun ClassPickScreen(
     val colors = LocalGameColors.current
     // Isometric holds turn time under tension into damage, which is the one route that works for
     // someone who cannot yet do many reps at all.
-    val recommended = if (capacity < 8f) PlayerClass.MAGE else null
+    // Fewer, slower reps a fight: the gentler start for someone with few reps in them yet.
+    val recommended = if (capacity < 8f) PlayerClass.KNIGHT else null
 
     Column(
         modifier = modifier

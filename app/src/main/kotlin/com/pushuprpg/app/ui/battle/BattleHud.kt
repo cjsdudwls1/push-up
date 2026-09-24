@@ -26,7 +26,6 @@ import com.pushuprpg.app.R
 import com.pushuprpg.core.detect.MovementKind
 import com.pushuprpg.core.detect.Exercises
 import com.pushuprpg.core.detect.ExerciseType
-import androidx.annotation.StringRes
 import com.pushuprpg.core.game.PlayerClass
 import com.pushuprpg.app.ui.theme.LocalGameColors
 import com.pushuprpg.app.ui.theme.Palette
@@ -290,17 +289,11 @@ fun UltimateWarning(
         modifier = modifier,
     ) {
         // What to do, in the player's own style, and how much room is left to do it — a wind-up
-        // with no instruction is only a threat. A mage is told where to hold in *this* movement:
-        // "at the bottom" means nothing to someone doing pull-ups, whose hard point is the top.
+        // with no instruction is only a threat.
         val how = when {
             Exercises.of(exercise).kind == MovementKind.HOLD ->
                 stringResource(R.string.battle_ultimate_how_hold, answersNeeded)
             playerClass == PlayerClass.ARCHER -> stringResource(R.string.battle_ultimate_how_archer, answersNeeded)
-            playerClass == PlayerClass.MAGE -> stringResource(
-                R.string.battle_ultimate_how_mage,
-                answersNeeded,
-                stringResource(mageHoldPointRes(exercise)),
-            )
             else -> stringResource(R.string.battle_ultimate_how_knight, answersNeeded)
         }
         Column(
@@ -334,16 +327,3 @@ fun UltimateWarning(
     }
 }
 
-/**
- * Where a mage holds in [exercise]: the movement's hardest point, which is the detector's "deep"
- * end — the bottom of a pushup, a squat, a lunge or a dip, and the top of a pull-up.
- */
-@StringRes
-fun mageHoldPointRes(exercise: ExerciseType): Int = when (exercise) {
-    ExerciseType.PUSHUP -> R.string.mage_hold_pushup
-    ExerciseType.SQUAT -> R.string.mage_hold_squat
-    ExerciseType.LUNGE -> R.string.mage_hold_lunge
-    ExerciseType.PULL_UP -> R.string.mage_hold_pull_up
-    ExerciseType.DIP -> R.string.mage_hold_dip
-    ExerciseType.PLANK -> R.string.mage_hold_plank
-}

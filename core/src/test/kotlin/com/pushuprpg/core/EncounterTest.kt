@@ -23,6 +23,20 @@ class EncounterTest {
     private fun deepRep(cycleMs: Int = 3000, holdMs: Int = 0) =
         RepInput(95f, RepGrade.DEEP, ExerciseType.PUSHUP, cycleMs, bottomHoldMs = holdMs)
 
+    /**
+     * One rep as the engine reports it: the strike, the deep line if it got there ([loweringMs],
+     * top band to deep line), and the end. A 기사's rep is not decided until then.
+     */
+    private fun Encounter.fullRep(input: RepInput, t: Long, loweringMs: Int? = null): List<CombatEvent> {
+        val events = onRep(input, t).toMutableList()
+        if (loweringMs != null) events += onDeep(loweringMs, t + 400)
+        events += onRepEnd(t + 900)
+        return events
+    }
+
+    /** A deep rep lowered slowly: whole, for either class, and an answer for either. */
+    private fun Encounter.slowDeep(t: Long, cycleMs: Int = 3000) = fullRep(deepRep(cycleMs), t, loweringMs = 800)
+
     @Test
     fun `resting costs nothing, however long it goes on`() {
         // The single most important property of the volume model, and the reverse of what this file
@@ -95,7 +109,7 @@ class EncounterTest {
         while (!e.finished && t < 400_000) {
             // Keep up a steady pace inside the grace window so the boss never gets a turn.
             t += 2_500
-            defeated = e.onRep(deepRep(cycleMs = 2_500), t).any { it is CombatEvent.EnemyDefeated }
+            defeated = e.slowDeep(t, cycleMs = 2_500).any { it is CombatEvent.EnemyDefeated }
         }
         assertTrue(defeated, "the boss should die to sustained reps")
         assertTrue(e.repsCounted in 5..25, "took ${e.repsCounted} reps; authored for about 7")
@@ -121,8 +135,9 @@ class EncounterTest {
         var t = 0L
         while (!e.ultimateWindingUp) {
             t += 3000
-            e.onRep(plainRep(), t)
-            assertTrue(t < 60_000, "no wind-up in 20 reps")
+            e.fullRep(plainRep(), t)
+            // A plain rep is half for a 기사: the 20-rep monster takes forty of them.
+            assertTrue(t < 120_000, "no wind-up in 40 reps")
         }
         return t
     }
@@ -141,7 +156,7 @@ class EncounterTest {
         var t = untilTelegraph(e)
         val full = e.player.hp
         val hits = mutableListOf<CombatEvent.Ultimate>()
-        repeat(Encounter.ANSWER_WINDOW_REPS) { t += 3000; hits += e.onRep(plainRep(), t).filterIsInstance<CombatEvent.Ultimate>() }
+        repeat(Encounter.ANSWER_WINDOW_REPS) { t += 3000; hits += e.fullRep(plainRep(), t).filterIsInstance<CombatEvent.Ultimate>() }
         assertEquals(1, hits.size)
         assertEquals(e.ultimateDamage, hits.single().damage)
         assertEquals(full - e.ultimateDamage, e.player.hp)
@@ -154,7 +169,7 @@ class EncounterTest {
         var t = untilTelegraph(e)
         val full = e.player.hp
         val events = mutableListOf<CombatEvent>()
-        repeat(Encounter.ANSWERS_TO_BLOCK) { t += 3000; events += e.onRep(deepRep(), t) }
+        repeat(Encounter.ANSWERS_TO_BLOCK) { t += 3000; events += e.slowDeep(t) }
         val ultimate = events.filterIsInstance<CombatEvent.Ultimate>().single()
         assertEquals(0, ultimate.damage)
         assertEquals(Mitigation.FULL, ultimate.mitigation)
@@ -165,11 +180,11 @@ class EncounterTest {
     fun `every answer made takes a share off the hit`() {
         val e = bigFight()
         var t = untilTelegraph(e)
-        t += 3000; e.onRep(deepRep(), t)
+        t += 3000; e.slowDeep(t)
         var hit: CombatEvent.Ultimate? = null
         repeat(Encounter.ANSWER_WINDOW_REPS - 1) {
             t += 3000
-            hit = hit ?: e.onRep(plainRep(), t).filterIsInstance<CombatEvent.Ultimate>().firstOrNull()
+            hit = hit ?: e.fullRep(plainRep(), t).filterIsInstance<CombatEvent.Ultimate>().firstOrNull()
         }
         assertEquals(Mitigation.PARTIAL, hit!!.mitigation)
         assertTrue(hit!!.damage < e.ultimateDamage, "one answer took nothing off")
@@ -190,11 +205,13 @@ class EncounterTest {
 
     @Test
     fun `finishing the monster inside the window means it never lands`() {
-        val p = PlayerState.create(PlayerClass.KNIGHT, level = 1)
+        // Whole reps that answer nothing: a 궁수 starting a fresh set every time.
+        val p = PlayerState.create(PlayerClass.ARCHER, level = 1)
         val e = Encounter(p, Enemy(id = "t", korean = "t", maxHp = 8, hp = 8), rng = NoCritRng, startedAtMs = 0L)
         var t = 0L
         val events = mutableListOf<CombatEvent>()
-        while (!e.finished) { t += 3000; events += e.onRep(plainRep(), t) }
+        val rested = RepInput(72f, RepGrade.COUNTED, ExerciseType.PUSHUP, cycleMs = 6000)
+        while (!e.finished) { t += 6000; events += e.fullRep(rested, t) }
         assertTrue(events.any { it is CombatEvent.Telegraph }, "an 8-rep monster should still wind up")
         assertTrue(events.none { it is CombatEvent.Ultimate }, "the ultimate landed after the monster died")
         assertEquals(p.hp, e.player.hp)
@@ -202,18 +219,21 @@ class EncounterTest {
 
     @Test
     fun `each class answers in its own style as well as with depth`() {
-        fun blockedWith(playerClass: PlayerClass, rep: RepInput): Boolean {
+        fun blockedWith(playerClass: PlayerClass, rep: RepInput, loweringMs: Int? = null): Boolean {
             val e = bigFight(playerClass)
             var t = untilTelegraph(e)
             val events = mutableListOf<CombatEvent>()
-            repeat(Encounter.ANSWERS_TO_BLOCK) { t += 1500; events += e.onRep(rep, t) }
+            repeat(Encounter.ANSWERS_TO_BLOCK) { t += 1500; events += e.fullRep(rep, t, loweringMs) }
             return events.filterIsInstance<CombatEvent.Ultimate>().any { it.mitigation == Mitigation.FULL }
         }
-        val fast = RepInput(72f, RepGrade.COUNTED, ExerciseType.PUSHUP, cycleMs = 1500)
-        val held = RepInput(72f, RepGrade.COUNTED, ExerciseType.PUSHUP, cycleMs = 3000, bottomHoldMs = 1200)
-        assertTrue(blockedWith(PlayerClass.ARCHER, fast), "an archer's pace did not answer")
-        assertTrue(blockedWith(PlayerClass.MAGE, held), "a mage's hold did not answer")
-        assertTrue(!blockedWith(PlayerClass.KNIGHT, fast), "pace answered for a knight")
+        val fast = RepInput(72f, RepGrade.COUNTED, ExerciseType.PUSHUP, cycleMs = 1200)
+        val slow = RepInput(72f, RepGrade.COUNTED, ExerciseType.PUSHUP, cycleMs = 4000)
+        assertTrue(blockedWith(PlayerClass.ARCHER, fast), "a 궁수's pace did not answer")
+        assertTrue(blockedWith(PlayerClass.KNIGHT, slow, loweringMs = 800), "a 기사's slow, full rep did not answer")
+        assertTrue(!blockedWith(PlayerClass.KNIGHT, fast), "pace answered for a 기사")
+        assertTrue(!blockedWith(PlayerClass.KNIGHT, fast, loweringMs = 300), "a 기사's quick dive answered")
+        // Depth answers for everyone — read at the deep line, which the strike comes before.
+        assertTrue(blockedWith(PlayerClass.ARCHER, slow, loweringMs = 300), "depth did not answer for a 궁수")
     }
 
     @Test
@@ -222,7 +242,7 @@ class EncounterTest {
         var t = untilTelegraph(e)
         val reps = e.repsCounted
         val events = mutableListOf<CombatEvent>()
-        repeat(Encounter.ANSWER_WINDOW_REPS) { t += 3000; events += e.onRep(plainRep(), t) }
+        repeat(Encounter.ANSWER_WINDOW_REPS) { t += 3000; events += e.fullRep(plainRep(), t) }
         assertTrue(events.any { it is CombatEvent.Exhausted }, "health reached ${e.player.hp} without ending the run")
         assertTrue(e.finished)
         assertEquals(reps + Encounter.ANSWER_WINDOW_REPS, e.repsCounted, "reps done in the window were lost")
@@ -234,7 +254,52 @@ class EncounterTest {
         val e = Encounter(p, Enemy(id = "t", korean = "t", maxHp = 7, hp = 7), rng = NoCritRng, startedAtMs = 0L)
         var t = 0L
         val events = mutableListOf<CombatEvent>()
-        while (!e.finished) { t += 3000; events += e.onRep(plainRep(), t) }
+        while (!e.finished) { t += 3000; events += e.fullRep(plainRep(), t) }
         assertTrue(events.none { it is CombatEvent.Telegraph })
+    }
+
+    // ------------------------------------------------------------ each class's own way
+
+    /** A monster with a known count, and the half-reps it has taken so far. */
+    private fun owed(e: Encounter): Float = e.enemy.hp - if (e.enemy.halfTaken) 0.5f else 0f
+
+    @Test
+    fun `a 기사's rep is whole only when it is slow and reaches 깊게`() {
+        val e = bigFight(PlayerClass.KNIGHT)
+        val rep = RepInput(72f, RepGrade.COUNTED, ExerciseType.PUSHUP, cycleMs = 4000)
+        var t = 0L
+
+        t += 4000; var ev = e.fullRep(rep, t, loweringMs = 800)
+        assertEquals(19f, owed(e), "slow and full was not a whole rep")
+        assertEquals(null, ev.filterIsInstance<CombatEvent.Style>().single().miss)
+
+        t += 4000; ev = e.fullRep(rep, t, loweringMs = 300)
+        assertEquals(18.5f, owed(e), "a quick dive was not half")
+        assertEquals(StyleMiss.TOO_QUICK, ev.filterIsInstance<CombatEvent.Style>().single().miss)
+
+        t += 4000; ev = e.fullRep(rep, t, loweringMs = null)
+        assertEquals(18f, owed(e), "a rep short of 깊게 was not half")
+        assertEquals(StyleMiss.NOT_FULL, ev.filterIsInstance<CombatEvent.Style>().single().miss)
+        assertEquals(1, e.styleReps)
+        assertEquals(3, e.repsCounted, "a half-worth rep did not count as a rep")
+    }
+
+    @Test
+    fun `a 궁수's rep is whole when it keeps pace, and the first of a set always is`() {
+        val e = bigFight(PlayerClass.ARCHER)
+        fun at(cycleMs: Int) = RepInput(72f, RepGrade.COUNTED, ExerciseType.PUSHUP, cycleMs = cycleMs)
+        var t = 0L
+
+        t += 1000; e.fullRep(at(9000), t)
+        assertEquals(19f, owed(e), "the first rep of a set was not whole")
+        t += 1200; e.fullRep(at(1200), t)
+        assertEquals(18f, owed(e), "a brisk rep was not whole")
+        t += 3000; val ev = e.fullRep(at(3000), t)
+        assertEquals(17.5f, owed(e), "a rep lagging inside the set was not half")
+        assertEquals(StyleMiss.LAGGING, ev.filterIsInstance<CombatEvent.Style>().single().miss)
+        // Resting long enough to end the set: the next rep starts a new one, and is whole.
+        t += 20_000; e.fullRep(at(20_000), t)
+        assertEquals(16.5f, owed(e), "resting between sets cost the next rep")
+        assertEquals(3, e.styleReps)
     }
 }

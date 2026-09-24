@@ -268,6 +268,7 @@ fun PushupRpgApp(
                         exercise = settings.exercise,
                         capacity = progress.capacityOf(settings.exercise),
                         difficulty = settings.difficulty,
+                        playerClass = progress.playerClass,
                         entitlement = entitlement,
                         onDifficultyChange = { difficulty ->
                             scope.launch {
@@ -292,6 +293,7 @@ fun PushupRpgApp(
                         dungeon = dungeon,
                         initial = settings.exercise,
                         difficulty = settings.difficulty,
+                        playerClass = progress.playerClass,
                         onStart = { picked ->
                             scope.launch {
                                 // Persisted before navigating, and awaited, because BattleViewModel
@@ -402,6 +404,7 @@ fun PushupRpgApp(
                                 onStartNextNow = startNextNow,
                                 onCancelAutoNext = { autoNextCancelled = true },
                                 outcome = outcome,
+                                playerClass = progress.playerClass,
                                 dungeonName = Dungeons.byIndex(dungeonIndex)?.korean.orEmpty(),
                                 lifetimeReps = progress.lifetimeReps,
                                 level = progress.level,

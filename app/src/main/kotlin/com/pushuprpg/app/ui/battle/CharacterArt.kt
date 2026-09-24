@@ -117,7 +117,6 @@ private data class Kit(
 
 private fun kitFor(playerClass: PlayerClass) = when (playerClass) {
     PlayerClass.KNIGHT -> Kit(Color(0xFFC3CBDA), Color(0xFF7C879B), Color(0xFF4DA3FF))
-    PlayerClass.MAGE -> Kit(Color(0xFF8E7CFF), Color(0xFF5A48C7), Color(0xFFFFD86B))
     PlayerClass.ARCHER -> Kit(Color(0xFF6FCF97), Color(0xFF3E8E63), Color(0xFFE9F7C8))
 }
 
@@ -246,25 +245,6 @@ private fun DrawScope.drawHead(
                 cornerRadius = CornerRadius(r * 0.2f),
             )
         }
-        PlayerClass.MAGE -> {
-            drawCircle(kit.skin, r * 0.92f, head)
-            // Wide pointed hat.
-            val brim = r * 1.9f
-            drawOval(
-                color = kit.secondary,
-                topLeft = Offset(head.x - brim / 2f, head.y - r * 0.95f),
-                size = Size(brim, r * 0.42f),
-            )
-            drawPath(
-                Path().apply {
-                    moveTo(head.x - r * 0.85f, head.y - r * 0.78f)
-                    lineTo(head.x + dir * r * 0.55f, head.y - r * 2.7f)
-                    lineTo(head.x + r * 0.85f, head.y - r * 0.78f)
-                    close()
-                },
-                kit.primary,
-            )
-        }
         PlayerClass.ARCHER -> {
             drawCircle(kit.skin, r * 0.95f, head)
             // Hood.
@@ -306,11 +286,6 @@ private fun DrawScope.drawWeapon(
                 hand.y - sin(angleRad + 1.57f) * h * 0.05f,
             )
             limb(guard, guard2, h * 0.02f, h * 0.02f, kit.accent)
-        }
-        PlayerClass.MAGE -> {
-            limb(hand, tip, h * 0.022f, h * 0.018f, Color(0xFF6B4A2F))
-            drawCircle(kit.accent.copy(alpha = 0.35f), h * 0.055f, tip, blendMode = BlendMode.Plus)
-            drawCircle(kit.accent, h * 0.028f, tip)
         }
         PlayerClass.ARCHER -> {
             // A bow is an arc, which no straight limb can fake.

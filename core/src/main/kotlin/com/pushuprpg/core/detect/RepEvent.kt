@@ -25,6 +25,11 @@ sealed interface RepEvent {
         val combo: Int,
         /** For a split-stance movement, the leg in front on this rep; null for everything else. */
         val front: BodySide? = null,
+        /**
+         * How long this rep took from leaving the top band to crossing the count line — the
+         * controlled part of the way down, placed between frames. What a 기사's tempo is read from.
+         */
+        val descentMs: Int = 0,
     ) : RepEvent
 
     /**
@@ -34,7 +39,17 @@ sealed interface RepEvent {
      * we cannot know how deep the user will go, and delaying the hit to find out is exactly what
      * must not happen. Going deeper is rewarded *while* the user is still going deeper.
      */
-    data class DeepUpgrade(override val tMs: Long, val repIndex: Int, val depth: Float) : RepEvent
+    data class DeepUpgrade(
+        override val tMs: Long,
+        val repIndex: Int,
+        val depth: Float,
+        /**
+         * How long the way down took, from leaving the top band to crossing the deep line, placed
+         * between frames. Most of a full lowering, which is what a 기사's tempo is read from: the
+         * count line alone sits in the fast middle of the rep and moves while calibrating.
+         */
+        val loweringMs: Int = 0,
+    ) : RepEvent
 
     /** Bottom reached and top regained. Only these feed calibration. */
     data class Completed(override val tMs: Long, val repIndex: Int, val record: RepRecord) : RepEvent

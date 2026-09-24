@@ -244,7 +244,7 @@ class PlankCombatTest {
 
     @Test
     fun `a held plank damages the enemy and keeps the boss off the player`() {
-        val player = com.pushuprpg.core.game.PlayerState.create(PlayerClass.MAGE, level = 1)
+        val player = com.pushuprpg.core.game.PlayerState.create(PlayerClass.KNIGHT, level = 1)
         val enemy = Dungeons.FREE_DUNGEON.floors.first()
             .spawn(Difficulty.STANDARD, ExerciseType.PUSHUP)
         val encounter = Encounter(player, enemy, rng = NoCritRng, startedAtMs = 0L)
@@ -265,7 +265,7 @@ class PlankCombatTest {
 
     @Test
     fun `a plank tears down a ward far faster than pushups chip at it`() {
-        val player = com.pushuprpg.core.game.PlayerState.create(PlayerClass.MAGE, level = 12)
+        val player = com.pushuprpg.core.game.PlayerState.create(PlayerClass.KNIGHT, level = 12)
         val template = Dungeons.byIndex(6)!!.floors.last()
 
         fun tickPlank(): Int {
@@ -431,7 +431,7 @@ class BattleEnginePresentationTest {
 
         assertEquals(DetectorConfig.pushup().exercise, retired.config.exercise)
         assertEquals(ExerciseType.SQUAT, after.exercise)
-        val squatFloor = dungeon.floors[0].spawn(Difficulty.STANDARD, ExerciseType.SQUAT)
+        val squatFloor = dungeon.floors[0].spawn(Difficulty.STANDARD, ExerciseType.SQUAT, PlayerClass.KNIGHT)
         assertEquals(squatFloor.maxHp, after.enemyMaxHp, "the enemy was not re-priced in squats")
         val leftAfter = after.enemyHp.toFloat() / after.enemyMaxHp
         assertTrue(
@@ -441,7 +441,7 @@ class BattleEnginePresentationTest {
         // The total is still the honest remaining cost: done so far, this enemy, and every floor
         // to come, all in squats now.
         val rest = dungeon.floors.drop(1).sumOf {
-            CombatResolver.expectedReps(it.standardRepCost, Difficulty.STANDARD, ExerciseType.SQUAT)
+            CombatResolver.expectedReps(it.standardRepCost, Difficulty.STANDARD, ExerciseType.SQUAT, PlayerClass.KNIGHT)
         }
         assertEquals(after.reps + after.enemyHp + rest, after.runTotalReps)
     }

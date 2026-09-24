@@ -24,15 +24,17 @@ data class EnemyTemplate(
     val wardFraction: Float = 0f,
 ) {
     /**
-     * HP here is a count of reps, so the only things that can change it are the movement and the
-     * difficulty the user chose. Neither the player's level nor their measured capacity enters into
-     * it any more — a tier that says 100 costs 100 for everybody, which is what makes it readable.
+     * HP here is a count of reps, so the only things that can change it are the movement, the
+     * difficulty the user chose and their class's way of training (fewer, slower reps for a 기사;
+     * more, faster ones for a 궁수). Neither the player's level nor their measured capacity enters
+     * into it — the number on the entry screen is the number performed, done the class's way.
      */
     fun spawn(
         difficulty: Difficulty,
         exercise: ExerciseType,
+        playerClass: PlayerClass? = null,
     ): Enemy {
-        val hp = CombatResolver.enemyMaxHp(standardRepCost, difficulty, exercise)
+        val hp = CombatResolver.enemyMaxHp(standardRepCost, difficulty, exercise, playerClass)
         // A ward is a weakness, not a wall. The movement it is weak to pays the ward's face value in
         // reps; anything else pays several times over but always gets through. Priced here rather
         // than per rep because a rep is worth exactly one and a fraction of one is not a rep.
@@ -80,8 +82,8 @@ data class Dungeon(
      * Wards are excluded: a ward is extra reps owed only by the wrong movement for the enemy, so it
      * belongs to the fight rather than to the advertised price.
      */
-    fun repCost(difficulty: Difficulty, exercise: ExerciseType): Int =
-        floors.sumOf { CombatResolver.expectedReps(it.standardRepCost, difficulty, exercise) }
+    fun repCost(difficulty: Difficulty, exercise: ExerciseType, playerClass: PlayerClass? = null): Int =
+        floors.sumOf { CombatResolver.expectedReps(it.standardRepCost, difficulty, exercise, playerClass) }
 
     /** The level the encounters are balanced around; outgrowing it is what makes them easier. */
     val referenceLevel: Int get() = recommendedLevel.first

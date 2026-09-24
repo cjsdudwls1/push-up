@@ -25,6 +25,7 @@ import com.pushuprpg.core.detect.ExerciseType
 import com.pushuprpg.core.game.Difficulty
 import com.pushuprpg.core.game.Dungeon
 import com.pushuprpg.core.game.Dungeons
+import com.pushuprpg.core.game.PlayerClass
 
 /**
  * Dungeon list.
@@ -43,6 +44,8 @@ fun DungeonSelectScreen(
     /** Still measured, and still used to recommend a difficulty. It no longer sizes an enemy. */
     capacity: Float,
     difficulty: Difficulty,
+    /** The class the count is quoted for: a 기사's fight is fewer reps than a 궁수's. */
+    playerClass: PlayerClass,
     entitlement: Entitlement,
     onDifficultyChange: (Difficulty) -> Unit,
     onStart: (Int) -> Unit,
@@ -78,7 +81,7 @@ fun DungeonSelectScreen(
             val paid = FreeTier.canPlayDungeon(dungeon.index, entitlement)
             DungeonCard(
                 dungeon = dungeon,
-                expectedReps = dungeon.repCost(difficulty, exercise),
+                expectedReps = dungeon.repCost(difficulty, exercise, playerClass),
                 cleared = dungeon.index <= highestCleared,
                 unlocked = unlocked,
                 paid = paid,

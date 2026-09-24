@@ -47,6 +47,7 @@ import com.pushuprpg.core.detect.Exercises
 import com.pushuprpg.core.detect.MovementKind
 import com.pushuprpg.core.game.Dungeon
 import com.pushuprpg.core.game.Difficulty
+import com.pushuprpg.core.game.PlayerClass
 import com.pushuprpg.core.survival.CatName
 
 /**
@@ -77,6 +78,8 @@ fun ExercisePickScreen(
     onStart: (ExerciseType) -> Unit,
     modifier: Modifier = Modifier,
     difficulty: Difficulty = Difficulty.STANDARD,
+    /** The class each row's count is quoted for; the same pricing the run itself uses. */
+    playerClass: PlayerClass = PlayerClass.KNIGHT,
     survival: Boolean = false,
     catName: String = "",
     catCoat: CatCoat = CatCoat.CREAM,
@@ -129,7 +132,7 @@ fun ExercisePickScreen(
                 // Exact, not an estimate: under the volume model the enemy's health IS this count,
                 // and Dungeon.repCost is the same function the run itself is priced by — so this is
                 // the number of reps the user will actually perform, not a rounding of it.
-                cost = dungeon?.repCost(difficulty, exercise) ?: 0,
+                cost = dungeon?.repCost(difficulty, exercise, playerClass) ?: 0,
                 onExpand = { expanded = exercise },
                 onStart = { onStart(exercise) },
             )

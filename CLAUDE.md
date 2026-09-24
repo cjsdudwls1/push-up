@@ -73,6 +73,20 @@ squat exactly like a lunge. The same measurement names the front leg, which is h
 for the other one (`LegAlternator`). "Forward" is square to the hip line and the spine, never
 "horizontal" — world landmarks are in the camera's tilted frame.
 
+**A class is a way of training, and it decides what a rep is worth**, by the owner's decision: two
+classes, no more. 기사 is 근비대 — a rep whose lowering (top band to the 깊게 line) takes at least
+`ClassStyle.SLOW_LOWERING_MS` and reaches 깊게 is a whole rep off the monster, anything else half.
+궁수 is 수행능력 — a rep inside `ClassStyle.briskCycleMs` of the last, or the first of a set, is whole,
+anything else half. The detector still decides whether a rep counts; the class only prices it, from
+the detector's own timings. Both thresholds are measured on the rig (`ClassStyleRigTest`), and the
+brisk pace must stay well above what the detector can count (`FastRepRigTest`). 법사 was folded
+into 기사; a stored `MAGE` reads back as the default class.
+
+**Line crossings are placed between frames.** A brisk rep crosses the whole count band in one or
+two frames, and timing it frame to frame undercounted the descent by up to a frame — a 1-second
+squat read as 760 points a second and was refused as TOO_FAST, more often the higher the frame
+rate. `RepDetectorImpl.crossedAt` interpolates; any new timing taken off a line must use it.
+
 **Bodyweight movements only**, by the owner's decision: pushup, squat, plank, pull-up, lunge, dip.
 The weighted ones were removed; stored names that point at them read back tolerantly.
 
@@ -103,9 +117,11 @@ Every user-visible string lives in `app/src/main/res/values/strings.xml`.
 
 ## Balance
 
-Enemy HP is never authored. Content declares a *rep cost* and HP is derived at spawn. If a fight
-feels wrong, change its `standardRepCost` or a class's `expectedDprCoefficient` — never an HP
-number, because there isn't one.
+Enemy HP is never authored. Content declares a *rep cost* and HP is derived at spawn: the rep cost
+× difficulty × the movement's session volume × the class's `repCostScale` (fewer reps for a 기사,
+more for a 궁수; a hold is the same for both). If a fight feels wrong, change its `standardRepCost`
+or a class's `repCostScale` — never an HP number, because there isn't one. Every screen that quotes
+a count passes the player's class to `Dungeon.repCost`, or it quotes a number the run won't ask for.
 
 ## Before claiming something works
 

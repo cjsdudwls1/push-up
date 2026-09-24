@@ -3,6 +3,7 @@ package com.pushuprpg.core.game
 import com.pushuprpg.core.detect.DetectorConfig
 import com.pushuprpg.core.detect.ExerciseType
 import com.pushuprpg.core.detect.Exercises
+import com.pushuprpg.core.detect.MovementKind
 import com.pushuprpg.core.detect.RepGrade
 import kotlin.math.floor
 import kotlin.math.min
@@ -76,9 +77,29 @@ data class Enemy(
      */
     val wardHp: Int = 0,
     val wardMaxHp: Int = 0,
+    /**
+     * Half a rep has been taken off and its pair has not landed yet. A rep done a class's way is a
+     * whole rep; one that is not is half — see [ClassStyle]. Two halves make one off the count.
+     */
+    val halfTaken: Boolean = false,
 ) {
     val isDead: Boolean get() = hp <= 0
     val warded: Boolean get() = wardHp > 0
+
+    /**
+     * Takes [halves] half-reps off, the ward first. A lone half is banked on the enemy until its
+     * pair lands, so the count only ever moves in whole reps and the bar never shows a fraction the
+     * user cannot do.
+     */
+    fun spend(halves: Int): Enemy {
+        var e = this
+        repeat(halves) {
+            e = if (!e.halfTaken) e.copy(halfTaken = true)
+            else if (e.warded) e.copy(wardHp = e.wardHp - 1, halfTaken = false)
+            else e.copy(hp = (e.hp - 1).coerceAtLeast(0), halfTaken = false)
+        }
+        return e
+    }
 
     /**
      * Reps still owed, ward included — the number the health bar is really showing.
@@ -94,8 +115,8 @@ data class Enemy(
 data class AttackResult(
     /** The number that flies up the screen. Flavour — it is not what the monster loses. */
     val damage: Int,
-    /** What the monster actually lost, in reps. One, for an accepted rep. */
-    val repsSpent: Int = 1,
+    /** What the monster actually lost, in half-reps: two for a rep done the class's way, else one. */
+    val halvesSpent: Int = 2,
     val crit: Boolean,
     val deep: Boolean,
     val rejected: Boolean,
@@ -146,8 +167,6 @@ class CombatResolver(
             val slope = if (playerClass == PlayerClass.KNIGHT) 0.25f else 0.15f
             1.60f + slope * (depth - deep) / (100f - deep)
         }
-        // The mage is paid for time under tension rather than for depth alone.
-        if (playerClass == PlayerClass.MAGE && bottomHoldMs >= 1200) m += 0.15f
         return m
     }
 
@@ -160,7 +179,12 @@ class CombatResolver(
     fun inTempoBand(cycleMs: Int, playerClass: PlayerClass): Boolean =
         cycleMs in playerClass.tempoBandMinMs..playerClass.tempoBandMaxMs
 
-    fun resolve(player: PlayerState, enemy: Enemy, rep: RepInput, rng: Rng): AttackResult {
+    /**
+     * [halves] is what this rep is worth off the count, in half-reps — two for a rep done the
+     * class's way, one otherwise. Decided by [ClassStyle] from how the rep was done, never from its
+     * depth: whether it counted at all is the detector's call.
+     */
+    fun resolve(player: PlayerState, enemy: Enemy, rep: RepInput, rng: Rng, halves: Int = 2): AttackResult {
         // A collapsing hip line is not a rep, however deep it looks: the depth signal cannot tell
         // a controlled descent from a body folding in the middle, so form has a veto.
         if (rep.formScore < 0.50f) {
@@ -211,26 +235,18 @@ class CombatResolver(
         // unbroken grind, which is bad training and not what a body will do; now they are flavour on
         // a number, not a reason to skip a rest.
         val shown = (floor(raw).toInt() - enemy.defense).coerceAtLeast(1)
-        val damage = 1
 
-        // The ward spends one rep like anything else. It used to take a fraction of the damage from
+        // The ward spends reps like anything else. It used to take a fraction of the damage from
         // the wrong movement, which is not expressible once a rep is worth exactly one — so the
         // ward's SIZE carries that instead, set at spawn from whether the movement is the one it is
-        // weak to. Same intent, in whole reps. Overkill carries through, so the rep that breaks the
-        // ward also lands on the enemy.
-        val nextEnemy = if (enemy.warded) {
-            val remainingWard = (enemy.wardHp - damage).coerceAtLeast(0)
-            val spill = (damage - enemy.wardHp).coerceAtLeast(0)
-            enemy.copy(wardHp = remainingWard, hp = (enemy.hp - spill).coerceAtLeast(0))
-        } else {
-            enemy.copy(hp = (enemy.hp - damage).coerceAtLeast(0))
-        }
+        // weak to. Same intent, in whole reps.
+        val nextEnemy = enemy.spend(halves)
 
         val xp = (2.0f * depthMult).roundToInt() + if (crit) 1 else 0
 
         return AttackResult(
             damage = shown,
-            repsSpent = damage,
+            halvesSpent = halves,
             crit = crit,
             deep = deep,
             rejected = false,
@@ -283,7 +299,8 @@ class CombatResolver(
             standardRepCost: Int,
             difficulty: Difficulty,
             exercise: ExerciseType = ExerciseType.PUSHUP,
-        ): Int = expectedReps(standardRepCost, difficulty, exercise)
+            playerClass: PlayerClass? = null,
+        ): Int = expectedReps(standardRepCost, difficulty, exercise, playerClass)
 
         /**
          * Reps of [exercise] this encounter costs — for everybody, which is the point.
@@ -294,13 +311,24 @@ class CombatResolver(
          * and NOT by damageCoefficient, which answers a per-rep question and gave 154 pull-ups and
          * 471 bench reps for a 400-rep tier.
          *
-         * A hold's number is seconds rather than reps.
+         * A hold's number is seconds rather than reps, and is the same for both classes: a hold has
+         * no tempo to do one way or the other.
+         *
+         * Scaled by the class's [PlayerClass.repCostScale]: the reps a monster costs when every one
+         * is done the class's way. Fewer for a 기사, more for a 궁수. Null is the content's own
+         * standard, before any class — what the rep costs in [Dungeons] are written in.
          */
         fun expectedReps(
             standardRepCost: Int,
             difficulty: Difficulty,
             exercise: ExerciseType = ExerciseType.PUSHUP,
-        ): Int = (standardRepCost * difficulty.repMultiplier * Exercises.of(exercise).sessionVolumeScale)
-            .roundToInt().coerceAtLeast(1)
+            playerClass: PlayerClass? = null,
+        ): Int {
+            val descriptor = Exercises.of(exercise)
+            val classScale = if (playerClass == null || descriptor.kind == MovementKind.HOLD) 1f
+            else playerClass.repCostScale
+            return (standardRepCost * difficulty.repMultiplier * descriptor.sessionVolumeScale * classScale)
+                .roundToInt().coerceAtLeast(1)
+        }
     }
 }

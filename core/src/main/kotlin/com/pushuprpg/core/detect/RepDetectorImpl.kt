@@ -54,6 +54,9 @@ class RepDetectorImpl(
     private var quality: PoseQuality? = null
     private var depth = 0f
     private var depthVelocity = 0f
+    /** The previous tracked frame's depth and time, for placing a line crossing between frames. */
+    private var prevDepth = Float.NaN
+    private var prevDepthMs = 0L
     private var depthSource = DepthSource.NONE
 
     private var tTopExit = 0L
@@ -64,6 +67,7 @@ class RepDetectorImpl(
     private var tLastGoodPose = Long.MIN_VALUE
     private var tFirstFrame = Long.MIN_VALUE
     private var tLastFrame = 0L
+    private var tLastTracked = Long.MIN_VALUE
 
     private var hTopThisRep = Float.NEGATIVE_INFINITY
     private var hBotThisRep = Float.POSITIVE_INFINITY
@@ -128,6 +132,9 @@ class RepDetectorImpl(
             // drag the anchor.
             calibrator.observeRest(h)
 
+            prevDepth = if (tLastTracked == Long.MIN_VALUE) Float.NaN else depth
+            prevDepthMs = tLastTracked
+            tLastTracked = tMs
             depth = calibrator.map(h)
             depthVelocity = -100f * signalFilter.velocity.toFloat() / calibrator.range
             depthSource = sample.source
@@ -195,7 +202,7 @@ class RepDetectorImpl(
                 if (!sample.bodyDrop.isNaN()) bodyDropAtTop = minOf(bodyDropAtTop, sample.bodyDrop)
                 if (depth > config.topExit) {
                     phase = RepPhase.DESCENDING
-                    tTopExit = tMs
+                    tTopExit = crossedAt(config.topExit, tMs)
                     maxDepthThisRep = depth
                     hBotThisRep = h
                     asymmetryThisRep = sample.asymmetry
@@ -245,7 +252,7 @@ class RepDetectorImpl(
 
                 if (!deepFiredThisRep && struckThisRep && depth >= calibrator.deepEnter()) {
                     deepFiredThisRep = true
-                    events += RepEvent.DeepUpgrade(tMs, repCount, depth)
+                    events += RepEvent.DeepUpgrade(tMs, repCount, depth, loweringMs(tMs))
                 }
 
                 when {
@@ -289,8 +296,14 @@ class RepDetectorImpl(
 
     /** Returns null when the strike is allowed, or the reason it is not. */
     private fun strikeBlockedReason(tMs: Long, sample: DepthSample): AbandonReason? {
-        val descentMs = tMs - tTopExit
+        // Both ends of the band are placed where the signal crossed them, not on the frame that
+        // first saw it across. Frame to frame, a brisk rep crosses the whole band in one or two
+        // frames, and the frame times then undercount the descent by up to a frame: at 20-30 fps
+        // that read a 1-second squat as 600-760 points a second and refused every rep as TOO_FAST
+        // — more often the smoother the camera, since a lower frame rate happened to pad it.
+        val descentMs = crossedAt(calibrator.countEnter(), tMs) - tTopExit
         if (descentMs <= 0L) return AbandonReason.TOO_FAST
+        descentThisRepMs = descentMs.toInt()
         val bandSpeed = (calibrator.countEnter() - config.topExit) * 1000f / descentMs
         if (bandSpeed > config.maxDescentSpeed) return AbandonReason.TOO_FAST
         if (tLastStrike != Long.MIN_VALUE && tMs - tLastStrike < config.minRepPeriodMs) {
@@ -361,6 +374,27 @@ class RepDetectorImpl(
     /** The leg in front on the rep being struck, for a split-stance movement. */
     private var frontThisRep: BodySide? = null
 
+    /** Time from leaving the top band to crossing the count line, on the rep being struck. */
+    private var descentThisRepMs = 0
+
+    /** Top band to deep line on this rep, for [RepEvent.DeepUpgrade]. */
+    private fun loweringMs(tMs: Long): Int =
+        (crossedAt(calibrator.deepEnter(), tMs) - tTopExit).toInt().coerceAtLeast(0)
+
+    /**
+     * When the signal crossed [level] on its way up to this frame's [depth]: linear between the
+     * previous tracked frame and this one. This frame's own time when there is no previous frame to
+     * interpolate from, or the signal was not rising.
+     */
+    private fun crossedAt(level: Float, tMs: Long): Long {
+        val before = prevDepth
+        if (before.isNaN() || depth <= before || before >= level) return tMs
+        // Across a tracking gap there is no knowing when it crossed; this frame is the honest answer.
+        if (tMs - prevDepthMs > MAX_INTERPOLATION_GAP_MS) return tMs
+        val f = ((level - before) / (depth - before)).coerceIn(0f, 1f)
+        return prevDepthMs + ((tMs - prevDepthMs) * f).toLong()
+    }
+
     private fun strike(tMs: Long, events: MutableList<RepEvent>) {
         repCount++
         struckThisRep = true
@@ -375,10 +409,10 @@ class RepDetectorImpl(
         maxCombo = maxOf(maxCombo, combo)
 
         val grade = if (maxDepthThisRep >= calibrator.deepEnter()) RepGrade.DEEP else RepGrade.COUNTED
-        events += RepEvent.Strike(tMs, repCount, grade, depth, combo, front = frontThisRep)
+        events += RepEvent.Strike(tMs, repCount, grade, depth, combo, front = frontThisRep, descentMs = descentThisRepMs)
         if (grade == RepGrade.DEEP) {
             deepFiredThisRep = true
-            events += RepEvent.DeepUpgrade(tMs, repCount, depth)
+            events += RepEvent.DeepUpgrade(tMs, repCount, depth, loweringMs(tMs))
         }
     }
 
@@ -513,6 +547,8 @@ class RepDetectorImpl(
         tQualityOkSince = Long.MIN_VALUE
         tLastGoodPose = Long.MIN_VALUE
         tFirstFrame = Long.MIN_VALUE
+        tLastTracked = Long.MIN_VALUE
+        prevDepth = Float.NaN
         bodyDropAtTop = Float.POSITIVE_INFINITY
         repCount = 0
         combo = 0
@@ -552,6 +588,9 @@ class RepDetectorImpl(
         const val ARM_SETTLE_MS = 300L
 
         const val RATE_WINDOW_MS = 10_000L
+
+        /** Longest frame gap a line crossing is interpolated across: three frames at 15 fps. */
+        const val MAX_INTERPOLATION_GAP_MS = 200L
 
         /**
          * Depth points per second the signal is allowed to move; see OneEuroFilter's slew limit.

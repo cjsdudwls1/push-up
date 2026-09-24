@@ -35,11 +35,9 @@
     <string name="class_pick_title">어떻게 싸울까요?</string>
     <string name="class_pick_body">직업은 운동 방식을 고르는 거예요. 언제든 바꿀 수 있어요.</string>
     <string name="class_knight">기사</string>
-    <string name="class_knight_desc">깊고 무겁게. 천천히 내려갈수록 세져요.</string>
-    <string name="class_mage">법사</string>
-    <string name="class_mage_desc">버티기의 힘. 가장 힘든 자세에서 1초쯤 멈추면 더 세게 때려요.</string>
+    <string name="class_knight_desc">근비대. 2초쯤 천천히, 끝까지 내려간 렙이 한 칸이에요. 아니면 반 칸. 횟수는 적어요.</string>
     <string name="class_archer">궁수</string>
-    <string name="class_archer_desc">빠르고 일정하게. 리듬을 지키면 배로 들어가요.</string>
+    <string name="class_archer_desc">수행능력. 쉬지 않고 빠르게 이어 간 렙이 한 칸이에요. 아니면 반 칸. 횟수는 많아요.</string>
     <string name="class_change_title">직업 바꾸기</string>
     <string name="class_change_body">싸우는 방식만 바뀌어요. 레벨과 기록은 그대로고, 몇 번이든 다시 바꿀 수 있어요.</string>
     <string name="class_current">지금 직업</string>
@@ -59,16 +57,8 @@
     <string name="battle_combo">콤보 ×%1$d</string>
     <string name="battle_deep_strike">깊은 타격!</string>
     <string name="battle_ultimate_incoming">필살기 준비!</string>
-    <string name="battle_ultimate_how_knight">깊게 %1$d개로 막아요</string>
-    <string name="battle_ultimate_how_archer">깊게, 또는 빠르게 %1$d개로 막아요</string>
-    <string name="battle_ultimate_how_mage">깊게, 또는 %2$s 1초 버티며 %1$d개로 막아요</string>
-    <!-- Where a mage holds, per movement: its hardest point. Fills battle_ultimate_how_mage. -->
-    <string name="mage_hold_pushup">가슴을 내린 채</string>
-    <string name="mage_hold_squat">앉은 채</string>
-    <string name="mage_hold_lunge">무릎을 굽힌 채</string>
-    <string name="mage_hold_pull_up">턱을 바 위에 둔 채</string>
-    <string name="mage_hold_dip">팔을 굽힌 채</string>
-    <string name="mage_hold_plank">자세를 유지한 채</string>
+    <string name="battle_ultimate_how_knight">천천히 끝까지 %1$d개로 막아요</string>
+    <string name="battle_ultimate_how_archer">빠르게, 또는 깊게 %1$d개로 막아요</string>
     <string name="battle_ultimate_how_hold">자세를 그대로 버티면 막아요</string>
     <string name="battle_ultimate_progress">남은 기회 %1$d개 · 막기 %2$d/%3$d</string>
     <string name="battle_ultimate_blocked">막았어요!</string>
@@ -197,9 +187,11 @@
     <string name="result_rest_cancel">자동 시작 멈추기</string>
     <!-- Spoken lines. Short and in the order of what to do, because they are heard mid-rep from two
          metres away. Counts are words, not digits: the engine reads 3 as 삼. -->
-    <string name="voice_ultimate_knight">필살기 와요! 깊게, %1$s 막아요!</string>
+    <string name="voice_ultimate_knight">필살기 와요! 천천히 끝까지, %1$s 막아요!</string>
     <string name="voice_ultimate_archer">필살기 와요! 빠르게, %1$s 막아요!</string>
-    <string name="voice_ultimate_mage">필살기 와요! %1$s 일 초씩, %2$s 막아요!</string>
+    <string name="voice_style_too_quick">천천히요!</string>
+    <string name="voice_style_not_full">끝까지요!</string>
+    <string name="voice_style_lagging">더 빠르게요!</string>
     <string name="voice_ultimate_hold">필살기 와요! 자세 그대로 버텨요!</string>
     <string name="voice_answers_left">%1$s 더!</string>
     <string name="voice_ultimate_blocked">막았어요! 좋아요!</string>
@@ -215,6 +207,12 @@
     <string name="next_leg">다음은 %1$s 앞으로</string>
     <string name="battle_same_leg">같은 다리였어요. 이번엔 %1$s 앞으로!</string>
     <string name="battle_not_split">다리를 앞뒤로 벌려야 런지로 세요</string>
+    <!-- A rep that counted but was worth half, and what makes the next one whole. -->
+    <string name="battle_style_too_quick">천천히 해야 한 칸이에요</string>
+    <string name="battle_style_not_full">끝까지 가야 한 칸이에요</string>
+    <string name="battle_style_lagging">쉬지 않고 이어 가야 한 칸이에요</string>
+    <string name="result_style_knight">천천히 끝까지 한 렙 %1$d / %2$d</string>
+    <string name="result_style_archer">쉬지 않고 이어 간 렙 %1$d / %2$d</string>
     <string name="voice_times_1">한 번</string>
     <string name="voice_times_2">두 번</string>
     <string name="voice_times_3">세 번</string>

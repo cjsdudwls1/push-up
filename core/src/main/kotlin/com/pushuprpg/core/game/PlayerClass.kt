@@ -4,10 +4,20 @@ import com.pushuprpg.core.detect.ExerciseType
 import com.pushuprpg.core.detect.Exercises
 
 /**
- * The three classes, distinguished by the *kind of training* they reward rather than by a stat
- * spread. A knight wants slow, deep, heavy reps; a mage wants isometric holds; an archer wants a
- * fast, even cadence held for a long set. Picking a class therefore picks a workout style, which
- * is the only way a class choice can mean anything in a game whose input is your body.
+ * The two classes, each a way of training rather than a stat spread, by the owner's decision.
+ *
+ * - [KNIGHT], 근비대: slow and all the way down. A rep that lowers under control for about two
+ *   seconds and reaches the 깊게 line is a whole rep off the monster; anything less is half. Fewer
+ *   reps a fight, each one harder. (The old 법사 folded in here: a hold at the hard point is the
+ *   same training, time under tension.)
+ * - [ARCHER], 수행능력: fast and many. A rep that follows the last one inside the movement's brisk
+ *   cadence is a whole rep; one that lags inside a set is half. The first rep of a set is always
+ *   whole, so resting between sets costs nothing. More reps a fight.
+ *
+ * Both are still the volume model — a rep is counted by the detector and the count is what fells
+ * the monster — but what a rep is worth now depends on doing it the class's way, which is the only
+ * thing that can make a class mean something in a game whose input is your body. The numbers that
+ * fly up the screen (attack, crit, tempo) remain flavour. See [ClassStyle].
  */
 enum class PlayerClass(
     val korean: String,
@@ -24,37 +34,35 @@ enum class PlayerClass(
     val tempoK: Float,
     val tempoStreakCap: Int,
     /**
-     * Bundles the class's expected depth, tempo and crit multipliers into one number.
-     *
-     * Enemy HP is derived through this, which is what keeps time-to-kill equal across classes.
-     * It is the *only* knob that should ever be touched to rebalance class parity — never enemy HP,
-     * because that is authored in reps and must stay comparable.
+     * Bundles the class's expected depth, tempo and crit multipliers into one number. Paces the
+     * boss's rage only; it no longer touches what a monster costs.
      */
     val expectedDprCoefficient: Float,
+    /**
+     * Reps a monster costs this class, relative to the content's standard rep cost, when every rep
+     * is done the class's way. Hypertrophy is fewer, slower reps; performance is more, faster ones.
+     * With [expectedDprCoefficient] retired from pricing, this and [EnemyTemplate.standardRepCost]
+     * are the only balance levers on a fight's length.
+     */
+    val repCostScale: Float,
 ) {
     KNIGHT(
         korean = "기사",
         baseAtk = 10.0f, atkPerLevel = 2.2f, hpMultiplier = 1.20f,
         comboCap = 50, comboWindowMs = 7000,
         baseCrit = 0.05f, maxCrit = 0.25f, critMultiplier = 2.00f,
-        tempoBandMinMs = 2500, tempoBandMaxMs = 4000, tempoK = 0.020f, tempoStreakCap = 5,
+        tempoBandMinMs = 2500, tempoBandMaxMs = 5000, tempoK = 0.020f, tempoStreakCap = 5,
         expectedDprCoefficient = 1.57f,
-    ),
-    MAGE(
-        korean = "법사",
-        baseAtk = 8.0f, atkPerLevel = 2.6f, hpMultiplier = 0.90f,
-        comboCap = 45, comboWindowMs = 7000,
-        baseCrit = 0.08f, maxCrit = 0.27f, critMultiplier = 1.90f,
-        tempoBandMinMs = 1800, tempoBandMaxMs = 4500, tempoK = 0.015f, tempoStreakCap = 4,
-        expectedDprCoefficient = 1.62f,
+        repCostScale = 0.6f,
     ),
     ARCHER(
         korean = "궁수",
         baseAtk = 8.0f, atkPerLevel = 1.9f, hpMultiplier = 0.85f,
         comboCap = 65, comboWindowMs = 5000,
         baseCrit = 0.12f, maxCrit = 0.35f, critMultiplier = 1.70f,
-        tempoBandMinMs = 1000, tempoBandMaxMs = 1800, tempoK = 0.035f, tempoStreakCap = 10,
+        tempoBandMinMs = 800, tempoBandMaxMs = 1800, tempoK = 0.035f, tempoStreakCap = 10,
         expectedDprCoefficient = 1.74f,
+        repCostScale = 1.4f,
     );
 
     fun attackAt(level: Int): Float = baseAtk + atkPerLevel * (level - 1)

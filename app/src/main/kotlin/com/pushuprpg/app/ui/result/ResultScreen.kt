@@ -26,6 +26,7 @@ import com.pushuprpg.app.ui.components.SecondaryButton
 import com.pushuprpg.app.ui.theme.LocalGameColors
 import com.pushuprpg.app.ui.theme.Palette
 import com.pushuprpg.app.ui.theme.Type
+import com.pushuprpg.core.game.PlayerClass
 import com.pushuprpg.core.progression.RankProgress
 import com.pushuprpg.core.run.Outcome
 import com.pushuprpg.core.run.Stars
@@ -60,6 +61,8 @@ fun ResultScreen(
     nextDungeonName: String = "",
     onStartNextNow: () -> Unit = {},
     onCancelAutoNext: () -> Unit = {},
+    /** Whose way the reps were measured against, for the line under the stars. */
+    playerClass: PlayerClass = PlayerClass.KNIGHT,
 ) {
     val colors = LocalGameColors.current
     val rank = RankProgress.of(lifetimeReps)
@@ -101,6 +104,20 @@ fun ResultScreen(
 
         Spacer(Modifier.height(18.dp))
         StarRow(outcome.stars)
+        // How many reps were done the class's way — whole reps — out of all of them. Only for
+        // counted movements: a hold has no way to do it or not.
+        if (outcome.reps > 0 && outcome.segments.any { it.holdMs == 0L }) {
+            Spacer(Modifier.height(6.dp))
+            Text(
+                text = stringResource(
+                    if (playerClass == PlayerClass.ARCHER) R.string.result_style_archer else R.string.result_style_knight,
+                    outcome.styleReps, outcome.reps,
+                ),
+                style = Type.labelL,
+                color = colors.deep,
+                textAlign = TextAlign.Center,
+            )
+        }
 
         Spacer(Modifier.height(18.dp))
         ReassuranceBanner(reps = outcome.reps)

@@ -23,8 +23,8 @@ import java.util.Locale
  *
  * On-device rather than recorded, for three reasons. It is free and works offline. It is the
  * phone's neural Korean voice on any recent Android, not a robot. And the lines carry numbers and
- * names — how many answers are left, where a mage holds in this movement — which a folder of
- * recordings could only cover by recording every combination.
+ * names — how many answers are left, which leg goes next — which a folder of recordings could only
+ * cover by recording every combination.
  *
  * Urgency is carried by delivery: urgent lines are faster and higher and cut off anything being
  * said. The music ducks under every line, so the words are never the thing that gets lost.
@@ -130,9 +130,6 @@ class GameVoice(context: Context, private val music: MusicPlayer) {
             AlertKey.ULTIMATE_INCOMING -> when {
                 exercise == ExerciseType.PLANK -> res.getString(R.string.voice_ultimate_hold)
                 playerClass == PlayerClass.ARCHER -> res.getString(R.string.voice_ultimate_archer, times(a.arg))
-                playerClass == PlayerClass.MAGE -> res.getString(
-                    R.string.voice_ultimate_mage, res.getString(mageHold(exercise)), times(a.arg),
-                )
                 else -> res.getString(R.string.voice_ultimate_knight, times(a.arg))
             }
             AlertKey.ULTIMATE_BLOCKED -> res.getString(R.string.voice_ultimate_blocked)
@@ -141,6 +138,9 @@ class GameVoice(context: Context, private val music: MusicPlayer) {
             AlertKey.COMBO_MILESTONE -> res.getString(R.string.voice_combo, a.arg)
             AlertKey.SHALLOW_TWICE -> res.getString(R.string.voice_shallow)
             AlertKey.NOT_SPLIT -> res.getString(R.string.battle_not_split)
+            AlertKey.STYLE_TOO_QUICK -> res.getString(R.string.voice_style_too_quick)
+            AlertKey.STYLE_NOT_FULL -> res.getString(R.string.voice_style_not_full)
+            AlertKey.STYLE_LAGGING -> res.getString(R.string.voice_style_lagging)
             else -> null
         }
     }
@@ -155,15 +155,6 @@ class GameVoice(context: Context, private val music: MusicPlayer) {
             else -> R.string.voice_times_5
         }
     )
-
-    private fun mageHold(exercise: ExerciseType): Int = when (exercise) {
-        ExerciseType.PUSHUP -> R.string.mage_hold_pushup
-        ExerciseType.SQUAT -> R.string.mage_hold_squat
-        ExerciseType.LUNGE -> R.string.mage_hold_lunge
-        ExerciseType.PULL_UP -> R.string.mage_hold_pull_up
-        ExerciseType.DIP -> R.string.mage_hold_dip
-        ExerciseType.PLANK -> R.string.mage_hold_plank
-    }
 
     private fun placementText(advice: PlacementAdvice, exercise: ExerciseType): String = appContext.getString(
         when (advice) {

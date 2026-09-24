@@ -42,6 +42,12 @@ enum class AlertKey {
     SAME_LEG,
     /** A lunge refused because the feet were side by side: a squat. */
     NOT_SPLIT,
+    /** 기사: a rep that came down too fast was worth half. */
+    STYLE_TOO_QUICK,
+    /** 기사: a rep that never reached the 깊게 line was worth half. */
+    STYLE_NOT_FULL,
+    /** 궁수: a rep that lagged inside a set was worth half. */
+    STYLE_LAGGING,
 }
 
 /** Everything the battle screen draws, as one immutable snapshot. */
@@ -149,6 +155,8 @@ data class Outcome(
     val plausibility: Float,
     /** How deep the run was, graded against the detector's own 인정 and 깊게 lines. */
     val stars: Stars = Stars.ONE,
+    /** Reps done the class's way — whole reps off the count. The rest were worth half. */
+    val styleReps: Int = 0,
     /** The run movement by movement, in the order they were done. One entry if it never switched. */
     val segments: List<ExerciseSegment> = emptyList(),
 )
@@ -196,6 +204,8 @@ class BattleEngine(
     private val legs = LegAlternator()
     private var resolver: CombatResolver = resolver
     private var player: PlayerState = initialPlayer
+    // Before the first floor spawns: its price depends on the class.
+    private val playerClass = initialPlayer.playerClass
     private var floorIndex = 0
     private var encounter: Encounter = spawnFloor(0, 0L)
 
@@ -215,6 +225,10 @@ class BattleEngine(
     private var depthSum = 0f
     private var xpTotal = 0
     private var shallowStreak = 0
+    /** Half-worth reps in a row, so a reminder is given on the first and then only now and then. */
+    private var styleMisses = 0
+    /** Whole reps banked from floors already cleared; the current floor's are on its encounter. */
+    private var styleRepsTotal = 0
 
     // The movement in progress, since the run started or last switched.
     private val segments = mutableListOf<ExerciseSegment>()
@@ -230,7 +244,7 @@ class BattleEngine(
      * Every floor's HP is a rep count, so the sum is the run's whole rep cost — the number the entry
      * picker promised, which the HUD can now show the user working through.
      */
-    private var runTotalReps: Int = dungeon.repCost(difficulty, detector.config.exercise)
+    private var runTotalReps: Int = dungeon.repCost(difficulty, detector.config.exercise, initialPlayer.playerClass)
 
     private var state = BattleState(
         playerHp = initialPlayer.hp,
@@ -288,6 +302,41 @@ class BattleEngine(
                     sounds += SoundRequest(SoundCue.COMBO_UP)
                 }
                 is CombatEvent.Exhausted -> outcome = finish(cleared = false, atMs = ce.atMs)
+                else -> Unit
+            }
+        }
+
+        // How a rep measured up to the class's way. A half-worth rep is said on the first of a run of
+        // them and then every third, so the reminder is heard without becoming the soundtrack.
+        fun onStyle(ce: CombatEvent.Style) {
+            val miss = ce.miss
+            if (miss == null) {
+                styleMisses = 0
+                return
+            }
+            styleMisses++
+            if (styleMisses == 1 || styleMisses % STYLE_REMIND_EVERY == 0) {
+                alert = Toast(
+                    when (miss) {
+                        StyleMiss.TOO_QUICK -> AlertKey.STYLE_TOO_QUICK
+                        StyleMiss.NOT_FULL -> AlertKey.STYLE_NOT_FULL
+                        StyleMiss.LAGGING -> AlertKey.STYLE_LAGGING
+                    },
+                    0, ce.atMs,
+                )
+            }
+        }
+
+        // What the deep line and the end of a rep can decide: the rest of a 기사's rep, an answer, the
+        // monster falling, the ultimate landing.
+        fun onAfterStrike(events: List<CombatEvent>) {
+            for (ce in events) when (ce) {
+                is CombatEvent.Style -> onStyle(ce)
+                is CombatEvent.EnemyDefeated -> {
+                    enemyDiedAtMs = ce.atMs
+                    sounds += SoundRequest(SoundCue.ENEMY_DOWN)
+                }
+                is CombatEvent.Telegraph, is CombatEvent.Ultimate, is CombatEvent.Exhausted -> onUltimate(ce)
                 else -> Unit
             }
         }
@@ -376,6 +425,7 @@ class BattleEngine(
                             }
                             is CombatEvent.Telegraph, is CombatEvent.Ultimate, is CombatEvent.Exhausted ->
                                 onUltimate(ce)
+                            is CombatEvent.Style -> onStyle(ce)
                             else -> alert = alertFor(ce) ?: alert
                         }
                     }
@@ -385,9 +435,13 @@ class BattleEngine(
                     alert = Toast(AlertKey.DEEP_STRIKE, 0, event.tMs)
                     shake = (shake + 0.3f).coerceAtMost(1f)
                     sounds += SoundRequest(SoundCue.REP_DEEP)
+                    if (enemyDiedAtMs == Long.MIN_VALUE) onAfterStrike(encounter.onDeep(event.loweringMs, event.tMs))
                 }
 
-                is RepEvent.Completed -> lastBottomMs = event.record.bottomMs
+                is RepEvent.Completed -> {
+                    lastBottomMs = event.record.bottomMs
+                    if (enemyDiedAtMs == Long.MIN_VALUE) onAfterStrike(encounter.onRepEnd(event.tMs))
+                }
 
                 // A plank pays out continuously rather than per rep. It freezes the boss's rest
                 // timer for as long as it is held, which is what lets a player whose arms have
@@ -441,8 +495,9 @@ class BattleEngine(
 
                 // Said out loud rather than dropped: a rep refused in silence reads as the game not
                 // counting, and this one has a fix the user can make on the next rep.
-                is RepEvent.Abandoned -> if (event.reason == AbandonReason.NOT_SPLIT) {
-                    alert = Toast(AlertKey.NOT_SPLIT, 0, event.tMs)
+                is RepEvent.Abandoned -> {
+                    if (event.reason == AbandonReason.NOT_SPLIT) alert = Toast(AlertKey.NOT_SPLIT, 0, event.tMs)
+                    if (enemyDiedAtMs == Long.MIN_VALUE) onAfterStrike(encounter.onRepEnd(event.tMs))
                 }
 
                 else -> Unit
@@ -476,8 +531,9 @@ class BattleEngine(
             outcome = advanceFloor(tick.tMs)
         }
 
-        if (outcome != null && state.outcome == null) {
-            sounds += SoundRequest(if (outcome.cleared) SoundCue.VICTORY else SoundCue.DEFEAT)
+        val ended = outcome
+        if (ended != null && state.outcome == null) {
+            sounds += SoundRequest(if (ended.cleared) SoundCue.VICTORY else SoundCue.DEFEAT)
         }
         outcome?.let { animator.onRunEnded(tick.tMs, it.cleared) }
         val anim = animator.update(tick.tMs, tick.depth)
@@ -490,6 +546,12 @@ class BattleEngine(
         val enemyDeath = if (deathElapsed < 0) 0f
         else (deathElapsed.toFloat() / DEATH_MS).coerceIn(0f, 1f)
         val dying = enemyDiedAtMs != Long.MIN_VALUE
+
+        // A half-worth rep makes the run a little longer, and the total says so: done so far plus
+        // what is still owed if every rep from here is done the class's way.
+        if (Exercises.of(detector.config.exercise).kind == MovementKind.REP && enemyDiedAtMs == Long.MIN_VALUE) {
+            runTotalReps = repsTotal + owedFromHere()
+        }
 
         // The monster visibly winds up across the answer window, so the reps left are readable off
         // its body as well as off the banner.
@@ -567,9 +629,8 @@ class BattleEngine(
         legs.reset()
         resolver = CombatResolver(next.config)
         val to = next.config.exercise
-        encounter.switchMovement(dungeon.floors[floorIndex].spawn(difficulty, to), resolver)
-        runTotalReps = repsTotal + encounter.enemy.hp + dungeon.floors.drop(floorIndex + 1)
-            .sumOf { CombatResolver.expectedReps(it.standardRepCost, difficulty, to) }
+        encounter.switchMovement(dungeon.floors[floorIndex].spawn(difficulty, to, playerClass), resolver)
+        runTotalReps = repsTotal + owedFromHere()
 
         // The retired movement's rhythm says nothing about the new one's.
         lastStrikeMs = Long.MIN_VALUE
@@ -585,6 +646,13 @@ class BattleEngine(
             enemyMaxHp = encounter.enemy.maxHp,
         )
         return retired
+    }
+
+    /** Reps still owed this run, done the class's way: this monster's, then every floor after it. */
+    private fun owedFromHere(): Int {
+        val to = detector.config.exercise
+        return encounter.enemy.remaining + dungeon.floors.drop(floorIndex + 1)
+            .sumOf { CombatResolver.expectedReps(it.standardRepCost, difficulty, to, playerClass) }
     }
 
     private fun segmentSoFar(atMs: Long): ExerciseSegment {
@@ -605,6 +673,7 @@ class BattleEngine(
         // Checked before incrementing so the final floor stays the reported floor; incrementing
         // first would leave the HUD showing "4 / 3" on the clear screen.
         if (floorIndex >= dungeon.floors.size - 1) return finish(cleared = true, atMs = atMs)
+        styleRepsTotal += encounter.styleReps
         floorIndex++
         enemyDiedAtMs = Long.MIN_VALUE
         // Between floors the player is topped up and the chain starts again; a dungeon should be a
@@ -617,7 +686,7 @@ class BattleEngine(
     private fun spawnFloor(index: Int, atMs: Long): Encounter {
         enemyHurtAtMs = Long.MIN_VALUE
         val template = dungeon.floors[index]
-        val enemy = template.spawn(difficulty, detector.config.exercise)
+        val enemy = template.spawn(difficulty, detector.config.exercise, playerClass)
         return Encounter(
             initialPlayer = player,
             initialEnemy = enemy,
@@ -640,6 +709,7 @@ class BattleEngine(
             xpEarned = xpTotal + bonus,
             crackFraction = if (cleared) 0f else encounter.crackFraction(),
             meanDepth = if (repsTotal == 0) 0f else depthSum / repsTotal,
+            styleReps = styleRepsTotal + encounter.styleReps,
             stars = Stars.of(
                 meanDepth = if (repsTotal == 0) 0f else depthSum / repsTotal,
                 countEnter = detector.config.countEnter,
@@ -659,6 +729,7 @@ class BattleEngine(
 
     companion object {
         const val DAMAGE_LIFETIME_MS = 1_100L
+        const val STYLE_REMIND_EVERY = 3
         const val ALERT_LIFETIME_MS = 2_600L
         const val SHAKE_DECAY = 0.08f
         const val COMBO_MILESTONE = 10

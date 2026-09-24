@@ -560,6 +560,9 @@ private fun AlertSlot(state: BattleState) {
                 stringResource(if (current?.arg == BodySide.LEFT.ordinal) R.string.leg_left else R.string.leg_right),
             )
             AlertKey.NOT_SPLIT -> stringResource(R.string.battle_not_split)
+            AlertKey.STYLE_TOO_QUICK -> stringResource(R.string.battle_style_too_quick)
+            AlertKey.STYLE_NOT_FULL -> stringResource(R.string.battle_style_not_full)
+            AlertKey.STYLE_LAGGING -> stringResource(R.string.battle_style_lagging)
         }
         Text(
             text = text,
