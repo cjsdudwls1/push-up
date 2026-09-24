@@ -49,7 +49,9 @@ android {
         minSdk = 26
         // Google Play requires new apps and updates to target API 36 from 2026-08-31.
         targetSdk = 36
-        versionCode = 1
+        // Every bundle uploaded to Play needs a higher code than the last. The release workflow
+        // passes one derived from its run number; a local build stays at 1.
+        versionCode = (findProperty("pushup.versionCode") as String?)?.toIntOrNull() ?: 1
         versionName = "0.1.0"
         buildConfigField("boolean", "FIREBASE_CONFIGURED", firebaseConfigured.toString())
 

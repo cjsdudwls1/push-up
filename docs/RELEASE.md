@@ -2,6 +2,10 @@
 
 What is genuinely missing before this can go on the Play Store, and what is already handled.
 
+Getting builds onto a phone through Play's internal test track, step by step: see
+[PLAY_INTERNAL_TEST.md](PLAY_INTERNAL_TEST.md). Once the upload key and a Play service account are
+in the repository secrets, every push to the install branch is signed and uploaded there.
+
 ## Blocking — nothing ships without these
 
 ### Signing
@@ -75,7 +79,10 @@ store listing.
 - Play Billing 9.1.0, above the v8 floor that took effect 2026-08-31.
 - R8 rules for MediaPipe, Room and kotlinx.serialization (`app/proguard-rules.pro`).
 - Backup rules that name the real DataStore paths and exclude the entitlement cache.
-- CI builds a debug APK on every push; the release workflow produces a signed AAB from a tag.
+- CI builds a debug APK on every push, and the minified release bundle (unsigned) so a missing R8
+  keep rule fails on the push that caused it. The release workflow signs a bundle from a tag or a
+  push to the install branch, and uploads it to the internal track when `PLAY_SERVICE_ACCOUNT_JSON`
+  is set.
 
 ## Known gaps, in the order they matter
 

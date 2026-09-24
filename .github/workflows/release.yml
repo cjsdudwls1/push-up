@@ -3,7 +3,16 @@ name: Release AAB
 on:
   push:
     tags: ["v*"]
+    # Every build that reaches the phone-install branch also goes to Play's internal test track,
+    # once the signing and Play secrets exist. Until then the job says what is missing and stops.
+    branches: ["claude/pushup-rpg-app-2xnr4o"]
   workflow_dispatch:
+
+# One upload at a time, in order: Play rejects a bundle whose version code is not higher than the
+# last one it accepted.
+concurrency:
+  group: release
+  cancel-in-progress: false
 
 jobs:
   bundle:
@@ -12,7 +21,30 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Secrets cannot appear in an `if:`, so what is configured is read once here.
+      - name: Check secrets
+        id: have
+        env:
+          KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
+          PLAY_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+        run: |
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "sign=true" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.ref_type }}" = "tag" ]; then
+            echo "::error::RELEASE_KEYSTORE_BASE64 secret is not set; cannot produce a signed bundle."
+            exit 1
+          else
+            echo "::notice::No upload key yet (RELEASE_KEYSTORE_BASE64), so no signed bundle. See docs/RELEASE.md."
+            echo "sign=false" >> "$GITHUB_OUTPUT"
+          fi
+          if [ -n "$PLAY_JSON" ]; then
+            echo "play=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "play=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - uses: actions/setup-java@v4
+        if: steps.have.outputs.sign == 'true'
         with:
           distribution: temurin
           java-version: "17"
@@ -23,15 +55,17 @@ jobs:
       # platform-tools alone skips the package that no longer exists.
       # https://github.com/android-actions/setup-android/issues/537
       - uses: android-actions/setup-android@v3
+        if: steps.have.outputs.sign == 'true'
         with:
           packages: platform-tools
 
       - uses: gradle/actions/setup-gradle@v4
+        if: steps.have.outputs.sign == 'true'
 
       # Same as ci.yml: from API 37 the platform package carries a minor suffix, so
-      # "platforms;android-37" is a name that is never published. This would have failed the
-      # first time a version tag was pushed.
+      # "platforms;android-37" is a name that is never published.
       - name: Install SDK platform
+        if: steps.have.outputs.sign == 'true'
         run: |
           sdkmanager "platforms;android-37.0"
           BUILD_TOOLS=$(sdkmanager --list 2>/dev/null \
@@ -41,18 +75,15 @@ jobs:
           fi
 
       # The keystore never lives in the repository. Store it base64-encoded in
-      # secrets.RELEASE_KEYSTORE_BASE64 (`base64 -w0 release.jks`) alongside its passwords.
+      # secrets.RELEASE_KEYSTORE_BASE64 (`base64 -w0 upload.jks`) alongside its passwords.
       - name: Restore keystore
+        if: steps.have.outputs.sign == 'true'
         env:
           KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
           STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
         run: |
-          if [ -z "$KEYSTORE_BASE64" ]; then
-            echo "::error::RELEASE_KEYSTORE_BASE64 secret is not set; cannot produce a signed bundle."
-            exit 1
-          fi
           echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
           cat > keystore.properties <<PROPS
           storeFile=$RUNNER_TEMP/release.jks
@@ -61,16 +92,36 @@ jobs:
           keyPassword=$KEY_PASSWORD
           PROPS
 
+      # 1000 + this workflow's run number: always higher than the last upload, whichever trigger
+      # started it, and clear of the 1 a local build carries.
       - name: Bundle release
-        run: ./gradlew :app:bundleRelease --no-daemon --stacktrace
+        if: steps.have.outputs.sign == 'true'
+        run: |
+          ./gradlew :app:bundleRelease --no-daemon --stacktrace \
+            -Ppushup.versionCode=$((1000 + ${{ github.run_number }}))
 
       - name: Clean up signing material
         if: always()
         run: rm -f keystore.properties "$RUNNER_TEMP/release.jks"
 
       - name: Upload AAB
+        if: steps.have.outputs.sign == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: app-release-aab
           path: app/build/outputs/bundle/release/*.aab
           if-no-files-found: error
+
+      # To the internal track, which updates testers' phones through the Play Store by itself.
+      # Play refuses API uploads for an app until its first bundle has been uploaded by hand in
+      # the Console; see docs/RELEASE.md. An app still in draft only takes draft releases — set the
+      # repository variable PLAY_RELEASE_STATUS to "draft" until the first release is rolled out.
+      - name: Upload to Play (internal testing)
+        if: steps.have.outputs.sign == 'true' && steps.have.outputs.play == 'true'
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: io.github.cjsdudwls1.pushuprpg
+          releaseFiles: app/build/outputs/bundle/release/*.aab
+          track: internal
+          status: ${{ vars.PLAY_RELEASE_STATUS || 'completed' }}
