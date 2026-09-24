@@ -62,11 +62,15 @@ class PlankDetector(
         val dtMs = if (lastFrameMs == 0L) 0L else (tMs - lastFrameMs).coerceIn(0L, MAX_STEP_MS)
         lastFrameMs = tMs
 
-        confidenceEstimator.compute(frame, bodyTracker.scale, confidence)
+        confidenceEstimator.compute(frame, boneScale(frame), confidence)
         val body = bodyTracker.update(frame, confidence)
+        // From world landmarks when the model gives them, which on a phone is always: the only
+        // reading of a plank that does not depend on where the phone is. See [posture].
+        val posture = if (frame.hasPose && frame.hasWorld) posture(frame) else null
 
         val newQuality = when {
             !frame.hasPose -> PoseQuality.NO_SUBJECT
+            frame.hasWorld -> if (posture != null) PoseQuality.OK else PoseQuality.LOW_CONFIDENCE
             body == null -> PoseQuality.LOW_CONFIDENCE
             else -> PoseQuality.OK
         }
@@ -75,8 +79,8 @@ class PlankDetector(
             events += RepEvent.QualityChanged(tMs, newQuality)
         }
 
-        if (newQuality == PoseQuality.OK && body != null) {
-            score = scoreFrame(frame, body)
+        if (newQuality == PoseQuality.OK && (posture != null || body != null)) {
+            score = if (posture != null) scorePosture(frame, posture) else scoreFrame(frame, body!!)
             qualitySum += score
             qualitySamples++
             advance(tMs, dtMs, events)
@@ -172,6 +176,138 @@ class PlankDetector(
             longestUnbrokenMs = longestUnbrokenMs,
         )
     }
+
+    /**
+     * The body as a shape in space, from world landmarks: how straight the line from shoulder to
+     * knee is, how straight the legs are, and how far the torso leans from upright.
+     *
+     * This replaced reading those angles off the picture, which is what let someone on all fours —
+     * or simply standing there — hold a plank. Filmed from the head, shoulder, hip and knee of any
+     * of those poses line up down the image, and a straight line in the image scored as a straight
+     * body. And the picture-based version needed the two shoulders apart in the image to measure
+     * anything at all, so side on, the view a plank is most naturally filmed from, it never held.
+     * World landmarks are the model's own 3-D skeleton and read the same from every side.
+     *
+     * Each point is taken from the side the camera actually sees better: side on, the far limb is
+     * the model's guess. Null when shoulder, hip, knee or ankle cannot be seen on either side — the
+     * ankle included, because without the shin a plank on the knees is a plank.
+     */
+    private fun posture(frame: PoseFrame): Posture? {
+        val w = frame.worldLandmarks
+        fun point(left: Int, right: Int): FloatArray? {
+            val cl = confidence[left]
+            val cr = confidence[right]
+            if (maxOf(cl, cr) < config.minCoreConfidence) return null
+            // Mostly the better-seen side, so a regressed far limb cannot bend the line.
+            val wl = cl * cl
+            val wr = cr * cr
+            val a = w[left]
+            val b = w[right]
+            return floatArrayOf(
+                (a.x * wl + b.x * wr) / (wl + wr),
+                (a.y * wl + b.y * wr) / (wl + wr),
+                (a.z * wl + b.z * wr) / (wl + wr),
+            )
+        }
+        val shoulder = point(Lm.LEFT_SHOULDER, Lm.RIGHT_SHOULDER) ?: return null
+        val hip = point(Lm.LEFT_HIP, Lm.RIGHT_HIP) ?: return null
+        val knee = point(Lm.LEFT_KNEE, Lm.RIGHT_KNEE) ?: return null
+        val ankle = point(Lm.LEFT_ANKLE, Lm.RIGHT_ANKLE) ?: return null
+        val elbow = point(Lm.LEFT_ELBOW, Lm.RIGHT_ELBOW)
+
+        val torso = floatArrayOf(hip[0] - shoulder[0], hip[1] - shoulder[1], hip[2] - shoulder[2])
+        val torsoLen = kotlin.math.sqrt(torso[0] * torso[0] + torso[1] * torso[1] + torso[2] * torso[2])
+        if (torsoLen < 1e-4f) return null
+        // World y is the camera's down. A phone propped on the floor is tilted up a little, so a
+        // level body reads a little off level; the gate below leaves room for that.
+        val fromVertical = Math.toDegrees(kotlin.math.acos((abs(torso[1]) / torsoLen).toDouble())).toFloat()
+
+        return Posture(
+            bodyLine = angle3(shoulder, hip, knee),
+            legs = angle3(hip, knee, ankle),
+            fromVertical = fromVertical,
+            arm = elbow?.let { angle3(hip, shoulder, it) },
+        )
+    }
+
+    /**
+     * Form, 0-100, from [posture] and how still the shoulders are. A pose that is not a plank at
+     * all — upright, folded at the hips, or down on the knees — is capped under the holding line
+     * however still it is.
+     */
+    private fun scorePosture(frame: PoseFrame, p: Posture): Float {
+        val line = (1f - abs(180f - p.bodyLine) / LINE_TOLERANCE_DEG).coerceIn(0f, 1f)
+        val legs = (1f - (STRAIGHT_LEGS_DEG - p.legs).coerceAtLeast(0f) / LEGS_TOLERANCE_DEG).coerceIn(0f, 1f)
+        val level = ((p.fromVertical - UPRIGHT_MAX_DEG) / (LEVEL_DEG - UPRIGHT_MAX_DEG)).coerceIn(0f, 1f)
+
+        var weighted = line * W_LINE + legs * W_LEGS + level * W_LEVEL
+        var weight = W_LINE + W_LEGS + W_LEVEL
+        imageStability(frame)?.let { weighted += it * W_STILL; weight += W_STILL }
+        val score = 100f * weighted / weight
+
+        val isPlank = p.fromVertical >= UPRIGHT_MAX_DEG &&
+            p.bodyLine >= MIN_BODY_LINE_DEG &&
+            p.legs >= MIN_LEGS_DEG &&
+            // Arms reaching down to the floor, not hanging at the sides: the second thing that
+            // tells a plank from standing still, and one the camera's tilt cannot touch.
+            (p.arm == null || p.arm >= MIN_ARM_DEG)
+        return if (isPlank) score else minOf(score, NOT_A_PLANK_CAP)
+    }
+
+    /** Shoulder jitter in the picture, against the torso's length in the picture. */
+    private fun imageStability(frame: PoseFrame): Float? {
+        val sc = maxOf(confidence[Lm.LEFT_SHOULDER], confidence[Lm.RIGHT_SHOULDER])
+        val hc = maxOf(confidence[Lm.LEFT_HIP], confidence[Lm.RIGHT_HIP])
+        if (sc < config.minCoreConfidence || hc < config.minCoreConfidence) return null
+        val shoulder = frame.midpoint2(Lm.LEFT_SHOULDER, Lm.RIGHT_SHOULDER)
+        val hip = frame.midpoint2(Lm.LEFT_HIP, Lm.RIGHT_HIP)
+        val torso = Geometry.norm(hip.first - shoulder.first, hip.second - shoulder.second)
+        if (torso <= 1e-4f) return null
+        recentShoulderU.addLast(shoulder.first)
+        recentShoulderV.addLast(shoulder.second)
+        while (recentShoulderU.size > STABILITY_WINDOW) {
+            recentShoulderU.removeFirst()
+            recentShoulderV.removeFirst()
+        }
+        if (recentShoulderU.size < STABILITY_WINDOW / 2) return null
+        val meanU = recentShoulderU.average().toFloat()
+        val meanV = recentShoulderV.average().toFloat()
+        var spread = 0f
+        for (i in recentShoulderU.indices) {
+            spread = maxOf(spread, Geometry.norm(recentShoulderU[i] - meanU, recentShoulderV[i] - meanV))
+        }
+        return (1f - (spread / torso) / STABILITY_TOLERANCE).coerceIn(0f, 1f)
+    }
+
+    /**
+     * The scale the bone-length test measures limbs against: the larger of the shoulder width and
+     * most of the torso, both as seen. Side on the shoulder width alone is nearly zero, and every
+     * limb would look impossibly long against it and be thrown away.
+     */
+    private fun boneScale(frame: PoseFrame): Float {
+        if (!frame.hasPose) return 0f
+        val shoulders = Geometry.norm(
+            frame.u(Lm.LEFT_SHOULDER) - frame.u(Lm.RIGHT_SHOULDER),
+            frame.v(Lm.LEFT_SHOULDER) - frame.v(Lm.RIGHT_SHOULDER),
+        )
+        val s = frame.midpoint2(Lm.LEFT_SHOULDER, Lm.RIGHT_SHOULDER)
+        val h = frame.midpoint2(Lm.LEFT_HIP, Lm.RIGHT_HIP)
+        val torso = Geometry.norm(h.first - s.first, h.second - s.second)
+        return maxOf(bodyTracker.scale, shoulders, torso * SHOULDER_PER_TORSO)
+    }
+
+    private fun angle3(a: FloatArray, vertex: FloatArray, b: FloatArray): Float {
+        val ux = a[0] - vertex[0]; val uy = a[1] - vertex[1]; val uz = a[2] - vertex[2]
+        val vx = b[0] - vertex[0]; val vy = b[1] - vertex[1]; val vz = b[2] - vertex[2]
+        val nu = kotlin.math.sqrt(ux * ux + uy * uy + uz * uz)
+        val nv = kotlin.math.sqrt(vx * vx + vy * vy + vz * vz)
+        if (nu < 1e-5f || nv < 1e-5f) return 0f
+        val cos = ((ux * vx + uy * vy + uz * vz) / (nu * nv)).coerceIn(-1f, 1f)
+        return Math.toDegrees(kotlin.math.acos(cos.toDouble())).toFloat()
+    }
+
+    /** [arm] is the hip-shoulder-elbow angle, or null when neither elbow is seen. */
+    private data class Posture(val bodyLine: Float, val legs: Float, val fromVertical: Float, val arm: Float?)
 
     /**
      * Weighted mean over available components, renormalised.
@@ -333,6 +469,39 @@ class PlankDetector(
         const val STACK_TOLERANCE = 0.90f
 
         const val HIP_REFERENCE_SAMPLES = 15
+
+        // --- the world-landmark plank ---
+
+        /** A straight body is 180 degrees shoulder-hip-knee; this far off it scores nothing. */
+        const val LINE_TOLERANCE_DEG = 35f
+        /** Hips this far out of line — a sag, or a pike — is not a plank at all. */
+        const val MIN_BODY_LINE_DEG = 145f
+        /** Straight legs. On the knees the shin folds back and the knee closes to 90-145 degrees. */
+        const val STRAIGHT_LEGS_DEG = 172f
+        const val LEGS_TOLERANCE_DEG = 30f
+        const val MIN_LEGS_DEG = 155f
+        /**
+         * A torso within this of upright is standing, not planking. World y is the camera's down,
+         * not gravity's, so the phone's own tilt is in the reading: a phone on the floor tilted up
+         * 30 degrees shows a standing body 30 degrees off upright, and a plank on the hands — which
+         * slopes about 23 degrees from level — filmed from its head reads as little as 37.
+         */
+        const val UPRIGHT_MAX_DEG = 34f
+        /** At or past this lean the torso counts as level. */
+        const val LEVEL_DEG = 60f
+        /**
+         * Upper arm against the torso. On the hands or the forearms it is 60-80 degrees; standing
+         * with the arms down, 5-20.
+         */
+        const val MIN_ARM_DEG = 40f
+        /** What a pose that is not a plank can score at most: under the holding line. */
+        const val NOT_A_PLANK_CAP = 40f
+        const val W_LINE = 0.40f
+        const val W_LEGS = 0.25f
+        const val W_LEVEL = 0.15f
+        const val W_STILL = 0.20f
+        /** Shoulder width is about 0.8 of the torso's length on an adult. */
+        const val SHOULDER_PER_TORSO = 0.8f
         const val MAX_STEP_MS = 250L
     }
 }

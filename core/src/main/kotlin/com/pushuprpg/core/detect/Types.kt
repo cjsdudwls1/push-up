@@ -48,7 +48,15 @@ enum class PoseQuality {
     IMPLAUSIBLE_RATE,
 }
 
-enum class AbandonReason { HOVERED, STALLED_BOTTOM, SLOW_ASCENT, TOO_FAST, INCONSISTENT, QUALITY_LOST }
+enum class AbandonReason {
+    HOVERED, STALLED_BOTTOM, SLOW_ASCENT, TOO_FAST, INCONSISTENT, QUALITY_LOST,
+
+    /** A lunge detector saw both feet side by side at the bottom: a squat, not a lunge. */
+    NOT_SPLIT,
+}
+
+/** The user's own left or right. */
+enum class BodySide { LEFT, RIGHT }
 
 enum class FormHint { LOCKOUT, HIPS_SAG, HIPS_PIKE, ASYMMETRY, TEMPO }
 

@@ -2,6 +2,7 @@ package com.pushuprpg.core.detect
 
 import com.pushuprpg.core.math.Geometry
 import com.pushuprpg.core.pose.PoseFrame
+import com.pushuprpg.core.pose.PoseLandmarks as Lm
 import kotlin.math.abs
 
 /**
@@ -13,6 +14,10 @@ import kotlin.math.abs
 data class DepthSample(
     val h: Float,
     val source: DepthSource,
+    /** Front-to-back distance between the feet in metres, for a [StanceCheck]; NaN otherwise. */
+    val stagger: Float = Float.NaN,
+    /** The leg in front, for a [StanceCheck]; null otherwise. */
+    val front: BodySide? = null,
     /** |h_left − h_right| in h units; large values mean one side is dropping more than the other. */
     val asymmetry: Float,
     /**
@@ -112,7 +117,11 @@ object DepthSignal {
 
         if (source == DepthSource.NONE) return null
 
-        return DepthSample(h = h, source = source, asymmetry = asymmetry, jointDepth = joint, bodyDrop = travel)
+        val stance = signal.stance?.let { stance(frame) }
+        return DepthSample(
+            h = h, source = source, asymmetry = asymmetry, jointDepth = joint, bodyDrop = travel,
+            stagger = stance?.first ?: Float.NaN, front = stance?.second,
+        )
     }
 
     /**
@@ -164,6 +173,45 @@ object DepthSignal {
         }
 
         return (100f * (check.topDeg - theta) / (check.topDeg - check.bottomDeg)).coerceIn(0f, 100f)
+    }
+
+    /**
+     * The feet's front-to-back distance in metres, and which is in front, from world landmarks.
+     *
+     * "Front" is the way the body faces: square to both the hip line and the spine, pointing the
+     * side the nose is on. Not "horizontal": world landmarks are in the camera's frame, and with the
+     * phone tilted up 30 degrees a horizontal plane in it runs through the torso, which put the nose
+     * behind the shoulders and every lunge on the wrong leg. Null without world landmarks.
+     */
+    fun stance(frame: PoseFrame): Pair<Float, BodySide>? {
+        if (!frame.hasWorld) return null
+        val w = frame.worldLandmarks
+        fun mid(a: Int, b: Int) = floatArrayOf(
+            (w[a].x + w[b].x) / 2f, (w[a].y + w[b].y) / 2f, (w[a].z + w[b].z) / 2f,
+        )
+        val hip = floatArrayOf(
+            w[Lm.LEFT_HIP].x - w[Lm.RIGHT_HIP].x,
+            w[Lm.LEFT_HIP].y - w[Lm.RIGHT_HIP].y,
+            w[Lm.LEFT_HIP].z - w[Lm.RIGHT_HIP].z,
+        )
+        val shoulders = mid(Lm.LEFT_SHOULDER, Lm.RIGHT_SHOULDER)
+        val hips = mid(Lm.LEFT_HIP, Lm.RIGHT_HIP)
+        val spine = floatArrayOf(shoulders[0] - hips[0], shoulders[1] - hips[1], shoulders[2] - hips[2])
+        // hip × spine: square to both.
+        var fx = hip[1] * spine[2] - hip[2] * spine[1]
+        var fy = hip[2] * spine[0] - hip[0] * spine[2]
+        var fz = hip[0] * spine[1] - hip[1] * spine[0]
+        val len = kotlin.math.sqrt(fx * fx + fy * fy + fz * fz)
+        if (len < 1e-5f) return null
+        fx /= len; fy /= len; fz /= len
+        val nose = w[Lm.NOSE]
+        if ((nose.x - shoulders[0]) * fx + (nose.y - shoulders[1]) * fy + (nose.z - shoulders[2]) * fz < 0f) {
+            fx = -fx; fy = -fy; fz = -fz
+        }
+        fun along(i: Int) = w[i].x * fx + w[i].y * fy + w[i].z * fz
+        val left = along(Lm.LEFT_ANKLE)
+        val right = along(Lm.RIGHT_ANKLE)
+        return abs(left - right) to (if (left > right) BodySide.LEFT else BodySide.RIGHT)
     }
 
     /**

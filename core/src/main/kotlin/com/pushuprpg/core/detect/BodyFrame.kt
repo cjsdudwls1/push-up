@@ -112,6 +112,17 @@ class BodyFrameTracker(private val config: DetectorConfig) {
                 axU = frame.u(hip) - frame.u(shoulder)
                 axV = frame.v(hip) - frame.v(shoulder)
             }
+            AxisSource.TORSO -> {
+                if (maxOf(confidence[Lm.LEFT_HIP], confidence[Lm.RIGHT_HIP]) < config.minCoreConfidence) return null
+                originU = (frame.u(Lm.LEFT_SHOULDER) + frame.u(Lm.RIGHT_SHOULDER)) / 2f
+                originV = (frame.v(Lm.LEFT_SHOULDER) + frame.v(Lm.RIGHT_SHOULDER)) / 2f
+                val spineU = (frame.u(Lm.LEFT_HIP) + frame.u(Lm.RIGHT_HIP)) / 2f - originU
+                val spineV = (frame.v(Lm.LEFT_HIP) + frame.v(Lm.RIGHT_HIP)) / 2f - originV
+                // A virtual shoulder line square to the spine, so the normal the depth is read
+                // along — its perpendicular — is the spine itself; and its length is the spine's.
+                axU = -spineV
+                axV = spineU
+            }
         }
 
         val axisLen = Geometry.norm(axU, axV)
@@ -119,7 +130,8 @@ class BodyFrameTracker(private val config: DetectorConfig) {
         axU /= axisLen
         axV /= axisLen
 
-        val instantScale = axisLen
+        // In shoulder widths whatever the axis, so a descriptor's priors mean the same thing.
+        val instantScale = if (descriptor.axisSource == AxisSource.TORSO) axisLen * TORSO_TO_SHOULDER_WIDTH else axisLen
         if (instantScale < config.minScale || instantScale > config.maxScale) return null
 
         // Scale is averaged slowly: it is a property of the person and the camera placement, not
@@ -184,12 +196,19 @@ class BodyFrameTracker(private val config: DetectorConfig) {
 
         // A rolled torso foreshortens the projected shoulder width, which would inflate the depth
         // ratio and hand out depth for a twist. Flagging it lets the state machine refuse to count.
-        val torsoRotated = scaleEma > 0f &&
+        // Read along the spine there is no shoulder width to foreshorten, and turning is allowed.
+        val spine = descriptor.axisSource == AxisSource.TORSO
+        val torsoRotated = !spine && scaleEma > 0f &&
             instantScale / scaleEma < config.torsoRotatedFraction
 
         return BodyFrameState(
             aspect = aspect,
-            scale = scaleEma,
+            // Along the spine the divisor is this frame's own spine length, not a slow average: the
+            // spine leans through a dip and the phone looks up at it, so its projection changes
+            // within a rep — by 18 percent from the floor at 35 degrees — and the arm, lying along
+            // it, is foreshortened with it in the same frame. An averaged divisor lagged that and
+            // drifted the top of the rep out of reach after three.
+            scale = if (spine) instantScale else scaleEma,
             axisU = axU,
             axisV = axV,
             nU = nU,

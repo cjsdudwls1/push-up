@@ -307,21 +307,46 @@ def cat_happy():
 
 def cat_purr():
     """
-    A contented purr: two breaths, the out-breath louder, each a train of pulses at the purr's own
-    ~25 Hz. Filtered noise rather than a tone, so it is heard as texture on a speaker that cannot
-    play the fundamental.
+    A contented purr, one full breath cycle: out, a breath's pause, in, and the pause before the
+    next out — so back-to-back plays run on as one purr.
+
+    Built the way a cat makes it rather than as filtered noise, which is what the first version was
+    and why it sounded like static. The larynx snaps shut and open 25-30 times a second, on the
+    out-breath and the in-breath both; every snap is a short burst of air with a low thump in it,
+    and the throat and nose colour the train of them (resonances near 240, 520 and 1050 Hz). The
+    out-breath is longer and louder and a little slower than the in-breath, and the rate wanders a
+    few percent snap to snap — a machine-steady purr is the first thing that gives a fake away.
     """
-    n = secs(1.3)
-    t = np.arange(n) / SR
     rng = np.random.default_rng(4)
-    grain = resonate(rng.uniform(-1, 1, n), 420, 1.6) + 0.5 * resonate(rng.uniform(-1, 1, n), 780, 2.0)
-    pulse = np.abs(np.sin(np.pi * 25 * t)) ** 3
+    total = 2.5
+    n = secs(total)
+    snaps = np.zeros(n + secs(0.05))
+    # (start s, length s, snaps per second, loudness)
+    for start, length, rate, gain in ((0.0, 1.30, 26.0, 1.0), (1.42, 0.92, 29.5, 0.6)):
+        t = start
+        while t < start + length:
+            frac = (t - start) / length
+            swell = np.sin(np.pi * frac) ** 0.5
+            amp = gain * swell * rng.uniform(0.8, 1.15)
+            m = secs(0.03)
+            tt = np.arange(m) / SR
+            burst = rng.normal(0, 1, m) * np.exp(-tt / 0.008)
+            thump = np.sin(2 * np.pi * rng.uniform(105, 140) * tt) * np.exp(-tt / 0.013)
+            i = secs(t)
+            snaps[i:i + m] += (1.0 * burst + 0.5 * thump) * amp
+            t += rng.uniform(0.96, 1.04) / rate
+    snaps = snaps[:n]
+    throat = resonate(snaps, 240, 2.5) + 1.1 * resonate(snaps, 520, 3.5) + 0.45 * resonate(snaps, 1_050, 5)
+    # A phone speaker plays almost nothing under ~200 Hz, where most of a real purr's energy is; the
+    # rattle it does play is the upper part, so that is what is kept strong.
+    for _ in range(3):  # 18 dB/octave: a single pole leaves the sub-bass in charge
+        throat = highpass(throat, 170)
+    # The air itself, faint, following the breaths.
     breath = np.zeros(n)
-    for start, end, gain in ((0.0, 0.58, 0.65), (0.66, 1.3, 1.0)):
-        a, b = secs(start), secs(end)
-        m = b - a
-        breath[a:b] = np.sin(np.linspace(0, np.pi, m)) ** 0.8 * gain
-    return normalise(grain * pulse * breath, 0.7)
+    for start, length, gain in ((0.0, 1.30, 0.05), (1.42, 0.92, 0.035)):
+        i, m = secs(start), secs(length)
+        breath[i:i + m] = lowpass(rng.uniform(-1, 1, m), 1_800) * np.sin(np.linspace(0, np.pi, m)) * gain
+    return normalise(throat / (np.max(np.abs(throat)) or 1) + breath, 0.75)
 
 
 def ceiling_creak():

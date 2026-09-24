@@ -254,7 +254,27 @@ enum class CrossCheckPolicy {
  * user gets a frozen gauge and no explanation. Taking the near side's shoulder-to-hip instead keeps
  * both hallucinated far landmarks out of the coordinate frame and out of the divisor.
  */
-enum class AxisSource { SHOULDER_PAIR, NEAR_SIDE_TORSO }
+enum class AxisSource {
+    SHOULDER_PAIR,
+    NEAR_SIDE_TORSO,
+
+    /**
+     * The spine itself, for a movement done upright — a pull-up, a dip. Depth is read ALONG the
+     * line from the shoulders to the hips, and scaled by its length, rather than across a shoulder
+     * line: the arms of a hanging or supported body move along the spine from every side, and the
+     * spine is its full length in the picture from every side, where the shoulder line is not.
+     * Scaled to shoulder-width units ([TORSO_TO_SHOULDER_WIDTH]) so a descriptor's priors read the
+     * same as before.
+     *
+     * Found on the rig: at the three metres a pull-up needs to fit the bar and the feet, a shoulder
+     * line square to the lens is barely over the detector's minimum scale; turned 45 degrees it
+     * falls under it, and side on it is gone — "not counted from the front, the side or the back".
+     */
+    TORSO,
+}
+
+/** Shoulder width over torso length on an adult; what [AxisSource.TORSO] scales by. */
+const val TORSO_TO_SHOULDER_WIDTH = 0.8f
 
 /**
  * How the two sides' readings become one number.
@@ -278,6 +298,19 @@ enum class SideCombiner { CONFIDENCE_WEIGHTED, DEEPER_SIDE }
  * direction. [NEAR_SIDE] takes the better of the two instead.
  */
 enum class CoreConfidence { BOTH_SHOULDERS, NEAR_SIDE }
+
+/**
+ * The feet one in front of the other, measured in the model's 3-D skeleton: the ankles' distance
+ * along the way the body faces, in metres.
+ *
+ * What makes a lunge a lunge rather than a squat, and the one thing the depth signal cannot see:
+ * hips over knees reads the same whether the feet are split or side by side, so a squat counted as
+ * a lunge — on the rig, six of six. A split squat's feet are 0.6-0.8 m apart front to back; a squat's
+ * are side by side, a few centimetres at most.
+ *
+ * The same measurement says which leg is in front, which is how the game asks the user to swap.
+ */
+data class StanceCheck(val minStaggerM: Float = 0.30f)
 
 enum class ScaleReference {
     /**
@@ -310,6 +343,8 @@ data class RepSignal(
      * movement whose joint angle is a weak proxy.
      */
     val allowJointFallback: Boolean,
+    /** For a split-stance movement: how far apart front to back the feet must be. See [StanceCheck]. */
+    val stance: StanceCheck? = null,
 ) {
     init {
         require(scale == ScaleReference.SHOULDER_WIDTH) { "only shoulder width is implemented" }
@@ -468,6 +503,9 @@ object Exercises {
     val PULL_UP = ExerciseDescriptor(
         type = ExerciseType.PULL_UP,
         kind = MovementKind.REP,
+        // Read along the spine: counts from the front, the side, the back and between.
+        axisSource = AxisSource.TORSO,
+        coreConfidence = CoreConfidence.NEAR_SIDE,
         normalToward = WRISTS,
         signal = RepSignal(
             proximal = SHOULDERS,
@@ -480,6 +518,8 @@ object Exercises {
         ),
         config = DetectorConfig(
             exercise = ExerciseType.PULL_UP,
+            // The phone is far away to fit the bar and the feet; the body is small in the picture.
+            minScale = 0.05f,
             topEnter = 18f, topExit = 30f,
             countEnter = 70f, countExit = 55f,
             deepEnter = 88f, deepExit = 80f,
@@ -544,6 +584,7 @@ object Exercises {
             sideCombiner = SideCombiner.DEEPER_SIDE,
             crossCheck = CrossCheckPolicy.BEST_AVAILABLE,
             allowJointFallback = false,
+            stance = StanceCheck(),
         ),
         config = DetectorConfig(
             exercise = ExerciseType.LUNGE,
@@ -602,6 +643,9 @@ object Exercises {
     val DIP = ExerciseDescriptor(
         type = ExerciseType.DIP,
         kind = MovementKind.REP,
+        // Read along the spine: counts from the front, the side, the back and between.
+        axisSource = AxisSource.TORSO,
+        coreConfidence = CoreConfidence.NEAR_SIDE,
         normalToward = HIPS,
         signal = RepSignal(
             proximal = SHOULDERS,
@@ -614,6 +658,8 @@ object Exercises {
         ),
         config = DetectorConfig(
             exercise = ExerciseType.DIP,
+            // The phone is far away to fit the bar and the feet; the body is small in the picture.
+            minScale = 0.05f,
             topEnter = 18f, topExit = 30f,
             countEnter = 70f, countExit = 55f,
             deepEnter = 88f, deepExit = 80f,

@@ -23,6 +23,8 @@ sealed interface RepEvent {
         val grade: RepGrade,
         val depth: Float,
         val combo: Int,
+        /** For a split-stance movement, the leg in front on this rep; null for everything else. */
+        val front: BodySide? = null,
     ) : RepEvent
 
     /**

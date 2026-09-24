@@ -74,6 +74,15 @@ class PlacementCoach(
 ) {
     private val required: List<Int> = requiredLandmarks(exercise)
 
+    /**
+     * Whether turning side on can stop this movement counting. Only for one read across the
+     * shoulder line; a pull-up, a dip and a plank are read along the spine or in 3-D and count
+     * from the side, so telling their users to turn would be telling them something false.
+     */
+    private val sideOnMatters: Boolean = Exercises.of(exercise).let {
+        it.kind == MovementKind.REP && it.axisSource == AxisSource.SHOULDER_PAIR
+    }
+
     private var shown: Placement = Placement()
     private var shownSinceMs = Long.MIN_VALUE
     private var candidate: PlacementAdvice? = null
@@ -161,9 +170,9 @@ class PlacementCoach(
             below.isNotEmpty() -> PlacementAdvice.SHOW_BELOW
             above.isNotEmpty() -> PlacementAdvice.SHOW_ABOVE
             side.isNotEmpty() -> PlacementAdvice.CENTER
-            !counting && torso > 0f && shoulderWidth < SIDE_ON_RATIO * torso -> PlacementAdvice.FACE_CAMERA
+            sideOnMatters && !counting && torso > 0f && shoulderWidth < SIDE_ON_RATIO * torso -> PlacementAdvice.FACE_CAMERA
             !counting && shoulderWidth < config.minScale * SMALL_MARGIN -> PlacementAdvice.COME_CLOSER
-            tick.quality == PoseQuality.TORSO_ROTATED -> PlacementAdvice.FACE_CAMERA
+            sideOnMatters && tick.quality == PoseQuality.TORSO_ROTATED -> PlacementAdvice.FACE_CAMERA
             !counting -> PlacementAdvice.CLEARER
             tick.phase == RepPhase.IDLE || tick.phase == RepPhase.LOST -> PlacementAdvice.GET_IN_POSITION
             else -> PlacementAdvice.READY
@@ -196,9 +205,9 @@ class PlacementCoach(
             val descriptor = Exercises.of(type)
             val out = sortedSetOf(Lm.LEFT_SHOULDER, Lm.RIGHT_SHOULDER)
             if (descriptor.kind == MovementKind.HOLD) {
-                // The plank scorer's own terms: the shoulder-hip-knee line and the hands under the
-                // shoulders.
-                out += listOf(Lm.LEFT_HIP, Lm.RIGHT_HIP, Lm.LEFT_KNEE, Lm.RIGHT_KNEE)
+                // The plank reads the line from shoulder to heel: without the ankles a plank on
+                // the knees would pass for one, so they have to be in the picture too.
+                out += listOf(Lm.LEFT_HIP, Lm.RIGHT_HIP, Lm.LEFT_KNEE, Lm.RIGHT_KNEE, Lm.LEFT_ANKLE, Lm.RIGHT_ANKLE)
             } else {
                 out += descriptor.watchedLandmarks
             }

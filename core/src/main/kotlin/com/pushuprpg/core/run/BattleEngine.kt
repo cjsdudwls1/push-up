@@ -38,6 +38,10 @@ enum class AlertKey {
     ULTIMATE_BLOCKED,
     /** The ultimate landed; the toast's arg is the damage taken. */
     ULTIMATE_HIT,
+    /** A one-leg-at-a-time movement done on the same leg twice; the arg is the leg to use next. */
+    SAME_LEG,
+    /** A lunge refused because the feet were side by side: a squat. */
+    NOT_SPLIT,
 }
 
 /** Everything the battle screen draws, as one immutable snapshot. */
@@ -48,6 +52,8 @@ data class BattleState(
     val quality: PoseQuality = PoseQuality.NO_SUBJECT,
     /** Landmark indices the movement needs and the tracker cannot see; what the quality line names. */
     val missingParts: List<Int> = emptyList(),
+    /** For a lunge, the leg to put forward on the next rep; null before the first or for anything else. */
+    val nextFront: BodySide? = null,
     /** What to tell the user about where they and the phone are, or nothing. See [PlacementCoach]. */
     val placement: Placement = Placement(PlacementAdvice.STEP_INTO_VIEW),
     val calibrating: Boolean = true,
@@ -187,6 +193,7 @@ class BattleEngine(
     /** The movement being done now; replaced by [switchExercise]. */
     private var detector: RepDetector = detector
     private var coach = PlacementCoach(detector.config.exercise, detector.config)
+    private val legs = LegAlternator()
     private var resolver: CombatResolver = resolver
     private var player: PlayerState = initialPlayer
     private var floorIndex = 0
@@ -302,6 +309,9 @@ class BattleEngine(
         for (event in tick.events) {
             when (event) {
                 is RepEvent.Strike -> {
+                    if (legs.onRep(event.front)) {
+                        alert = Toast(AlertKey.SAME_LEG, legs.next?.ordinal ?: 0, event.tMs)
+                    }
                     val cycleMs = if (lastStrikeMs == Long.MIN_VALUE) DEFAULT_CYCLE_MS
                     else (event.tMs - lastStrikeMs).toInt()
                     lastStrikeMs = event.tMs
@@ -429,6 +439,12 @@ class BattleEngine(
                     }
                 }
 
+                // Said out loud rather than dropped: a rep refused in silence reads as the game not
+                // counting, and this one has a fix the user can make on the next rep.
+                is RepEvent.Abandoned -> if (event.reason == AbandonReason.NOT_SPLIT) {
+                    alert = Toast(AlertKey.NOT_SPLIT, 0, event.tMs)
+                }
+
                 else -> Unit
             }
         }
@@ -487,6 +503,7 @@ class BattleEngine(
             quality = tick.quality,
             missingParts = tick.missing,
             placement = placement,
+            nextFront = legs.next,
             calibrating = tick.calibration.state == CalibrationState.BOOTSTRAP,
             render = tick.render,
             reps = repsTotal,
@@ -547,6 +564,7 @@ class BattleEngine(
         detector = next
         // A new movement wants the phone somewhere else, and gets talked into position afresh.
         coach = PlacementCoach(next.config.exercise, next.config)
+        legs.reset()
         resolver = CombatResolver(next.config)
         val to = next.config.exercise
         encounter.switchMovement(dungeon.floors[floorIndex].spawn(difficulty, to), resolver)

@@ -75,12 +75,12 @@ object Body3d {
         val width: Int = 480,
         val height: Int = 640,
     ) {
-        private val forward = (target - position).unit()
+        val forward = (target - position).unit()
         // forward × world-up: horizontal, and to the viewer's right. It used to be the negation of
         // this, which rotated every image 180 degrees. Nothing that measures relative geometry
         // could tell; the placement coach, which reads which edge a foot left by, could.
-        private val right = V3(-forward.z, 0f, forward.x).unit()
-        private val up = V3(
+        val right = V3(-forward.z, 0f, forward.x).unit()
+        val up = V3(
             right.y * forward.z - right.z * forward.y,
             right.z * forward.x - right.x * forward.z,
             right.x * forward.y - right.y * forward.x,
@@ -135,9 +135,11 @@ object Body3d {
             val conf = if (inside) 1f else 0f
             lm[index] = Landmark(x, y, 0f, conf, conf)
             val w = p - hipMid
-            // MediaPipe world space is Y down, Z away from the camera; angles do not care, but the
-            // convention is kept so the numbers read like the model's.
-            worldLm[index] = Landmark(w.x, -w.y, -w.z)
+            // MediaPipe world space is hip-centred and camera-aligned — x right, y down, z away, in
+            // the phone's own frame, not gravity's; the model has no idea which way is down except
+            // through the picture. So a phone tilted up 30 degrees reports a level body tilted 30
+            // degrees, and a rule that reads "horizontal" from world landmarks has to survive that.
+            worldLm[index] = Landmark(w.dot(camera.right), -w.dot(camera.up), w.dot(camera.forward))
         }
         return PoseFrame(tMs, camera.width, camera.height, lm, if (world) worldLm else emptyList())
     }
@@ -191,14 +193,14 @@ object Body3d {
      * up. Left leg forward, toward the camera. [depth] 0 is standing tall in the split, 1 is both
      * knees at about ninety degrees.
      */
-    fun lunge(depth: Float): Skeleton {
+    fun lunge(depth: Float, leftForward: Boolean = true): Skeleton {
         val s = Skeleton()
         val split = 0.36f
         val hipY = STANDING_HIP_Y - 0.40f * depth
         val hipMid = V3(0f, hipY, 0f)
         for ((side, hip, knee, ankle) in SIDES_LEG) {
             val x = side * HIP_WIDTH / 2f
-            val front = side > 0
+            val front = (side > 0) == leftForward
             val ankleZ = if (front) split else -split
             s[hip] = V3(x, hipY, 0f)
             s[ankle] = V3(x, ANKLE_HEIGHT, ankleZ)
@@ -292,6 +294,200 @@ object Body3d {
         val faceDown = (down - toFeet * down.dot(toFeet)).unit()
         s[Lm.NOSE] = shoulderMid - toFeet * NOSE_ABOVE_SHOULDER + faceDown * NOSE_FORWARD
         return s
+    }
+
+    /**
+     * A pull-up on a bar at [barY], hands [gripHalfWidth] either side of centre. [depth] 0 is a dead
+     * hang, arms straight overhead; 1 is the chin over the bar, elbows closed to about 50 degrees
+     * and pointing down and a little forward. The body hangs straight under the shoulders with the
+     * knees slightly bent, and [facing] is the direction the chest faces: toward the lens (+Z) is
+     * the front view, away from it the back.
+     */
+    fun pullUp(
+        depth: Float,
+        facing: V3 = V3(0f, 0f, 1f),
+        barY: Float = 2.15f,
+        gripHalfWidth: Float = 0.30f,
+    ): Skeleton {
+        val s = Skeleton()
+        val f = facing.unit()
+        val left = V3(f.z, 0f, -f.x) // the subject's left, for a body upright facing f
+        val theta = deg(172f - depth * (172f - 52f))
+        val lateral = gripHalfWidth - SHOULDER_WIDTH / 2f
+        val reach = sqrt(UPPER_ARM * UPPER_ARM + FOREARM * FOREARM - 2f * UPPER_ARM * FOREARM * cos(theta))
+        val drop = sqrt((reach * reach - lateral * lateral).coerceAtLeast(0.01f))
+        val shoulderMid = V3(0f, barY - drop, 0f)
+        for ((side, shoulder, elbow, wrist) in SIDES_ARM) {
+            s[wrist] = V3(0f, barY, 0f) + left * (side * gripHalfWidth)
+            s[shoulder] = shoulderMid + left * (side * SHOULDER_WIDTH / 2f)
+            // Elbows drive down and slightly forward, as they do.
+            s[elbow] = midJoint(s[shoulder], s[wrist], UPPER_ARM, FOREARM, left * side + f * 0.3f)
+        }
+        val hipMid = shoulderMid + V3(0f, -TORSO, 0f) + f * 0.03f
+        for ((side, hip, knee, ankle) in SIDES_LEG) {
+            s[hip] = hipMid + left * (side * HIP_WIDTH / 2f)
+            s[knee] = s[hip] + V3(0f, -THIGH * 0.98f, 0f) + f * (THIGH * 0.2f)
+            s[ankle] = s[knee] + V3(0f, -SHANK * 0.94f, 0f) - f * (SHANK * 0.34f)
+        }
+        s[Lm.NOSE] = shoulderMid + V3(0f, NOSE_ABOVE_SHOULDER, 0f) + f * NOSE_FORWARD
+        return s
+    }
+
+    /** A dip seen from any side: [dip], turned so the chest faces [facing]. */
+    fun dipFacing(depth: Float, facing: V3): Skeleton = rotated(dip(depth), facing)
+
+    /** [s] turned about the vertical axis so that what faced +Z faces [facing]. */
+    fun rotated(s: Skeleton, facing: V3): Skeleton {
+        val f = facing.unit()
+        // +Z maps to f; +X (the subject's left when facing +Z) maps to the left of f.
+        val left = V3(f.z, 0f, -f.x)
+        val out = Skeleton()
+        for ((i, p) in s.joints) out[i] = left * p.x + V3(0f, p.y, 0f) + f * p.z
+        return out
+    }
+
+    /**
+     * A bodyweight squat, facing +Z: feet a little wider than the hips and side by side, the hips
+     * sitting back and down, the knees travelling forward over the toes, the chest leaning in and
+     * the arms reaching forward for balance. [depth] 1 is thighs about parallel.
+     */
+    fun squat(depth: Float): Skeleton {
+        val s = Skeleton()
+        val hipY = STANDING_HIP_Y - 0.45f * depth
+        val hipZ = -0.22f * depth
+        val hipMid = V3(0f, hipY, hipZ)
+        for ((side, hip, knee, ankle) in SIDES_LEG) {
+            val x = side * 0.17f
+            s[hip] = V3(side * HIP_WIDTH / 2f, hipY, hipZ)
+            s[ankle] = V3(x, ANKLE_HEIGHT, 0.02f)
+            s[knee] = midJoint(s[hip], s[ankle], THIGH, SHANK, V3(side * 0.3f, 0f, 1f))
+        }
+        val lean = deg(35f * depth)
+        val up = V3(0f, cos(lean), sin(lean))
+        for ((side, shoulder) in SIDES_SHOULDER) {
+            s[shoulder] = hipMid + up * TORSO + V3(side * SHOULDER_WIDTH / 2f, 0f, 0f)
+        }
+        s[Lm.NOSE] = hipMid + up * (TORSO + NOSE_ABOVE_SHOULDER) + V3(0f, 0f, NOSE_FORWARD)
+        for ((side, shoulder, elbow, wrist) in SIDES_ARM) {
+            val reach = deg(10f + 70f * depth)
+            val dir = V3(0f, -cos(reach), sin(reach))
+            s[elbow] = s[shoulder] + dir * UPPER_ARM
+            s[wrist] = s[elbow] + dir * FOREARM
+        }
+        return s
+    }
+
+    /** Standing tall, arms by the sides. The thing a plank or a lunge must not be mistaken for. */
+    fun standing(): Skeleton {
+        val s = Skeleton()
+        standingLegs(s)
+        uprightTorso(s, V3(0f, STANDING_HIP_Y, 0f))
+        hangingArms(s)
+        return s
+    }
+
+    /**
+     * A body on the floor, described as a side profile: for each joint, how far along [heading] it
+     * is from the shoulders' floor point and how high. Left and right are the same profile moved
+     * half a joint-width to either side. What the floor holds — a plank, all fours — are all this.
+     */
+    private fun floorPose(
+        profile: Map<String, Pair<Float, Float>>,
+        heading: V3,
+        shoulderAt: V3,
+    ): Skeleton {
+        val s = Skeleton()
+        val h = heading.unit()
+        val left = V3(h.z, 0f, -h.x) // the subject's left when face-down with the head along h
+        fun at(name: String, halfWidth: Float, side: Float): V3 {
+            val (along, y) = profile.getValue(name)
+            return V3(shoulderAt.x, y, shoulderAt.z) + h * along + left * (side * halfWidth)
+        }
+        for ((side, shoulder, elbow, wrist) in SIDES_ARM) {
+            s[shoulder] = at("shoulder", SHOULDER_WIDTH / 2f, side)
+            s[elbow] = at("elbow", 0.22f, side)
+            s[wrist] = at("wrist", 0.24f, side)
+        }
+        for ((side, hip, knee, ankle) in SIDES_LEG) {
+            s[hip] = at("hip", HIP_WIDTH / 2f, side)
+            s[knee] = at("knee", HIP_WIDTH / 2f, side)
+            s[ankle] = at("ankle", HIP_WIDTH * 0.4f, side)
+        }
+        s[Lm.NOSE] = at("nose", 0f, 0f)
+        return s
+    }
+
+    /** Joints along a straight line from [from] toward [toward], at the body's segment lengths. */
+    private fun straightBody(from: Pair<Float, Float>, toward: Pair<Float, Float>): Map<String, Pair<Float, Float>> {
+        val dx = toward.first - from.first
+        val dy = toward.second - from.second
+        val len = sqrt(dx * dx + dy * dy)
+        fun along(d: Float) = (from.first + dx / len * d) to (from.second + dy / len * d)
+        return mapOf("hip" to along(TORSO), "knee" to along(TORSO + THIGH), "ankle" to along(TORSO + THIGH + SHANK))
+    }
+
+    /** A forearm plank: elbows under the shoulders, forearms flat, one straight line to the heels. */
+    fun forearmPlank(heading: V3 = V3(0f, 0f, 1f), shoulderAt: V3 = V3(0f, 0f, 0f), sagDeg: Float = 0f): Skeleton {
+        val shoulderY = 0.04f + UPPER_ARM
+        val bodyLength = TORSO + THIGH + SHANK
+        val drop = shoulderY - ANKLE_HEIGHT
+        val run = sqrt(bodyLength * bodyLength - drop * drop)
+        val body = straightBody(0f to shoulderY, -run to ANKLE_HEIGHT).toMutableMap()
+        if (sagDeg != 0f) {
+            // The hips drop out of the line: the legs pivot at the toes.
+            val (hx, hy) = body.getValue("hip")
+            body["hip"] = hx to hy - TORSO * sin(deg(sagDeg))
+        }
+        return floorPose(
+            body + mapOf(
+                "shoulder" to (0f to shoulderY),
+                "elbow" to (0f to 0.04f),
+                "wrist" to (FOREARM to 0.04f),
+                "nose" to (NOSE_ABOVE_SHOULDER to shoulderY - NOSE_FORWARD),
+            ),
+            heading, shoulderAt,
+        )
+    }
+
+    /** On all fours: hands under the shoulders, knees under the hips, shins on the floor. */
+    fun allFours(heading: V3 = V3(0f, 0f, 1f), shoulderAt: V3 = V3(0f, 0f, 0f)): Skeleton {
+        val shoulderY = 0.04f + UPPER_ARM + FOREARM
+        val kneeY = 0.06f
+        val hipY = kneeY + THIGH
+        val back = sqrt(TORSO * TORSO - (shoulderY - hipY) * (shoulderY - hipY))
+        return floorPose(
+            mapOf(
+                "shoulder" to (0f to shoulderY),
+                "elbow" to (0f to 0.04f + FOREARM),
+                "wrist" to (0f to 0.04f),
+                "hip" to (-back to hipY),
+                "knee" to (-back to kneeY),
+                "ankle" to (-back - SHANK to kneeY),
+                "nose" to (NOSE_ABOVE_SHOULDER to shoulderY),
+            ),
+            heading, shoulderAt,
+        )
+    }
+
+    /** A plank from the knees: straight from knee to shoulder, shins on the floor. */
+    fun kneePlank(heading: V3 = V3(0f, 0f, 1f), shoulderAt: V3 = V3(0f, 0f, 0f)): Skeleton {
+        val shoulderY = 0.04f + UPPER_ARM + FOREARM
+        val kneeY = 0.06f
+        val run = sqrt((TORSO + THIGH) * (TORSO + THIGH) - (shoulderY - kneeY) * (shoulderY - kneeY))
+        val line = straightBody(0f to shoulderY, -run to kneeY)
+        val knee = line.getValue("knee")
+        return floorPose(
+            mapOf(
+                "shoulder" to (0f to shoulderY),
+                "elbow" to (0f to 0.04f + FOREARM),
+                "wrist" to (0f to 0.04f),
+                "hip" to line.getValue("hip"),
+                "knee" to knee,
+                "ankle" to (knee.first - SHANK to kneeY),
+                "nose" to (NOSE_ABOVE_SHOULDER to shoulderY),
+            ),
+            heading, shoulderAt,
+        )
     }
 
     private data class Leg(val side: Float, val hip: Int, val knee: Int, val ankle: Int)

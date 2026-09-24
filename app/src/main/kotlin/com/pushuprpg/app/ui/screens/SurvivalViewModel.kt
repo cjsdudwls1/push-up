@@ -7,6 +7,8 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.pushuprpg.app.AppContainer
 import com.pushuprpg.app.audio.GameAudio
+import com.pushuprpg.app.audio.GameVoice
+import com.pushuprpg.core.audio.Announcer
 import com.pushuprpg.app.domain.SettingsRepository
 import com.pushuprpg.app.domain.ProgressRepository
 import com.pushuprpg.app.telemetry.Event
@@ -18,6 +20,8 @@ import com.pushuprpg.core.detect.DetectorFactory
 import com.pushuprpg.app.domain.capacityOf
 import com.pushuprpg.app.domain.withCapacity
 import com.pushuprpg.core.detect.ExerciseType
+import com.pushuprpg.core.detect.BodySide
+import com.pushuprpg.core.detect.LegAlternator
 import com.pushuprpg.core.detect.Placement
 import com.pushuprpg.core.detect.PlacementAdvice
 import com.pushuprpg.core.detect.PlacementCoach
@@ -27,6 +31,7 @@ import com.pushuprpg.core.detect.PoseTick
 import com.pushuprpg.core.detect.RepDetector
 import com.pushuprpg.core.detect.RepPhase
 import com.pushuprpg.core.detect.RepEvent
+import com.pushuprpg.core.detect.RenderSkeleton
 import com.pushuprpg.core.detect.SkeletonMode
 import com.pushuprpg.core.progression.Capacity
 import com.pushuprpg.core.survival.CatCompanion
@@ -46,6 +51,7 @@ class SurvivalViewModel(
     private val traces: RunTraces,
     private val settingsRepository: SettingsRepository,
     private val audio: GameAudio,
+    private val voice: GameVoice,
     /** Chosen on the way in; always pushups for the tutorial (see Routes.survival). */
     private val exercise: ExerciseType,
 ) : ViewModel() {
@@ -71,6 +77,18 @@ class SurvivalViewModel(
     private val _placement = MutableStateFlow(Placement(PlacementAdvice.STEP_INTO_VIEW))
     val placement: StateFlow<Placement> = _placement.asStateFlow()
 
+    private val announcer = Announcer()
+
+    // For a lunge: the leg to put forward next, shown and said after every rep.
+    private val legs = LegAlternator()
+    private val _nextFront = MutableStateFlow<BodySide?>(null)
+    val nextFront: StateFlow<BodySide?> = _nextFront.asStateFlow()
+
+    // The skeleton, only while setting up: the mode hides it on purpose, but lining up with the
+    // framing guide is done by watching the lines.
+    private val _setupSkeleton = MutableStateFlow<RenderSkeleton?>(null)
+    val setupSkeleton: StateFlow<RenderSkeleton?> = _setupSkeleton.asStateFlow()
+
     // The cat's face, words and voice. It reads the run and changes nothing in it.
     private val cat = CatCompanion()
     private val _cat = MutableStateFlow(cat.view())
@@ -81,6 +99,7 @@ class SurvivalViewModel(
             settingsRepository.settings.collect {
                 audio.soundEnabled = it.sfxEnabled
                 audio.hapticStrength = it.hapticStrength
+                voice.enabled = it.voiceEnabled
             }
         }
         // One recording for the whole visit, restarts included: the run worth sending is often the
@@ -113,6 +132,7 @@ class SurvivalViewModel(
         for (event in tick.events) {
             when (event) {
                 is RepEvent.Strike -> {
+                    legs.onRep(event.front)
                     reps++
                     maxCombo = maxOf(maxCombo, event.combo)
                     events += game.onRep(event.grade, event.depth, event.tMs)
@@ -132,8 +152,17 @@ class SurvivalViewModel(
         val now = game.state()
         // Straight from this thread, like the dungeon's: a push has to be heard as it lands.
         audio.play(cat.update(now, events, tick.tMs))
+        val catView = cat.view()
+        // The cat's lines are heard as well as read: the bubble is small and the phone is far.
+        voice.announce(
+            announcer.survival(catView.speech, _placement.value.advice, tick.tMs, nextFront = legs.next),
+            exercise = exercise,
+        )
+        _nextFront.value = legs.next
         _state.value = now
-        _cat.value = cat.view()
+        _cat.value = catView
+        detector.skeletonMode = if (now.started) SkeletonMode.OFF else SkeletonMode.FULL
+        _setupSkeleton.value = if (now.started) null else tick.render
     }
 
     /**
@@ -154,6 +183,9 @@ class SurvivalViewModel(
         cat.reset()
         _cat.value = cat.view()
         coach.reset()
+        announcer.reset()
+        legs.reset()
+        _nextFront.value = null
         reps = 0
         maxCombo = 0
         startedAtMs = 0L
@@ -241,6 +273,7 @@ class SurvivalViewModel(
                     container.traces,
                     container.settingsRepository,
                     container.audio,
+                    container.voice,
                     exercise,
                 )
             }

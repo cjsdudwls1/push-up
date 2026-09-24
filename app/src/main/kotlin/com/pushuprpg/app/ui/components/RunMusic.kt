@@ -9,12 +9,12 @@ import com.pushuprpg.app.audio.MusicPlayer
 import com.pushuprpg.app.domain.MusicTrack
 
 /**
- * Plays [track] for as long as the calling screen is on screen, and not a moment longer.
+ * Plays [track] while the app is on screen.
  *
- * Tied to composition rather than to a view model because the music belongs to the screen being
- * looked at: leaving a run stops it, the app going to the background pauses it, and changing the
- * setting mid-run swaps it. A player owned by anything longer-lived keeps playing over the home
- * screen, which is the bug every app with music ships once.
+ * Tied to composition, at the root, rather than to a view model: the app going to the background
+ * pauses it and coming back resumes it, and changing the setting swaps it on the spot. A player
+ * owned by anything that outlives the activity keeps playing over the phone's home screen, which
+ * is the bug every app with music ships once.
  */
 @Composable
 fun RunMusic(track: MusicTrack, player: MusicPlayer) {

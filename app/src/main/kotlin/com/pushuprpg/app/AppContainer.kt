@@ -3,6 +3,7 @@ package com.pushuprpg.app
 import android.content.Context
 import android.os.Build
 import com.pushuprpg.app.audio.GameAudio
+import com.pushuprpg.app.audio.GameVoice
 import com.pushuprpg.app.audio.MusicPlayer
 import com.pushuprpg.app.billing.PlayEntitlementRepository
 import com.pushuprpg.app.telemetry.Telemetry
@@ -61,6 +62,9 @@ class AppContainer(context: Context) {
 
     /** One player for the whole app, so leaving one run and entering the next never plays two. */
     val music: MusicPlayer by lazy { MusicPlayer(appContext) }
+
+    /** The spoken lines. One engine for the app: binding the TTS service takes a moment. */
+    val voice: GameVoice by lazy { GameVoice(appContext, music) }
 
     val telemetry: Telemetry by lazy { Telemetry(appContext) }
 

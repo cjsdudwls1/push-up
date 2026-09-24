@@ -127,6 +127,12 @@ data class AppSettings(
      */
     val catName: String = "",
     val catCoat: CatCoat = CatCoat.CREAM,
+    /**
+     * Seconds to rest after a cleared dungeon before the next one starts by itself, or 0 for off.
+     * Without it a session ended at every clear screen: the next dungeon was a tap away, and a rest
+     * with no end is not a rest.
+     */
+    val autoNextRestSeconds: Int = 0,
 )
 
 enum class HapticStrength { OFF, LIGHT, MEDIUM, STRONG }

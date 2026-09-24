@@ -61,11 +61,17 @@ class PlacementCoachTest {
     }
 
     @Test
-    fun `a plank filmed from the side is told to face the phone too`() {
-        // The plank's placement line said 옆모습 — the one view in which it never holds.
-        val heard = listen(ExerciseType.PLANK, still(floorBody(90f)(0f), Camera.onFloor(2.0f, 10f)))
-        assertEquals(0, heard.reps)
-        assertEquals(PlacementAdvice.FACE_CAMERA, heard.last)
+    fun `a plank filmed from the side holds when centred, and is sent to the middle when not`() {
+        // The plank used to need the shoulders apart in the picture and never held side on; it
+        // reads the 3-D skeleton now, so the side is as good as the front.
+        val side = floorBody(90f)
+        val centred = listen(ExerciseType.PLANK, still(Body3d.pushup(0f, Body3d.V3(-1f, 0f, 0f), Body3d.V3(-0.65f, 0f, 0f)), Camera.onFloor(2.2f, 10f), seconds = 6))
+        assertTrue(centred.reps > 0, "a centred side-on plank never held")
+        assertTrue(PlacementAdvice.READY in centred.said, "never said ready: ${centred.distinct}")
+
+        // Shoulders on the middle of the picture, feet off its edge.
+        val offCentre = listen(ExerciseType.PLANK, still(side(0f), Camera.onFloor(2.0f, 10f)))
+        assertEquals(PlacementAdvice.CENTER, offCentre.last)
     }
 
     @Test
@@ -88,7 +94,7 @@ class PlacementCoachTest {
 
     @Test
     fun `too far away is told to come closer`() {
-        val heard = listen(ExerciseType.LUNGE, Body3d.trace(Body3d::lunge, Camera.onFloor(5f, 30f), 3))
+        val heard = listen(ExerciseType.LUNGE, Body3d.trace({ d -> Body3d.lunge(d) }, Camera.onFloor(5f, 30f), 3))
         assertEquals(0, heard.reps)
         assertEquals(PlacementAdvice.COME_CLOSER, heard.last)
     }

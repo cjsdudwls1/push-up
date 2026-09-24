@@ -39,8 +39,8 @@ fun SettingsScreen(
     /** Debug builds only: the recorder behind a bug report. See [com.pushuprpg.app.trace.RunTraces]. */
     traceTools: Boolean = false,
     onSendTrace: () -> Unit = {},
-    /** Plays a few seconds of the track just picked, so the choice is made by ear. */
-    onPreviewMusic: (MusicTrack) -> Unit = {},
+    /** One buzz at the strength just picked, so the choice is made by feel. */
+    onPreviewHaptic: (HapticStrength) -> Unit = {},
 ) {
     Column(
         modifier = modifier
@@ -146,16 +146,20 @@ fun SettingsScreen(
             checked = settings.sfxEnabled,
             onCheckedChange = { v -> onChange { it.copy(sfxEnabled = v) } },
         )
+        SwitchSetting(
+            title = stringResource(R.string.settings_voice),
+            subtitle = stringResource(R.string.settings_voice_sub),
+            checked = settings.voiceEnabled,
+            onCheckedChange = { v -> onChange { it.copy(voiceEnabled = v) } },
+        )
         SegmentedSetting(
             title = stringResource(R.string.settings_music),
             subtitle = stringResource(R.string.settings_music_sub),
             options = MusicTrack.entries,
             labelFor = { stringResource(musicLabelRes(it)) },
             selected = settings.music,
-            onSelect = { v ->
-                onChange { it.copy(music = v) }
-                onPreviewMusic(v)
-            },
+            // The music plays app-wide and follows this setting, so picking a track is hearing it.
+            onSelect = { v -> onChange { it.copy(music = v) } },
         )
         SegmentedSetting(
             title = stringResource(R.string.settings_haptics),
@@ -171,11 +175,25 @@ fun SettingsScreen(
                 )
             },
             selected = settings.hapticStrength,
-            onSelect = { v -> onChange { it.copy(hapticStrength = v) } },
+            onSelect = { v ->
+                onChange { it.copy(hapticStrength = v) }
+                onPreviewHaptic(v)
+            },
         )
 
         Spacer(Modifier.height(10.dp))
         SectionHeader(text = "운동")
+        SegmentedSetting(
+            title = stringResource(R.string.settings_auto_next),
+            subtitle = stringResource(R.string.settings_auto_next_sub),
+            options = AUTO_NEXT_REST_OPTIONS,
+            labelFor = { seconds ->
+                if (seconds == 0) stringResource(R.string.settings_auto_next_off)
+                else stringResource(R.string.settings_auto_next_minutes, seconds / 60)
+            },
+            selected = settings.autoNextRestSeconds.takeIf { it in AUTO_NEXT_REST_OPTIONS } ?: 0,
+            onSelect = { v -> onChange { it.copy(autoNextRestSeconds = v) } },
+        )
         // No exercise picker here. It lives on the way into a dungeon, where the choice is actually
         // being made and where the per-exercise camera placement is worth reading.
         SegmentedSetting(
@@ -377,3 +395,6 @@ private fun musicLabelRes(track: MusicTrack): Int = when (track) {
     MusicTrack.FOCUS -> R.string.settings_music_focus
     MusicTrack.CALM -> R.string.settings_music_calm
 }
+
+/** Rest between dungeons, in seconds; 0 is off. Two minutes is a normal rest between sets. */
+private val AUTO_NEXT_REST_OPTIONS = listOf(0, 60, 120, 180)

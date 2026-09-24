@@ -20,6 +20,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.pushuprpg.app.R
+import com.pushuprpg.app.ui.components.KeepScreenOn
 import com.pushuprpg.app.ui.components.PrimaryButton
 import com.pushuprpg.app.ui.components.SecondaryButton
 import com.pushuprpg.app.ui.theme.LocalGameColors
@@ -51,6 +52,14 @@ fun ResultScreen(
     onRecords: () -> Unit,
     onHome: () -> Unit,
     modifier: Modifier = Modifier,
+    /**
+     * Seconds left of the rest before the next dungeon starts by itself, or null when it will not.
+     * See [com.pushuprpg.app.domain.AppSettings.autoNextRestSeconds].
+     */
+    restLeftSeconds: Int? = null,
+    nextDungeonName: String = "",
+    onStartNextNow: () -> Unit = {},
+    onCancelAutoNext: () -> Unit = {},
 ) {
     val colors = LocalGameColors.current
     val rank = RankProgress.of(lifetimeReps)
@@ -153,7 +162,18 @@ fun ResultScreen(
         }
 
         Spacer(Modifier.height(28.dp))
-        if (outcome.cleared && hasNextDungeon) {
+        if (restLeftSeconds != null) {
+            // The phone is across the room during a rest, so the countdown is the largest thing on
+            // the screen, and the screen stays on for it.
+            KeepScreenOn()
+            RestCard(
+                secondsLeft = restLeftSeconds,
+                nextDungeonName = nextDungeonName,
+                onStartNow = onStartNextNow,
+                onCancel = onCancelAutoNext,
+            )
+            Spacer(Modifier.height(10.dp))
+        } else if (outcome.cleared && hasNextDungeon) {
             PrimaryButton(
                 text = stringResource(R.string.action_next_dungeon),
                 onClick = onNextDungeon,
@@ -187,6 +207,53 @@ fun ResultScreen(
                 modifier = Modifier.weight(1f),
             )
         }
+    }
+}
+
+/** The rest between two dungeons: how long is left, and a way to cut it short or call it off. */
+@Composable
+private fun RestCard(
+    secondsLeft: Int,
+    nextDungeonName: String,
+    onStartNow: () -> Unit,
+    onCancel: () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(18.dp))
+            .background(Palette.Bg2)
+            .padding(18.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(
+            text = stringResource(R.string.result_rest_title),
+            style = Type.labelL,
+            color = Palette.TextSecondary,
+        )
+        Text(
+            text = stringResource(R.string.result_rest_time, secondsLeft / 60, secondsLeft % 60),
+            style = Type.displayM,
+            color = Palette.TextPrimary,
+        )
+        Text(
+            text = stringResource(R.string.result_rest_body, nextDungeonName),
+            style = Type.bodyM,
+            color = Palette.TextSecondary,
+            textAlign = TextAlign.Center,
+        )
+        Spacer(Modifier.height(14.dp))
+        PrimaryButton(
+            text = stringResource(R.string.result_rest_now),
+            onClick = onStartNow,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Spacer(Modifier.height(8.dp))
+        SecondaryButton(
+            text = stringResource(R.string.result_rest_cancel),
+            onClick = onCancel,
+            modifier = Modifier.fillMaxWidth(),
+        )
     }
 }
 

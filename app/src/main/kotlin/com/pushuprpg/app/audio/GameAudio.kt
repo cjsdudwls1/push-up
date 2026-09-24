@@ -94,17 +94,15 @@ class GameAudio(context: Context) {
         requests.firstOrNull { it.cue.band == SoundCue.Band.COMBAT }?.let { vibrateFor(it.cue) }
     }
 
-    private fun vibrateFor(cue: SoundCue) {
-        val v = vibrator ?: return
-        if (hapticStrength == HapticStrength.OFF) return
-        if (!v.hasVibrator()) return
+    /**
+     * One buzz at [strength], the length of a hit — so choosing a strength in settings is feeling
+     * it, rather than reading a word and guessing. Ignores the current setting on purpose.
+     */
+    fun previewHaptic(strength: HapticStrength) {
+        vibrate(strength, PREVIEW_MS)
+    }
 
-        val amplitude = when (hapticStrength) {
-            HapticStrength.OFF -> return
-            HapticStrength.LIGHT -> 70
-            HapticStrength.MEDIUM -> 150
-            HapticStrength.STRONG -> 255
-        }
+    private fun vibrateFor(cue: SoundCue) {
         val durationMs = when (cue) {
             SoundCue.CRIT -> 55L
             SoundCue.HIT_HEAVY -> 40L
@@ -113,8 +111,28 @@ class GameAudio(context: Context) {
             SoundCue.HEARTBEAT -> 35L
             else -> 22L
         }
+        vibrate(hapticStrength, durationMs)
+    }
+
+    private fun vibrate(strength: HapticStrength, durationMs: Long) {
+        val v = vibrator ?: return
+        if (!v.hasVibrator()) return
+
+        val amplitude = when (strength) {
+            HapticStrength.OFF -> return
+            HapticStrength.LIGHT -> 70
+            HapticStrength.MEDIUM -> 150
+            HapticStrength.STRONG -> 255
+        }
+        // A motor with no amplitude control buzzes at one strength whatever it is asked, which
+        // made 약하게 and 강하게 feel identical. There, strength is carried by length instead.
+        val length = if (v.hasAmplitudeControl()) durationMs else when (strength) {
+            HapticStrength.LIGHT -> durationMs / 2
+            HapticStrength.STRONG -> durationMs * 2
+            else -> durationMs
+        }.coerceAtLeast(10L)
         runCatching {
-            v.vibrate(VibrationEffect.createOneShot(durationMs, amplitude))
+            v.vibrate(VibrationEffect.createOneShot(length, amplitude))
         }
     }
 
@@ -125,6 +143,9 @@ class GameAudio(context: Context) {
     }
 
     private companion object {
+        /** Long enough to tell three strengths apart by feel; the length of a heavy hit and a bit. */
+        const val PREVIEW_MS = 60L
+
         val RESOURCES: Map<SoundCue, Int> = mapOf(
             SoundCue.REP_ACCEPT to R.raw.sfx_rep_accept,
             SoundCue.REP_DEEP to R.raw.sfx_rep_deep,

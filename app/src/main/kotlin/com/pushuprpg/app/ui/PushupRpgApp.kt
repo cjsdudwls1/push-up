@@ -10,9 +10,11 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -62,6 +64,7 @@ import com.pushuprpg.core.game.Dungeons
 import com.pushuprpg.core.game.PlayerClass
 import com.pushuprpg.core.progression.Rank
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.launch
@@ -146,6 +149,11 @@ fun PushupRpgApp(
             // Nothing is drawn until persisted progress and settings have landed; see the nullable
             // collects above.
             if (progressState == null || settingsState == null) return@Box
+
+            // The music plays from the moment the app opens, not only in a run, and follows the
+            // setting as it changes — so picking a track in settings is hearing it. It is placed
+            // after the settings have loaded so someone who turned it off never hears a first bar.
+            RunMusic(track = settings.music, player = container.music)
 
             // NavHost memoises its graph on startDestination, and a changed one wipes the whole
             // back stack. It is therefore decided exactly once.
@@ -308,7 +316,6 @@ fun PushupRpgApp(
                     val state by vm.state.collectAsState()
 
                     LaunchedEffect(dungeonIndex) { vm.start(dungeonIndex) }
-                    RunMusic(track = settings.music, player = container.music)
                     DisposableEffect(vm) {
                         val consumer: (com.pushuprpg.core.pose.PoseFrame) -> Unit = vm::onPoseFrame
                         frameSink.attach(consumer)
@@ -357,8 +364,43 @@ fun PushupRpgApp(
                             navController.navigate(Routes.HOME) { popUpTo(Routes.HOME) { inclusive = true } }
                         }
                     } else {
+                        // Auto-advance: after a clear, rest, then the next dungeon with the same
+                        // movement. Only where the next one can be played at all — the same gate as
+                        // the button — and never after a loss, which gets a retry, not a harder floor.
+                        val next = dungeonIndex + 1
+                        val canAutoNext = settings.autoNextRestSeconds > 0 && outcome.cleared &&
+                            dungeonIndex < Dungeons.ALL.size && FreeTier.canPlayDungeon(next, entitlement)
+                        var autoNextCancelled by rememberSaveable { mutableStateOf(false) }
+                        var restLeft by rememberSaveable { mutableIntStateOf(settings.autoNextRestSeconds) }
+                        val startNextNow: () -> Unit = {
+                            scope.launch {
+                                // The movement the run ended on, which is the one the user was just
+                                // doing, and awaited for the same reason as on the picker.
+                                val exercise = outcome.segments.lastOrNull()?.exercise ?: settings.exercise
+                                container.settingsRepository.update { it.copy(exercise = exercise) }
+                                navController.navigate(Routes.battle(next)) {
+                                    popUpTo(Routes.RESULT) { inclusive = true }
+                                }
+                            }
+                        }
+                        if (canAutoNext && !autoNextCancelled) {
+                            LaunchedEffect(Unit) {
+                                while (restLeft > 0) {
+                                    delay(1_000)
+                                    restLeft--
+                                    // Heard from across the room, where the rest is taken.
+                                    if (restLeft == 10) container.voice.say(context.getString(R.string.voice_rest_ten))
+                                }
+                                container.voice.say(context.getString(R.string.voice_rest_go))
+                                startNextNow()
+                            }
+                        }
                         AlwaysDark {
                             ResultScreen(
+                                restLeftSeconds = restLeft.takeIf { canAutoNext && !autoNextCancelled },
+                                nextDungeonName = Dungeons.byIndex(next)?.korean.orEmpty(),
+                                onStartNextNow = startNextNow,
+                                onCancelAutoNext = { autoNextCancelled = true },
                                 outcome = outcome,
                                 dungeonName = Dungeons.byIndex(dungeonIndex)?.korean.orEmpty(),
                                 lifetimeReps = progress.lifetimeReps,
@@ -450,7 +492,8 @@ fun PushupRpgApp(
                     val best by vm.bestScore.collectAsState()
                     val cat by vm.catView.collectAsState()
                     val placement by vm.placement.collectAsState()
-                    RunMusic(track = settings.music, player = container.music)
+                    val nextFront by vm.nextFront.collectAsState()
+                    val setupSkeleton by vm.setupSkeleton.collectAsState()
 
                     DisposableEffect(vm) {
                         val consumer: (com.pushuprpg.core.pose.PoseFrame) -> Unit = vm::onPoseFrame
@@ -464,6 +507,8 @@ fun PushupRpgApp(
                             bestScore = best,
                             cat = cat,
                             placement = placement,
+                            nextFront = nextFront,
+                            setupSkeleton = setupSkeleton,
                             catName = settings.catName,
                             catCoat = settings.catCoat,
                             poseSource = poseSource,
@@ -501,14 +546,11 @@ fun PushupRpgApp(
                 }
 
                 composable(Routes.SETTINGS) {
-                    // A preview started here ends here, not over the home screen.
-                    DisposableEffect(Unit) { onDispose { container.music.stop() } }
                     SettingsScreen(
                         settings = settings,
                         onChange = { transform ->
                             scope.launch { container.settingsRepository.update(transform) }
                         },
-                        onPreviewMusic = container.music::preview,
                         onRecalibrate = {
                             scope.launch {
                                 // Every movement's range, not just the last one played. The button
@@ -528,6 +570,7 @@ fun PushupRpgApp(
                         },
                         onChangeClass = changeClass,
                         onOpenPrivacy = { openUrl(context, context.getString(R.string.privacy_policy_url)) },
+                        onPreviewHaptic = container.audio::previewHaptic,
                         traceTools = BuildConfig.DEBUG,
                         onSendTrace = {
                             scope.launch {

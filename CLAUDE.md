@@ -56,8 +56,22 @@ could not move, and every hand-placed fixture agreed with them.
 **The placement coach never contradicts the detector.** `PlacementCoach` says 좋아요 only when the
 detector's own quality is OK and it has armed; every other line is geometry measured on the frame
 the detector refused. Placement advice lives there and in one line per movement on the picker —
-not in paragraphs. A plank is filmed like a pushup, from the head: side on, the shoulder pair
-collapses and it never holds, which the old placement line told people to do.
+not in paragraphs.
+
+**A plank is read from the model's 3-D skeleton, not the picture.** From the head, all fours,
+a knee plank and plain standing all line up down the image the way a plank does, and all of them
+used to hold; side on, the picture-based frame collapsed and a real plank never held.
+`PlankRigTest` pins every pose from the front, side, back and diagonal. World landmarks are
+camera-aligned, so the phone's tilt is in them; `Body3d` reproduces that.
+
+**Pull-ups and dips are read along the spine** (`AxisSource.TORSO`), not across the shoulder line:
+at the distance a pull-up needs, the shoulder line is barely over the minimum scale from the front
+and gone from the side. `HangingRigTest` pins front, side, back and diagonal from four placements.
+
+**A lunge needs a split stance** (`StanceCheck`, from world landmarks): the depth signal reads a
+squat exactly like a lunge. The same measurement names the front leg, which is how the game asks
+for the other one (`LegAlternator`). "Forward" is square to the hip line and the spine, never
+"horizontal" — world landmarks are in the camera's tilted frame.
 
 **Bodyweight movements only**, by the owner's decision: pushup, squat, plank, pull-up, lunge, dip.
 The weighted ones were removed; stored names that point at them read back tolerantly.

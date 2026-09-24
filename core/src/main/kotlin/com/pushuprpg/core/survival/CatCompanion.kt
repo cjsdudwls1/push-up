@@ -273,7 +273,8 @@ class CatCompanion {
         const val CHEER_MS = 900L
         const val COMBO_LINE_EVERY = 10
 
-        const val PURR_EVERY_MS = 3_500L
+        /** The purr clip is one breath cycle this long, so repeats run on as one continuous purr. */
+        const val PURR_EVERY_MS = 2_500L
         const val PURR_WHILE_PUSHED_MS = 3_000L
         const val CREAK_FIRST_MS = 2_500L
         const val CREAK_SLOW_MS = 4_200L

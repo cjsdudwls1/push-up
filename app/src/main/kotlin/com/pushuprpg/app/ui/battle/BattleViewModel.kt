@@ -7,6 +7,8 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.pushuprpg.app.AppContainer
 import com.pushuprpg.app.audio.GameAudio
+import com.pushuprpg.app.audio.GameVoice
+import com.pushuprpg.core.audio.Announcer
 import com.pushuprpg.app.telemetry.Event
 import com.pushuprpg.app.telemetry.Telemetry
 import com.pushuprpg.app.trace.RunTraces
@@ -22,6 +24,7 @@ import com.pushuprpg.core.detect.DetectorConfig
 import com.pushuprpg.core.detect.ExerciseType
 import com.pushuprpg.core.detect.Exercises
 import com.pushuprpg.core.detect.MovementKind
+import com.pushuprpg.core.detect.PlacementAdvice
 import com.pushuprpg.core.detect.PoseQuality
 import com.pushuprpg.core.detect.DetectorFactory
 import com.pushuprpg.core.detect.RepDetector
@@ -62,7 +65,12 @@ class BattleViewModel(
     private val audio: GameAudio,
     private val telemetry: Telemetry,
     private val traces: RunTraces,
+    private val voice: GameVoice,
 ) : ViewModel() {
+
+    // What is said aloud: the phone is two metres away and the banners cannot be read from there.
+    // Only touched on the pose thread, like the engine.
+    private val announcer = Announcer()
 
     private val _state = MutableStateFlow(BattleState())
     val state: StateFlow<BattleState> = _state.asStateFlow()
@@ -104,6 +112,7 @@ class BattleViewModel(
                 _settings.value = it
                 audio.soundEnabled = it.sfxEnabled
                 audio.hapticStrength = it.hapticStrength
+                voice.enabled = it.voiceEnabled
             }
         }
     }
@@ -202,9 +211,14 @@ class BattleViewModel(
         }
         traces.record(frame)
         val next = e.onPoseFrame(frame)
+        // The whole skeleton while setting up, whatever the overlay setting: the lines are how the
+        // user lines themselves up with the framing guide. Back to their choice once armed.
+        val settingUp = next.reps == 0 && next.placement.advice.let { it != null && it != PlacementAdvice.READY }
+        detector?.skeletonMode = if (settingUp) SkeletonMode.FULL else _settings.value.skeletonMode
         // Fired straight from this thread: routing it through a recomposition would spend most of
         // the ~90ms budget between the rep bottoming out and the user hearing it.
         audio.play(next.sounds)
+        voice.announce(announcer.battle(next, frame.timestampMs), progress.playerClass, next.exercise)
 
         // The most useful signal the app collects: how often tracking drops, for what reason, and
         // on which device. Every detection constant here is reasoned rather than measured, so
@@ -379,6 +393,7 @@ class BattleViewModel(
                     container.audio,
                     container.telemetry,
                     container.traces,
+                    container.voice,
                 )
             }
         }

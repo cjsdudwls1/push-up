@@ -31,12 +31,16 @@ import com.pushuprpg.app.pose.CameraPreview
 import com.pushuprpg.app.pose.PoseLandmarkerSource
 import com.pushuprpg.app.ui.components.KeepScreenOn
 import com.pushuprpg.app.ui.components.exerciseHintRes
+import com.pushuprpg.app.ui.components.FramingGuide
+import com.pushuprpg.app.ui.components.NextLegChip
 import com.pushuprpg.app.ui.components.PlacementBanner
 import com.pushuprpg.app.ui.components.exerciseLabelRes
 import com.pushuprpg.app.ui.theme.LocalGameColors
 import com.pushuprpg.app.ui.theme.LocalReduceMotion
 import com.pushuprpg.app.ui.theme.Palette
 import com.pushuprpg.app.ui.theme.Type
+import com.pushuprpg.core.detect.BodySide
+import com.pushuprpg.core.detect.PlacementAdvice
 import com.pushuprpg.core.detect.ExerciseType
 import com.pushuprpg.core.detect.Exercises
 import com.pushuprpg.core.detect.MovementKind
@@ -123,6 +127,15 @@ fun BattleScreen(
                 mirrored = mirrored,
                 modifier = Modifier.fillMaxSize(),
             )
+        }
+
+        // Setting up: a frame to fill and a ghost of the starting pose, over the live skeleton,
+        // until the detector arms. Lining the lines up is easier than reading how to.
+        val settingUp = state.reps == 0 && state.placement.advice.let {
+            it != null && it != PlacementAdvice.READY
+        }
+        if (!audioOnly && settingUp) {
+            FramingGuide(exercise = state.exercise)
         }
 
         EdgeScrims()
@@ -446,6 +459,7 @@ private fun BoxScope.BattleHudLayout(
         )
         Spacer(Modifier.height(10.dp))
         AlertSlot(state)
+        NextLegChip(next = state.nextFront, modifier = Modifier.padding(top = 8.dp))
         Spacer(Modifier.height(10.dp))
         ComboPill(combo = state.combo)
     }
@@ -541,6 +555,11 @@ private fun AlertSlot(state: BattleState) {
             AlertKey.DEEP_STRIKE -> stringResource(R.string.battle_deep_strike)
             AlertKey.QUALITY_LOST -> stringResource(R.string.quality_paused_notice)
             AlertKey.QUALITY_RECOVERED -> stringResource(R.string.quality_recovered)
+            AlertKey.SAME_LEG -> stringResource(
+                R.string.battle_same_leg,
+                stringResource(if (current?.arg == BodySide.LEFT.ordinal) R.string.leg_left else R.string.leg_right),
+            )
+            AlertKey.NOT_SPLIT -> stringResource(R.string.battle_not_split)
         }
         Text(
             text = text,
