@@ -1,0 +1,626 @@
+[
+ {
+  "file": "83de7b187ee5.ogg",
+  "text": "필살기 와요! 천천히 끝까지, 세 번 막아요!",
+  "style": "URGENT",
+  "key": "voice_ultimate_knight:3"
+ },
+ {
+  "file": "c603c191bfd9.ogg",
+  "text": "필살기 와요! 빠르게, 세 번 막아요!",
+  "style": "URGENT",
+  "key": "voice_ultimate_archer:3"
+ },
+ {
+  "file": "047fc10c2016.ogg",
+  "text": "필살기 와요! 자세 그대로 버텨요!",
+  "style": "URGENT",
+  "key": "voice_ultimate_hold"
+ },
+ {
+  "file": "90c49ad98299.ogg",
+  "text": "한 번 더!",
+  "style": "URGENT",
+  "key": "voice_answers_left:1"
+ },
+ {
+  "file": "9a9bd83fde24.ogg",
+  "text": "두 번 더!",
+  "style": "URGENT",
+  "key": "voice_answers_left:2"
+ },
+ {
+  "file": "03aef8c592d4.ogg",
+  "text": "막았어요! 좋아요!",
+  "style": "URGENT",
+  "key": "voice_ultimate_blocked"
+ },
+ {
+  "file": "f1105a079b3b.ogg",
+  "text": "맞았어요. 괜찮아요, 계속 가요!",
+  "style": "URGENT",
+  "key": "voice_ultimate_hit"
+ },
+ {
+  "file": "fb23592fccff.ogg",
+  "text": "거의 다 왔어요!",
+  "style": "COACH",
+  "key": "voice_boss_low"
+ },
+ {
+  "file": "03661082090a.ogg",
+  "text": "조금만 더 깊게요!",
+  "style": "COACH",
+  "key": "voice_shallow"
+ },
+ {
+  "file": "fdfd63f7d59c.ogg",
+  "text": "다리를 앞뒤로 벌려야 런지로 세요",
+  "style": "COACH",
+  "key": "battle_not_split"
+ },
+ {
+  "file": "3a2d8c360e16.ogg",
+  "text": "천천히요!",
+  "style": "COACH",
+  "key": "voice_style_too_quick"
+ },
+ {
+  "file": "adeb16348317.ogg",
+  "text": "끝까지요!",
+  "style": "COACH",
+  "key": "voice_style_not_full"
+ },
+ {
+  "file": "e86d9746c7a9.ogg",
+  "text": "더 빠르게요!",
+  "style": "COACH",
+  "key": "voice_style_lagging"
+ },
+ {
+  "file": "24ca000d341d.ogg",
+  "text": "왼발 앞으로!",
+  "style": "COACH",
+  "key": "voice_leg_left"
+ },
+ {
+  "file": "4f3c10089055.ogg",
+  "text": "오른발 앞으로!",
+  "style": "COACH",
+  "key": "voice_leg_right"
+ },
+ {
+  "file": "19131ffad519.ogg",
+  "text": "좋아요, 시작해요!",
+  "style": "COACH",
+  "key": "voice_ready"
+ },
+ {
+  "file": "c6e421f51706.ogg",
+  "text": "십 초 뒤에 다음 던전 시작해요",
+  "style": "COACH",
+  "key": "voice_rest_ten"
+ },
+ {
+  "file": "11b3fffa8cb2.ogg",
+  "text": "시작!",
+  "style": "COACH",
+  "key": "voice_rest_go"
+ },
+ {
+  "file": "e85326f66a76.ogg",
+  "text": "10 콤보!",
+  "style": "COACH",
+  "key": "voice_combo:10"
+ },
+ {
+  "file": "02ff3df7228c.ogg",
+  "text": "20 콤보!",
+  "style": "COACH",
+  "key": "voice_combo:20"
+ },
+ {
+  "file": "a7f752f2da57.ogg",
+  "text": "30 콤보!",
+  "style": "COACH",
+  "key": "voice_combo:30"
+ },
+ {
+  "file": "689aaf1028ec.ogg",
+  "text": "40 콤보!",
+  "style": "COACH",
+  "key": "voice_combo:40"
+ },
+ {
+  "file": "410366954ffe.ogg",
+  "text": "50 콤보!",
+  "style": "COACH",
+  "key": "voice_combo:50"
+ },
+ {
+  "file": "838e57141a4b.ogg",
+  "text": "60 콤보!",
+  "style": "COACH",
+  "key": "voice_combo:60"
+ },
+ {
+  "file": "dd350542fd7f.ogg",
+  "text": "70 콤보!",
+  "style": "COACH",
+  "key": "voice_combo:70"
+ },
+ {
+  "file": "570c99e0168f.ogg",
+  "text": "80 콤보!",
+  "style": "COACH",
+  "key": "voice_combo:80"
+ },
+ {
+  "file": "c368e81b4896.ogg",
+  "text": "90 콤보!",
+  "style": "COACH",
+  "key": "voice_combo:90"
+ },
+ {
+  "file": "a00c8cd9c859.ogg",
+  "text": "100 콤보!",
+  "style": "COACH",
+  "key": "voice_combo:100"
+ },
+ {
+  "file": "aeb781f2bdc9.ogg",
+  "text": "화면 안으로 들어와 주세요",
+  "style": "COACH",
+  "key": "placement_step_into_view"
+ },
+ {
+  "file": "87cb3605f3a0.ogg",
+  "text": "폰에 조금 더 가까이 와 주세요",
+  "style": "COACH",
+  "key": "placement_come_closer"
+ },
+ {
+  "file": "b2c4bfbbfb4d.ogg",
+  "text": "폰을 조금 더 멀리 두세요",
+  "style": "COACH",
+  "key": "placement_move_back"
+ },
+ {
+  "file": "f88fde8a37e2.ogg",
+  "text": "아래쪽이 잘려요. 폰을 조금 뒤로 두거나 아래로 기울여 주세요",
+  "style": "COACH",
+  "key": "placement_show_below"
+ },
+ {
+  "file": "f47043e2f327.ogg",
+  "text": "위쪽이 잘려요. 폰을 조금 뒤로 두거나 위로 기울여 주세요",
+  "style": "COACH",
+  "key": "placement_show_above"
+ },
+ {
+  "file": "49cbe7075f62.ogg",
+  "text": "화면 가운데로 와 주세요",
+  "style": "COACH",
+  "key": "placement_center"
+ },
+ {
+  "file": "0dd49120a95a.ogg",
+  "text": "머리가 폰을 향하게 엎드려 주세요. 옆모습은 못 세요",
+  "style": "COACH",
+  "key": "placement_face_floor"
+ },
+ {
+  "file": "94032a56eb9c.ogg",
+  "text": "몸 앞쪽이 폰을 향하게 해 주세요",
+  "style": "COACH",
+  "key": "placement_face_standing"
+ },
+ {
+  "file": "9754d550441a.ogg",
+  "text": "몸이 잘 안 보여요. 더 밝은 곳에서 해 볼까요?",
+  "style": "COACH",
+  "key": "placement_clearer"
+ },
+ {
+  "file": "9188f961f21b.ogg",
+  "text": "폰이 흔들려요. 기대 세워둘 곳이 있을까요?",
+  "style": "COACH",
+  "key": "quality_unstable_camera"
+ },
+ {
+  "file": "06c4d5f92b17.ogg",
+  "text": "자세를 다시 잡는 동안 기다릴게요",
+  "style": "COACH",
+  "key": "quality_subject_switch"
+ },
+ {
+  "file": "8d65e466cb5d.ogg",
+  "text": "천천히 한 개씩 세어 볼게요",
+  "style": "COACH",
+  "key": "quality_implausible_rate"
+ },
+ {
+  "file": "c0bedef217d0.ogg",
+  "text": "팔을 펴고 엎드려 주세요",
+  "style": "COACH",
+  "key": "placement_start_pushup"
+ },
+ {
+  "file": "01c32cd1b184.ogg",
+  "text": "플랭크 자세를 잡아 주세요",
+  "style": "COACH",
+  "key": "placement_start_plank"
+ },
+ {
+  "file": "8789f8dc4d90.ogg",
+  "text": "똑바로 서 주세요",
+  "style": "COACH",
+  "key": "placement_start_squat"
+ },
+ {
+  "file": "5a31795ae6d2.ogg",
+  "text": "한 발을 앞으로 내고 서 주세요",
+  "style": "COACH",
+  "key": "placement_start_lunge"
+ },
+ {
+  "file": "68b1ca969d66.ogg",
+  "text": "바에 매달려 주세요",
+  "style": "COACH",
+  "key": "placement_start_pull_up"
+ },
+ {
+  "file": "43d4fbd0f4c5.ogg",
+  "text": "봉을 잡고 팔을 펴 주세요",
+  "style": "COACH",
+  "key": "placement_start_dip"
+ },
+ {
+  "file": "2d9bfe1d2780.ogg",
+  "text": "든든해요, 냥~",
+  "style": "CAT",
+  "key": "cat_line_calm_1"
+ },
+ {
+  "file": "14589849a7bb.ogg",
+  "text": "좋아요, 그대로요!",
+  "style": "CAT",
+  "key": "cat_line_calm_2"
+ },
+ {
+  "file": "63e505028bce.ogg",
+  "text": "골골… 편안해요",
+  "style": "CAT",
+  "key": "cat_line_calm_3"
+ },
+ {
+  "file": "83e59cf729e1.ogg",
+  "text": "10번 연속! 최고예요, 냥!",
+  "style": "CAT",
+  "key": "cat_line_combo_1:10"
+ },
+ {
+  "file": "65cd0e22d888.ogg",
+  "text": "20번 연속! 최고예요, 냥!",
+  "style": "CAT",
+  "key": "cat_line_combo_1:20"
+ },
+ {
+  "file": "9d09b46966f0.ogg",
+  "text": "30번 연속! 최고예요, 냥!",
+  "style": "CAT",
+  "key": "cat_line_combo_1:30"
+ },
+ {
+  "file": "e652ca7c85bd.ogg",
+  "text": "40번 연속! 최고예요, 냥!",
+  "style": "CAT",
+  "key": "cat_line_combo_1:40"
+ },
+ {
+  "file": "fe42de3de27e.ogg",
+  "text": "50번 연속! 최고예요, 냥!",
+  "style": "CAT",
+  "key": "cat_line_combo_1:50"
+ },
+ {
+  "file": "d5e01abc5b06.ogg",
+  "text": "60번 연속! 최고예요, 냥!",
+  "style": "CAT",
+  "key": "cat_line_combo_1:60"
+ },
+ {
+  "file": "796f104f1460.ogg",
+  "text": "70번 연속! 최고예요, 냥!",
+  "style": "CAT",
+  "key": "cat_line_combo_1:70"
+ },
+ {
+  "file": "310ae0bfcaae.ogg",
+  "text": "80번 연속! 최고예요, 냥!",
+  "style": "CAT",
+  "key": "cat_line_combo_1:80"
+ },
+ {
+  "file": "661348cd76a0.ogg",
+  "text": "90번 연속! 최고예요, 냥!",
+  "style": "CAT",
+  "key": "cat_line_combo_1:90"
+ },
+ {
+  "file": "81fedc617770.ogg",
+  "text": "100번 연속! 최고예요, 냥!",
+  "style": "CAT",
+  "key": "cat_line_combo_1:100"
+ },
+ {
+  "file": "36567dfe10d6.ogg",
+  "text": "10연속! 계속 가요!",
+  "style": "CAT",
+  "key": "cat_line_combo_2:10"
+ },
+ {
+  "file": "9deec3a54afc.ogg",
+  "text": "20연속! 계속 가요!",
+  "style": "CAT",
+  "key": "cat_line_combo_2:20"
+ },
+ {
+  "file": "cf1dbd2c8952.ogg",
+  "text": "30연속! 계속 가요!",
+  "style": "CAT",
+  "key": "cat_line_combo_2:30"
+ },
+ {
+  "file": "870dfb7890df.ogg",
+  "text": "40연속! 계속 가요!",
+  "style": "CAT",
+  "key": "cat_line_combo_2:40"
+ },
+ {
+  "file": "918dbaeccd51.ogg",
+  "text": "50연속! 계속 가요!",
+  "style": "CAT",
+  "key": "cat_line_combo_2:50"
+ },
+ {
+  "file": "fd0e2d9364aa.ogg",
+  "text": "60연속! 계속 가요!",
+  "style": "CAT",
+  "key": "cat_line_combo_2:60"
+ },
+ {
+  "file": "950d075f261d.ogg",
+  "text": "70연속! 계속 가요!",
+  "style": "CAT",
+  "key": "cat_line_combo_2:70"
+ },
+ {
+  "file": "0047515b3a41.ogg",
+  "text": "80연속! 계속 가요!",
+  "style": "CAT",
+  "key": "cat_line_combo_2:80"
+ },
+ {
+  "file": "400d5ddb96a7.ogg",
+  "text": "90연속! 계속 가요!",
+  "style": "CAT",
+  "key": "cat_line_combo_2:90"
+ },
+ {
+  "file": "7568b843640d.ogg",
+  "text": "100연속! 계속 가요!",
+  "style": "CAT",
+  "key": "cat_line_combo_2:100"
+ },
+ {
+  "file": "49f1598015f3.ogg",
+  "text": "믿어요, 냥!",
+  "style": "CAT",
+  "key": "cat_line_hello_1"
+ },
+ {
+  "file": "25bec206a9c6.ogg",
+  "text": "시작이다냥! 힘내요!",
+  "style": "CAT",
+  "key": "cat_line_hello_2"
+ },
+ {
+  "file": "924f7d1e384a.ogg",
+  "text": "30초나 버텼어요, 냥!",
+  "style": "CAT",
+  "key": "cat_line_milestone_1:30"
+ },
+ {
+  "file": "291d3d57c345.ogg",
+  "text": "60초나 버텼어요, 냥!",
+  "style": "CAT",
+  "key": "cat_line_milestone_1:60"
+ },
+ {
+  "file": "de7e32602e5d.ogg",
+  "text": "90초나 버텼어요, 냥!",
+  "style": "CAT",
+  "key": "cat_line_milestone_1:90"
+ },
+ {
+  "file": "58e1535f160b.ogg",
+  "text": "120초나 버텼어요, 냥!",
+  "style": "CAT",
+  "key": "cat_line_milestone_1:120"
+ },
+ {
+  "file": "832ca097bfc1.ogg",
+  "text": "150초나 버텼어요, 냥!",
+  "style": "CAT",
+  "key": "cat_line_milestone_1:150"
+ },
+ {
+  "file": "127bb1a5fe3e.ogg",
+  "text": "180초나 버텼어요, 냥!",
+  "style": "CAT",
+  "key": "cat_line_milestone_1:180"
+ },
+ {
+  "file": "ef3eaa96d479.ogg",
+  "text": "210초나 버텼어요, 냥!",
+  "style": "CAT",
+  "key": "cat_line_milestone_1:210"
+ },
+ {
+  "file": "5aafb6114ab7.ogg",
+  "text": "240초나 버텼어요, 냥!",
+  "style": "CAT",
+  "key": "cat_line_milestone_1:240"
+ },
+ {
+  "file": "db803b9d3360.ogg",
+  "text": "270초나 버텼어요, 냥!",
+  "style": "CAT",
+  "key": "cat_line_milestone_1:270"
+ },
+ {
+  "file": "cd4f594db120.ogg",
+  "text": "300초나 버텼어요, 냥!",
+  "style": "CAT",
+  "key": "cat_line_milestone_1:300"
+ },
+ {
+  "file": "9db746ef9f3d.ogg",
+  "text": "벌써 30초! 멋져요!",
+  "style": "CAT",
+  "key": "cat_line_milestone_2:30"
+ },
+ {
+  "file": "e8d88ef26046.ogg",
+  "text": "벌써 60초! 멋져요!",
+  "style": "CAT",
+  "key": "cat_line_milestone_2:60"
+ },
+ {
+  "file": "b8f8e53c9b8b.ogg",
+  "text": "벌써 90초! 멋져요!",
+  "style": "CAT",
+  "key": "cat_line_milestone_2:90"
+ },
+ {
+  "file": "760c3177302c.ogg",
+  "text": "벌써 120초! 멋져요!",
+  "style": "CAT",
+  "key": "cat_line_milestone_2:120"
+ },
+ {
+  "file": "388082b0c466.ogg",
+  "text": "벌써 150초! 멋져요!",
+  "style": "CAT",
+  "key": "cat_line_milestone_2:150"
+ },
+ {
+  "file": "e3fb06c7e413.ogg",
+  "text": "벌써 180초! 멋져요!",
+  "style": "CAT",
+  "key": "cat_line_milestone_2:180"
+ },
+ {
+  "file": "97863afe84e3.ogg",
+  "text": "벌써 210초! 멋져요!",
+  "style": "CAT",
+  "key": "cat_line_milestone_2:210"
+ },
+ {
+  "file": "25a7d8d56a42.ogg",
+  "text": "벌써 240초! 멋져요!",
+  "style": "CAT",
+  "key": "cat_line_milestone_2:240"
+ },
+ {
+  "file": "eeb13391bc87.ogg",
+  "text": "벌써 270초! 멋져요!",
+  "style": "CAT",
+  "key": "cat_line_milestone_2:270"
+ },
+ {
+  "file": "6cda055843b2.ogg",
+  "text": "벌써 300초! 멋져요!",
+  "style": "CAT",
+  "key": "cat_line_milestone_2:300"
+ },
+ {
+  "file": "dbc039b90d25.ogg",
+  "text": "조금만 더 깊게요, 냥!",
+  "style": "CAT",
+  "key": "cat_line_near_miss_1"
+ },
+ {
+  "file": "4fef5c00e690.ogg",
+  "text": "거의 다 왔어요! 한 번 더!",
+  "style": "CAT",
+  "key": "cat_line_near_miss_2"
+ },
+ {
+  "file": "5f741ce1fc9f.ogg",
+  "text": "살려 줘요, 냥!!",
+  "style": "CAT",
+  "key": "cat_line_panic_1"
+ },
+ {
+  "file": "f8b447f31e4b.ogg",
+  "text": "제발 밀어 줘요!!",
+  "style": "CAT",
+  "key": "cat_line_panic_2"
+ },
+ {
+  "file": "2251119f69ac.ogg",
+  "text": "살았다냥!",
+  "style": "CAT",
+  "key": "cat_line_saved_1"
+ },
+ {
+  "file": "16d070a30f07.ogg",
+  "text": "고마워요, 냥! 살았어요!",
+  "style": "CAT",
+  "key": "cat_line_saved_2"
+ },
+ {
+  "file": "ac5bc977d93b.ogg",
+  "text": "휴… 살았다냥!",
+  "style": "CAT",
+  "key": "cat_line_saved_3"
+ },
+ {
+  "file": "a4e69ed248e1.ogg",
+  "text": "무서워요, 냥…!",
+  "style": "CAT",
+  "key": "cat_line_scared_1"
+ },
+ {
+  "file": "2375165f9c93.ogg",
+  "text": "천장이 너무 가까워요!",
+  "style": "CAT",
+  "key": "cat_line_scared_2"
+ },
+ {
+  "file": "61fb78b11ead.ogg",
+  "text": "어… 천장이 내려와요, 냥?",
+  "style": "CAT",
+  "key": "cat_line_uneasy_1"
+ },
+ {
+  "file": "614a9306f74c.ogg",
+  "text": "조금 무서워지는데요…",
+  "style": "CAT",
+  "key": "cat_line_uneasy_2"
+ },
+ {
+  "file": "53191fdb44e0.ogg",
+  "text": "천장이 무서워요… 지켜 줄 거죠?",
+  "style": "CAT",
+  "key": "cat_line_waiting_1"
+ },
+ {
+  "file": "d47c907ceeb6.ogg",
+  "text": "같이 있어 줘요, 냥",
+  "style": "CAT",
+  "key": "cat_line_waiting_2"
+ }
+]

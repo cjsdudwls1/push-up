@@ -115,6 +115,12 @@ Korean is the default locale, not a translation. Voice is 해요체 — an encou
 never a drill instructor. 실패 does not appear anywhere in the app; a lost run is `다음엔 잡아요`.
 Every user-visible string lives in `app/src/main/res/values/strings.xml`.
 
+Spoken lines play from `app/src/main/assets/voice/<id>.ogg` when a clip exists for the exact text
+(id = first 12 hex of its SHA-1) and fall back to the phone's TTS otherwise. `tools/voice_lines.py`
+lists every line with its file and delivery, and fails if `GameVoice` speaks a string it does not
+list — add new voiced strings there. After rewording a voiced string, `--check` shows the clip that
+went stale. Outside audio and its licence go in `docs/AUDIO_CREDITS.md`.
+
 ## Balance
 
 Enemy HP is never authored. Content declares a *rep cost* and HP is derived at spawn: the rep cost

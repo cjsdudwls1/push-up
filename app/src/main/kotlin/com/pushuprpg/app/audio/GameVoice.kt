@@ -2,6 +2,7 @@ package com.pushuprpg.app.audio
 
 import android.content.Context
 import android.media.AudioAttributes
+import android.media.MediaPlayer
 import android.os.Handler
 import android.os.Looper
 import android.speech.tts.TextToSpeech
@@ -15,22 +16,26 @@ import com.pushuprpg.core.detect.PlacementAdvice
 import com.pushuprpg.core.game.PlayerClass
 import com.pushuprpg.core.run.AlertKey
 import com.pushuprpg.core.survival.CatLine
+import java.security.MessageDigest
 import java.util.Locale
 
 /**
- * The game's voice: what [com.pushuprpg.core.audio.Announcer] decides to say, spoken by the
- * phone's own text-to-speech engine.
+ * The game's voice: what [com.pushuprpg.core.audio.Announcer] decides to say, spoken aloud.
  *
- * On-device rather than recorded, for three reasons. It is free and works offline. It is the
- * phone's neural Korean voice on any recent Android, not a robot. And the lines carry numbers and
- * names — how many answers are left, which leg goes next — which a folder of recordings could only
- * cover by recording every combination.
+ * A line is played from a pre-rendered clip when the app ships one for its exact text —
+ * `assets/voice/<id>.ogg`, where the id is the first 12 hex digits of the SHA-1 of the text — and
+ * otherwise spoken by the phone's own text-to-speech engine, which is free, offline, and on any
+ * recent Android a neural Korean voice. `tools/voice_lines.py` lists every line with its file name
+ * and delivery. Keying on the text means a reworded line stops matching its old clip rather than
+ * being played in words the app no longer uses, and a line nobody recorded is still said.
  *
- * Urgency is carried by delivery: urgent lines are faster and higher and cut off anything being
- * said. The music ducks under every line, so the words are never the thing that gets lost.
+ * Urgency is carried by delivery: urgent lines are faster and higher (in the clip, or by the
+ * engine's rate and pitch) and cut off anything being said. Everything else queues behind the line
+ * in progress, one at a time, whichever of the two is saying it. The music ducks under every line,
+ * so the words are never the thing that gets lost.
  *
- * Called from the pose thread; every call is posted to the main thread, which is where the engine
- * and the music player are touched.
+ * Called from the pose thread; every call is posted to the main thread, which is where the engine,
+ * the clip player and the music player are touched.
  */
 class GameVoice(context: Context, private val music: MusicPlayer) {
 
@@ -38,41 +43,47 @@ class GameVoice(context: Context, private val music: MusicPlayer) {
     private val main = Handler(Looper.getMainLooper())
     private var tts: TextToSpeech? = null
     private var ready = false
-    private var speaking = 0
     private var seq = 0
+
+    /** Lines waiting for the one in progress, oldest first. Main thread only. */
+    private val pending = ArrayDeque<Pair<String, VoiceStyle>>()
+    /** The utterance or clip in progress; a callback for anything else is stale and ignored. */
+    private var current: String? = null
+    private var clip: MediaPlayer? = null
+    /** File names under assets/voice, read once. */
+    private var clips: Set<String> = emptySet()
 
     @Volatile
     var enabled: Boolean = true
 
+    private val speech: AudioAttributes = AudioAttributes.Builder()
+        .setUsage(AudioAttributes.USAGE_GAME)
+        .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+        .build()
+
     init {
         main.post {
+            clips = runCatching { appContext.assets.list(CLIP_DIR)?.toSet() }.getOrNull().orEmpty()
             tts = TextToSpeech(appContext) { status ->
                 val engine = tts ?: return@TextToSpeech
                 if (status != TextToSpeech.SUCCESS) return@TextToSpeech
                 val lang = engine.setLanguage(Locale.KOREAN)
                 ready = lang != TextToSpeech.LANG_MISSING_DATA && lang != TextToSpeech.LANG_NOT_SUPPORTED
-                engine.setAudioAttributes(
-                    AudioAttributes.Builder()
-                        .setUsage(AudioAttributes.USAGE_GAME)
-                        .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
-                        .build()
-                )
+                engine.setAudioAttributes(speech)
                 engine.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
-                    override fun onStart(utteranceId: String?) {
-                        main.post { duck(+1) }
-                    }
+                    override fun onStart(utteranceId: String?) = Unit
 
                     override fun onDone(utteranceId: String?) {
-                        main.post { duck(-1) }
+                        main.post { finished(utteranceId) }
                     }
 
                     @Deprecated("Deprecated in Java")
                     override fun onError(utteranceId: String?) {
-                        main.post { duck(-1) }
+                        main.post { finished(utteranceId) }
                     }
 
                     override fun onStop(utteranceId: String?, interrupted: Boolean) {
-                        main.post { duck(-1) }
+                        main.post { finished(utteranceId) }
                     }
                 })
             }
@@ -93,27 +104,83 @@ class GameVoice(context: Context, private val music: MusicPlayer) {
     fun say(text: String, style: VoiceStyle = VoiceStyle.COACH) {
         if (!enabled) return
         main.post {
-            val engine = tts ?: return@post
-            if (!ready) return@post
-            val (rate, pitch) = when (style) {
-                VoiceStyle.URGENT -> 1.3f to 1.15f
-                VoiceStyle.COACH -> 1.1f to 1.0f
-                VoiceStyle.CAT -> 1.15f to 1.6f
+            if (style == VoiceStyle.URGENT) {
+                pending.clear()
+                interrupt()
             }
-            engine.setSpeechRate(rate)
-            engine.setPitch(pitch)
-            val mode = if (style == VoiceStyle.URGENT) TextToSpeech.QUEUE_FLUSH else TextToSpeech.QUEUE_ADD
-            engine.speak(text, mode, null, "line-${seq++}")
+            pending.addLast(text to style)
+            if (current == null) next()
         }
     }
 
     fun stop() {
-        main.post { tts?.stop() }
+        main.post {
+            pending.clear()
+            interrupt()
+        }
     }
 
-    private fun duck(delta: Int) {
-        speaking = (speaking + delta).coerceAtLeast(0)
-        music.setDucked(speaking > 0)
+    /** Starts the oldest waiting line, or lets the music back up when there is none. */
+    private fun next() {
+        while (true) {
+            val (text, style) = pending.removeFirstOrNull() ?: run {
+                current = null
+                music.setDucked(false)
+                return
+            }
+            val id = "line-${seq++}"
+            current = id
+            music.setDucked(true)
+            if (playClip(clipName(text), id) || speak(text, style, id)) return
+        }
+    }
+
+    private fun finished(id: String?) {
+        if (id == null || id != current) return
+        clip?.release()
+        clip = null
+        next()
+    }
+
+    /** Stops whatever is being said, without starting the next line. */
+    private fun interrupt() {
+        current = null
+        clip?.run { runCatching { stop() }; release() }
+        clip = null
+        tts?.stop()
+        music.setDucked(false)
+    }
+
+    private fun playClip(name: String, id: String): Boolean {
+        if (name !in clips) return false
+        return runCatching {
+            appContext.assets.openFd("$CLIP_DIR/$name").use { fd ->
+                val player = MediaPlayer()
+                player.setAudioAttributes(speech)
+                player.setDataSource(fd.fileDescriptor, fd.startOffset, fd.length)
+                player.setOnCompletionListener { finished(id) }
+                player.setOnErrorListener { _, _, _ -> finished(id); true }
+                player.prepare()
+                clip = player
+                player.start()
+            }
+        }.onFailure {
+            clip?.release()
+            clip = null
+        }.isSuccess
+    }
+
+    private fun speak(text: String, style: VoiceStyle, id: String): Boolean {
+        val engine = tts ?: return false
+        if (!ready) return false
+        val (rate, pitch) = when (style) {
+            VoiceStyle.URGENT -> 1.3f to 1.15f
+            VoiceStyle.COACH -> 1.1f to 1.0f
+            VoiceStyle.CAT -> 1.15f to 1.6f
+        }
+        engine.setSpeechRate(rate)
+        engine.setPitch(pitch)
+        return engine.speak(text, TextToSpeech.QUEUE_FLUSH, null, id) == TextToSpeech.SUCCESS
     }
 
     private fun textFor(a: Announcement, playerClass: PlayerClass, exercise: ExerciseType): String? {
@@ -200,5 +267,15 @@ class GameVoice(context: Context, private val music: MusicPlayer) {
         val id = wordings[serial % wordings.size]
         return if (line == CatLine.MILESTONE || line == CatLine.COMBO) appContext.getString(id, arg)
         else appContext.getString(id)
+    }
+
+    companion object {
+        private const val CLIP_DIR = "voice"
+
+        /** The clip file for [text]: see `tools/voice_lines.py`, which must agree. */
+        fun clipName(text: String): String {
+            val digest = MessageDigest.getInstance("SHA-1").digest(text.toByteArray(Charsets.UTF_8))
+            return digest.joinToString("") { "%02x".format(it) }.take(12) + ".ogg"
+        }
     }
 }
