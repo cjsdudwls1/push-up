@@ -497,7 +497,10 @@ class BattleEngine(
                 // counting, and this one has a fix the user can make on the next rep.
                 is RepEvent.Abandoned -> {
                     if (event.reason == AbandonReason.NOT_SPLIT) alert = Toast(AlertKey.NOT_SPLIT, 0, event.tMs)
-                    if (enemyDiedAtMs == Long.MIN_VALUE) onAfterStrike(encounter.onRepEnd(event.tMs))
+                    if (enemyDiedAtMs == Long.MIN_VALUE) {
+                        val seen = event.reason != AbandonReason.QUALITY_LOST
+                        onAfterStrike(encounter.onRepEnd(event.tMs, seen))
+                    }
                 }
 
                 else -> Unit

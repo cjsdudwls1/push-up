@@ -302,4 +302,12 @@ class EncounterTest {
         assertEquals(16.5f, owed(e), "resting between sets cost the next rep")
         assertEquals(3, e.styleReps)
     }
+
+    @Test
+    fun `a rep the tracker lost is not blamed on the user`() {
+        val e = bigFight(PlayerClass.KNIGHT)
+        e.onRep(RepInput(72f, RepGrade.COUNTED, ExerciseType.PUSHUP, cycleMs = 4000), 4000)
+        val ended = e.onRepEnd(4900, seen = false)
+        assertTrue(ended.none { it is CombatEvent.Style }, "told to go all the way down for a tracking gap: $ended")
+    }
 }

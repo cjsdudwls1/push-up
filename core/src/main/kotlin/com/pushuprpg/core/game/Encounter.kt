@@ -306,12 +306,16 @@ class Encounter(
      * The rep in progress is over: back at the top, or abandoned. A 기사's rep that never reached
      * the deep line stays half, and an answer window whose reps are all done is decided now that
      * every one of them is known.
+     *
+     * [seen] is false when the rep ended because the tracker lost the user: whether it went deep
+     * is unknown, and telling them to go all the way down would blame them for the tracker.
      */
-    fun onRepEnd(atMs: Long): List<CombatEvent> = if (finished) emptyList() else closeRep(atMs)
+    fun onRepEnd(atMs: Long, seen: Boolean = true): List<CombatEvent> =
+        if (finished) emptyList() else closeRep(atMs, seen)
 
-    private fun closeRep(atMs: Long): List<CombatEvent> {
+    private fun closeRep(atMs: Long, seen: Boolean = true): List<CombatEvent> {
         val events = mutableListOf<CombatEvent>()
-        if (repOpen && !repReachedDeep && player.playerClass == PlayerClass.KNIGHT) {
+        if (seen && repOpen && !repReachedDeep && player.playerClass == PlayerClass.KNIGHT) {
             events += CombatEvent.Style(atMs, StyleMiss.NOT_FULL)
         }
         repOpen = false
