@@ -19,6 +19,7 @@ navigationCompose = "2.10.1"
 datastore = "1.2.0"
 room = "2.8.5"
 camerax = "1.6.2"
+fragment = "1.8.5"
 billing = "9.1.0"
 mediapipe = "0.10.29"
 
@@ -60,6 +61,7 @@ androidx-room-runtime = { group = "androidx.room", name = "room-runtime", versio
 androidx-room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
 androidx-room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
 
+androidx-fragment = { group = "androidx.fragment", name = "fragment", version.ref = "fragment" }
 androidx-camera-core = { group = "androidx.camera", name = "camera-core", version.ref = "camerax" }
 androidx-camera-camera2 = { group = "androidx.camera", name = "camera-camera2", version.ref = "camerax" }
 androidx-camera-lifecycle = { group = "androidx.camera", name = "camera-lifecycle", version.ref = "camerax" }

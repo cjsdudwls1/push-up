@@ -191,6 +191,15 @@ dependencies {
     implementation(libs.firebase.analytics)
     implementation(libs.kotlinx.serialization.json)
 
+    constraints {
+        // Play services (under Firebase) still pull in a pre-1.3 Fragment. MainActivity is a plain
+        // ComponentActivity, so the old FragmentActivity's broken permission-result plumbing never
+        // reaches it — but release lint cannot know that and fails the Play build on it
+        // (InvalidFragmentVersionForActivityResult). Lifting the transitive version is the fix,
+        // and it also fixes the dialogs Play services show through that old FragmentActivity.
+        implementation(libs.androidx.fragment)
+    }
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.test.junit)
     androidTestImplementation(libs.androidx.espresso.core)

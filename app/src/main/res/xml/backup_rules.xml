@@ -5,11 +5,14 @@
 
   Note the datastore paths: DataStore Preferences writes to files/datastore/<name>.preferences_pb,
   not to SharedPreferences, so naming a settings.xml here would silently back up nothing.
+
+  The entitlement cache (datastore/billing_cache.preferences_pb) is left out by not being listed:
+  with explicit includes, anything unnamed is not backed up. An <exclude> for it was redundant, and
+  release lint rejects an exclude outside every include as invalid, which failed the Play build.
 -->
 <full-backup-content>
     <include domain="database" path="pushup.db" />
     <include domain="file" path="datastore/progress.preferences_pb" />
     <include domain="file" path="datastore/settings.preferences_pb" />
     <include domain="file" path="datastore/calibration.preferences_pb" />
-    <exclude domain="file" path="datastore/billing_cache.preferences_pb" />
 </full-backup-content>
