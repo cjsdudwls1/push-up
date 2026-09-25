@@ -23,6 +23,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavBackStackEntry
+import androidx.navigation.NavController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -301,8 +303,11 @@ fun PushupRpgApp(
                                 // and navigating in parallel would race, and losing that race means
                                 // a run counted with the previous movement's detector.
                                 container.settingsRepository.update { it.copy(exercise = picked) }
-                                navController.navigate(Routes.battle(dungeonIndex)) {
-                                    popUpTo(Routes.EXERCISE_PICK) { inclusive = true }
+                                // Two taps inside that wait both get here.
+                                if (navController.isOnTop(entry)) {
+                                    navController.navigate(Routes.battle(dungeonIndex)) {
+                                        popUpTo(Routes.EXERCISE_PICK) { inclusive = true }
+                                    }
                                 }
                             }
                         },
@@ -325,7 +330,9 @@ fun PushupRpgApp(
                     }
 
                     LaunchedEffect(state.outcome) {
-                        state.outcome?.let { outcome ->
+                        // Not after a quit: the screen keeps counting frames on its way out, and the
+                        // result must be the run that was banked.
+                        state.outcome?.takeIf { navController.isOnTop(entry) }?.let { outcome ->
                             lastOutcome = outcome
                             lastLevelsGained = vm.levelsGained.value
                             navController.navigate(Routes.result(dungeonIndex)) {
@@ -345,10 +352,12 @@ fun PushupRpgApp(
                             audioOnly = settings.audioOnly,
                             onSwitchExercise = vm::switchExercise,
                             onQuit = {
-                                lastOutcome = vm.quit()
-                                lastLevelsGained = vm.levelsGained.value
-                                navController.navigate(Routes.result(dungeonIndex)) {
-                                    popUpTo(Routes.BATTLE) { inclusive = true }
+                                if (navController.isOnTop(entry)) {
+                                    lastOutcome = vm.quit()
+                                    lastLevelsGained = vm.levelsGained.value
+                                    navController.navigate(Routes.result(dungeonIndex)) {
+                                        popUpTo(Routes.BATTLE) { inclusive = true }
+                                    }
                                 }
                             },
                         )
@@ -380,8 +389,11 @@ fun PushupRpgApp(
                                 // doing, and awaited for the same reason as on the picker.
                                 val exercise = outcome.segments.lastOrNull()?.exercise ?: settings.exercise
                                 container.settingsRepository.update { it.copy(exercise = exercise) }
-                                navController.navigate(Routes.battle(next)) {
-                                    popUpTo(Routes.RESULT) { inclusive = true }
+                                // The rest running out and a tap on 지금 시작 can both land here.
+                                if (navController.isOnTop(entry)) {
+                                    navController.navigate(Routes.battle(next)) {
+                                        popUpTo(Routes.RESULT) { inclusive = true }
+                                    }
                                 }
                             }
                         }
@@ -419,13 +431,17 @@ fun PushupRpgApp(
                                     } else {
                                         Routes.PAYWALL
                                     }
-                                    navController.navigate(route) {
-                                        popUpTo(Routes.RESULT) { inclusive = true }
+                                    if (navController.isOnTop(entry)) {
+                                        navController.navigate(route) {
+                                            popUpTo(Routes.RESULT) { inclusive = true }
+                                        }
                                     }
                                 },
                                 onRetry = {
-                                    navController.navigate(Routes.exercisePick(dungeonIndex)) {
-                                        popUpTo(Routes.RESULT) { inclusive = true }
+                                    if (navController.isOnTop(entry)) {
+                                        navController.navigate(Routes.exercisePick(dungeonIndex)) {
+                                            popUpTo(Routes.RESULT) { inclusive = true }
+                                        }
                                     }
                                 },
                                 onShare = {
@@ -452,7 +468,7 @@ fun PushupRpgApp(
                     }
                 }
 
-                composable(Routes.SURVIVAL_PICK) {
+                composable(Routes.SURVIVAL_PICK) { entry ->
                     ExercisePickScreen(
                         dungeon = null,
                         survival = true,
@@ -471,8 +487,10 @@ fun PushupRpgApp(
                             scope.launch {
                                 container.settingsRepository.update { it.copy(exercise = picked) }
                             }
-                            navController.navigate(Routes.survival(exercise = picked)) {
-                                popUpTo(Routes.SURVIVAL_PICK) { inclusive = true }
+                            if (navController.isOnTop(entry)) {
+                                navController.navigate(Routes.survival(exercise = picked)) {
+                                    popUpTo(Routes.SURVIVAL_PICK) { inclusive = true }
+                                }
                             }
                         },
                     )
@@ -524,7 +542,8 @@ fun PushupRpgApp(
                                         popUpTo(Routes.SURVIVAL) { inclusive = true }
                                     }
                                 } else {
-                                    navController.popBackStack()
+                                    // By route, so a second tap cannot pop the hub along with it.
+                                    navController.popBackStack(Routes.SURVIVAL, inclusive = true)
                                 }
                             },
                         )
@@ -604,7 +623,8 @@ fun PushupRpgApp(
                             activity?.let { container.billing.launchPurchaseFlow(it, plan) }
                         },
                         onRestore = { scope.launch { container.entitlementRepository.refresh() } },
-                        onDismiss = { navController.popBackStack() },
+                        // By route, so a second tap cannot pop what opened it along with it.
+                        onDismiss = { navController.popBackStack(Routes.PAYWALL, inclusive = true) },
                     )
                 }
             }
@@ -674,6 +694,17 @@ private fun SystemBars(darkSurface: Boolean) {
 /** [enableEdgeToEdge]'s own default scrims, which it keeps private. */
 private val LIGHT_NAV_SCRIM = android.graphics.Color.argb(0xE6, 0xFF, 0xFF, 0xFF)
 private val DARK_NAV_SCRIM = android.graphics.Color.argb(0x80, 0x1B, 0x1B, 0x1B)
+
+/**
+ * Whether [entry] is still the screen on top, and so has not already left.
+ *
+ * Asked before a navigation that pops the screen it starts from. A second tap during the
+ * transition, or two taps let through by an awaited write, arrived after the first had popped the
+ * screen: its popUpTo then named a route no longer on the stack, and it pushed a second battle
+ * behind the first. Unlike waiting for RESUMED, a tap while the screen is still sliding in counts.
+ */
+private fun NavController.isOnTop(entry: NavBackStackEntry): Boolean =
+    currentBackStackEntry?.id == entry.id
 
 private fun toast(context: Context, message: Int) {
     Toast.makeText(context, context.getString(message), Toast.LENGTH_SHORT).show()
