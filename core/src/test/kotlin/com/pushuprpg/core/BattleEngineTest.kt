@@ -230,6 +230,45 @@ class BattleEngineTest {
         assertEquals(config.deepEnter, state.deepEnter)
     }
 
+    /**
+     * The device-shaped version of the rule: the tracker loses the user at the bottom of the rep
+     * that closes the answer window, and the detector abandons it. Nothing may land while they are
+     * out of view, and coming back must not be met with the hit either.
+     */
+    @Test
+    fun `losing the user on the window's last rep never lands the ultimate`() {
+        // One floor big enough to wind up: twelve reps for a 기사.
+        val dungeon = Dungeon(99, "시험", listOf(EnemyTemplate("test", "시험용", 20)), 1..1)
+        val e = engine(playerClass = PlayerClass.KNIGHT, dungeon = dungeon)
+        var t = 3_600_000L
+        var state = e.currentState()
+        fun feed(frames: List<PoseFrame>) {
+            frames.forEach { state = e.onPoseFrame(it) }
+            t = frames.last().timestampMs + 33
+        }
+        // Quick and short of 깊게: a 기사's rep that never answers.
+        fun plainRep() = feed(PoseFixtures.rep(t, descentMs = 500, peakDepth = 0.72f, restMs = 400))
+
+        feed(PoseFixtures.trace(count = 0, startMs = t))
+        repeat(20) { if (!state.ultimateIncoming) plainRep() }
+        assertTrue(state.ultimateIncoming, "no wind-up after ${state.reps} reps")
+        while (state.ultimateRepsLeft > 1) plainRep()
+        val full = state.playerHp
+        val repsBefore = state.reps
+
+        // Down to the bottom, and the camera loses them there.
+        val down = PoseFixtures.rep(t, descentMs = 500, bottomMs = 150, peakDepth = 0.72f)
+            .takeWhile { it.timestampMs < t + 650 }
+        feed(down)
+        repeat(90) { state = e.onPoseFrame(PoseFrame.empty(t)); t += 33 }
+        assertEquals(repsBefore + 1, state.reps, "the fixture's last rep never struck")
+        feed((0 until 30).map { PoseFixtures.frame(t + it * 33L, 0f) })
+
+        assertEquals(full, state.playerHp, "the ultimate landed on a rep the tracker lost")
+        assertTrue(state.ultimateIncoming, "the window was decided on a rep nobody saw end")
+        assertEquals(1, state.ultimateRepsLeft, "the lost rep used up the last chance")
+    }
+
     @Test
     fun `every class can clear the first dungeon`() {
         for (cls in PlayerClass.entries) {

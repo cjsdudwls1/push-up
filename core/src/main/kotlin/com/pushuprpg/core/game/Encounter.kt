@@ -131,6 +131,8 @@ class Encounter(
     private var repOpen = false
     private var repReachedDeep = false
     private var repAnswered = false
+    /** The rep in progress is one of the open answer window's. */
+    private var repInWindow = false
 
     /** Roughly how many reps this fight should take, used to pace the boss's rage. */
     private val expectedReps: Int =
@@ -260,6 +262,7 @@ class Encounter(
             defenseGaugeMs = min(DEFENSE_GAUGE_MS, defenseGaugeMs + GAUGE_REFILL_MS)
         }
 
+        repInWindow = telegraphed
         if (telegraphed) {
             repsSinceTelegraph++
             if (answersAtStrike(rep)) answer()
@@ -318,8 +321,13 @@ class Encounter(
         if (seen && repOpen && !repReachedDeep && player.playerClass == PlayerClass.KNIGHT) {
             events += CombatEvent.Style(atMs, StyleMiss.NOT_FULL)
         }
+        // A rep the tracker lost is not held against the user. Unless it had already answered, it
+        // gives its chance in the window back — a 기사's answer comes at the deep line, after the
+        // strike, and the tracker took that away — and the window is never decided on it: the hit
+        // would land on somebody the camera cannot see, for a gap that was the tracker's.
+        if (!seen && repOpen && repInWindow && !repAnswered && telegraphed) repsSinceTelegraph--
         repOpen = false
-        events += landIfSpent(atMs)
+        if (seen) events += landIfSpent(atMs)
         return events
     }
 

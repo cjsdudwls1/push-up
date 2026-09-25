@@ -310,4 +310,43 @@ class EncounterTest {
         val ended = e.onRepEnd(4900, seen = false)
         assertTrue(ended.none { it is CombatEvent.Style }, "told to go all the way down for a tracking gap: $ended")
     }
+
+    /**
+     * The last rep of the window struck, and the camera lost the user before it ended — before a
+     * 기사 could reach the deep line and answer with it. Landing then hurt somebody the tracker could
+     * not see, for a gap that was the tracker's.
+     */
+    @Test
+    fun `a rep the tracker lost never lands the ultimate`() {
+        val e = bigFight(PlayerClass.KNIGHT)
+        var t = untilTelegraph(e)
+        val full = e.player.hp
+        repeat(Encounter.ANSWER_WINDOW_REPS - 1) { t += 3000; e.fullRep(plainRep(), t) }
+        assertEquals(1, e.answerRepsLeft)
+
+        t += 3000
+        val lost = e.onRep(plainRep(), t) + e.onRepEnd(t + 900, seen = false)
+        assertTrue(lost.none { it is CombatEvent.Ultimate }, "landed on a rep the tracker lost: $lost")
+        assertEquals(full, e.player.hp)
+        assertTrue(e.ultimateWindingUp, "the window closed on a rep nobody saw end")
+        assertEquals(1, e.answerRepsLeft, "the lost rep used up a chance")
+
+        // Back in view, the chance it gave back is theirs: a slow, full rep there answers.
+        t += 3000
+        e.fullRep(plainRep(), t, loweringMs = 800)
+        assertEquals(1, e.answersLanded)
+    }
+
+    @Test
+    fun `a lost rep that had already answered keeps its answer`() {
+        val e = bigFight(PlayerClass.ARCHER)
+        var t = untilTelegraph(e)
+        // A 궁수 answers with pace at the strike, before anything can be lost.
+        val brisk = RepInput(72f, RepGrade.COUNTED, ExerciseType.PUSHUP, cycleMs = 1200)
+        t += 1200
+        e.onRep(brisk, t)
+        e.onRepEnd(t + 500, seen = false)
+        assertEquals(1, e.answersLanded)
+        assertEquals(Encounter.ANSWER_WINDOW_REPS - 1, e.answerRepsLeft, "an answer was handed back as a chance")
+    }
 }
