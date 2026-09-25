@@ -571,6 +571,7 @@ fun PushupRpgApp(
                         },
                         onChangeClass = changeClass,
                         onOpenPrivacy = { openUrl(context, context.getString(R.string.privacy_policy_url)) },
+                        onOpenTerms = { openUrl(context, context.getString(R.string.terms_url)) },
                         onPreviewHaptic = container.audio::previewHaptic,
                         traceTools = BuildConfig.DEBUG,
                         onSendTrace = {

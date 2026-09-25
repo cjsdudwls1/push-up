@@ -35,6 +35,7 @@ fun SettingsScreen(
     onRecalibrate: () -> Unit,
     onChangeClass: () -> Unit,
     onOpenPrivacy: () -> Unit,
+    onOpenTerms: () -> Unit,
     modifier: Modifier = Modifier,
     /** Debug builds only: the recorder behind a bug report. See [com.pushuprpg.app.trace.RunTraces]. */
     traceTools: Boolean = false,
@@ -256,6 +257,10 @@ fun SettingsScreen(
         ActionSetting(
             title = stringResource(R.string.settings_privacy),
             onClick = onOpenPrivacy,
+        )
+        ActionSetting(
+            title = stringResource(R.string.settings_terms),
+            onClick = onOpenTerms,
         )
     }
 }

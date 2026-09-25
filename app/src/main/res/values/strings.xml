@@ -23,6 +23,8 @@
     <!-- Onboarding & permission -->
     <string name="onboarding_title">몸으로 하는 RPG</string>
     <string name="onboarding_body">푸쉬업 한 개가 공격 한 번이에요.\n카메라가 동작을 읽고, 몬스터가 쓰러져요.</string>
+    <!-- The health notice, where everyone sees it once before the first workout. Same words as the store listing and terms. -->
+    <string name="onboarding_health">의료기기가 아니에요. 운동 중에 아프면 바로 멈추고,\n지병이나 부상이 있다면 먼저 의사와 상의해 주세요.</string>
     <string name="permission_headline">카메라 권한이 필요해요</string>
     <string name="permission_privacy">카메라는 동작만 인식해요. 영상은 저장되지도, 어디로도 전송되지 않아요.</string>
     <string name="privacy_telemetry">앱이 멈추거나 오류가 나면 원인을 찾기 위한 기록이 전송돼요. 여기에 영상이나 사진은 들어가지 않아요.</string>
@@ -264,6 +266,7 @@
     <string name="battle_remaining_seconds">남은 %1$,d초</string>
     <string name="pick_exercise_cost_seconds">%1$,d초</string>
     <string name="settings_privacy">개인정보 처리방침</string>
+    <string name="settings_terms">이용약관·건강 안내</string>
     <string name="settings_recalibrate">깊이 기준 초기화</string>
 
     <!-- Exercises -->
@@ -462,4 +465,5 @@
     <!-- Hosted from site/ by .github/workflows/pages.yml. Google Play requires this URL to resolve
          before the listing can be published, so it is part of the release checklist, not a link. -->
     <string name="privacy_policy_url" translatable="false">https://cjsdudwls1.github.io/push-up/privacy.html</string>
+    <string name="terms_url" translatable="false">https://cjsdudwls1.github.io/push-up/terms.html</string>
 </resources>

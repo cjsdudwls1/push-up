@@ -26,17 +26,14 @@ Korean price by hand rather than letting Play convert from USD — converted pri
 that read as foreign.
 
 ### Privacy policy and Data Safety
-The policy is written and hosted from `site/privacy.html`, and the app's settings row now opens
-`R.string.privacy_policy_url`. Two things still have to happen by hand:
+The policy is written and hosted from `site/privacy.html`, and the app's settings rows open
+`R.string.privacy_policy_url` and `R.string.terms_url`. The contact address in section 11 of the
+policy, and in the terms, is cjsdudwls1357@gmail.com. One thing still has to happen by hand:
 
-1. **Enable Pages.** Repository Settings → Pages → Source → "GitHub Actions".
-   `.github/workflows/pages.yml` publishes `site/` on every push that touches it. Until this is
-   switched on, `https://cjsdudwls1.github.io/push-up/privacy.html` 404s and the Play listing
-   cannot be submitted.
-2. **Fill in the contact address.** Section 11 of the policy carries a
-   `[출시 전 문의 이메일 기재 필요]` placeholder. Play review checks that the policy names a
-   contact, and a published policy with a bracketed placeholder in it is worse than no policy.
-   Search the repo for that string; it appears exactly once.
+- **Enable Pages.** Repository Settings → Pages → Source → "GitHub Actions".
+  `.github/workflows/pages.yml` publishes `site/` on every push that touches it. Until this is
+  switched on, `https://cjsdudwls1.github.io/push-up/privacy.html` 404s and the Play listing
+  cannot be submitted.
 
 The Data Safety form has to make one distinction carefully, because both halves are true:
 
@@ -69,9 +66,9 @@ be visible *before* purchase. `PaywallScreen` renders all three (`renewalSummary
 `paywall_manage` string). Keep them there and keep them legible; do not move them behind a link.
 
 ### Health disclaimer
-A fitness app that instructs exercise should carry a short disclaimer — that this is not medical
-advice, and to stop if something hurts. Not currently in the app. Add it to onboarding and to the
-store listing.
+Done: the first onboarding screen says it is not a medical device, to stop if something hurts and to
+ask a doctor first with an illness or injury (`onboarding_health`); settings opens the terms, which
+carry the full notice; and the store listing ends with it. Keep the three saying the same thing.
 
 ## Already handled
 
