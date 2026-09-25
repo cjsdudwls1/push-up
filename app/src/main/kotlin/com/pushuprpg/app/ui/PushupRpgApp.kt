@@ -561,6 +561,10 @@ fun PushupRpgApp(
                                         navController.navigate(Routes.HOME) {
                                             popUpTo(Routes.SURVIVAL) { inclusive = true }
                                         }
+                                        // Where the button says it goes — 던전으로 가기 — with the hub
+                                        // under it for back. It used to stop at the hub, where
+                                        // someone who had never started still had to find the way in.
+                                        navController.navigate(Routes.exercisePick(FreeTier.FREE_DUNGEON_INDEX))
                                     }
                                 } else {
                                     // Mid-run too, from the close button or the back gesture: what
