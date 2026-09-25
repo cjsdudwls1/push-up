@@ -48,12 +48,14 @@ import com.pushuprpg.app.pose.PoseLandmarkerSource
 import com.pushuprpg.app.share.ShareCardData
 import com.pushuprpg.app.ui.components.CameraErrorCard
 import com.pushuprpg.app.ui.components.KeepScreenOn
+import com.pushuprpg.app.ui.components.ModelErrorBanner
 import com.pushuprpg.app.ui.components.PrimaryButton
 import com.pushuprpg.app.ui.components.SecondaryButton
 import com.pushuprpg.app.ui.components.cardSurface
 import com.pushuprpg.app.ui.components.catHeadTop
 import com.pushuprpg.app.ui.components.drawCat
 import com.pushuprpg.app.ui.components.drawHearts
+import com.pushuprpg.app.ui.components.rememberModelStalled
 import com.pushuprpg.app.ui.theme.LocalReduceMotion
 import com.pushuprpg.app.ui.theme.Palette
 import com.pushuprpg.app.ui.theme.Type
@@ -131,6 +133,10 @@ fun SurvivalScreen(
     var cameraFailed by remember { mutableStateOf(false) }
     var cameraAttempt by remember { mutableIntStateOf(0) }
     val poseReady by poseSource.ready.collectAsState()
+    // A model that never answers reports no error. After long enough it is taken for one that did
+    // not load, said the same way, and the tutorial offers its skip for it.
+    val modelStalled = rememberModelStalled(ready = poseReady, cameraFailed = cameraFailed)
+    val noModel = modelFailed || modelStalled
 
     BoxWithConstraints(modifier.fillMaxSize().background(Color(0xFF1A1208))) {
 
@@ -227,7 +233,7 @@ fun SurvivalScreen(
             // placement advice, and a phone put where the movement cannot be seen counts nothing.
             // Not while the camera will not open, where the card says why, nor with no model, whose
             // error says it; until the model's first frame it says the camera is getting ready.
-            if (state.alive && !cameraFailed && !modelFailed) {
+            if (state.alive && !cameraFailed && !noModel) {
                 Spacer(Modifier.height(10.dp))
                 PlacementBanner(
                     placement = placement,
@@ -263,7 +269,7 @@ fun SurvivalScreen(
         // long enough to look stuck, or at once when the model never loaded or the camera will not
         // open, and nothing can count. Someone who cannot get onto the floor must not be held here
         // by it.
-        if (isTutorial && !state.started && (waitedForStart || modelFailed || cameraFailed)) {
+        if (isTutorial && !state.started && (waitedForStart || noModel || cameraFailed)) {
             Box(
                 Modifier
                     .align(Alignment.TopStart)
@@ -282,6 +288,10 @@ fun SurvivalScreen(
                     color = Palette.TextPrimary,
                 )
             }
+        }
+
+        if (modelStalled && !modelFailed) {
+            ModelErrorBanner(Modifier.align(Alignment.BottomCenter))
         }
 
         // Only while the run is on. After it, its own card has the floor, and the next run brings

@@ -2,9 +2,6 @@ package com.pushuprpg.app.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -20,9 +17,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -55,15 +49,14 @@ import com.pushuprpg.app.share.ShareCardData
 import com.pushuprpg.app.telemetry.Event
 import com.pushuprpg.app.pose.PoseLandmarkerSource
 import com.pushuprpg.app.ui.battle.BattleScreen
+import com.pushuprpg.app.ui.components.ModelErrorBanner
 import com.pushuprpg.app.ui.components.RunMusic
 import com.pushuprpg.app.ui.battle.BattleViewModel
 import com.pushuprpg.app.ui.result.ResultScreen
 import com.pushuprpg.app.ui.screens.*
-import androidx.compose.material3.Text
 import com.pushuprpg.app.R
 import com.pushuprpg.app.ui.theme.AlwaysDark
 import com.pushuprpg.app.ui.theme.Palette
-import com.pushuprpg.app.ui.theme.Type
 import com.pushuprpg.app.ui.theme.PushupRpgTheme
 import com.pushuprpg.core.game.Dungeons
 import com.pushuprpg.core.game.PlayerClass
@@ -742,18 +735,7 @@ fun PushupRpgApp(
                 // under the navigation bar with the line above it. The camera screens put their
                 // placement line away while it shows; the two used to sit one over the other.
                 AlwaysDark {
-                    Text(
-                        text = stringResource(R.string.error_model_load),
-                        style = Type.bodyM,
-                        color = Palette.TextPrimary,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier
-                            .align(Alignment.BottomCenter)
-                            .fillMaxWidth()
-                            .background(Palette.ScrimPanelHigh)
-                            .navigationBarsPadding()
-                            .padding(horizontal = 20.dp, vertical = 14.dp),
-                    )
+                    ModelErrorBanner(Modifier.align(Alignment.BottomCenter))
                 }
             }
         }

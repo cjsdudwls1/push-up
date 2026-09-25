@@ -34,6 +34,8 @@ import com.pushuprpg.app.pose.CameraPreview
 import com.pushuprpg.app.pose.PoseLandmarkerSource
 import com.pushuprpg.app.ui.components.CameraErrorCard
 import com.pushuprpg.app.ui.components.KeepScreenOn
+import com.pushuprpg.app.ui.components.ModelErrorBanner
+import com.pushuprpg.app.ui.components.rememberModelStalled
 import com.pushuprpg.app.ui.components.exerciseHintRes
 import com.pushuprpg.app.ui.components.FramingGuide
 import com.pushuprpg.app.ui.components.PlacementBanner
@@ -141,6 +143,10 @@ fun BattleScreen(
             onCameraBound = { front -> mirrored = front },
             onCameraError = { failed -> cameraFailed = failed },
         )
+        // A model that never answers reports no error. After long enough it is taken for one that
+        // did not load, and said the same way.
+        val modelStalled = rememberModelStalled(ready = poseReady, cameraFailed = cameraFailed)
+        val noModel = modelFailed || modelStalled
 
         if (!audioOnly) {
             SkeletonOverlay(
@@ -221,7 +227,7 @@ fun BattleScreen(
         // would only send the user looking in the wrong place. Nor with no model, whose error takes
         // this place; until the model's first frame it says the camera is getting ready. The
         // switch hint is placement advice too, and gives way the same.
-        val placementShown = !cameraFailed && !modelFailed
+        val placementShown = !cameraFailed && !noModel
         val placementSpeaking = placementShown && (!poseReady || state.placement.advice != null)
         // Tracking lost and found are the placement line's to explain while it is up. The wind-up's
         // words are the warning's own title, up for as long as the wind-up lasts: as a toast as well
@@ -313,6 +319,10 @@ fun BattleScreen(
                 tint = Palette.TextPrimary,
                 modifier = Modifier.size(20.dp),
             )
+        }
+
+        if (modelStalled && !modelFailed) {
+            ModelErrorBanner(Modifier.align(Alignment.BottomCenter))
         }
 
         if (cameraFailed) {
