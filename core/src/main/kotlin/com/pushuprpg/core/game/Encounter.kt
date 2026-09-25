@@ -576,7 +576,7 @@ class Encounter(
     companion object {
         /**
          * The bonus for clearing a run that earned [runXp] — the whole run's, not its last fight's.
-         * Read off the boss alone it came to a sixth of what the first dungeon's reps earned.
+         * Read off the boss floor alone, the first dungeon paid about half the bonus it was meant to.
          */
         fun clearBonusFor(runXp: Float): Float = CLEAR_BONUS * runXp
 
