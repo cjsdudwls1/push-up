@@ -271,7 +271,7 @@
     <string name="settings_cvd_blue_yellow">파랑-노랑</string>
     <string name="settings_reduce_motion">모션 줄이기</string>
     <string name="settings_audio_only">절전 집중 모드</string>
-    <string name="settings_audio_only_sub">화면을 어둡게 하고 소리로만 진행해요. 배터리가 오래가요.</string>
+    <string name="settings_audio_only_sub">던전에서 화면을 어둡게 하고 소리로만 진행해요. 배터리가 오래가요.</string>
     <string name="settings_large_text">큰 글씨</string>
     <string name="pick_exercise_title">뭐로 싸울까요?</string>
     <string name="pick_exercise_sub">시작할 운동을 골라요. 싸우는 중에도 오른쪽 위에서 바꿀 수 있어요.</string>

@@ -108,10 +108,11 @@ fun BattleScreen(
     val compact = configuration.screenHeightDp < 700
 
     // Flares the overlay briefly when a rep lands, so the confirmation is visible even to someone
-    // who cannot look directly at the screen mid-rep.
+    // who cannot look directly at the screen mid-rep. Not with 모션 줄이기, which promises fewer
+    // flashes: the count, the sound and the bar still say it.
     var flare by remember { mutableFloatStateOf(0f) }
     LaunchedEffect(state.reps) {
-        if (state.reps > 0) {
+        if (state.reps > 0 && !reduceMotion) {
             flare = 1f
             kotlinx.coroutines.delay(180)
             flare = 0f
@@ -470,6 +471,9 @@ private fun BoxScope.ExerciseSwitcher(
 
 private const val PLACEMENT_HINT_MS = 7_000L
 
+/** How much of a struck monster's white flash 모션 줄이기 keeps. */
+private const val REDUCED_HURT_FLASH = 0.3f
+
 /** From the navigation bar to the lowest line said along the foot of the screen. */
 private val BOTTOM_MARGIN = 24.dp
 
@@ -535,7 +539,8 @@ private fun BoxScope.BattleHudLayout(
                 visual = MonsterVisual(
                     id = state.enemyId,
                     isBoss = state.enemyIsBoss,
-                    hurt = state.enemyHurt,
+                    // A struck monster flashes white; with 모션 줄이기 it only pales a little.
+                    hurt = if (reduceMotion) state.enemyHurt * REDUCED_HURT_FLASH else state.enemyHurt,
                     telegraph = state.telegraphCharge,
                     death = state.enemyDeath,
                     timeMs = state.elapsedMs,
@@ -641,13 +646,17 @@ private fun FloorPips(floorIndex: Int, floorCount: Int) {
     }
 }
 
-/** Damage numbers rise and fade. A deep hit adds a second number rather than replacing the first. */
+/**
+ * Damage numbers rise and fade — with 모션 줄이기 they only fade, where they appeared. A deep hit
+ * adds a second number rather than replacing the first.
+ */
 @Composable
 private fun DamageNumbers(
     damages: List<com.pushuprpg.core.run.FloatingDamage>,
     modifier: Modifier = Modifier,
 ) {
     val colors = LocalGameColors.current
+    val reduceMotion = LocalReduceMotion.current
     Box(modifier) {
         damages.takeLast(4).forEach { damage ->
             key(damage.id) {
@@ -668,7 +677,7 @@ private fun DamageNumbers(
                         .align(Alignment.Center)
                         .offset(
                             x = (lane * 26).dp,
-                            y = (-60 * rise.value).dp,
+                            y = if (reduceMotion) 0.dp else (-60 * rise.value).dp,
                         )
                         .alpha(1f - rise.value * rise.value),
                 )
