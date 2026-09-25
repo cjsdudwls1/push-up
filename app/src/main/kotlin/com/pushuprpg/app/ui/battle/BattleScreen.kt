@@ -189,6 +189,9 @@ fun BattleScreen(
                 gaugeOnRight = gaugeOnRight,
                 showGaugeNumber = showGaugeNumber,
                 compact = compact,
+                // Only before anything is done: a plank counts no reps, and its seconds must not
+                // go out mid-hold because the coach has something to say.
+                settingUp = settingUp && !state.workDone,
             )
         }
 
@@ -484,8 +487,18 @@ private fun BoxScope.BattleHudLayout(
     gaugeOnRight: Boolean,
     showGaugeNumber: Boolean,
     compact: Boolean,
+    settingUp: Boolean,
 ) {
     val colors = LocalGameColors.current
+    // While setting up, the middle of the screen is the ghost's: a 0 at 120sp and an idle gauge sat
+    // over the pose being lined up, and the fighters over its feet. They come back once the
+    // detector has armed.
+    val reduceMotion = LocalReduceMotion.current
+    val shown by animateFloatAsState(
+        targetValue = if (settingUp) 0f else 1f,
+        animationSpec = tween(if (reduceMotion) 0 else 300),
+        label = "setup",
+    )
     // A hold counts no reps: what it has done is the time held, the same seconds the run banks and
     // the unit its total is counted in.
     val hold = Exercises.of(state.exercise).kind == MovementKind.HOLD
@@ -508,7 +521,8 @@ private fun BoxScope.BattleHudLayout(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(if (compact) 116.dp else 140.dp),
+                .height(if (compact) 116.dp else 140.dp)
+                .alpha(0.5f + 0.5f * shown),
             verticalAlignment = Alignment.Bottom,
         ) {
             Fighter(
@@ -573,7 +587,7 @@ private fun BoxScope.BattleHudLayout(
         unitRes = if (hold) R.string.battle_unit_seconds else R.string.battle_unit_reps,
         dimmed = state.paused,
         compact = compact,
-        modifier = Modifier.align(Alignment.Center),
+        modifier = Modifier.align(Alignment.Center).alpha(shown),
     )
 
     DamageNumbers(
@@ -595,6 +609,7 @@ private fun BoxScope.BattleHudLayout(
         showNumber = showGaugeNumber,
         modifier = Modifier
             .align(if (gaugeOnRight) Alignment.CenterEnd else Alignment.CenterStart)
+            .alpha(shown)
             .padding(top = with(density) { hudHeightPx.toDp() })
             .navigationBarsPadding()
             .padding(bottom = BOTTOM_MARGIN + PLACEMENT_BAND)
