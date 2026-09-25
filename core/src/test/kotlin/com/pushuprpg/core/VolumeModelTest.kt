@@ -137,6 +137,60 @@ class VolumeModelTest {
         }
     }
 
+    /**
+     * Every movement pays a ward — the one it is weak to pays its face value — so leaving wards out
+     * of the quote advertised 42 reps for a run of 50, and the total jumped when the warded floor
+     * spawned.
+     */
+    @Test
+    fun `a warded dungeon's quote is what its floors ask, wards included`() {
+        for (index in listOf(6, 8)) {
+            val dungeon = Dungeons.byIndex(index)!!
+            for (exercise in listOf(ExerciseType.PUSHUP, ExerciseType.PLANK)) for (cls in PlayerClass.entries) {
+                val floors = dungeon.floors.map { it.spawn(Difficulty.STANDARD, exercise, cls) }
+                assertTrue(floors.any { it.wardMaxHp > 0 }, "dungeon $index has no ward to test")
+                val asked = floors.sumOf { it.maxHp + it.wardMaxHp }
+                assertEquals(asked, dungeon.repCost(Difficulty.STANDARD, exercise, cls), "dungeon $index, $exercise, $cls")
+
+                val engine = BattleEngine(
+                    dungeon = dungeon,
+                    difficulty = Difficulty.STANDARD,
+                    capacity = 8f,
+                    initialPlayer = PlayerState.create(cls, level = 1),
+                    detector = DetectorFactory.create(exercise, profile = UserProfile.empty()),
+                    resolver = CombatResolver(),
+                )
+                assertEquals(asked, engine.currentState().runTotalReps, "dungeon $index, $exercise, $cls: the HUD's total")
+            }
+        }
+    }
+
+    @Test
+    fun `a warded dungeon takes the reps it quoted, and the bar moves through the ward`() {
+        val dungeon = Dungeons.byIndex(6)!!
+        val cls = PlayerClass.ARCHER
+        val quoted = dungeon.repCost(Difficulty.STANDARD, ExerciseType.PUSHUP, cls)
+        val warded = dungeon.floors.indexOfFirst { it.wardFraction > 0f }
+        val wardedCount = dungeon.floors[warded].repCost(Difficulty.STANDARD, ExerciseType.PUSHUP, cls)
+
+        val e = engine(dungeon, cls)
+        var state = e.currentState()
+        val barOnWardedFloor = mutableSetOf<Int>()
+        inStyle(cls, quoted + 20, 3_600_000L).forEach {
+            if (state.outcome != null) return@forEach
+            state = e.onPoseFrame(it)
+            if (state.outcome == null) assertEquals(quoted, state.runTotalReps, "the total moved off the quote at ${state.reps}")
+            if (state.floorIndex == warded) {
+                assertEquals(wardedCount, state.enemyMaxHp)
+                barOnWardedFloor += state.enemyHp
+            }
+        }
+
+        assertEquals(true, state.outcome?.cleared, "the dungeon did not clear")
+        assertEquals(quoted, state.outcome!!.reps, "quoted $quoted reps, took ${state.outcome?.reps}")
+        assertEquals((0..wardedCount).toSet(), barOnWardedFloor, "the bar skipped or stuck on the warded floor")
+    }
+
     @Test
     fun `a long rest in the middle changes nothing about the cost`() {
         val dungeon = Dungeons.FREE_DUNGEON

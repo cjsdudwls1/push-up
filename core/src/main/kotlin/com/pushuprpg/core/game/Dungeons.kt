@@ -60,6 +60,10 @@ data class EnemyTemplate(
             wardMaxHp = ward,
         )
     }
+
+    /** Reps of [exercise] this floor asks for: its count and its ward, exactly as it spawns. */
+    fun repCost(difficulty: Difficulty, exercise: ExerciseType, playerClass: PlayerClass? = null): Int =
+        spawn(difficulty, exercise, playerClass).fullCount
 }
 
 data class Dungeon(
@@ -79,11 +83,12 @@ data class Dungeon(
      * entire claim is that the number shown is the number performed, and a test caught this before
      * anybody did a sixth pull-up for a monster that was supposed to be dead.
      *
-     * Wards are excluded: a ward is extra reps owed only by the wrong movement for the enemy, so it
-     * belongs to the fight rather than to the advertised price.
+     * Wards are included. They used to be left out as belonging to the fight rather than the price,
+     * but every movement pays one — the movement a ward is weak to pays its face value — so a run
+     * quoted at 42 asked for 50, and the HUD's total jumped when the warded floor spawned.
      */
     fun repCost(difficulty: Difficulty, exercise: ExerciseType, playerClass: PlayerClass? = null): Int =
-        floors.sumOf { CombatResolver.expectedReps(it.standardRepCost, difficulty, exercise, playerClass) }
+        floors.sumOf { it.repCost(difficulty, exercise, playerClass) }
 
     /** The level the encounters are balanced around; outgrowing it is what makes them easier. */
     val referenceLevel: Int get() = recommendedLevel.first

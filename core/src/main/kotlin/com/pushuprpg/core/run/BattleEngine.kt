@@ -74,7 +74,9 @@ data class BattleState(
     val playerHp: Int = 100,
     val playerMaxHp: Int = 100,
     val enemyName: String = "",
+    /** What this monster still owes, ward included, so the bar moves while a ward comes down. */
     val enemyHp: Int = 1,
+    /** All it owed as it spawned, ward included. */
     val enemyMaxHp: Int = 1,
     val floorIndex: Int = 0,
     val floorCount: Int = 1,
@@ -269,8 +271,8 @@ class BattleEngine(
         playerHp = initialPlayer.hp,
         playerMaxHp = initialPlayer.maxHp,
         enemyName = encounter.enemy.korean,
-        enemyHp = encounter.enemy.hp,
-        enemyMaxHp = encounter.enemy.maxHp,
+        enemyHp = encounter.enemy.remaining,
+        enemyMaxHp = encounter.enemy.fullCount,
         floorCount = dungeon.floors.size,
         runTotalReps = runTotalReps,
         exercise = detector.config.exercise,
@@ -604,8 +606,8 @@ class BattleEngine(
             playerHp = player.hp,
             playerMaxHp = player.maxHp,
             enemyName = encounter.enemy.korean,
-            enemyHp = encounter.enemy.hp,
-            enemyMaxHp = encounter.enemy.maxHp,
+            enemyHp = encounter.enemy.remaining,
+            enemyMaxHp = encounter.enemy.fullCount,
             runTotalReps = runTotalReps,
             floorIndex = floorIndex,
             ultimateIncoming = telegraphed && outcome == null,
@@ -674,17 +676,20 @@ class BattleEngine(
             deepEnter = next.config.deepEnter,
             runTotalReps = runTotalReps,
             heldMs = heldMs(),
-            enemyHp = encounter.enemy.hp,
-            enemyMaxHp = encounter.enemy.maxHp,
+            enemyHp = encounter.enemy.remaining,
+            enemyMaxHp = encounter.enemy.fullCount,
         )
         return retired
     }
 
-    /** Reps still owed this run, done the class's way: this monster's, then every floor after it. */
+    /**
+     * Reps still owed this run, done the class's way: this monster's, then every floor after it,
+     * wards included — priced by the same rule the entry screen quoted.
+     */
     private fun owedFromHere(): Int {
         val to = detector.config.exercise
         return encounter.enemy.remaining + dungeon.floors.drop(floorIndex + 1)
-            .sumOf { CombatResolver.expectedReps(it.standardRepCost, difficulty, to, playerClass) }
+            .sumOf { it.repCost(difficulty, to, playerClass) }
     }
 
     /** The movements left behind, and the one in progress if it is a hold: what the run banks as held. */

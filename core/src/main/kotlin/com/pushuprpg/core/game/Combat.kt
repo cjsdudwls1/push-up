@@ -109,6 +109,9 @@ data class Enemy(
      * total rather than a bar that appears stuck.
      */
     val remaining: Int get() = hp + wardHp
+
+    /** [remaining] as spawned: the whole count, ward included, that the bar is drawn against. */
+    val fullCount: Int get() = maxHp + wardMaxHp
 }
 
 /** The outcome of resolving one rep. */
