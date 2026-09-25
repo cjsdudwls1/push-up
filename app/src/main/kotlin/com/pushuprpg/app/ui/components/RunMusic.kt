@@ -2,6 +2,10 @@ package com.pushuprpg.app.ui.components
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -19,8 +23,12 @@ import com.pushuprpg.app.domain.MusicTrack
 @Composable
 fun RunMusic(track: MusicTrack, player: MusicPlayer) {
     val lifecycleOwner = LocalLifecycleOwner.current
+    // Only the track the app opens with gives way to music already playing: one changed to while
+    // the app is open was picked in settings, and picking a track is hearing it.
+    var opening by remember { mutableStateOf(true) }
     DisposableEffect(track, lifecycleOwner) {
-        player.play(track)
+        player.play(track, yieldToOtherMusic = opening)
+        opening = false
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
                 Lifecycle.Event.ON_PAUSE -> player.pause()

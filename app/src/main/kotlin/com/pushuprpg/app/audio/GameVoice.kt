@@ -2,6 +2,8 @@ package com.pushuprpg.app.audio
 
 import android.content.Context
 import android.media.AudioAttributes
+import android.media.AudioFocusRequest
+import android.media.AudioManager
 import android.media.MediaPlayer
 import android.os.Handler
 import android.os.Looper
@@ -31,7 +33,9 @@ import java.util.Locale
  * Urgency is carried by delivery: urgent lines are faster and higher (in the clip, or by the
  * engine's rate and pitch) and cut off anything being said. Everything else queues behind the line
  * in progress, one at a time, whichever of the two is saying it. The music ducks under every line,
- * so the words are never the thing that gets lost.
+ * so the words are never the thing that gets lost — and so does anyone else's: each run of lines
+ * holds transient, may-duck audio focus, so the user's own playlist drops under 필살기 와요 and comes
+ * back when the queue is empty. When focus is refused, as it is in a phone call, nothing is said.
  *
  * Called from the pose thread; every call is posted to the main thread, which is where the engine,
  * the clip player and the music player are touched.
@@ -59,6 +63,25 @@ class GameVoice(context: Context, private val music: MusicPlayer) {
         .setUsage(AudioAttributes.USAGE_GAME)
         .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
         .build()
+
+    private val audioManager: AudioManager? = appContext.getSystemService(AudioManager::class.java)
+    /** Held from the first line of a run to the moment the queue empties. Main thread only. */
+    private var hasFocus = false
+    private val focusRequest: AudioFocusRequest =
+        AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK)
+            .setAudioAttributes(speech)
+            // A call coming in, or something else that will not share: stop talking over it.
+            .setOnAudioFocusChangeListener(
+                AudioManager.OnAudioFocusChangeListener { change ->
+                    if (change == AudioManager.AUDIOFOCUS_LOSS || change == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT) {
+                        pending.clear()
+                        interrupt()
+                        releaseFocus()
+                    }
+                },
+                main,
+            )
+            .build()
 
     init {
         main.post {
@@ -116,6 +139,7 @@ class GameVoice(context: Context, private val music: MusicPlayer) {
         main.post {
             pending.clear()
             interrupt()
+            releaseFocus()
         }
     }
 
@@ -123,6 +147,13 @@ class GameVoice(context: Context, private val music: MusicPlayer) {
     private fun next() {
         while (true) {
             val (text, style) = pending.removeFirstOrNull() ?: run {
+                current = null
+                music.setDucked(false)
+                releaseFocus()
+                return
+            }
+            if (!takeFocus()) {
+                pending.clear()
                 current = null
                 music.setDucked(false)
                 return
@@ -139,6 +170,19 @@ class GameVoice(context: Context, private val music: MusicPlayer) {
         clip?.release()
         clip = null
         next()
+    }
+
+    private fun takeFocus(): Boolean {
+        if (hasFocus) return true
+        val audio = audioManager ?: return true
+        hasFocus = audio.requestAudioFocus(focusRequest) == AudioManager.AUDIOFOCUS_REQUEST_GRANTED
+        return hasFocus
+    }
+
+    private fun releaseFocus() {
+        if (!hasFocus) return
+        hasFocus = false
+        audioManager?.abandonAudioFocusRequest(focusRequest)
     }
 
     /** Stops whatever is being said, without starting the next line. */
