@@ -504,9 +504,11 @@ private fun BoxScope.BattleHudLayout(
         label = "setup",
     )
     // A hold counts no reps: what it has done is the time held, the same seconds the run banks and
-    // the unit its total is counted in.
+    // the unit its total is counted in. The seconds held while the last monster falls are banked
+    // too, and the result screen shows them, but they are past the total: the HUD stops at it
+    // rather than reading 37초 / 36.
     val hold = Exercises.of(state.exercise).kind == MovementKind.HOLD
-    val done = if (hold) (state.heldMs / 1000L).toInt() else state.reps
+    val done = if (hold) (state.heldMs / 1000L).toInt().coerceAtMost(state.runTotalReps) else state.reps
     // How far down the HUD reaches, status bar included, so the gauge can start under it.
     var hudHeightPx by remember { mutableIntStateOf(0) }
     val density = LocalDensity.current
