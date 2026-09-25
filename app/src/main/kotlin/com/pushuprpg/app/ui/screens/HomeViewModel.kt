@@ -44,6 +44,7 @@ class HomeViewModel(
             todayActiveMs = todayTotal.activeMs,
             entitlement = entitlement,
             loading = false,
+            today = todayTotal.epochDay,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeUiState())
 

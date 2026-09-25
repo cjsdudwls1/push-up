@@ -4,6 +4,7 @@ import com.pushuprpg.core.detect.ExerciseType
 import com.pushuprpg.app.domain.DailyTotal
 import com.pushuprpg.app.domain.SessionRecord
 import com.pushuprpg.app.domain.SessionRepository
+import com.pushuprpg.core.progression.Streak
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emitAll
@@ -50,6 +51,14 @@ class RoomSessionRepository(
     override suspend fun lifetimeReps(): Int = withContext(Dispatchers.IO) { dao.lifetimeReps() }
 
     override suspend fun repsOn(epochDay: Long): Int = withContext(Dispatchers.IO) { dao.repsOn(epochDay) }
+
+    override suspend fun workOn(epochDay: Long): Map<ExerciseType, Int> = withContext(Dispatchers.IO) {
+        dao.movementTotalsOn(epochDay).mapNotNull { row ->
+            // A movement since taken out has no bar to be measured against.
+            val exercise = ExerciseType.entries.firstOrNull { it.name == row.exercise }
+            exercise?.let { it to Streak.amount(it, row.reps, heldMs = row.activeMs) }
+        }.toMap()
+    }
 
     /** Reps logged today in local time — what the streak bar is measured against. */
     suspend fun repsToday(): Int = repsOn(CalendarDays.today(zone))

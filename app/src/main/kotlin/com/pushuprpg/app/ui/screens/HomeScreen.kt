@@ -19,10 +19,15 @@ import com.pushuprpg.app.ui.components.*
 import com.pushuprpg.app.ui.theme.LocalGameColors
 import com.pushuprpg.app.ui.theme.Palette
 import com.pushuprpg.app.ui.theme.Type
+import com.pushuprpg.core.detect.ExerciseType
+import com.pushuprpg.core.detect.Exercises
+import com.pushuprpg.core.detect.MovementKind
 import com.pushuprpg.core.game.Dungeons
 import com.pushuprpg.core.game.PlayerClass
 import com.pushuprpg.core.progression.Levels
 import com.pushuprpg.core.progression.RankProgress
+import com.pushuprpg.core.progression.Streak
+import com.pushuprpg.core.progression.StreakState
 
 data class HomeUiState(
     val progress: PlayerProgress = PlayerProgress(),
@@ -31,12 +36,24 @@ data class HomeUiState(
     val todayActiveMs: Long = 0,
     val entitlement: Entitlement = Entitlement(),
     val loading: Boolean = true,
+    /** Today, as an epoch day: what the streak is read against. */
+    val today: Long = 0,
 ) {
     val nextDungeon: Int
         get() = (progress.highestDungeonCleared + 1).coerceAtMost(Dungeons.ALL.size)
 
+    private val streak: StreakState
+        get() = StreakState(progress.streakDays, progress.lastActiveEpochDay)
+
+    /**
+     * The streak as it stands today. The stored number is only rewritten when a day meets the bar,
+     * so after a missed day it would still show the streak that was broken.
+     */
+    val streakShown: Int
+        get() = Streak.shown(streak, today)
+
     val streakJustBroke: Boolean
-        get() = progress.streakDays == 0 && progress.bestStreakDays > 0
+        get() = Streak.broken(streak, today)
 }
 
 /**
@@ -62,6 +79,8 @@ fun HomeScreen(
     onSurvival: () -> Unit,
     onRecords: () -> Unit,
     onSettings: () -> Unit,
+    /** The movement picked last, whose bar the nudge quotes. */
+    lastExercise: ExerciseType,
     modifier: Modifier = Modifier,
 ) {
     val colors = LocalGameColors.current
@@ -97,7 +116,7 @@ fun HomeScreen(
                 )
             }
             Spacer(Modifier.width(12.dp))
-            StreakChip(days = state.progress.streakDays)
+            StreakChip(days = state.streakShown)
             Spacer(Modifier.width(8.dp))
             ThemeToggle(mode = themeMode, onToggle = onToggleTheme)
         }
@@ -106,11 +125,18 @@ fun HomeScreen(
         // encouragement worthless, and saying it after a plank tells someone who held one for
         // minutes that they have not started.
         if (state.todayReps == 0 && state.todayActiveMs == 0L) {
+            // The bar quoted is the real one, for the movement the user reaches for.
+            val bar = Exercises.of(lastExercise)
+            val name = stringResource(exerciseLabelRes(lastExercise))
             Spacer(Modifier.height(14.dp))
             Text(
-                text = stringResource(
-                    if (state.streakJustBroke) R.string.home_streak_broken else R.string.home_nudge
-                ),
+                text = when {
+                    state.streakJustBroke && state.streakShown > 0 ->
+                        stringResource(R.string.home_streak_broken_kept, state.streakShown)
+                    state.streakJustBroke -> stringResource(R.string.home_streak_broken)
+                    bar.kind == MovementKind.HOLD -> stringResource(R.string.home_nudge_hold, name, bar.streakBar)
+                    else -> stringResource(R.string.home_nudge, name, bar.streakBar)
+                },
                 style = Type.bodyL,
                 color = if (state.streakJustBroke) colors.accept else Palette.TextSecondary,
             )

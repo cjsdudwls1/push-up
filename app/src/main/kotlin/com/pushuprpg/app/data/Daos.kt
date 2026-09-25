@@ -13,6 +13,16 @@ data class DailyTotalRow(
     val activeMs: Long,
 )
 
+/**
+ * One movement's total on one day, for the streak bar. [exercise] is the stored name, read as a
+ * plain string so a row naming a movement since taken out can be left out rather than miscounted.
+ */
+data class MovementTotalRow(
+    val exercise: String,
+    val reps: Int,
+    val activeMs: Long,
+)
+
 @Dao
 interface SessionDao {
 
@@ -38,6 +48,18 @@ interface SessionDao {
         """
     )
     fun dailyTotalsSince(fromEpochDay: Long): Flow<List<DailyTotalRow>>
+
+    @Query(
+        """
+        SELECT exercise AS exercise,
+               COALESCE(SUM(reps), 0) AS reps,
+               COALESCE(SUM(durationMs), 0) AS activeMs
+        FROM sessions
+        WHERE epochDay = :epochDay
+        GROUP BY exercise
+        """
+    )
+    suspend fun movementTotalsOn(epochDay: Long): List<MovementTotalRow>
 
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insert(session: SessionEntity): Long

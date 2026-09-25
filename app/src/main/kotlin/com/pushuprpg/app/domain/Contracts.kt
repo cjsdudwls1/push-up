@@ -89,6 +89,12 @@ interface SessionRepository {
     suspend fun insert(record: SessionRecord): Long
     suspend fun lifetimeReps(): Int
     suspend fun repsOn(epochDay: Long): Int
+
+    /**
+     * What was done on [epochDay], every mode, per movement in the unit its streak bar is in:
+     * reps, or seconds for a hold. No hold time is stored, so a hold's seconds are its rows' length.
+     */
+    suspend fun workOn(epochDay: Long): Map<ExerciseType, Int>
 }
 
 /** User-facing settings. Defaults are the shipping defaults, not placeholders. */

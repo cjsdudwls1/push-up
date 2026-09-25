@@ -163,8 +163,12 @@
     <!-- Home -->
     <string name="home_today_reps">오늘 %1$d개</string>
     <string name="home_streak">연속 %1$d일</string>
-    <string name="home_nudge">오늘은 아직이에요. 5개만 해볼까요?</string>
+    <!-- %1$s is the movement picked last, %2$d that movement's streak bar: the real one. -->
+    <string name="home_nudge">오늘은 아직이에요. %1$s %2$d개만 해볼까요?</string>
+    <string name="home_nudge_hold">오늘은 아직이에요. %1$s %2$d초만 버텨 볼까요?</string>
     <string name="home_streak_broken">연속이 끊겼지만 기록은 그대로예요. 오늘부터 다시!</string>
+    <!-- A break halves a streak rather than zeroing it; %1$d is the half it goes on from. -->
+    <string name="home_streak_broken_kept">연속이 끊겼지만 %1$d일은 남았어요. 오늘 하면 다시 이어져요!</string>
     <string name="home_survival">고냥이 지켜줘</string>
     <string name="home_dungeons">던전</string>
 

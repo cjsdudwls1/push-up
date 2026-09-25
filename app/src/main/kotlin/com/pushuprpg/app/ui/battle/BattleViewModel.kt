@@ -36,6 +36,7 @@ import com.pushuprpg.core.pose.PoseFrame
 import com.pushuprpg.core.progression.Capacity
 import com.pushuprpg.core.progression.Levels
 import com.pushuprpg.core.progression.Streak
+import com.pushuprpg.core.progression.StreakState
 import com.pushuprpg.core.run.BattleEngine
 import com.pushuprpg.core.run.BattleState
 import com.pushuprpg.core.run.ExerciseSegment
@@ -324,11 +325,15 @@ class BattleViewModel(
         // write cancelled halfway would keep the record row and lose the XP, the streak and the
         // unlock.
         appScope.launch {
-            val epochDay = Instant.now().atZone(ZoneId.systemDefault()).toLocalDate().toEpochDay()
+            // The streak is judged on the day the run started, the day its rows are filed under,
+            // against everything already done that day — read before this run's rows go in.
+            val runStartedAt = System.currentTimeMillis() - outcome.durationMs
+            val epochDay = Instant.ofEpochMilli(runStartedAt).atZone(ZoneId.systemDefault()).toLocalDate().toEpochDay()
+            val doneEarlier = sessionRepository.workOn(epochDay)
 
             // Each movement gets its own row, so the records screen says what was actually done.
             // The run's clear and its XP belong to the run, so they ride on the last row only.
-            var startedAt = System.currentTimeMillis() - outcome.durationMs
+            var startedAt = runStartedAt
             worked.forEachIndexed { i, seg ->
                 val last = i == worked.lastIndex
                 sessionRepository.insert(
@@ -357,7 +362,11 @@ class BattleViewModel(
 
             progressRepository.update { current ->
                 val levelled = Levels.apply(current.level, current.xpIntoLevel, outcome.xpEarned)
-                val streak = advanceStreak(current, epochDay, segments)
+                val streak = Streak.advance(
+                    StreakState(current.streakDays, current.lastActiveEpochDay),
+                    epochDay,
+                    Streak.sum(doneEarlier, runWork(segments)),
+                )
                 // Capacity is measured in each movement's own unit: reps for a counted exercise,
                 // seconds for a hold, and a hold's best is its longest, not an average. A movement
                 // done twice in one run is judged by its better stretch.
@@ -376,9 +385,9 @@ class BattleViewModel(
                     lifetimeReps = current.lifetimeReps + outcome.reps,
                     bestCombo = maxOf(current.bestCombo, outcome.maxCombo),
                     totalActiveMs = current.totalActiveMs + outcome.durationMs,
-                    streakDays = streak.first,
-                    bestStreakDays = maxOf(current.bestStreakDays, streak.first),
-                    lastActiveEpochDay = streak.second,
+                    streakDays = streak.days,
+                    bestStreakDays = maxOf(current.bestStreakDays, streak.days),
+                    lastActiveEpochDay = streak.lastActiveDay,
                     highestDungeonCleared = if (outcome.cleared) {
                         maxOf(current.highestDungeonCleared, dungeonIndex)
                     } else current.highestDungeonCleared,
@@ -388,34 +397,18 @@ class BattleViewModel(
     }
 
     /**
-     * Returns the new streak and the day it was last earned.
+     * This run's work toward the day's streak bar, per movement.
      *
-     * A streak that survives on ten reps is the point: its job is to get someone to open the app on
-     * a bad day, not to extract a workout from them. A genuine break halves it rather than zeroing
-     * it, so one missed week does not erase a year of work.
+     * The count has to be judged against the bar for the movement actually performed. Passing it
+     * as pushups regardless meant a five-minute plank — which reports zero reps by construction —
+     * lost the user their streak, and twelve squats kept it when fifteen are the bar. The bar
+     * travels with each movement, and a mixed run adds each one's share of its own bar; the day's
+     * other runs add theirs in [Streak.advance].
      */
-    private fun advanceStreak(
-        current: PlayerProgress,
-        epochDay: Long,
-        segments: List<ExerciseSegment>,
-    ): Pair<Int, Long> {
-        // The count has to be judged against the bar for the movement actually performed. Passing it
-        // as pushups regardless meant a five-minute plank — which reports zero reps by construction
-        // — lost the user their streak, and twelve squats kept it when fifteen are the bar. The bar
-        // travels with each movement, and a mixed run adds each one's share of its own bar.
-        val work = segments.groupBy { it.exercise }.mapValues { (type, segs) ->
-            if (Exercises.of(type).kind == MovementKind.HOLD) (segs.sumOf { it.holdMs } / 1000L).toInt()
-            else segs.sumOf { it.reps }
+    private fun runWork(segments: List<ExerciseSegment>): Map<ExerciseType, Int> =
+        segments.groupBy { it.exercise }.mapValues { (type, segs) ->
+            Streak.amount(type, reps = segs.sumOf { it.reps }, heldMs = segs.sumOf { it.holdMs })
         }
-        if (!Streak.maintained(work)) {
-            return current.streakDays to current.lastActiveEpochDay
-        }
-        return when (epochDay - current.lastActiveEpochDay) {
-            0L -> current.streakDays.coerceAtLeast(1) to epochDay
-            1L -> (current.streakDays + 1) to epochDay
-            else -> (Streak.afterBreak(current.streakDays) + 1) to epochDay
-        }
-    }
 
     private fun capacityFor(exercise: ExerciseType): Float = progress.capacityOf(exercise)
 

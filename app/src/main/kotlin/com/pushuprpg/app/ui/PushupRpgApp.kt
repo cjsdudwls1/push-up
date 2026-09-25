@@ -65,6 +65,8 @@ import com.pushuprpg.app.ui.theme.PushupRpgTheme
 import com.pushuprpg.core.game.Dungeons
 import com.pushuprpg.core.game.PlayerClass
 import com.pushuprpg.core.progression.Rank
+import com.pushuprpg.core.progression.Streak
+import com.pushuprpg.core.progression.StreakState
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -266,6 +268,7 @@ fun PushupRpgApp(
                         onSurvival = { navController.navigate(Routes.SURVIVAL_PICK) },
                         onRecords = { navController.navigate(Routes.RECORDS) },
                         onSettings = { navController.navigate(Routes.SETTINGS) },
+                        lastExercise = settings.exercise,
                     )
                 }
 
@@ -654,7 +657,11 @@ fun PushupRpgApp(
                     PaywallScreen(
                         plans = plans,
                         lifetimeReps = progress.lifetimeReps,
-                        streakDays = progress.streakDays,
+                        // As the hub shows it: a missed day has already broken the stored one.
+                        streakDays = Streak.shown(
+                            StreakState(progress.streakDays, progress.lastActiveEpochDay),
+                            java.time.LocalDate.now().toEpochDay(),
+                        ),
                         level = progress.level,
                         onPurchase = { plan ->
                             activity?.let { container.billing.launchPurchaseFlow(it, plan) }

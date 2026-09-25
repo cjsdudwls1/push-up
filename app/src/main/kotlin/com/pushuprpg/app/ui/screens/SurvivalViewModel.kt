@@ -29,6 +29,8 @@ import com.pushuprpg.core.detect.RepEvent
 import com.pushuprpg.core.detect.RenderSkeleton
 import com.pushuprpg.core.detect.SkeletonMode
 import com.pushuprpg.core.progression.Capacity
+import com.pushuprpg.core.progression.Streak
+import com.pushuprpg.core.progression.StreakState
 import com.pushuprpg.core.survival.CatCompanion
 import com.pushuprpg.core.survival.CatView
 import com.pushuprpg.core.survival.CeilingSurvival
@@ -39,6 +41,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import java.time.Instant
+import java.time.ZoneId
 import java.util.concurrent.atomic.AtomicBoolean
 
 class SurvivalViewModel(
@@ -211,12 +215,6 @@ class SurvivalViewModel(
     }
 
     /**
-     * Survival reps count toward the lifetime total exactly like dungeon reps.
-     *
-     * They have to: rank is built from lifetime reps, and a free mode whose work did not count
-     * would quietly make the app's central promise conditional on paying.
-     */
-    /**
      * Seeds the player's capacity from the tutorial run and marks onboarding complete.
      *
      * The first survival run is the calibration set: it is the only moment the app can ask someone
@@ -265,17 +263,31 @@ class SurvivalViewModel(
         }
     }
 
+    /**
+     * Survival reps count toward the lifetime total and the day's streak exactly like dungeon reps,
+     * and so do the tutorial's, which is banked here too.
+     *
+     * They have to: rank is built from lifetime reps, and a free mode whose work did not count
+     * would quietly make the app's central promise conditional on paying. Left out of the streak,
+     * the mode a free player can always play could never start one.
+     */
     private fun save(score: Int, survivedMs: Long) {
         if (!saved.compareAndSet(false, true)) return
         val repsDone = reps
         val combo = maxCombo
         // Read now rather than inside the write, which runs later on a thread of its own.
-        val plausibility = detector.sessionSummary().plausibility
+        val summary = detector.sessionSummary()
+        val plausibility = summary.plausibility
+        val work = mapOf(exercise to Streak.amount(exercise, repsDone, summary.holdMs))
 
         appScope.launch {
+            // Judged as a dungeon run is: on the day the run started, with the rest of that day.
+            val startedAt = System.currentTimeMillis() - survivedMs
+            val epochDay = Instant.ofEpochMilli(startedAt).atZone(ZoneId.systemDefault()).toLocalDate().toEpochDay()
+            val doneEarlier = sessionRepository.workOn(epochDay)
             sessionRepository.insert(
                 SessionRecord(
-                    startedAtMs = System.currentTimeMillis() - survivedMs,
+                    startedAtMs = startedAt,
                     durationMs = survivedMs,
                     exercise = exercise,
                     reps = repsDone,
@@ -289,11 +301,19 @@ class SurvivalViewModel(
                 )
             )
             progressRepository.update { current ->
+                val streak = Streak.advance(
+                    StreakState(current.streakDays, current.lastActiveEpochDay),
+                    epochDay,
+                    Streak.sum(doneEarlier, work),
+                )
                 current.copy(
                     lifetimeReps = current.lifetimeReps + repsDone,
                     bestCombo = maxOf(current.bestCombo, combo),
                     totalActiveMs = current.totalActiveMs + survivedMs,
                     bestSurvivalScore = maxOf(current.bestSurvivalScore, score),
+                    streakDays = streak.days,
+                    bestStreakDays = maxOf(current.bestStreakDays, streak.days),
+                    lastActiveEpochDay = streak.lastActiveDay,
                 )
             }
         }
