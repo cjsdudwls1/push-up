@@ -12,7 +12,6 @@
     <string name="action_start">시작하기</string>
     <string name="action_continue">이어서 하기</string>
     <string name="action_close">닫기</string>
-    <string name="action_back">뒤로</string>
     <string name="action_skip">건너뛰기</string>
     <string name="action_home">홈으로</string>
     <string name="action_retry">다시 도전</string>
@@ -30,7 +29,6 @@
     <string name="privacy_telemetry">앱이 멈추거나 오류가 나면 원인을 찾기 위한 기록이 전송돼요. 여기에 영상이나 사진은 들어가지 않아요.</string>
     <string name="permission_grant">카메라 권한 허용</string>
     <string name="permission_open_settings">설정에서 권한 켜기</string>
-    <string name="permission_why">왜 필요한가요?</string>
     <string name="permission_denied_body">권한이 없으면 동작을 읽을 수 없어요. 설정에서 언제든 켤 수 있어요.</string>
 
     <!-- Class picking -->
@@ -47,16 +45,7 @@
     <string name="class_current">지금 직업</string>
     <string name="home_class_change">바꾸기</string>
 
-    <!-- Prep / framing -->
-    <string name="prep_title">자리 잡기</string>
-    <string name="prep_lie_down">편한 자세로 엎드려 주세요</string>
-    <string name="prep_check_body">화면에 몸이 들어왔어요</string>
-    <string name="prep_check_light">밝기 충분해요</string>
-    <string name="prep_check_level">어깨선이 수평이에요</string>
-    <string name="prep_ready">준비됐어요!</string>
-
     <!-- Battle -->
-    <string name="battle_countdown_go">시작!</string>
     <string name="battle_unit_reps">개</string>
     <string name="battle_unit_seconds">초</string>
     <string name="battle_combo">콤보 ×%1$d</string>
@@ -69,7 +58,6 @@
     <string name="battle_ultimate_blocked">막았어요!</string>
     <string name="battle_ultimate_hit">아야, 체력 %1$d을 잃었어요. 다음엔 막아요!</string>
     <string name="battle_hp_label">체력</string>
-    <string name="battle_ultimate_ready">필살기 준비됐어요!</string>
     <string name="battle_bootstrap">처음 몇 개로 당신의 범위를 배울게요</string>
     <string name="battle_calibrated">범위를 익혔어요. 이제 정확해요.</string>
     <string name="battle_shallow_twice">조금만 더 내려가 볼까요?</string>
@@ -88,20 +76,11 @@
     <string name="battle_switch_title">운동 바꾸기</string>
     <string name="battle_switch_sub">지금 몬스터에게 남은 만큼이 새 운동 개수로 바뀌어요. 앞에서 한 운동도 전부 기록돼요.</string>
     <string name="battle_switch_current">지금</string>
-    <string name="battle_hp_format">%1$,d / %2$,d</string>
 
     <!-- Depth gauge -->
     <string name="gauge_title">깊이</string>
     <string name="gauge_accept">인정</string>
     <string name="gauge_deep">깊게</string>
-
-    <!-- Coaching, framed as a buff the engine actually grants -->
-    <string name="hint_lockout">팔을 끝까지 펴면 데미지가 더 들어가요</string>
-    <string name="hint_hips_sag">허리를 살짝 들어올리면 더 편해요</string>
-    <string name="hint_hips_pike">엉덩이를 조금만 내려볼까요</string>
-    <string name="hint_asymmetry">양쪽 균형을 맞추면 더 세져요</string>
-    <string name="hint_tempo">조금 천천히 내려가면 깊이가 더 잘 나와요</string>
-    <string name="hint_buff_active">+10%% 적용 중</string>
 
     <!-- Tracking quality -->
     <string name="quality_unstable_camera">폰이 흔들려요. 기대 세워둘 곳이 있을까요?</string>
@@ -246,7 +225,6 @@
     <string name="settings_music_focus">집중</string>
     <string name="settings_music_calm">잔잔</string>
     <string name="settings_voice">음성 안내</string>
-    <string name="settings_captions">자막</string>
     <string name="settings_haptics">진동 세기</string>
     <string name="settings_haptics_off">끄기</string>
     <string name="settings_haptics_light">약하게</string>
@@ -272,7 +250,6 @@
     <string name="settings_reduce_motion">모션 줄이기</string>
     <string name="settings_audio_only">절전 집중 모드</string>
     <string name="settings_audio_only_sub">던전에서 화면을 어둡게 하고 소리로만 진행해요. 배터리가 오래가요.</string>
-    <string name="settings_large_text">큰 글씨</string>
     <string name="pick_exercise_title">뭐로 싸울까요?</string>
     <string name="pick_exercise_sub">시작할 운동을 골라요. 싸우는 중에도 오른쪽 위에서 바꿀 수 있어요.</string>
     <string name="pick_exercise_start">이걸로 시작</string>
@@ -320,7 +297,6 @@
     <!-- %1$s is the cat's name with its particle already attached: 치즈가, 호박이. -->
     <string name="survival_gameover">%1$s 놀랐어요</string>
     <!-- Before the first armed frame. The ceiling does not move until the user is in position. -->
-    <string name="survival_waiting">자세를 잡으면 천장이 내려오기 시작해요</string>
     <string name="survival_waiting_with">%1$s 자세를 잡으면 천장이 내려오기 시작해요</string>
     <string name="pick_survival_title">뭐로 밀어 올릴까요?</string>
     <string name="pick_survival_sub">한 번 할 때마다 천장이 올라가요. 힘든 운동일수록 더 많이 올라가요.</string>
@@ -374,7 +350,6 @@
 
     <!-- Paywall -->
     <string name="paywall_title">모든 던전을 열어요</string>
-    <string name="paywall_trial">7일 무료로 써보기</string>
     <string name="paywall_trial_days">%1$d일 무료로 써보기</string>
     <string name="paywall_subscribe">구독 시작하기</string>
     <string name="paywall_restore">구매 복원</string>
@@ -402,58 +377,38 @@
 
     <!-- Errors -->
     <string name="error_model_load">준비 중 문제가 생겼어요. 앱을 다시 열어볼까요?</string>
-    <string name="error_network">연결이 잠깐 끊겼어요. 운동은 그대로 진행돼요.</string>
     <string name="error_camera">카메라를 열 수 없어요. 다른 앱이 쓰고 있는지 확인해 주세요.</string>
     <string name="error_camera_retry">카메라 다시 열기</string>
 
     <!-- Home hub -->
-    <string name="home_title">거점</string>
-    <string name="home_class_level">%1$s · 레벨 %2$d</string>
-    <string name="home_week">최근 7일</string>
-    <string name="home_today_good">좋아요, 오늘 몸은 확실히 썼어요</string>
     <!-- The hub's big button before any dungeon has been cleared: there is nothing yet to continue. -->
     <string name="home_start_first">첫 던전 도전하기</string>
     <string name="home_replay">%1$s 다시 도전</string>
     <string name="home_continue_locked">구독하면 이어서 갈 수 있어요</string>
-    <string name="home_trial_left">무료 체험 %1$d일 남았어요</string>
-    <string name="home_modes">모드</string>
-    <string name="home_dungeons_sub">원하는 던전을 골라요</string>
-    <string name="home_survival_sub">천장을 밀어 올려서 버텨요</string>
-    <string name="home_xp_progress">%1$,d / %2$,d</string>
     <string name="home_xp_to_next">다음 레벨까지 경험치 %1$,d</string>
     <string name="home_max_level">최고 레벨에 닿았어요</string>
 
     <!-- Rank card -->
-    <string name="rank_section">등급</string>
     <string name="rank_lifetime">누적 %1$,d개</string>
     <string name="rank_max">최고 등급에 올랐어요</string>
     <string name="level_section">레벨</string>
 
     <!-- Dungeon select -->
-    <string name="dungeon_section_list">던전 목록</string>
-    <string name="dungeon_floors">%1$d층</string>
     <string name="dungeon_meta">%1$s · %2$s</string>
     <string name="dungeon_locked_badge">잠김</string>
     <string name="dungeon_locked_subscription">구독하면 열려요</string>
     <string name="dungeon_cleared_badge">클리어</string>
     <string name="dungeon_free_badge">무료</string>
-    <string name="dungeon_next_badge">여기부터</string>
     <string name="difficulty_section">난이도</string>
 
     <!-- Records detail (heat calendar, session list) -->
     <string name="records_heat_title">지난 13주</string>
-    <string name="records_heat_cd">지난 13주 달력이에요. 운동한 날 %1$d일.</string>
-    <string name="records_heat_less">적음</string>
-    <string name="records_heat_more">많음</string>
     <string name="records_weekday_mon">월</string>
     <string name="records_weekday_wed">수</string>
     <string name="records_weekday_fri">금</string>
     <string name="records_recent_title">최근 운동</string>
-    <string name="records_recent_sub">이긴 날도, 못 이긴 날도 똑같이 남아요.</string>
     <string name="records_session_cleared">완료</string>
     <string name="records_session_attempted">도전</string>
-    <string name="records_free_run">자유 운동</string>
-    <string name="records_unknown_dungeon">던전</string>
     <string name="records_date">%1$d월 %2$d일</string>
     <string name="records_reps_value">%1$d개</string>
     <string name="records_combo_value">×%1$d</string>
@@ -463,32 +418,21 @@
     <string name="records_duration_ms">%1$d분 %2$d초</string>
     <string name="records_duration_s">%1$d초</string>
     <string name="records_label_reps">개수</string>
-    <string name="records_label_combo">콤보</string>
-    <string name="records_label_time">시간</string>
-    <string name="records_start_cta">첫 던전 열기</string>
 
     <!-- Settings detail (sections, subtitles) -->
-    <string name="settings_title">설정</string>
     <string name="settings_section_display">표시</string>
     <string name="settings_section_sound">소리와 진동</string>
     <string name="settings_section_exercise">운동</string>
-    <string name="settings_section_about">앱 정보</string>
     <string name="settings_overlay_sub">운동할 때 카메라 화면 속 내 몸 위에 관절을 잇는 선을 그려요. 카메라가 나를 잘 잡고 있는지 볼 때 좋아요.</string>
     <string name="settings_gauge_side_sub">운동 화면에서 얼마나 내려갔는지 보여주는 막대예요. 보기 편한 쪽에 두세요.</string>
     <string name="settings_gauge_number_sub">깊이 막대 옆에 숫자로도 같이 보여줘요.</string>
-    <string name="settings_large_text_sub">멀리서도 잘 보이도록 글씨를 키워요.</string>
     <string name="settings_reduce_motion_sub">화면 흔들림과 번쩍임을 줄여요.</string>
     <string name="settings_cvd_sub">초록·빨강 대신 파랑·노랑으로 구분해요.</string>
     <string name="settings_voice_sub">필살기와 자세 안내를 목소리로 알려줘요. 폰이 멀리 있어도 들려요.</string>
-    <string name="settings_captions_sub">음성 안내를 글자로도 보여줘요.</string>
-    <string name="settings_exercise_sub">고른 운동으로 몬스터를 공격해요.</string>
     <string name="settings_difficulty">난이도</string>
     <string name="settings_difficulty_sub">몬스터가 버티는 개수가 달라져요. 언제든 바꿀 수 있어요.</string>
     <string name="settings_recalibrate_sub">개수가 잘 안 세지거나 너무 쉽게 세질 때, 폰 위치를 바꿨을 때 눌러요. 다음 운동의 처음 몇 개로 내 몸에 다시 맞춰요.</string>
     <string name="settings_recalibrate_done">깊이 기준을 초기화했어요. 다음 운동 처음 몇 개로 다시 맞춰요.</string>
-    <string name="settings_audio_only_on">지금 켜져 있어요</string>
-    <string name="settings_audio_only_off">지금 꺼져 있어요</string>
-    <string name="settings_privacy_sub">무엇을 저장하고 무엇을 저장하지 않는지 적어두었어요.</string>
     <!-- Share card -->
     <string name="share_card_survival_headline">고냥이를 지켰어요</string>
     <string name="share_card_survival_hero_label">천장을 밀어 올린 점수</string>
