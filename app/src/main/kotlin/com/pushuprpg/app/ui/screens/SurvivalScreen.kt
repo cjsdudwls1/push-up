@@ -57,6 +57,7 @@ import com.pushuprpg.app.ui.components.drawHearts
 import com.pushuprpg.app.ui.theme.LocalReduceMotion
 import com.pushuprpg.app.ui.theme.Palette
 import com.pushuprpg.app.ui.theme.Type
+import com.pushuprpg.app.ui.battle.CameraText
 import com.pushuprpg.app.ui.battle.SkeletonOverlay
 import com.pushuprpg.app.ui.components.FramingGuide
 import com.pushuprpg.app.ui.components.PlacementBanner
@@ -189,7 +190,9 @@ fun SurvivalScreen(
                 .padding(top = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Text(
+            // Outlined, as all text over the camera is, and none of it under bodyM: the warm wash
+            // does not darken a bright room enough to read plain grey type off it.
+            CameraText(
                 text = stringResource(R.string.survival_score, state.score),
                 style = Type.numeralL,
                 color = Palette.TextPrimary,
@@ -197,9 +200,9 @@ fun SurvivalScreen(
             // Not in the tutorial: a best of 0 says nothing to someone who has never played.
             if (!isTutorial) {
                 Spacer(Modifier.height(2.dp))
-                Text(
+                CameraText(
                     text = stringResource(R.string.survival_best, bestScore),
-                    style = Type.labelM,
+                    style = Type.bodyM,
                     color = Palette.TextSecondary,
                 )
             }
@@ -210,11 +213,11 @@ fun SurvivalScreen(
                 if (isTutorial) {
                     TutorialIntro(modifier = Modifier.padding(horizontal = 20.dp))
                 } else {
-                    Text(
+                    CameraText(
                         text = stringResource(R.string.survival_waiting_with, stringResource(exerciseLabelRes(exercise))),
-                        style = Type.bodyM,
-                        color = Palette.TextSecondary,
-                        textAlign = TextAlign.Center,
+                        style = Type.bodyM.copy(textAlign = TextAlign.Center),
+                        color = Palette.TextPrimary,
+                        modifier = Modifier.padding(horizontal = 20.dp),
                     )
                 }
             }

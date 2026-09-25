@@ -4,7 +4,6 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -19,7 +18,6 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.rememberTextMeasurer
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.pushuprpg.app.ui.theme.LocalGameColors
 import com.pushuprpg.app.ui.theme.Palette
@@ -59,9 +57,11 @@ fun DepthGauge(
         modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text(
+        // Outlined like everything else over the preview: a plain label vanished against a bright
+        // floor or a white wall.
+        CameraText(
             text = "깊이",
-            style = Type.labelM,
+            style = Type.bodyM,
             color = Palette.TextSecondary,
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
         )
@@ -172,11 +172,10 @@ fun DepthGauge(
         }
 
         if (showNumber) {
-            Text(
+            CameraText(
                 text = depth.toInt().toString(),
                 style = Type.numeralM,
                 color = Palette.TextPrimary,
-                textAlign = TextAlign.Center,
                 modifier = Modifier.padding(top = 6.dp),
             )
         }

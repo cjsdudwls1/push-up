@@ -69,7 +69,11 @@ object Palette {
     // Over-camera
     val ScrimPanel = Color(0x9E0B0E14)
     val ScrimPanelHigh = Color(0xC70B0E14)
-    val OutlineInk = Color(0x9E000000)
+    /**
+     * [com.pushuprpg.app.ui.battle.CameraText]'s stroke. Near opaque: at 62% a white wall behind
+     * it showed through, and secondary text on it fell to 2.9:1.
+     */
+    val OutlineInk = Color(0xE6000000)
 
     // Rank tiers. Read as text on the hub, so they deepen on a light surface like everything else.
     val TierCommon: Color @Composable @ReadOnlyComposable get() = LocalThemeColors.current.tierCommon

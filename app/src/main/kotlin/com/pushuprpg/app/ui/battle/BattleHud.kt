@@ -147,7 +147,9 @@ fun HealthBar(
         modifier = modifier,
         horizontalAlignment = if (alignEnd) Alignment.End else Alignment.Start,
     ) {
-        CameraText(text = name, style = Type.labelL, color = Palette.TextSecondary)
+        // Nothing here under bodyM, the floor for text over the camera: a squat or a pull-up reads
+        // it from two or three metres away.
+        CameraText(text = name, style = Type.bodyM, color = Palette.TextSecondary)
         Spacer(Modifier.height(4.dp))
         Box(
             Modifier
@@ -168,8 +170,8 @@ fun HealthBar(
         Spacer(Modifier.height(3.dp))
         CameraText(
             text = label ?: "${format.format(hp)} / ${format.format(maxHp)}",
-            style = Type.labelM,
-            color = Palette.TextSecondary,
+            style = Type.numeralM,
+            color = Palette.TextPrimary,
         )
     }
 }
@@ -189,7 +191,7 @@ fun HpStrip(hp: Int, maxHp: Int, modifier: Modifier = Modifier) {
         label = "playerHp",
     )
     Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically) {
-        CameraText(text = stringResource(R.string.battle_hp_label), style = Type.labelM, color = Palette.TextSecondary)
+        CameraText(text = stringResource(R.string.battle_hp_label), style = Type.bodyM, color = Palette.TextSecondary)
         Spacer(Modifier.width(6.dp))
         Box(
             Modifier
@@ -207,7 +209,7 @@ fun HpStrip(hp: Int, maxHp: Int, modifier: Modifier = Modifier) {
             )
         }
         Spacer(Modifier.width(6.dp))
-        CameraText(text = hp.toString(), style = Type.labelM, color = Palette.TextSecondary)
+        CameraText(text = hp.toString(), style = Type.bodyM, color = Palette.TextSecondary)
     }
 }
 
