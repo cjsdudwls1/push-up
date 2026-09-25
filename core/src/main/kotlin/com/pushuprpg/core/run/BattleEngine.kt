@@ -61,6 +61,8 @@ data class BattleState(
     val calibrating: Boolean = true,
     val render: RenderSkeleton = RenderSkeleton.EMPTY,
     val reps: Int = 0,
+    /** Time held this run, every hold summed across switches. A plank counts no [reps]. */
+    val heldMs: Long = 0,
     val combo: Int = 0,
     val maxCombo: Int = 0,
     val deepReps: Int = 0,
@@ -110,6 +112,12 @@ data class BattleState(
      * tracker blinked — that reads as the app cheating, and it is the fastest way to lose trust.
      */
     val paused: Boolean get() = quality != PoseQuality.OK
+
+    /**
+     * Whether the run has anything in it to bank: a rep, or a second held — the same second a
+     * finished run needs before a held stretch is worth a record row.
+     */
+    val workDone: Boolean get() = reps > 0 || heldMs >= 1_000L
 }
 
 /**
@@ -241,6 +249,8 @@ class BattleEngine(
     private var segDeep = 0
     private var segDepthSum = 0f
     private var segMaxCombo = 0
+    /** Time held by the movements already switched away from. */
+    private var heldBeforeMs = 0L
 
     /**
      * What the run costs in total, computed once at spawn from the same rule the entry screen quoted.
@@ -577,6 +587,7 @@ class BattleEngine(
             calibrating = tick.calibration.state == CalibrationState.BOOTSTRAP,
             render = tick.render,
             reps = repsTotal,
+            heldMs = heldMs(),
             combo = player.combo,
             maxCombo = maxOf(state.maxCombo, player.combo),
             deepReps = deepReps,
@@ -625,6 +636,7 @@ class BattleEngine(
     fun switchExercise(next: RepDetector, atMs: Long = lastFrameMs): RepDetector {
         val retired = detector
         segments += segmentSoFar(atMs)
+        heldBeforeMs += segments.last().holdMs
         segStartMs = if (startedAtMs == Long.MIN_VALUE) Long.MIN_VALUE else atMs
         segReps = 0
         segDeep = 0
@@ -651,6 +663,7 @@ class BattleEngine(
             countEnter = next.config.countEnter,
             deepEnter = next.config.deepEnter,
             runTotalReps = runTotalReps,
+            heldMs = heldMs(),
             enemyHp = encounter.enemy.hp,
             enemyMaxHp = encounter.enemy.maxHp,
         )
@@ -662,6 +675,12 @@ class BattleEngine(
         val to = detector.config.exercise
         return encounter.enemy.remaining + dungeon.floors.drop(floorIndex + 1)
             .sumOf { CombatResolver.expectedReps(it.standardRepCost, difficulty, to, playerClass) }
+    }
+
+    /** The movements left behind, and the one in progress if it is a hold: what the run banks as held. */
+    private fun heldMs(): Long {
+        val hold = Exercises.of(detector.config.exercise).kind == MovementKind.HOLD
+        return heldBeforeMs + if (hold) detector.sessionSummary().holdMs else 0L
     }
 
     private fun segmentSoFar(atMs: Long): ExerciseSegment {

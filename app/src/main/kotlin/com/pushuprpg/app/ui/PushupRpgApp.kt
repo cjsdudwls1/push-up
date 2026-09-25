@@ -508,7 +508,7 @@ fun PushupRpgApp(
                     val exercise = ExerciseType.entries.firstOrNull { it.name == exerciseName }
                         ?: ExerciseType.PUSHUP
                     val vm: SurvivalViewModel =
-                        viewModel(factory = SurvivalViewModel.factory(container, exercise))
+                        viewModel(factory = SurvivalViewModel.factory(container, exercise, isTutorial))
                     val state by vm.state.collectAsState()
                     val best by vm.bestScore.collectAsState()
                     val cat by vm.catView.collectAsState()
@@ -542,6 +542,10 @@ fun PushupRpgApp(
                                         popUpTo(Routes.SURVIVAL) { inclusive = true }
                                     }
                                 } else {
+                                    // Mid-run too, from the close button or the back gesture: what
+                                    // was done is banked on the way out. After a game over it
+                                    // already is.
+                                    vm.leave()
                                     // By route, so a second tap cannot pop the hub along with it.
                                     navController.popBackStack(Routes.SURVIVAL, inclusive = true)
                                 }

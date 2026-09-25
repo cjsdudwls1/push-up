@@ -1,5 +1,6 @@
 package com.pushuprpg.app.ui.battle
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -33,6 +34,8 @@ import com.pushuprpg.app.ui.components.KeepScreenOn
 import com.pushuprpg.app.ui.components.exerciseHintRes
 import com.pushuprpg.app.ui.components.FramingGuide
 import com.pushuprpg.app.ui.components.PlacementBanner
+import com.pushuprpg.app.ui.components.PrimaryButton
+import com.pushuprpg.app.ui.components.SecondaryButton
 import com.pushuprpg.app.ui.components.exerciseLabelRes
 import com.pushuprpg.app.ui.theme.LocalGameColors
 import com.pushuprpg.app.ui.theme.LocalReduceMotion
@@ -79,6 +82,18 @@ fun BattleScreen(
         if (placementFor != null) {
             kotlinx.coroutines.delay(PLACEMENT_HINT_MS)
             placementFor = null
+        }
+    }
+
+    // Leaving asks first once the run has something in it, by the X and the back gesture alike: an
+    // edge swipe made while straightening the phone used to pop the screen and the run with it.
+    var confirmingQuit by remember { mutableStateOf(false) }
+    val requestQuit: () -> Unit = { if (state.workDone) confirmingQuit = true else onQuit() }
+    BackHandler {
+        when {
+            confirmingQuit -> confirmingQuit = false
+            picking -> picking = false
+            else -> requestQuit()
         }
     }
 
@@ -175,7 +190,7 @@ fun BattleScreen(
                 .size(48.dp)
                 .clip(CircleShape)
                 .background(Palette.ScrimPanelHigh)
-                .clickable(onClick = onQuit),
+                .clickable(onClick = requestQuit),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
@@ -251,6 +266,60 @@ fun BattleScreen(
                 onDismiss = { picking = false },
             )
         }
+
+        if (confirmingQuit) {
+            QuitConfirm(
+                reps = state.reps,
+                heldSeconds = (state.heldMs / 1000L).toInt(),
+                onQuit = onQuit,
+                onResume = { confirmingQuit = false },
+            )
+        }
+    }
+}
+
+/**
+ * Asked before a run with something in it ends.
+ *
+ * Quitting loses nothing — the run is banked either way, and the line says so — so this only asks
+ * whether it was meant. The fight carries on underneath: nothing in a dungeon hurts over time.
+ */
+@Composable
+private fun BoxScope.QuitConfirm(
+    reps: Int,
+    heldSeconds: Int,
+    onQuit: () -> Unit,
+    onResume: () -> Unit,
+) {
+    Box(
+        Modifier
+            .matchParentSize()
+            .background(Palette.ScrimPanelHigh)
+            .clickable(onClick = onResume),
+    )
+    Column(
+        modifier = Modifier
+            .align(Alignment.Center)
+            .fillMaxWidth()
+            .windowInsetsPadding(WindowInsets.safeDrawing)
+            .padding(horizontal = 20.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Text(
+            text = stringResource(R.string.battle_paused_title),
+            style = Type.titleL,
+            color = Palette.TextPrimary,
+        )
+        Text(
+            // A plank counts no reps; what it keeps is the time held.
+            text = if (reps > 0) stringResource(R.string.battle_quit_confirm, reps)
+            else stringResource(R.string.battle_quit_confirm_hold, heldSeconds),
+            style = Type.bodyM,
+            color = Palette.TextSecondary,
+        )
+        Spacer(Modifier.height(4.dp))
+        PrimaryButton(text = stringResource(R.string.battle_resume), onClick = onResume)
+        SecondaryButton(text = stringResource(R.string.battle_quit), onClick = onQuit)
     }
 }
 

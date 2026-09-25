@@ -77,6 +77,7 @@
     <string name="battle_idle">숨 고르고 계속해요</string>
     <string name="battle_paused_title">잠깐 쉬어요</string>
     <string name="battle_quit_confirm">지금까지 한 %1$d개는 그대로 기록에 남아요</string>
+    <string name="battle_quit_confirm_hold">지금까지 버틴 %1$d초는 그대로 기록에 남아요</string>
     <string name="battle_quit">그만두기</string>
     <string name="battle_resume">계속하기</string>
     <string name="battle_player_label">나</string>

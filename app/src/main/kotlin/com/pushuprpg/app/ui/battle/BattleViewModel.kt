@@ -253,6 +253,16 @@ class BattleViewModel(
     }
 
     /**
+     * The screen went without the run ending or being quit — the app closed from recents, or any
+     * way out that skipped the X. Whatever was done is banked all the same, in the app's scope,
+     * because this one is already cancelled.
+     */
+    override fun onCleared() {
+        // Not the engine at all once banked: the popped screen can still be feeding it frames.
+        if (!saved.get()) quit()
+    }
+
+    /**
      * Banks the run.
      *
      * Everything here happens whether the run was won or lost. The app tells the user their reps

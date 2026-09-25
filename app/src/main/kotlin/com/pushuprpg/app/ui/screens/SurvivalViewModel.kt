@@ -42,6 +42,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import java.util.concurrent.atomic.AtomicBoolean
 
 class SurvivalViewModel(
     private val progressRepository: ProgressRepository,
@@ -53,6 +54,8 @@ class SurvivalViewModel(
     private val voice: GameVoice,
     /** Chosen on the way in; always pushups for the tutorial (see Routes.survival). */
     private val exercise: ExerciseType,
+    /** The first run, which ends only at its game over; see [leave]. */
+    private val tutorial: Boolean,
     /** Where the run is banked: it outlives this screen, which may be popped before a write lands. */
     private val appScope: CoroutineScope,
 ) : ViewModel() {
@@ -107,9 +110,12 @@ class SurvivalViewModel(
     }
 
     private var startedAtMs = 0L
-    private var reps = 0
-    private var maxCombo = 0
-    private var saved = false
+    // Counted on the pose thread; read on the main one when the user leaves mid-run.
+    @Volatile private var reps = 0
+    @Volatile private var maxCombo = 0
+
+    /** A run is banked by its game over or by [leave], from two threads, and exactly once. */
+    private val saved = AtomicBoolean(false)
 
     @Volatile
     private var restartRequested = false
@@ -181,15 +187,34 @@ class SurvivalViewModel(
         reps = 0
         maxCombo = 0
         startedAtMs = 0L
-        saved = false
+        saved.set(false)
         _state.value = game.state()
     }
 
     private fun handle(events: List<SurvivalEvent>) {
         events.filterIsInstance<SurvivalEvent.GameOver>().firstOrNull()?.let { over ->
             if (over.score > _bestScore.value) _bestScore.value = over.score
-            save(over)
+            save(score = over.score, survivedMs = over.survivedMs)
         }
+    }
+
+    /**
+     * Banks a run left before the ceiling came down: the close button, the back gesture, or the
+     * screen going any other way. Leaving keeps what was done, exactly as a game over does.
+     *
+     * There is no confirm to answer first. The ceiling never pauses, by the owner's decision, so it
+     * would keep falling while the question was on screen.
+     *
+     * Not for the tutorial, which is left as it was: it ends at its game over.
+     */
+    fun leave() {
+        val now = _state.value
+        if (tutorial || !now.started) return
+        save(score = now.score, survivedMs = now.elapsedMs)
+    }
+
+    override fun onCleared() {
+        leave()
     }
 
     /**
@@ -222,19 +247,18 @@ class SurvivalViewModel(
         }
     }
 
-    private fun save(over: SurvivalEvent.GameOver) {
-        if (saved) return
-        saved = true
+    private fun save(score: Int, survivedMs: Long) {
+        if (!saved.compareAndSet(false, true)) return
         val repsDone = reps
         val combo = maxCombo
-        // Read here, on the thread that feeds the detector, rather than inside the write.
+        // Read now rather than inside the write, which runs later on a thread of its own.
         val plausibility = detector.sessionSummary().plausibility
 
         appScope.launch {
             sessionRepository.insert(
                 SessionRecord(
-                    startedAtMs = System.currentTimeMillis() - over.survivedMs,
-                    durationMs = over.survivedMs,
+                    startedAtMs = System.currentTimeMillis() - survivedMs,
+                    durationMs = survivedMs,
                     exercise = exercise,
                     reps = repsDone,
                     maxCombo = combo,
@@ -250,8 +274,8 @@ class SurvivalViewModel(
                 current.copy(
                     lifetimeReps = current.lifetimeReps + repsDone,
                     bestCombo = maxOf(current.bestCombo, combo),
-                    totalActiveMs = current.totalActiveMs + over.survivedMs,
-                    bestSurvivalScore = maxOf(current.bestSurvivalScore, over.score),
+                    totalActiveMs = current.totalActiveMs + survivedMs,
+                    bestSurvivalScore = maxOf(current.bestSurvivalScore, score),
                 )
             }
         }
@@ -260,7 +284,11 @@ class SurvivalViewModel(
     companion object {
         private val HOLD_TICK_SECONDS = 1f / PlankConfig().dotTickHz
 
-        fun factory(container: AppContainer, exercise: ExerciseType): ViewModelProvider.Factory = viewModelFactory {
+        fun factory(
+            container: AppContainer,
+            exercise: ExerciseType,
+            tutorial: Boolean,
+        ): ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 SurvivalViewModel(
                     container.progressRepository,
@@ -271,6 +299,7 @@ class SurvivalViewModel(
                     container.audio,
                     container.voice,
                     exercise,
+                    tutorial,
                     container.appScope,
                 )
             }

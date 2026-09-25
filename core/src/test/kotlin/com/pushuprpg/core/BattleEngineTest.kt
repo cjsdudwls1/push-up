@@ -464,6 +464,46 @@ class BattleEnginePresentationTest {
     }
 
     /**
+     * Leaving a run asks first once there is something in it, and says what will be kept. A plank
+     * counts no reps, so the time held has to be on the state — and be the time the run banks,
+     * across a switch as well.
+     */
+    @Test
+    fun `the time held is on the state, and is the time the run banks`() {
+        val e = BattleEngine(
+            dungeon = Dungeons.byIndex(3)!!,
+            difficulty = Difficulty.STANDARD,
+            capacity = 8f,
+            initialPlayer = PlayerState.create(PlayerClass.KNIGHT, level = 1),
+            detector = DetectorFactory.create(ExerciseType.PLANK),
+            resolver = CombatResolver(DetectorConfig.forExercise(ExerciseType.PLANK)),
+        )
+        assertTrue(!e.currentState().workDone, "a run with nothing in it yet has nothing to keep")
+
+        val plank = PoseFixtures.plankTrace(durationMs = 10_000)
+        val held = feed(e, plank)
+        assertEquals(0, held.reps)
+        assertTrue(held.heldMs > 8_000, "held ${held.heldMs}ms of 10s")
+        assertTrue(held.workDone, "ten seconds of plank is something to keep")
+
+        e.switchExercise(RepDetectorImpl(DetectorConfig.pushup()))
+        assertEquals(held.heldMs, e.currentState().heldMs, "the plank's time went missing at the switch")
+        val pushups = PoseFixtures.trace(count = 3, startMs = plank.last().timestampMs + 33, restMs = 250)
+        val after = feed(e, pushups)
+        assertEquals(held.heldMs, after.heldMs, "pushups added time held")
+        assertEquals(e.quit().segments.sumOf { it.holdMs }, after.heldMs)
+    }
+
+    @Test
+    fun `a single rep is work done`() {
+        val e = engineIn(Dungeons.byIndex(3)!!)
+        assertTrue(!e.currentState().workDone)
+        val state = feed(e, PoseFixtures.trace(count = 2, peakDepth = 0.95f, restMs = 250))
+        assertTrue(state.reps > 0 && state.workDone, "counted ${state.reps}")
+        assertEquals(0L, state.heldMs)
+    }
+
+    /**
      * The device report: every rep went chest to the floor, and the result screen said 다음엔 더 깊게.
      * A rep counts at the 인정 line on its way down, so the depth it strikes at is always about 70;
      * the stars averaged that, and could not rise above one whatever the user did.

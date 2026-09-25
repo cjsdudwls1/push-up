@@ -1,5 +1,6 @@
 package com.pushuprpg.app.ui.screens
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloat
@@ -12,13 +13,19 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
@@ -72,6 +79,7 @@ fun SurvivalScreen(
     isTutorial: Boolean,
     onRetry: () -> Unit,
     onShare: (ShareCardData) -> Unit,
+    /** Back to the hub; outside the tutorial, also the close button and the back gesture. */
     onHome: () -> Unit,
     modifier: Modifier = Modifier,
     cat: CatView = CatView(),
@@ -84,6 +92,10 @@ fun SurvivalScreen(
 ) {
     KeepScreenOn()
     val name = catName.ifBlank { stringResource(R.string.cat_default_name) }
+
+    // Outside the tutorial, back leaves with what was done banked — no confirm, because the ceiling
+    // does not pause for one. The tutorial is left as it was.
+    BackHandler(enabled = !isTutorial, onBack = onHome)
 
     BoxWithConstraints(modifier.fillMaxSize().background(Color(0xFF1A1208))) {
 
@@ -170,6 +182,27 @@ fun SurvivalScreen(
                     placement = placement,
                     exercise = exercise,
                     modifier = Modifier.padding(horizontal = 20.dp),
+                )
+            }
+        }
+
+        // Top left, as in a dungeon. Leaving mid-run keeps the run, as a game over does.
+        if (!isTutorial) {
+            Box(
+                Modifier
+                    .align(Alignment.TopStart)
+                    .windowInsetsPadding(WindowInsets.safeDrawing)
+                    .padding(start = 16.dp, top = 8.dp)
+                    .size(48.dp)
+                    .clip(CircleShape)
+                    .background(Palette.ScrimPanelHigh)
+                    .clickable(onClick = onHome),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Close,
+                    contentDescription = stringResource(R.string.action_close),
+                    tint = Palette.TextPrimary,
                 )
             }
         }
