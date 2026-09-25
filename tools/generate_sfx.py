@@ -305,6 +305,8 @@ def cat_happy():
     return normalise(x * trill, 0.8)
 
 
+# 배포 파일은 녹음, docs/AUDIO_CREDITS.md 참고. Kept for reference only: it is not in SOUNDS, so
+# regenerating the palette leaves the recording alone.
 def cat_purr():
     """
     A contented purr, one full breath cycle: out, a breath's pause, in, and the pause before the
@@ -406,7 +408,6 @@ SOUNDS = {
     "sfx_go": go,
     "sfx_ceiling_push": ceiling_push,
     "sfx_heartbeat": heartbeat,
-    "sfx_cat_purr": cat_purr,
     "sfx_cat_meow": cat_meow,
     "sfx_cat_cry": cat_cry,
     "sfx_cat_happy": cat_happy,
