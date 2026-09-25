@@ -351,26 +351,33 @@ fun PushupRpgApp(
                     }
 
                     AlwaysDark {
-                        BattleScreen(
-                            state = state,
-                            playerClass = progress.playerClass,
-                            poseSource = poseSource,
-                            sessionBestDepth = vm.currentSessionBestDepth(),
-                            gaugeOnRight = settings.gaugeOnRight,
-                            showGaugeNumber = settings.showGaugeNumber,
-                            audioOnly = settings.audioOnly,
-                            onSwitchExercise = vm::switchExercise,
-                            onQuit = {
-                                if (navController.isOnTop(entry)) {
-                                    lastOutcome = vm.quit()
-                                    lastLevelsGained = vm.levelsGained.value
-                                    lastLevelReached = vm.levelReached.value
-                                    navController.navigate(Routes.result(dungeonIndex)) {
-                                        popUpTo(Routes.BATTLE) { inclusive = true }
+                        CameraGate(
+                            granted = granted,
+                            permanentlyDenied = permanentlyDenied,
+                            onRequestCameraPermission = onRequestCameraPermission,
+                            onOpenAppSettings = onOpenAppSettings,
+                        ) {
+                            BattleScreen(
+                                state = state,
+                                playerClass = progress.playerClass,
+                                poseSource = poseSource,
+                                sessionBestDepth = vm.currentSessionBestDepth(),
+                                gaugeOnRight = settings.gaugeOnRight,
+                                showGaugeNumber = settings.showGaugeNumber,
+                                audioOnly = settings.audioOnly,
+                                onSwitchExercise = vm::switchExercise,
+                                onQuit = {
+                                    if (navController.isOnTop(entry)) {
+                                        lastOutcome = vm.quit()
+                                        lastLevelsGained = vm.levelsGained.value
+                                        lastLevelReached = vm.levelReached.value
+                                        navController.navigate(Routes.result(dungeonIndex)) {
+                                            popUpTo(Routes.BATTLE) { inclusive = true }
+                                        }
                                     }
-                                }
-                            },
-                        )
+                                },
+                            )
+                        }
                     }
                 }
 
@@ -535,58 +542,65 @@ fun PushupRpgApp(
                     }
 
                     AlwaysDark {
-                        SurvivalScreen(
-                            state = state,
-                            bestScore = best,
-                            cat = cat,
-                            placement = placement,
-                            setupSkeleton = setupSkeleton,
-                            catName = settings.catName,
-                            catCoat = settings.catCoat,
-                            poseSource = poseSource,
-                            exercise = exercise,
-                            isTutorial = isTutorial,
-                            onRetry = vm::restart,
-                            onShare = onShare,
-                            modelFailed = poseError != null,
-                            firstDungeonReps = Dungeons.FREE_DUNGEON.repCost(
-                                settings.difficulty,
-                                ExerciseType.PUSHUP,
-                                progress.playerClass,
-                            ),
-                            onSkip = {
-                                if (navController.isOnTop(entry)) {
-                                    vm.skipTutorial()
-                                    navController.navigate(Routes.HOME) {
-                                        popUpTo(Routes.SURVIVAL) { inclusive = true }
-                                    }
-                                }
-                            },
-                            onHome = {
-                                if (isTutorial) {
-                                    // The done card's button, or back once the run has started. A
-                                    // double tap on the card finished it twice and pushed a second
-                                    // hub.
+                        CameraGate(
+                            granted = granted,
+                            permanentlyDenied = permanentlyDenied,
+                            onRequestCameraPermission = onRequestCameraPermission,
+                            onOpenAppSettings = onOpenAppSettings,
+                        ) {
+                            SurvivalScreen(
+                                state = state,
+                                bestScore = best,
+                                cat = cat,
+                                placement = placement,
+                                setupSkeleton = setupSkeleton,
+                                catName = settings.catName,
+                                catCoat = settings.catCoat,
+                                poseSource = poseSource,
+                                exercise = exercise,
+                                isTutorial = isTutorial,
+                                onRetry = vm::restart,
+                                onShare = onShare,
+                                modelFailed = poseError != null,
+                                firstDungeonReps = Dungeons.FREE_DUNGEON.repCost(
+                                    settings.difficulty,
+                                    ExerciseType.PUSHUP,
+                                    progress.playerClass,
+                                ),
+                                onSkip = {
                                     if (navController.isOnTop(entry)) {
-                                        vm.finishTutorial()
+                                        vm.skipTutorial()
                                         navController.navigate(Routes.HOME) {
                                             popUpTo(Routes.SURVIVAL) { inclusive = true }
                                         }
-                                        // Where the button says it goes — 던전으로 가기 — with the hub
-                                        // under it for back. It used to stop at the hub, where
-                                        // someone who had never started still had to find the way in.
-                                        navController.navigate(Routes.exercisePick(FreeTier.FREE_DUNGEON_INDEX))
                                     }
-                                } else {
-                                    // Mid-run too, from the close button or the back gesture: what
-                                    // was done is banked on the way out. After a game over it
-                                    // already is.
-                                    vm.leave()
-                                    // By route, so a second tap cannot pop the hub along with it.
-                                    navController.popBackStack(Routes.SURVIVAL, inclusive = true)
-                                }
-                            },
-                        )
+                                },
+                                onHome = {
+                                    if (isTutorial) {
+                                        // The done card's button, or back once the run has started. A
+                                        // double tap on the card finished it twice and pushed a second
+                                        // hub.
+                                        if (navController.isOnTop(entry)) {
+                                            vm.finishTutorial()
+                                            navController.navigate(Routes.HOME) {
+                                                popUpTo(Routes.SURVIVAL) { inclusive = true }
+                                            }
+                                            // Where the button says it goes — 던전으로 가기 — with the hub
+                                            // under it for back. It used to stop at the hub, where
+                                            // someone who had never started still had to find the way in.
+                                            navController.navigate(Routes.exercisePick(FreeTier.FREE_DUNGEON_INDEX))
+                                        }
+                                    } else {
+                                        // Mid-run too, from the close button or the back gesture: what
+                                        // was done is banked on the way out. After a game over it
+                                        // already is.
+                                        vm.leave()
+                                        // By route, so a second tap cannot pop the hub along with it.
+                                        navController.popBackStack(Routes.SURVIVAL, inclusive = true)
+                                    }
+                                },
+                            )
+                        }
                     }
                 }
 
@@ -714,6 +728,38 @@ internal var lastLevelsGained: Int = 0
 
 /** The level [lastOutcome] ended on; travels with it for the same reason. */
 internal var lastLevelReached: Int = 1
+
+/**
+ * The permission screen in place of a camera screen that has no camera to show.
+ *
+ * The graph asks about the permission once, when it picks where to start, and a restored back stack
+ * skips even that. A permission given 이번만 lapses with the process, and the app then came back from
+ * recents onto the battle it was on: a black preview saying 화면 안으로 들어와 주세요 to someone
+ * standing in front of it, and no way to be asked again. MainActivity reads the permission again on
+ * resume, so turning it on in settings brings back the screen that was here.
+ */
+@Composable
+private fun CameraGate(
+    granted: Boolean,
+    permanentlyDenied: Boolean,
+    onRequestCameraPermission: () -> Unit,
+    onOpenAppSettings: () -> Unit,
+    content: @Composable () -> Unit,
+) {
+    if (granted) {
+        content()
+    } else {
+        // Its own surface: the camera screens are dark in either theme, and the root under them
+        // is not.
+        Box(Modifier.fillMaxSize().background(Palette.Bg1)) {
+            PermissionScreen(
+                permanentlyDenied = permanentlyDenied,
+                onRequestPermission = onRequestCameraPermission,
+                onOpenAppSettings = onOpenAppSettings,
+            )
+        }
+    }
+}
 
 /**
  * Status and navigation bar icons that match the surface under them.
