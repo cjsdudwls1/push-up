@@ -56,7 +56,7 @@
     <string name="battle_ultimate_how_hold">자세를 그대로 버티면 막아요</string>
     <string name="battle_ultimate_progress">남은 기회 %1$d개 · 막기 %2$d/%3$d</string>
     <string name="battle_ultimate_blocked">막았어요!</string>
-    <string name="battle_ultimate_hit">아야, 체력 %1$d을 잃었어요. 다음엔 막아요!</string>
+    <string name="battle_ultimate_hit">아야, 체력이 %1$d 줄었어요. 다음엔 막아요!</string>
     <string name="battle_hp_label">체력</string>
     <string name="battle_bootstrap">처음 몇 개로 당신의 범위를 배울게요</string>
     <string name="battle_calibrated">범위를 익혔어요. 이제 정확해요.</string>
