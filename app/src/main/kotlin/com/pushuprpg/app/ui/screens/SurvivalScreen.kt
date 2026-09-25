@@ -523,11 +523,26 @@ private fun TutorialDoneCard(
         )
         Spacer(Modifier.height(10.dp))
         Text(
-            text = stringResource(R.string.tutorial_done_body, reps, firstDungeonReps),
+            text = if (reps > 0) {
+                stringResource(R.string.tutorial_done_body, reps, firstDungeonReps)
+            } else {
+                stringResource(R.string.tutorial_done_body_zero, firstDungeonReps)
+            },
             style = Type.bodyL,
             color = Palette.TextSecondary,
             textAlign = TextAlign.Center,
         )
+        // Nothing counted is nearly always the phone's place, so the card says where it goes before
+        // the first dungeon asks for a count.
+        if (reps == 0) {
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = stringResource(exerciseHintRes(ExerciseType.PUSHUP)),
+                style = Type.bodyM,
+                color = Palette.TextPrimary,
+                textAlign = TextAlign.Center,
+            )
+        }
         Spacer(Modifier.height(20.dp))
         PrimaryButton(text = stringResource(R.string.tutorial_continue), onClick = onContinue)
     }

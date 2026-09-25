@@ -327,6 +327,8 @@
     <string name="tutorial_done_title">준비 끝!</string>
     <!-- %2$d is what the first dungeon asks, from the same count the picker and the HUD quote. -->
     <string name="tutorial_done_body">%1$d개 했어요! 첫 던전은 푸쉬업 %2$d개면 깨요.</string>
+    <!-- The tutorial ended with nothing counted: the camera's miss, followed by the pushup placement hint. -->
+    <string name="tutorial_done_body_zero">카메라가 아직 한 개도 못 셌어요. 첫 던전은 푸쉬업 %1$d개면 깨요.</string>
     <string name="tutorial_continue">던전으로 가기</string>
     <string name="survival_share">자랑하기</string>
     <string name="survival_share_text">푸쉬업 RPG에서 고냥이를 %1$,d점만큼 지켰어요! 🐱💪</string>
