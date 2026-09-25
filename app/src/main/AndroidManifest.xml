@@ -22,6 +22,14 @@
         android:supportsRtl="false"
         android:theme="@style/Theme.PushupRpg">
 
+        <!-- At targetSdk 36, Android 16 ignores the portrait lock below on screens 600dp and wider:
+             a tablet, a foldable opened out. Everything the camera screens draw is laid out for
+             portrait, and a turn mid-run leaves the analysis buffer upright for the old one. This
+             is the platform's opt-out, and it holds only while targetSdk stays at 36. -->
+        <property
+            android:name="android.window.PROPERTY_COMPAT_ALLOW_RESTRICTED_RESIZABILITY"
+            android:value="true" />
+
         <activity
             android:name=".MainActivity"
             android:exported="true"
