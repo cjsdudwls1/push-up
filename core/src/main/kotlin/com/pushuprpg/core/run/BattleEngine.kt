@@ -32,7 +32,12 @@ data class FloatingDamage(
 data class Toast(val textKey: AlertKey, val arg: Int = 0, val atMs: Long)
 
 enum class AlertKey {
-    BOOTSTRAP, CALIBRATED, SHALLOW_TWICE, SHALLOW_FOUR, COMBO_BROKEN, COMBO_MILESTONE,
+    BOOTSTRAP, CALIBRATED, SHALLOW_TWICE,
+    /** Four short of the line in a row: the offer of a knee pushup, so a pushup's alone. */
+    SHALLOW_FOUR,
+    /** A pull-up short of the line: the same nudge, the way a pull-up goes. */
+    SHALLOW_PULL,
+    COMBO_BROKEN, COMBO_MILESTONE,
     IDLE, BOSS_LOW_HP, ULTIMATE_INCOMING, DEEP_STRIKE, QUALITY_LOST, QUALITY_RECOVERED,
     /** The ultimate was answered in full. */
     ULTIMATE_BLOCKED,
@@ -487,10 +492,15 @@ class BattleEngine(
                 is RepEvent.Shallow -> {
                     shallowStreak = event.consecutive
                     // One miss is not worth a message. Two is a nudge, four is an offer to make it
-                    // easier — never a scold.
+                    // easier — never a scold. The offer is to put the knees down, which only a
+                    // pushup can take; every other movement sees the nudge again, and a pull-up's
+                    // goes up, not down. The toast carries the count, so the voice says it once.
+                    val exercise = detector.config.exercise
+                    val nudge = if (exercise == ExerciseType.PULL_UP) AlertKey.SHALLOW_PULL else AlertKey.SHALLOW_TWICE
                     alert = when {
-                        event.consecutive >= 4 -> Toast(AlertKey.SHALLOW_FOUR, 0, event.tMs)
-                        event.consecutive == 2 -> Toast(AlertKey.SHALLOW_TWICE, 0, event.tMs)
+                        event.consecutive >= 4 && exercise == ExerciseType.PUSHUP ->
+                            Toast(AlertKey.SHALLOW_FOUR, 0, event.tMs)
+                        event.consecutive == 2 || event.consecutive >= 4 -> Toast(nudge, event.consecutive, event.tMs)
                         else -> alert
                     }
                 }

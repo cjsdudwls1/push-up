@@ -611,6 +611,7 @@ private fun AlertSlot(state: BattleState) {
             AlertKey.CALIBRATED -> stringResource(R.string.battle_calibrated)
             AlertKey.SHALLOW_TWICE -> stringResource(R.string.battle_shallow_twice)
             AlertKey.SHALLOW_FOUR -> stringResource(R.string.battle_shallow_four)
+            AlertKey.SHALLOW_PULL -> stringResource(R.string.battle_shallow_pull)
             AlertKey.COMBO_BROKEN -> stringResource(R.string.battle_combo_broken)
             AlertKey.COMBO_MILESTONE -> stringResource(R.string.battle_combo_milestone, current?.arg ?: 0)
             AlertKey.IDLE -> stringResource(R.string.battle_idle)

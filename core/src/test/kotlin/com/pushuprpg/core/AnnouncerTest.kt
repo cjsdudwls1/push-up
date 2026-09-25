@@ -74,6 +74,15 @@ class AnnouncerTest {
     }
 
     @Test
+    fun `a pull-up's shallow nudge is said like every other movement's`() {
+        for (key in listOf(AlertKey.SHALLOW_TWICE, AlertKey.SHALLOW_PULL)) {
+            val said = Announcer().battle(quiet.copy(alert = Toast(key, atMs = 100)), 100).single()
+            assertEquals(VoiceStyle.COACH, said.style)
+            assertEquals(key, said.alert)
+        }
+    }
+
+    @Test
     fun `frequent alerts stay silent`() {
         val a = Announcer()
         val deep = quiet.copy(alert = Toast(AlertKey.DEEP_STRIKE, atMs = 100))

@@ -1,9 +1,11 @@
 package com.pushuprpg.core
 
+import com.pushuprpg.core.audio.Announcer
 import com.pushuprpg.core.detect.*
 import com.pushuprpg.core.fixtures.PoseFixtures
 import com.pushuprpg.core.detect.ExerciseType
 import com.pushuprpg.core.game.*
+import com.pushuprpg.core.run.AlertKey
 import com.pushuprpg.core.run.BattleEngine
 import com.pushuprpg.core.run.BattleState
 import com.pushuprpg.core.run.Stars
@@ -220,6 +222,69 @@ class BattleEngineTest {
         assertEquals(0, state.reps)
         assertEquals(state.enemyMaxHp, state.enemyHp, "half reps should not scratch the enemy")
         assertTrue(state.outcome == null || !state.outcome!!.cleared)
+    }
+
+    /**
+     * The coach knows what is being done: the offer to put the knees down is a pushup's, every
+     * other movement is shown the nudge again, and a pull-up is nudged up rather than told to go down.
+     */
+    @Test
+    fun `the shallow nudge fits the movement`() {
+        val shallow = setOf(AlertKey.SHALLOW_TWICE, AlertKey.SHALLOW_FOUR, AlertKey.SHALLOW_PULL)
+        /** Each nudge given, by how many times: the second short rep, and every one from the fourth. */
+        fun nudges(exercise: ExerciseType, frames: List<PoseFrame>): Map<AlertKey, Int> {
+            val e = BattleEngine(
+                dungeon = Dungeons.FREE_DUNGEON,
+                difficulty = Difficulty.STANDARD,
+                capacity = 8f,
+                initialPlayer = PlayerState.create(PlayerClass.KNIGHT, level = 1),
+                detector = DetectorFactory.create(exercise),
+                resolver = CombatResolver(DetectorConfig.forExercise(exercise)),
+            )
+            return frames.mapNotNull { e.onPoseFrame(it).alert }.filter { it.textKey in shallow }
+                .distinct().groupingBy { it.textKey }.eachCount()
+        }
+
+        // Six short reps: a nudge on the second, and one on each of the fourth to the sixth.
+        assertEquals(
+            mapOf(AlertKey.SHALLOW_TWICE to 1, AlertKey.SHALLOW_FOUR to 3),
+            nudges(ExerciseType.PUSHUP, PoseFixtures.trace(count = 6, peakDepth = 0.5f)),
+        )
+        assertEquals(
+            mapOf(AlertKey.SHALLOW_TWICE to 4),
+            nudges(ExerciseType.SQUAT, PoseFixtures.squatTrace(count = 6, peakDepth = 0.5f)),
+        )
+        assertEquals(
+            mapOf(AlertKey.SHALLOW_PULL to 4),
+            nudges(ExerciseType.PULL_UP, PoseFixtures.pullUpTrace(count = 6, peakDepth = 0.5f)),
+        )
+    }
+
+    /**
+     * The banner repeats the nudge on every short rep from the fourth; the voice says it once, on the
+     * second. Said aloud on every short rep, it is a drill instructor.
+     */
+    @Test
+    fun `the shallow nudge is said aloud once, however often it is shown`() {
+        val shallow = setOf(AlertKey.SHALLOW_TWICE, AlertKey.SHALLOW_FOUR, AlertKey.SHALLOW_PULL)
+        for ((exercise, frames) in listOf(
+            ExerciseType.PUSHUP to PoseFixtures.trace(count = 10, peakDepth = 0.5f),
+            ExerciseType.SQUAT to PoseFixtures.squatTrace(count = 10, peakDepth = 0.5f),
+            ExerciseType.PULL_UP to PoseFixtures.pullUpTrace(count = 10, peakDepth = 0.5f),
+        )) {
+            val e = BattleEngine(
+                dungeon = Dungeons.FREE_DUNGEON,
+                difficulty = Difficulty.STANDARD,
+                capacity = 8f,
+                initialPlayer = PlayerState.create(PlayerClass.KNIGHT, level = 1),
+                detector = DetectorFactory.create(exercise),
+                resolver = CombatResolver(DetectorConfig.forExercise(exercise)),
+            )
+            val announcer = Announcer()
+            val said = frames.flatMap { f -> announcer.battle(e.onPoseFrame(f), f.timestampMs) }
+                .mapNotNull { it.alert }.filter { it in shallow }
+            assertEquals(1, said.size, "$exercise: said $said")
+        }
     }
 
     @Test

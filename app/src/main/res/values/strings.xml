@@ -73,6 +73,7 @@
     <string name="battle_calibrated">범위를 익혔어요. 이제 정확해요.</string>
     <string name="battle_shallow_twice">조금만 더 내려가 볼까요?</string>
     <string name="battle_shallow_four">힘들면 무릎 대고 해도 괜찮아요</string>
+    <string name="battle_shallow_pull">조금만 더 끌어올려 볼까요?</string>
     <string name="battle_combo_milestone">콤보 %1$d! 불붙었어요</string>
     <string name="battle_combo_broken">괜찮아요, 다시 쌓으면 돼요</string>
     <string name="battle_boss_low_hp">거의 다 왔어요, 한 번만 더!</string>

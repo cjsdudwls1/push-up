@@ -71,9 +71,14 @@ class Announcer {
                 when (toast.textKey) {
                     AlertKey.ULTIMATE_BLOCKED, AlertKey.ULTIMATE_HIT ->
                         out += Announcement(VoiceStyle.URGENT, alert = toast.textKey, arg = toast.arg)
-                    AlertKey.BOSS_LOW_HP, AlertKey.COMBO_MILESTONE, AlertKey.SHALLOW_TWICE, AlertKey.NOT_SPLIT,
-                    AlertKey.STYLE_TOO_QUICK, AlertKey.STYLE_NOT_FULL, AlertKey.STYLE_LAGGING ->
+                    AlertKey.BOSS_LOW_HP, AlertKey.COMBO_MILESTONE,
+                    AlertKey.NOT_SPLIT, AlertKey.STYLE_TOO_QUICK, AlertKey.STYLE_NOT_FULL, AlertKey.STYLE_LAGGING ->
                         out += Announcement(VoiceStyle.COACH, alert = toast.textKey, arg = toast.arg)
+                    // Said on the second short rep only. From the fourth on the banner repeats it on
+                    // every short rep, and a voice doing that would be a drill instructor.
+                    AlertKey.SHALLOW_TWICE, AlertKey.SHALLOW_PULL -> if (toast.arg <= 2) {
+                        out += Announcement(VoiceStyle.COACH, alert = toast.textKey, arg = toast.arg)
+                    }
                     // The rest are either the placement line's business (tracking lost and
                     // found) or too frequent to be worth a voice.
                     else -> Unit
