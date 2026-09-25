@@ -15,10 +15,12 @@ import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
+import com.pushuprpg.app.R
 import com.pushuprpg.app.ui.theme.LocalGameColors
 import com.pushuprpg.app.ui.theme.Palette
 import com.pushuprpg.app.ui.theme.Type
@@ -49,9 +51,11 @@ fun DepthGauge(
     val colors = LocalGameColors.current
     val density = LocalDensity.current
     val textMeasurer = rememberTextMeasurer()
-    // Read here rather than inside the Canvas: it follows the theme, and a draw block is not
-    // composition.
+    // Read here rather than inside the Canvas: they follow the theme and the locale, and a draw
+    // block is not composition.
     val trackInk = Palette.Bg0
+    val acceptLabel = stringResource(R.string.gauge_accept)
+    val deepLabel = stringResource(R.string.gauge_deep)
 
     Column(
         modifier = modifier,
@@ -60,7 +64,7 @@ fun DepthGauge(
         // Outlined like everything else over the preview: a plain label vanished against a bright
         // floor or a white wall.
         CameraText(
-            text = "깊이",
+            text = stringResource(R.string.gauge_title),
             style = Type.bodyM,
             color = Palette.TextSecondary,
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
@@ -167,8 +171,8 @@ fun DepthGauge(
                 cornerRadius = CornerRadius(thumbHeight),
             )
 
-            drawMarkerLabel(textMeasurer, "인정", colors.accept, trackLeft - markOverhang, yFor(countEnter))
-            drawMarkerLabel(textMeasurer, "깊게", colors.deep, trackLeft - markOverhang, yFor(deepEnter))
+            drawMarkerLabel(textMeasurer, acceptLabel, colors.accept, trackLeft - markOverhang, yFor(countEnter))
+            drawMarkerLabel(textMeasurer, deepLabel, colors.deep, trackLeft - markOverhang, yFor(deepEnter))
         }
 
         if (showNumber) {

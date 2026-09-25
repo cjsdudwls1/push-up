@@ -70,7 +70,7 @@ fun SettingsScreen(
         )
 
         Spacer(Modifier.height(10.dp))
-        SectionHeader(text = "표시")
+        SectionHeader(text = stringResource(R.string.settings_section_display))
         SegmentedSetting(
             title = stringResource(R.string.settings_theme),
             // Said here so that a dark battle screen after picking light does not read as a bug.
@@ -141,7 +141,7 @@ fun SettingsScreen(
         )
 
         Spacer(Modifier.height(10.dp))
-        SectionHeader(text = "소리와 진동")
+        SectionHeader(text = stringResource(R.string.settings_section_sound))
         SwitchSetting(
             title = stringResource(R.string.settings_sfx),
             checked = settings.sfxEnabled,
@@ -183,7 +183,7 @@ fun SettingsScreen(
         )
 
         Spacer(Modifier.height(10.dp))
-        SectionHeader(text = "운동")
+        SectionHeader(text = stringResource(R.string.settings_section_exercise))
         SegmentedSetting(
             title = stringResource(R.string.settings_auto_next),
             subtitle = stringResource(R.string.settings_auto_next_sub),
@@ -198,7 +198,7 @@ fun SettingsScreen(
         // No exercise picker here. It lives on the way into a dungeon, where the choice is actually
         // being made and where the per-exercise camera placement is worth reading.
         SegmentedSetting(
-            title = "난이도",
+            title = stringResource(R.string.settings_difficulty),
             subtitle = stringResource(R.string.settings_difficulty_sub),
             options = Difficulty.entries,
             labelFor = { it.korean },
