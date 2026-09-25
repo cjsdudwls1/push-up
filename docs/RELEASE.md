@@ -42,7 +42,10 @@ The Data Safety form has to make one distinction carefully, because both halves 
   `PoseLandmarkerSource` is the only consumer of camera frames and it produces coordinates, which
   never leave the process. Keep it true.
 - **Crash logs and analytics.** Firebase Crashlytics and Analytics *do* send data: crash traces,
-  and the counts, durations and enum names listed in `telemetry/Telemetry.kt`. Declare them.
+  the counts, durations and enum names listed in `telemetry/Telemetry.kt`, and the events and
+  device values Analytics records on its own (listed under the table in section 4-2 of the
+  policy). Declare them. Advertising ID collection is switched off in the manifest and the
+  `AD_ID` permission removed, so the answer to the advertising ID question is no.
 
 Do not let the second collapse the first in the privacy policy. "카메라 영상은 어디로도 전송되지
 않아요" stays, and the crash/analytics collection is stated separately. Conflating them either
