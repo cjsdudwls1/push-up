@@ -27,6 +27,8 @@ import com.pushuprpg.core.progression.RankProgress
 data class HomeUiState(
     val progress: PlayerProgress = PlayerProgress(),
     val todayReps: Int = 0,
+    /** Time spent in runs today, every mode. A plank counts no reps, so this is what shows it. */
+    val todayActiveMs: Long = 0,
     val entitlement: Entitlement = Entitlement(),
     val loading: Boolean = true,
 ) {
@@ -101,8 +103,9 @@ fun HomeScreen(
         }
 
         // A nudge only when there is something to nudge about. Saying it every day would make the
-        // encouragement worthless.
-        if (state.todayReps == 0) {
+        // encouragement worthless, and saying it after a plank tells someone who held one for
+        // minutes that they have not started.
+        if (state.todayReps == 0 && state.todayActiveMs == 0L) {
             Spacer(Modifier.height(14.dp))
             Text(
                 text = stringResource(

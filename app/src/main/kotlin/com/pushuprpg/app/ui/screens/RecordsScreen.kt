@@ -20,14 +20,16 @@ import com.pushuprpg.app.ui.components.RankCard
 import com.pushuprpg.app.ui.components.SectionHeader
 import com.pushuprpg.app.ui.components.StatTile
 import com.pushuprpg.app.ui.components.cardSurface
+import com.pushuprpg.app.ui.components.exerciseLabelRes
 import com.pushuprpg.app.ui.theme.LocalGameColors
 import com.pushuprpg.app.ui.theme.Palette
 import com.pushuprpg.app.ui.theme.Type
+import com.pushuprpg.core.detect.Exercises
+import com.pushuprpg.core.detect.MovementKind
 import com.pushuprpg.core.game.Dungeons
 import com.pushuprpg.core.progression.RankProgress
 import java.text.NumberFormat
 import java.time.LocalDate
-import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 /**
@@ -71,7 +73,7 @@ fun RecordsScreen(
                     modifier = Modifier.weight(1f),
                 )
                 StatTile(
-                    value = "×${progress.bestCombo}",
+                    value = stringResource(R.string.records_combo_value, progress.bestCombo),
                     label = stringResource(R.string.records_best_combo),
                     accent = colors.combo,
                     modifier = Modifier.weight(1f),
@@ -82,13 +84,13 @@ fun RecordsScreen(
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 StatTile(
-                    value = "${progress.totalActiveMs / 60_000}분",
+                    value = stringResource(R.string.records_minutes_value, progress.totalActiveMs / 60_000),
                     label = stringResource(R.string.records_total_time),
                     accent = Palette.Info,
                     modifier = Modifier.weight(1f),
                 )
                 StatTile(
-                    value = "${progress.bestStreakDays}일",
+                    value = stringResource(R.string.records_days_value, progress.bestStreakDays),
                     label = stringResource(R.string.records_best_streak),
                     accent = colors.accept,
                     modifier = Modifier.weight(1f),
@@ -99,12 +101,12 @@ fun RecordsScreen(
         item { RankCard(rankProgress = RankProgress.of(progress.lifetimeReps)) }
 
         item {
-            SectionHeader(text = "최근 13주")
+            SectionHeader(text = stringResource(R.string.records_heat_title))
             Spacer(Modifier.height(10.dp))
             ActivityGrid(dailyTotals)
         }
 
-        item { SectionHeader(text = "최근 기록") }
+        item { SectionHeader(text = stringResource(R.string.records_recent_title)) }
 
         if (sessions.isEmpty()) {
             item {
@@ -120,7 +122,12 @@ fun RecordsScreen(
     }
 }
 
-/** A contribution-style grid: thirteen weeks of volume, read as a shape rather than as numbers. */
+/**
+ * A contribution-style grid: thirteen weeks of volume, read as a shape rather than as numbers.
+ *
+ * A day is lit by reps or by time: a plank counts no reps, and a day spent holding one used to
+ * stay dark.
+ */
 @Composable
 private fun ActivityGrid(totals: List<DailyTotal>) {
     val colors = LocalGameColors.current
@@ -128,13 +135,20 @@ private fun ActivityGrid(totals: List<DailyTotal>) {
     val todayDate = LocalDate.now()
     val today = todayDate.toEpochDay()
     val weeks = 13
+    // Every other row, as the calendar apps do: seven one-letter labels crowd a 13dp row.
+    val weekdays = listOf(
+        stringResource(R.string.records_weekday_mon), "",
+        stringResource(R.string.records_weekday_wed), "",
+        stringResource(R.string.records_weekday_fri), "", "",
+    )
 
     // Each column must be one real week, so the grid starts on a Monday rather than on whatever
     // weekday happens to fall 90 days ago. Epoch day 0 was a Thursday, which is why the offset is
     // 3: (epochDay + 3) mod 7 gives 0 for a Monday.
     val mondayOffset = ((today + 3) % 7).toInt()
     val start = today - mondayOffset - (weeks - 1) * 7L
-    val peak = totals.maxOfOrNull { it.reps }?.coerceAtLeast(1) ?: 1
+    val peakReps = totals.maxOfOrNull { it.reps }?.coerceAtLeast(1) ?: 1
+    val peakMs = totals.maxOfOrNull { it.activeMs }?.coerceAtLeast(1L) ?: 1L
 
     Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
         for (weekday in 0 until 7) {
@@ -143,22 +157,28 @@ private fun ActivityGrid(totals: List<DailyTotal>) {
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = WEEKDAYS[weekday],
+                    text = weekdays[weekday],
                     style = Type.labelS,
                     color = Palette.TextTertiary,
                     modifier = Modifier.width(18.dp),
                 )
                 for (week in 0 until weeks) {
                     val day = start + week * 7 + weekday
-                    val reps = byDay[day]?.reps ?: 0
-                    val intensity = if (reps == 0) 0f else (0.25f + 0.75f * reps / peak).coerceAtMost(1f)
+                    val total = byDay[day]
+                    val worked = total != null && (total.reps > 0 || total.activeMs > 0L)
+                    // The larger of the day's two shares, so a long hold reads as much as its reps would.
+                    val share = if (total == null) 0f else maxOf(
+                        total.reps.toFloat() / peakReps,
+                        total.activeMs.toFloat() / peakMs,
+                    )
+                    val intensity = if (!worked) 0f else (0.25f + 0.75f * share).coerceAtMost(1f)
                     Box(
                         Modifier
                             .size(13.dp)
                             .clip(RoundedCornerShape(3.dp))
                             .background(
                                 if (day > today) Palette.Bg1
-                                else if (reps == 0) Palette.Bg3
+                                else if (!worked) Palette.Bg3
                                 else colors.accept.copy(alpha = intensity)
                             )
                     )
@@ -168,15 +188,28 @@ private fun ActivityGrid(totals: List<DailyTotal>) {
     }
 }
 
-private val WEEKDAYS = listOf("월", "화", "수", "목", "금", "토", "일")
-
+/**
+ * One run, or one movement of a run that switched: what was done, when, and how much.
+ *
+ * The movement leads the line, since a run that switched banks a row per movement and those rows
+ * share a dungeon name. A hold is told in seconds, which is what it counts. The table keeps no hold
+ * time, so the seconds are the row's length, which for a hold is the time spent holding it.
+ */
 @Composable
 private fun SessionRow(session: SessionRecord) {
     val colors = LocalGameColors.current
-    val date = java.time.Instant.ofEpochMilli(session.startedAtMs)
+    val day = java.time.Instant.ofEpochMilli(session.startedAtMs)
         .atZone(java.time.ZoneId.systemDefault())
         .toLocalDate()
-        .format(DateTimeFormatter.ofPattern("M월 d일"))
+    val date = stringResource(R.string.records_date, day.monthValue, day.dayOfMonth)
+    val hold = Exercises.of(session.exercise).kind == MovementKind.HOLD
+    val seconds = session.durationMs / 1000
+    val meta = listOfNotNull(
+        stringResource(exerciseLabelRes(session.exercise)),
+        date,
+        if (hold) null else durationText(seconds),
+        if (hold) null else stringResource(R.string.records_combo_value, session.maxCombo),
+    ).joinToString(" · ")
 
     Row(
         modifier = Modifier
@@ -194,23 +227,37 @@ private fun SessionRow(session: SessionRecord) {
             )
             Spacer(Modifier.height(3.dp))
             Text(
-                text = "$date · ${session.durationMs / 1000}초 · ×${session.maxCombo}",
+                text = meta,
                 style = Type.labelM,
                 color = Palette.TextTertiary,
             )
         }
         Column(horizontalAlignment = Alignment.End) {
             Text(
-                text = "${session.reps}",
+                text = if (hold) {
+                    stringResource(R.string.records_duration_s, seconds)
+                } else {
+                    stringResource(R.string.records_reps_value, session.reps)
+                },
                 style = Type.numeralL,
                 color = Palette.TextPrimary,
             )
             // 완료 / 도전, never 성공 / 실패. The run happened either way.
             Text(
-                text = if (session.cleared) "완료" else "도전",
+                text = stringResource(
+                    if (session.cleared) R.string.records_session_cleared else R.string.records_session_attempted
+                ),
                 style = Type.labelM,
                 color = if (session.cleared) colors.accept else Palette.TextSecondary,
             )
         }
     }
+}
+
+/** A run's length in the largest units that read naturally: 42초, 3분 12초, 1시간 5분. */
+@Composable
+private fun durationText(seconds: Long): String = when {
+    seconds >= 3_600 -> stringResource(R.string.records_duration_hm, seconds / 3_600, seconds % 3_600 / 60)
+    seconds >= 60 -> stringResource(R.string.records_duration_ms, seconds / 60, seconds % 60)
+    else -> stringResource(R.string.records_duration_s, seconds)
 }

@@ -428,6 +428,7 @@
     <string name="records_reps_value">%1$d개</string>
     <string name="records_combo_value">×%1$d</string>
     <string name="records_days_value">%1$d일</string>
+    <string name="records_minutes_value">%1$,d분</string>
     <string name="records_duration_hm">%1$d시간 %2$d분</string>
     <string name="records_duration_ms">%1$d분 %2$d초</string>
     <string name="records_duration_s">%1$d초</string>

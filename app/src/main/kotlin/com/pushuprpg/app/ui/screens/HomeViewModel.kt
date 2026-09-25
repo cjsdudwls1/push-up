@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.pushuprpg.app.AppContainer
+import com.pushuprpg.app.domain.DailyTotal
 import com.pushuprpg.app.domain.EntitlementRepository
 import com.pushuprpg.app.domain.ProgressRepository
 import com.pushuprpg.app.domain.SessionRepository
@@ -33,11 +34,17 @@ class HomeViewModel(
         progressRepository.progress,
         sessionRepository.dailyTotals(days = 2).map { totals ->
             val day = today()
-            totals.firstOrNull { it.epochDay == day }?.reps ?: 0
+            totals.firstOrNull { it.epochDay == day } ?: DailyTotal(day, reps = 0, activeMs = 0L)
         },
         entitlementRepository.entitlement,
-    ) { progress, todayReps, entitlement ->
-        HomeUiState(progress, todayReps, entitlement, loading = false)
+    ) { progress, todayTotal, entitlement ->
+        HomeUiState(
+            progress = progress,
+            todayReps = todayTotal.reps,
+            todayActiveMs = todayTotal.activeMs,
+            entitlement = entitlement,
+            loading = false,
+        )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeUiState())
 
     companion object {
