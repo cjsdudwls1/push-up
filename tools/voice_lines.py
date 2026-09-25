@@ -88,8 +88,8 @@ def lines(s):
 
     # Coaching in battle.
     for name in ("voice_boss_low", "voice_shallow", "battle_not_split", "voice_style_too_quick",
-                 "voice_style_not_full", "voice_style_lagging", "voice_leg_left", "voice_leg_right",
-                 "voice_ready", "voice_rest_ten", "voice_rest_go"):
+                 "voice_style_not_full", "voice_style_lagging", "voice_ready", "voice_rest_ten",
+                 "voice_rest_go"):
         add(name, "COACH")
     for n in COMBOS:
         add("voice_combo", "COACH", n, key=f"voice_combo:{n}")

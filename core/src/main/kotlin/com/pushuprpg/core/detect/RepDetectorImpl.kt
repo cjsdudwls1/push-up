@@ -62,8 +62,12 @@ class RepDetectorImpl(
     private var tTopExit = 0L
     private var tBottom = 0L
     private var tCountExit = 0L
+    /** Whether the signal has been in the top band since leaving the count line on this rep. */
+    private var topReachedThisAscent = false
     private var tLastStrike = Long.MIN_VALUE
     private var tQualityOkSince = Long.MIN_VALUE
+    /** Start of the current stretch of frames that are not OK; see [QUALITY_BLIP_MS]. */
+    private var tQualityLostSince = Long.MIN_VALUE
     private var tLastGoodPose = Long.MIN_VALUE
     private var tFirstFrame = Long.MIN_VALUE
     private var tLastFrame = 0L
@@ -115,6 +119,7 @@ class RepDetectorImpl(
 
         if (newQuality == PoseQuality.OK && body != null && sample != null) {
             tLastGoodPose = tMs
+            tQualityLostSince = Long.MIN_VALUE
             if (tQualityOkSince == Long.MIN_VALUE) tQualityOkSince = tMs
 
             // The slew cap is reasoned about in depth points per second, then expressed in the
@@ -130,7 +135,7 @@ class RepDetectorImpl(
             // top band entirely, and because the calibrator only learns from completed reps, that
             // lockout can never resolve itself. Filtered h, not raw, so a single bad frame cannot
             // drag the anchor.
-            calibrator.observeRest(h)
+            calibrator.observeRest(h, tMs)
 
             prevDepth = if (tLastTracked == Long.MIN_VALUE) Float.NaN else depth
             prevDepthMs = tLastTracked
@@ -144,11 +149,16 @@ class RepDetectorImpl(
             depthSum += depth
 
             advance(tMs, h, sample, events)
+            watchArming(h, sample)
         } else {
             // Never punish the user for a tracking failure: the gauge freezes rather than falling,
             // and the caller pauses the boss while quality is not OK.
             depthVelocity = 0f
-            tQualityOkSince = Long.MIN_VALUE
+            // A blip does not restart the wait to arm; losing the body does. Filmed from the head
+            // the model swaps the shoulders for a frame or two, and at 14 fps those frames landed
+            // inside the wait at the top often enough to cost the first rep of a set.
+            if (tQualityLostSince == Long.MIN_VALUE) tQualityLostSince = tMs
+            if (tMs - tQualityLostSince >= QUALITY_BLIP_MS) tQualityOkSince = Long.MIN_VALUE
             if (phase != RepPhase.IDLE && phase != RepPhase.LOST &&
                 tLastGoodPose != Long.MIN_VALUE && tMs - tLastGoodPose >= config.trackLostMs
             ) {
@@ -191,6 +201,12 @@ class RepDetectorImpl(
             RepPhase.IDLE, RepPhase.LOST -> {
                 val settled = tQualityOkSince != Long.MIN_VALUE && tMs - tQualityOkSince >= ARM_SETTLE_MS
                 if (settled && depth <= config.topEnter) {
+                    arm(h)
+                } else if (settled && calibrator.completedReps > 0 && lockedOut(sample) && depth < config.countExit) {
+                    // Back after a tracking gap, mid-set, arms straight: the top, whatever the
+                    // range says. Not before the first rep — standing with the arms down is also
+                    // straight arms, and the first rep's top is observeRest's to find.
+                    if (depth > config.topEnter + JOINT_REANCHOR_MARGIN) calibrator.reanchorTop(h)
                     arm(h)
                 }
             }
@@ -242,6 +258,7 @@ class RepDetectorImpl(
                         events += RepEvent.Abandoned(tMs, AbandonReason.HOVERED)
                         phase = RepPhase.ASCENDING
                         tCountExit = tMs
+                        topReachedThisAscent = false
                     }
                 }
             }
@@ -258,7 +275,11 @@ class RepDetectorImpl(
                 when {
                     depth < config.countExit -> {
                         phase = RepPhase.ASCENDING
-                        tCountExit = tMs
+                        // Placed between frames like every other line: a brisk return crosses
+                        // from the count line to the top band in two or three frames, and timed
+                        // from the frame after the crossing it read too quick to be a rep.
+                        tCountExit = crossedAt(config.countExit, tMs)
+                        topReachedThisAscent = false
                     }
 
                     tMs - tBottom > config.maxBottomMs -> {
@@ -269,9 +290,28 @@ class RepDetectorImpl(
             }
 
             RepPhase.ASCENDING -> {
+                if (depth <= config.topEnter) topReachedThisAscent = true
                 when {
-                    depth <= config.topEnter && tMs - tCountExit >= config.minAscentMs -> {
+                    // Back in the top band — or, having reached it, still within the band's own
+                    // hysteresis when the minimum ascent is up. Without that second part a rep that
+                    // touched the top and went straight into the next one inside the minimum was
+                    // left open, and the next rep with it: replayed at 20 fps, one pull-up in four.
+                    (depth <= config.topEnter || (topReachedThisAscent && depth <= config.topExit)) &&
+                        tMs - tCountExit >= config.minAscentMs -> {
                         complete(tMs, events)
+                        arm(h)
+                    }
+
+                    // The joint says the rep is back at the top even though the range does not: the
+                    // top of the range has drifted above this user's lockout. Filmed from the head,
+                    // the ratio drifts as the body moves toward or away from the phone, and a
+                    // lockout at 25-35 on the gauge lost every other rep. The elbow's 3-D angle does
+                    // not drift, and a half rep cannot straighten it.
+                    lockedOut(sample) && depth < config.countExit && tMs - tCountExit >= config.minAscentMs -> {
+                        complete(tMs, events)
+                        // Only a top that is clearly off is moved; one a few points over the band
+                        // is noise, and moving the top moves the bottom with it.
+                        if (depth > config.topEnter + JOINT_REANCHOR_MARGIN) calibrator.reanchorTop(h)
                         arm(h)
                     }
 
@@ -332,7 +372,14 @@ class RepDetectorImpl(
             // honest full-range rep reads 100 on the elbow while the primary is still at the count
             // line. Measured on the rig that gap was 34-37 against a limit of 35, and it refused
             // the pushups of exactly the people going deepest.
-            if (depth - sample.jointDepth > config.maxSignalDisagreement) {
+            //
+            // Measured against the count line, not this frame's depth: the strike is a claim that
+            // the rep reached the line, and a signal that overshoots it in one frame claims no more.
+            // Filmed from behind, the wrists on the bar are lost as the head comes up to it and the
+            // pull-up signal leaps 65 to 100 in a frame while the elbow reads 52 — an honest pull,
+            // refused for how far the glitch went rather than for anything the body did.
+            val claimed = minOf(depth, calibrator.countEnter())
+            if (claimed - sample.jointDepth > config.maxSignalDisagreement) {
                 return AbandonReason.INCONSISTENT
             }
         } else if (signal?.crossCheck == CrossCheckPolicy.JOINT_REQUIRED) {
@@ -377,18 +424,118 @@ class RepDetectorImpl(
     /** Time from leaving the top band to crossing the count line, on the rep being struck. */
     private var descentThisRepMs = 0
 
+    /** The working joint at its rest end — elbow straight, knee straight — by its 3-D angle. */
+    private fun lockedOut(sample: DepthSample): Boolean =
+        !sample.jointDepth.isNaN() && sample.jointDepth <= JOINT_LOCKOUT_MAX
+
+    // --- the arming watchdog ---
+    private var wdRising = true
+    private var wdMax = Float.NaN
+    private var wdMin = Float.NaN
+    /** The straightest the working joint got on the way up to [wdMax], and the most bent on the way down. */
+    private var wdJointStraightest = Float.NaN
+    private var wdJointBentMost = Float.NaN
+    private val wdPeaks = ArrayList<Float>()
+
+    /**
+     * The way out of a range whose top the body never reaches.
+     *
+     * A rep arms only in the top band, and only a completed rep teaches the calibrator anything, so
+     * a top set too high — by a stale profile, a prior that does not fit this body, or a stray
+     * frame — stops counting for good: every rep turns around at 40-60 instead of under 20, goes
+     * deep, turns around again, and nothing ever changes. That is what two screen recordings from
+     * one phone showed, a pushup set stuck at one rep and a pull-up set at none, with the tracker
+     * reporting OK throughout.
+     *
+     * So the watchdog follows the body's own swings in `h`, not the gauge: a peak is a turnaround
+     * that `h` then falls [WATCHDOG_SWING_OF_RMIN] of the movement's minimum range below, and a
+     * valley one it rises as far above. Read off the gauge instead, through the count line of the
+     * very range that is wrong, it caught the trap at the recording's own frame rate and missed it
+     * at half and a third of it — the rates a phone actually runs at — because a hang reading 65-70
+     * had to dip under a count line at 70 to register at all. After [WATCHDOG_TURNS] peaks in a row
+     * short of the top band, at a consistent `h`, the top moves to where this user turns around.
+     *
+     * Half reps must not be able to do this, or bending the arms halfway would pull the top down to
+     * meet them. So a peak only counts when the working joint straightened on the way up to it —
+     * the elbow at the top of a pushup or the bottom of a hang — and bent on the way down from it,
+     * by the joint's own 3-D angle, which the calibration cannot move. Unknown when world landmarks
+     * are missing, and unknown is not refused: the alternative is a user who can never count.
+     */
+    private fun watchArming(h: Float, sample: DepthSample) {
+        if (phase == RepPhase.READY_TOP) {
+            // Arming works; nothing to rescue.
+            resetWatchdog()
+            return
+        }
+        val swing = WATCHDOG_SWING_OF_RMIN * config.rMin
+        val joint = sample.jointDepth
+        if (wdMax.isNaN()) {
+            wdRising = true
+            wdMax = h
+            wdJointStraightest = joint
+        }
+        if (wdRising) {
+            if (h > wdMax) wdMax = h
+            if (!joint.isNaN() && !(joint >= wdJointStraightest)) wdJointStraightest = joint
+            if (h < wdMax - swing) {
+                wdRising = false
+                wdMin = h
+                wdJointBentMost = joint
+            }
+        } else {
+            if (h < wdMin) wdMin = h
+            if (!joint.isNaN() && !(joint <= wdJointBentMost)) wdJointBentMost = joint
+            if (h > wdMin + swing) {
+                onWatchdogPeak(wdMax, wdJointStraightest, wdJointBentMost)
+                wdRising = true
+                wdMax = h
+                wdJointStraightest = joint
+            }
+        }
+    }
+
+    /** One full swing: up to [peak], then down at least a swing. Called once the valley after it is known. */
+    private fun onWatchdogPeak(peak: Float, straightest: Float, bentMost: Float) {
+        val straightened = straightest.isNaN() || straightest <= WATCHDOG_JOINT_REST_MAX
+        val bent = bentMost.isNaN() || bentMost >= WATCHDOG_JOINT_BENT_MIN
+        val short = calibrator.mapRaw(peak) > config.topEnter
+        if (short && straightened && bent) wdPeaks += peak else wdPeaks.clear()
+        if (wdPeaks.size < WATCHDOG_TURNS) return
+        val spread = wdPeaks.max() - wdPeaks.min()
+        if (spread <= WATCHDOG_SPREAD_OF_RANGE * calibrator.range) {
+            // The least extended of them, so every one lands inside the top band. The median left
+            // the others at 20-30 and took another two reps to fix.
+            calibrator.reanchorTop(wdPeaks.min())
+            wdPeaks.clear()
+        } else {
+            wdPeaks.removeAt(0)
+        }
+    }
+
+    private fun resetWatchdog() {
+        wdRising = true
+        wdMax = Float.NaN
+        wdMin = Float.NaN
+        wdJointStraightest = Float.NaN
+        wdJointBentMost = Float.NaN
+        wdPeaks.clear()
+    }
+
     /** Top band to deep line on this rep, for [RepEvent.DeepUpgrade]. */
     private fun loweringMs(tMs: Long): Int =
         (crossedAt(calibrator.deepEnter(), tMs) - tTopExit).toInt().coerceAtLeast(0)
 
     /**
-     * When the signal crossed [level] on its way up to this frame's [depth]: linear between the
-     * previous tracked frame and this one. This frame's own time when there is no previous frame to
-     * interpolate from, or the signal was not rising.
+     * When the signal crossed [level] on its way to this frame's [depth], in either direction:
+     * linear between the previous tracked frame and this one. This frame's own time when there is
+     * no previous frame to interpolate from, or the signal was not moving across [level].
      */
     private fun crossedAt(level: Float, tMs: Long): Long {
         val before = prevDepth
-        if (before.isNaN() || depth <= before || before >= level) return tMs
+        if (before.isNaN()) return tMs
+        val deeper = depth > before && before < level
+        val shallower = depth < before && before > level
+        if (!deeper && !shallower) return tMs
         // Across a tracking gap there is no knowing when it crossed; this frame is the honest answer.
         if (tMs - prevDepthMs > MAX_INTERPOLATION_GAP_MS) return tMs
         val f = ((level - before) / (depth - before)).coerceIn(0f, 1f)
@@ -545,10 +692,13 @@ class RepDetectorImpl(
         depthSource = DepthSource.NONE
         tLastStrike = Long.MIN_VALUE
         tQualityOkSince = Long.MIN_VALUE
+        tQualityLostSince = Long.MIN_VALUE
         tLastGoodPose = Long.MIN_VALUE
         tFirstFrame = Long.MIN_VALUE
         tLastTracked = Long.MIN_VALUE
         prevDepth = Float.NaN
+        resetWatchdog()
+        topReachedThisAscent = false
         bodyDropAtTop = Float.POSITIVE_INFINITY
         repCount = 0
         combo = 0
@@ -586,8 +736,32 @@ class RepDetectorImpl(
     companion object {
         /** Quality must hold for this long before the detector will arm. */
         const val ARM_SETTLE_MS = 300L
+        /** A stretch of frames that are not OK shorter than this does not restart [ARM_SETTLE_MS]. */
+        const val QUALITY_BLIP_MS = 200L
 
         const val RATE_WINDOW_MS = 10_000L
+
+        /**
+         * The working joint's own depth, 0-100, at or under which it counts as locked out. Real
+         * pushups filmed from the head read 4-16 at the top and 70-95 at the bottom.
+         */
+        const val JOINT_LOCKOUT_MAX = 18f
+        /** How far past the top band a joint-confirmed lockout must read before the top moves to it. */
+        const val JOINT_REANCHOR_MARGIN = 10f
+
+        /** Turnarounds short of the top band, in a row, before the top of the range moves to them. */
+        const val WATCHDOG_TURNS = 2
+        /** How close together those turnarounds must be, as a fraction of the calibrated range. */
+        const val WATCHDOG_SPREAD_OF_RANGE = 0.35f
+        /**
+         * How far `h` must travel, as a fraction of the movement's minimum range, to be a swing
+         * rather than a wobble. Real sets on a phone travelled 0.7 (pull-up) and 0.9 (pushup).
+         */
+        const val WATCHDOG_SWING_OF_RMIN = 0.5f
+        /** The working joint's own depth, 0-100, at or under which it is at its rest end. */
+        const val WATCHDOG_JOINT_REST_MAX = 35f
+        /** And at or over which it bent: a rep, not someone shifting their weight. */
+        const val WATCHDOG_JOINT_BENT_MIN = 45f
 
         /** Longest frame gap a line crossing is interpolated across: three frames at 15 fps. */
         const val MAX_INTERPOLATION_GAP_MS = 200L

@@ -41,8 +41,12 @@ class RangeCalibrator(
     private var sessionBot = Float.POSITIVE_INFINITY
     private val startedFromProfile: Boolean = !profile.isEmpty
 
-    /** The largest `h` seen before any rep completed — this user's actual rest position. */
+    /** The largest held `h` seen before any rep completed — this user's actual rest position. */
     private var restAnchor = Float.NEGATIVE_INFINITY
+
+    /** The last [REST_HELD_MS] of tracked `h`, for telling a held position from a stray frame. */
+    private val restWindowT = ArrayDeque<Long>()
+    private val restWindowH = ArrayDeque<Float>()
 
     /** How many times [observeRest] has moved the window this session, for diagnostics. */
     var reanchors: Int = 0
@@ -120,11 +124,42 @@ class RangeCalibrator(
      * Anchored to the largest `h` seen, because `h` is maximal at rest by construction. It only ever
      * grows, so a user who opens the app already at the bottom converges upward within a rep instead
      * of being pinned there. Once a rep completes, [onRepExtremes] owns the range and this stops.
+     *
+     * Largest **held** `h`: the median of a stretch of at least [REST_HELD_MS] that stays within
+     * [REST_BAND_OF_RMIN] of the movement's minimum range. Taking the largest single value let one
+     * stray frame — a landmark misplaced for a thirtieth of a second — set the top of the range
+     * somewhere the body never went, and since the anchor only grows, nothing brought it back.
+     * People pause at the top before they start; a glitch does not.
      */
-    fun observeRest(h: Float) {
+    fun observeRest(h: Float, tMs: Long) {
         if (completedReps > 0 || h.isNaN()) return
-        if (h <= restAnchor) return
-        restAnchor = h
+        // A gap breaks the stretch: stillness has to be seen, not assumed across frames not seen.
+        if (restWindowT.isNotEmpty() && tMs - restWindowT.last() > REST_MAX_GAP_MS) {
+            restWindowT.clear()
+            restWindowH.clear()
+        }
+        restWindowT.addLast(tMs)
+        restWindowH.addLast(h)
+        while (restWindowT.size > 1 && tMs - restWindowT.first() > REST_HELD_MS) {
+            restWindowT.removeFirst()
+            restWindowH.removeFirst()
+        }
+        if (tMs - restWindowT.first() < REST_HELD_MS * 3 / 4) return
+        val held = restWindowH.maxOrNull()!! - restWindowH.minOrNull()!! <= REST_BAND_OF_RMIN * config.rMin
+        if (!held) return
+        val rest = restWindowH.sorted()[restWindowH.size / 2]
+
+        if (rest <= restAnchor) return
+        restAnchor = rest
+        anchorTopAt(rest)
+    }
+
+    /**
+     * Puts the top of the range at [hTop], scaling the bottom with it. Shared by [observeRest] and
+     * [reanchorTop]; see the former for why scaling rather than shifting.
+     */
+    private fun anchorTopAt(hTop: Float) {
+        val h = hTop
 
         // Only when the rest position genuinely maps somewhere other than the top of the gauge.
         // mapRaw rather than map, because the clamped version cannot see the opposite failure: a
@@ -146,6 +181,21 @@ class RangeCalibrator(
         applyGuards()
         bottomBest = min(bottomBest, bottom)
         reanchors++
+    }
+
+    /**
+     * Moves the top of the range to where this user actually turns around at the top, after reps
+     * have started. The way out of a range whose top the body never reaches: arming needs the top
+     * band, and without arming no rep completes to correct the range. See the arming watchdog in
+     * [RepDetectorImpl], which decides when this is called and guards it against half reps.
+     */
+    fun reanchorTop(hTop: Float) {
+        if (hTop.isNaN()) return
+        val topBefore = top
+        anchorTopAt(hTop)
+        // Guard B measures fatigue from the bottom this user demonstrated; a range that has just
+        // moved wholesale has not demonstrated anything yet.
+        if (top != topBefore) bottomBest = bottom
     }
 
     /**
@@ -246,5 +296,12 @@ class RangeCalibrator(
     companion object {
         const val CONVERGENCE_TOLERANCE = 0.10f
         const val MIN_REPS_TO_LEARN = 5
+
+        /** How long a position must be held to count as rest. */
+        const val REST_HELD_MS = 300L
+        /** How still, as a fraction of the movement's minimum range. */
+        const val REST_BAND_OF_RMIN = 0.30f
+        /** A longer gap between tracked frames starts the stretch over. */
+        const val REST_MAX_GAP_MS = 150L
     }
 }

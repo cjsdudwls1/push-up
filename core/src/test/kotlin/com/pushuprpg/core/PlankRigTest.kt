@@ -4,6 +4,8 @@ import com.pushuprpg.core.detect.PlankDetector
 import com.pushuprpg.core.detect.RepEvent
 import com.pushuprpg.core.fixtures.Body3d
 import com.pushuprpg.core.fixtures.Body3d.Camera
+import com.pushuprpg.core.pose.PoseFrame
+import com.pushuprpg.core.pose.PoseLandmarks as Lm
 import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.test.Test
@@ -34,22 +36,35 @@ class PlankRigTest {
         "2m, tilted 30°" to Camera.onFloor(2f, 30f),
     )
 
-    private fun ticks(pose: Body3d.Skeleton, camera: Camera, seconds: Int = 6): Int {
+    private fun ticks(pose: Body3d.Skeleton, camera: Camera, legsSeen: Boolean, seconds: Int = 6): Int {
         val d = PlankDetector()
         return (0 until seconds * 30).sumOf { i ->
-            d.onFrame(Body3d.frame(i * 33L, pose, camera)).events.count { it is RepEvent.HoldTick }
+            val frame = Body3d.frame(i * 33L, pose, camera)
+            d.onFrame(if (legsSeen) frame else legsHidden(frame)).events.count { it is RepEvent.HoldTick }
         }
     }
 
-    private fun assertHolds(name: String, pose: (Body3d.V3) -> Body3d.Skeleton) {
+    /**
+     * The legs as a phone gets them from the head end: behind the body, so the model reports them
+     * barely visible — 0.05-0.3 for the ankles over a device recording — and places them in its
+     * 3-D skeleton anyway. The placement here is the true one; how well the model guesses it is
+     * what a recording shows, not this.
+     */
+    private fun legsHidden(frame: PoseFrame): PoseFrame = frame.copy(
+        landmarks = frame.landmarks.mapIndexed { i, lm ->
+            if (i >= Lm.LEFT_KNEE && lm.visibility > 0f) lm.copy(visibility = 0.15f, presence = 0.15f) else lm
+        },
+    )
+
+    private fun assertHolds(name: String, legsSeen: Boolean = true, pose: (Body3d.V3) -> Body3d.Skeleton) {
         for (yaw in views) for ((where, cam) in cameras) {
-            assertTrue(ticks(pose(heading(yaw)), cam) > 0, "$name at ${yaw.toInt()}° from $where never held")
+            assertTrue(ticks(pose(heading(yaw)), cam, legsSeen) > 0, "$name at ${yaw.toInt()}° from $where never held")
         }
     }
 
-    private fun assertNeverHolds(name: String, pose: (Body3d.V3) -> Body3d.Skeleton) {
+    private fun assertNeverHolds(name: String, legsSeen: Boolean = true, pose: (Body3d.V3) -> Body3d.Skeleton) {
         for (yaw in views) for ((where, cam) in cameras) {
-            assertTrue(ticks(pose(heading(yaw)), cam) == 0, "$name at ${yaw.toInt()}° from $where held as a plank")
+            assertTrue(ticks(pose(heading(yaw)), cam, legsSeen) == 0, "$name at ${yaw.toInt()}° from $where held as a plank")
         }
     }
 
@@ -76,4 +91,20 @@ class PlankRigTest {
     @Test
     fun `hips sagging out of the line break a plank`() =
         assertNeverHolds("a sagging forearm plank") { h -> Body3d.forearmPlank(h, h * 0.65f, sagDeg = 35f) }
+
+    // The device report: from the head end the plank never held at all. The ankles were behind
+    // the body, and the detector refused to judge a plank without seeing them.
+
+    @Test
+    fun `a plank holds when the camera cannot see the legs`() {
+        assertHolds("a high plank, legs hidden", legsSeen = false) { h -> Body3d.pushup(0f, h, h * 0.65f) }
+        assertHolds("a forearm plank, legs hidden", legsSeen = false) { h -> Body3d.forearmPlank(h, h * 0.65f) }
+    }
+
+    @Test
+    fun `hidden legs do not turn all fours or the knees into a plank`() {
+        assertNeverHolds("all fours, legs hidden", legsSeen = false) { h -> Body3d.allFours(h, h * 0.3f) }
+        assertNeverHolds("a knee plank, legs hidden", legsSeen = false) { h -> Body3d.kneePlank(h, h * 0.4f) }
+        assertNeverHolds("standing, legs hidden", legsSeen = false) { _ -> Body3d.standing() }
+    }
 }

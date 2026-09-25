@@ -85,7 +85,10 @@ class PlankDetector(
             qualitySamples++
             advance(tMs, dtMs, events)
         } else if (holding) {
-            breakHold(tMs, events)
+            // The tracker blinking is not the plank breaking: the same grace as a wobble, with no
+            // time counted, so a frame the model loses the shoulders on does not halve the charge.
+            if (brokenSinceMs == Long.MIN_VALUE) brokenSinceMs = tMs
+            if (tMs - brokenSinceMs >= plank.breakGraceMs) breakHold(tMs, events)
         }
 
         return PoseTick(
@@ -189,18 +192,26 @@ class PlankDetector(
      * World landmarks are the model's own 3-D skeleton and read the same from every side.
      *
      * Each point is taken from the side the camera actually sees better: side on, the far limb is
-     * the model's guess. Null when shoulder, hip, knee or ankle cannot be seen on either side — the
-     * ankle included, because without the shin a plank on the knees is a plank.
+     * the model's guess. Null when the shoulders or the hips cannot be seen on either side.
+     *
+     * The knees and ankles are taken whether the camera sees them or not. Requiring them is what
+     * kept a real plank from ever holding on a phone: from the head they are behind the body
+     * (visibility 0.05-0.3 at the top of every pushup in a device recording), and from the side at
+     * the distance people put a phone they are past the edge of the picture. The model still places
+     * them in its 3-D skeleton, and at those pushup tops it put the knee at 149-178 degrees — a
+     * straight leg, read a little bent — which is what the leg gate below is set against. Unseen
+     * legs still gate the pose, so a knee the model folds is still not a plank, but they are left
+     * out of the form score, because a user should not be marked down for what the camera cannot
+     * see.
      */
     private fun posture(frame: PoseFrame): Posture? {
         val w = frame.worldLandmarks
-        fun point(left: Int, right: Int): FloatArray? {
-            val cl = confidence[left]
-            val cr = confidence[right]
-            if (maxOf(cl, cr) < config.minCoreConfidence) return null
-            // Mostly the better-seen side, so a regressed far limb cannot bend the line.
-            val wl = cl * cl
-            val wr = cr * cr
+        fun seen(left: Int, right: Int) = maxOf(confidence[left], confidence[right]) >= config.minCoreConfidence
+        fun point(left: Int, right: Int): FloatArray {
+            // Mostly the better-seen side, so a regressed far limb cannot bend the line. When
+            // neither side is seen, both guesses count about the same.
+            val wl = maxOf(confidence[left], UNSEEN_WEIGHT).let { it * it }
+            val wr = maxOf(confidence[right], UNSEEN_WEIGHT).let { it * it }
             val a = w[left]
             val b = w[right]
             return floatArrayOf(
@@ -209,11 +220,13 @@ class PlankDetector(
                 (a.z * wl + b.z * wr) / (wl + wr),
             )
         }
-        val shoulder = point(Lm.LEFT_SHOULDER, Lm.RIGHT_SHOULDER) ?: return null
-        val hip = point(Lm.LEFT_HIP, Lm.RIGHT_HIP) ?: return null
-        val knee = point(Lm.LEFT_KNEE, Lm.RIGHT_KNEE) ?: return null
-        val ankle = point(Lm.LEFT_ANKLE, Lm.RIGHT_ANKLE) ?: return null
-        val elbow = point(Lm.LEFT_ELBOW, Lm.RIGHT_ELBOW)
+        if (!seen(Lm.LEFT_SHOULDER, Lm.RIGHT_SHOULDER) || !seen(Lm.LEFT_HIP, Lm.RIGHT_HIP)) return null
+        val shoulder = point(Lm.LEFT_SHOULDER, Lm.RIGHT_SHOULDER)
+        val hip = point(Lm.LEFT_HIP, Lm.RIGHT_HIP)
+        val knee = point(Lm.LEFT_KNEE, Lm.RIGHT_KNEE)
+        val ankle = point(Lm.LEFT_ANKLE, Lm.RIGHT_ANKLE)
+        val elbow = if (seen(Lm.LEFT_ELBOW, Lm.RIGHT_ELBOW)) point(Lm.LEFT_ELBOW, Lm.RIGHT_ELBOW) else null
+        val legsSeen = seen(Lm.LEFT_KNEE, Lm.RIGHT_KNEE) && seen(Lm.LEFT_ANKLE, Lm.RIGHT_ANKLE)
 
         val torso = floatArrayOf(hip[0] - shoulder[0], hip[1] - shoulder[1], hip[2] - shoulder[2])
         val torsoLen = kotlin.math.sqrt(torso[0] * torso[0] + torso[1] * torso[1] + torso[2] * torso[2])
@@ -225,6 +238,7 @@ class PlankDetector(
         return Posture(
             bodyLine = angle3(shoulder, hip, knee),
             legs = angle3(hip, knee, ankle),
+            legsSeen = legsSeen,
             fromVertical = fromVertical,
             arm = elbow?.let { angle3(hip, shoulder, it) },
         )
@@ -240,8 +254,9 @@ class PlankDetector(
         val legs = (1f - (STRAIGHT_LEGS_DEG - p.legs).coerceAtLeast(0f) / LEGS_TOLERANCE_DEG).coerceIn(0f, 1f)
         val level = ((p.fromVertical - UPRIGHT_MAX_DEG) / (LEVEL_DEG - UPRIGHT_MAX_DEG)).coerceIn(0f, 1f)
 
-        var weighted = line * W_LINE + legs * W_LEGS + level * W_LEVEL
-        var weight = W_LINE + W_LEGS + W_LEVEL
+        var weighted = line * W_LINE + level * W_LEVEL
+        var weight = W_LINE + W_LEVEL
+        if (p.legsSeen) { weighted += legs * W_LEGS; weight += W_LEGS }
         imageStability(frame)?.let { weighted += it * W_STILL; weight += W_STILL }
         val score = 100f * weighted / weight
 
@@ -306,8 +321,17 @@ class PlankDetector(
         return Math.toDegrees(kotlin.math.acos(cos.toDouble())).toFloat()
     }
 
-    /** [arm] is the hip-shoulder-elbow angle, or null when neither elbow is seen. */
-    private data class Posture(val bodyLine: Float, val legs: Float, val fromVertical: Float, val arm: Float?)
+    /**
+     * [arm] is the hip-shoulder-elbow angle, or null when neither elbow is seen. [legs] is the knee
+     * angle whether or not [legsSeen]; unseen, it is the model's estimate.
+     */
+    private data class Posture(
+        val bodyLine: Float,
+        val legs: Float,
+        val legsSeen: Boolean,
+        val fromVertical: Float,
+        val arm: Float?,
+    )
 
     /**
      * Weighted mean over available components, renormalised.
@@ -479,7 +503,15 @@ class PlankDetector(
         /** Straight legs. On the knees the shin folds back and the knee closes to 90-145 degrees. */
         const val STRAIGHT_LEGS_DEG = 172f
         const val LEGS_TOLERANCE_DEG = 30f
-        const val MIN_LEGS_DEG = 155f
+        /**
+         * Under this the knee is bent: a knee plank with the shins flat is 143 on the rig. Over
+         * the pushup tops of a device recording filmed from the head, the model put the unseen
+         * knee at 149-178 degrees, 4% of frames under 150 and 29% under 155 — so 155 refused
+         * three frames in ten of a real plank there.
+         */
+        const val MIN_LEGS_DEG = 150f
+        /** How much a side neither camera nor model is sure of still counts toward the average. */
+        const val UNSEEN_WEIGHT = 0.1f
         /**
          * A torso within this of upright is standing, not planking. World y is the camera's down,
          * not gravity's, so the phone's own tilt is in the reading: a phone on the floor tilted up

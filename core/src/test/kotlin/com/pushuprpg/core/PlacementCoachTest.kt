@@ -61,7 +61,7 @@ class PlacementCoachTest {
     }
 
     @Test
-    fun `a plank filmed from the side holds when centred, and is sent to the middle when not`() {
+    fun `a plank filmed from the side holds when centred, and with its feet off the edge`() {
         // The plank used to need the shoulders apart in the picture and never held side on; it
         // reads the 3-D skeleton now, so the side is as good as the front.
         val side = floorBody(90f)
@@ -69,9 +69,11 @@ class PlacementCoachTest {
         assertTrue(centred.reps > 0, "a centred side-on plank never held")
         assertTrue(PlacementAdvice.READY in centred.said, "never said ready: ${centred.distinct}")
 
-        // Shoulders on the middle of the picture, feet off its edge.
-        val offCentre = listen(ExerciseType.PLANK, still(side(0f), Camera.onFloor(2.0f, 10f)))
-        assertEquals(PlacementAdvice.CENTER, offCentre.last)
+        // Shoulders on the middle of the picture, feet off its edge: the legs come from the model's
+        // 3-D skeleton, so it holds, and the coach must not ask for feet the detector does not need.
+        val offCentre = listen(ExerciseType.PLANK, still(side(0f), Camera.onFloor(2.0f, 10f), seconds = 6))
+        assertTrue(offCentre.reps > 0, "a side-on plank with its feet off the edge never held")
+        assertTrue(PlacementAdvice.CENTER !in offCentre.said, "asked to centre a plank that held: ${offCentre.distinct}")
     }
 
     @Test

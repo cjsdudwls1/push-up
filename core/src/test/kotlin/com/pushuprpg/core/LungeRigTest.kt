@@ -4,20 +4,18 @@ import com.pushuprpg.core.detect.AbandonReason
 import com.pushuprpg.core.detect.BodySide
 import com.pushuprpg.core.detect.DetectorFactory
 import com.pushuprpg.core.detect.ExerciseType
-import com.pushuprpg.core.detect.LegAlternator
 import com.pushuprpg.core.detect.RepEvent
 import com.pushuprpg.core.fixtures.Body3d
 import com.pushuprpg.core.fixtures.Body3d.Camera
 import com.pushuprpg.core.pose.PoseFrame
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 /**
  * The lunge on the projected body. The device report: a squat counted as a lunge. On the rig it
  * did, six of six — hips over knees reads the same with the feet split or side by side. The stance
- * is checked now, and the same measurement names the front leg so the game can ask for the other.
+ * is checked now, and the same measurement names the front leg.
  */
 class LungeRigTest {
 
@@ -63,16 +61,5 @@ class LungeRigTest {
             listOf(BodySide.LEFT, BodySide.RIGHT, BodySide.LEFT, BodySide.RIGHT, BodySide.LEFT, BodySide.RIGHT),
             strikes.map { it.front },
         )
-    }
-
-    @Test
-    fun `the next leg is the other one, and a repeat is noticed without being refused`() {
-        val legs = LegAlternator()
-        assertFalse(legs.onRep(BodySide.LEFT))
-        assertEquals(BodySide.RIGHT, legs.next)
-        assertTrue(legs.onRep(BodySide.LEFT), "the same leg twice was not noticed")
-        assertEquals(BodySide.RIGHT, legs.next)
-        assertFalse(legs.onRep(BodySide.RIGHT))
-        assertEquals(BodySide.LEFT, legs.next)
     }
 }

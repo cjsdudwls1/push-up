@@ -132,8 +132,11 @@ class PullUpDetectorTest {
     fun `pull-ups are paced far more slowly than pushups and are worth more`() {
         val pullUp = DetectorConfig.pullUp()
         val pushup = DetectorConfig.pushup()
+        // Paced by the time between reps, which is what kipping changes. Not by the speed through
+        // the band any more: filmed from behind, the wrists are lost as the head reaches the bar
+        // and the honest pulls of a set recorded on a phone crossed the band in 41-101 ms
+        // (RealTraceTest).
         assertTrue(pullUp.minRepPeriodMs > pushup.minRepPeriodMs)
-        assertTrue(pullUp.maxDescentSpeed < pushup.maxDescentSpeed)
         assertTrue(
             Exercises.PULL_UP.damageCoefficient > 2f * Exercises.PUSHUP.damageCoefficient,
             "a floor costed in pushups must not ask for the same number of pull-ups",

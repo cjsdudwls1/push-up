@@ -1,0 +1,127 @@
+package com.pushuprpg.core
+
+import com.pushuprpg.core.detect.CalibrationSnapshot
+import com.pushuprpg.core.detect.CalibrationState
+import com.pushuprpg.core.detect.DetectorFactory
+import com.pushuprpg.core.detect.ExerciseType
+import com.pushuprpg.core.detect.RepDetector
+import com.pushuprpg.core.detect.RepEvent
+import com.pushuprpg.core.detect.UserProfile
+import com.pushuprpg.core.trace.PoseTrace
+import com.pushuprpg.core.trace.TraceReplay
+import java.util.zip.GZIPInputStream
+import kotlin.test.Test
+import kotlin.test.assertTrue
+
+/**
+ * Two sets filmed on a phone, as the phone saw them.
+ *
+ * The device report: pushups that had worked stopped at one rep, and pull-ups showed on the gauge
+ * but never counted. Both screen recordings were run back through the app's own pose model
+ * (pose_landmarker_lite, VIDEO mode, the app's thresholds) into the traces here.
+ *
+ * What they showed, and what these tests hold the detector to:
+ * - **Pushups, filmed from the head, phone close.** The lite model put a shoulder on the neck for
+ *   one frame. The scale jumped, the filter was reset — and the calibrator, which kept the largest
+ *   `h` it had seen as the top, moved the top to 2.38 against a real lockout of 1.5-1.8. Every rep
+ *   after the first then read 40-60 at the top, never re-armed, and never counted.
+ * - **Pull-ups, filmed from behind.** A range from the rig, or from a profile learned in other
+ *   units, put the dead hang at 55 on the gauge and the pull at 100: the gauge moved, the count did
+ *   not. And as the head reached the bar the wrists were lost and read as falling, doubling the
+ *   measured speed of an honest pull.
+ *
+ * Each set is replayed three ways: from nothing; from the calibration the phone was actually left
+ * with (a top the body never reaches, one rep behind it); and from a stale profile. And at three
+ * frame rates: the recording's own (about 40 fps) and every second and third frame of it (about 20
+ * and 14), because a phone's pose model runs at 15-30 and the rescue that worked at 40 once missed
+ * at 20.
+ */
+class RealTraceTest {
+
+    private fun load(name: String): PoseTrace {
+        val stream = checkNotNull(javaClass.getResourceAsStream("/traces/$name")) { "missing trace $name" }
+        return GZIPInputStream(stream).use { PoseTrace.decode(it.readBytes().decodeToString()) }
+    }
+
+    private val pullUps = load("pullup-from-behind.json.gz")
+    private val pushups = load("pushup-from-the-head.json.gz")
+
+    /** Every [stride]th frame, as a slower phone would have seen the same set. */
+    private fun PoseTrace.every(stride: Int) = copy(frames = frames.filterIndexed { i, _ -> i % stride == 0 })
+
+    private data class Scenario(val name: String, val detector: () -> RepDetector)
+
+    private fun scenarios(type: ExerciseType, stuck: CalibrationSnapshot, stale: UserProfile) = listOf(
+        Scenario("fresh") { DetectorFactory.create(type) },
+        Scenario("left stuck") { DetectorFactory.create(type).also { it.restoreCalibration(stuck) } },
+        Scenario("stale profile") { DetectorFactory.create(type, profile = stale) },
+    )
+
+    private fun replay(trace: PoseTrace, detector: RepDetector): Pair<Int, List<RepEvent>> {
+        val events = TraceReplay.frames(trace).flatMap { detector.onFrame(it).events }
+        return detector.sessionSummary().repCount to events
+    }
+
+    /**
+     * [least] reps at each stride, and never more than the set had. A replay that stops counting,
+     * or starts counting reps that were not there, fails.
+     */
+    private fun assertCounts(
+        what: String, trace: PoseTrace, done: Int, scenarios: List<Scenario>, least: Map<String, List<Int>>,
+    ) {
+        for (s in scenarios) for ((i, stride) in listOf(1, 2, 3).withIndex()) {
+            val (reps, events) = replay(trace.every(stride), s.detector())
+            val refused = events.filterIsInstance<RepEvent.Abandoned>().map { it.reason }
+            val min = least.getValue(s.name)[i]
+            assertTrue(reps in min..done, "$what, ${s.name}, every ${stride}: $reps reps, wanted $min-$done; refused $refused")
+        }
+    }
+
+    @Test
+    fun `pull-ups filmed from behind count, however the range was left`() = assertCounts(
+        "pull-ups from behind", pullUps,
+        // Five pulls. The first starts 0.4 s in, before a hang has been seen, so it cannot arm.
+        done = 5,
+        scenarios = scenarios(
+            ExerciseType.PULL_UP,
+            stuck = CalibrationSnapshot(ExerciseType.PULL_UP, 1.60f, 0.50f, 0.50f, CalibrationState.CONVERGED, 1),
+            stale = UserProfile(1.6f, 0.5f, 3),
+        ),
+        least = mapOf(
+            "fresh" to listOf(4, 4, 4),
+            // The trap is found by two hangs short of the top band, and the pull between them is lost.
+            "left stuck" to listOf(3, 3, 3),
+            "stale profile" to listOf(4, 4, 4),
+        ),
+    )
+
+    @Test
+    fun `pushups filmed from the head keep counting past a stray frame`() = assertCounts(
+        "pushups from the head", pushups,
+        // Four pushups. The first starts 0.25 s in, before the top has been held long enough to
+        // anchor the range; at a third of the frame rate that also leaves the second on the prior's
+        // range, where a close phone's travel reads too fast.
+        done = 4,
+        scenarios = scenarios(
+            ExerciseType.PUSHUP,
+            stuck = CalibrationSnapshot(ExerciseType.PUSHUP, 2.38f, 1.23f, 1.23f, CalibrationState.CONVERGED, 1),
+            stale = UserProfile(2.4f, 1.2f, 3),
+        ),
+        least = mapOf(
+            "fresh" to listOf(3, 3, 2),
+            "left stuck" to listOf(3, 3, 2),
+            "stale profile" to listOf(3, 3, 2),
+        ),
+    )
+
+    @Test
+    fun `the tops of those pushups hold as a plank, though the camera never sees the legs`() {
+        // From the head the ankles are behind the body — visibility 0.05-0.3 — and the plank used to
+        // refuse to judge anything without them, so from here it never held at all.
+        for (stride in listOf(1, 2, 3)) {
+            val (_, events) = replay(pushups.every(stride), DetectorFactory.create(ExerciseType.PLANK))
+            val ticks = events.count { it is RepEvent.HoldTick }
+            assertTrue(ticks > 0, "every $stride: the pushup tops never held as a plank")
+        }
+    }
+}

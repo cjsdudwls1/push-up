@@ -18,7 +18,10 @@ scripts/replay-trace.sh f.json  # a run recorded on a phone, replayed rep by rep
 
 When a device report says reps are not counting, ask for a trace rather than guessing: debug builds
 have 설정 → 테스트 → 동작 기록 남기기 / 방금 한 운동 기록 보내기, which shares the latest run's landmarks as
-JSON. `replay-trace.sh` shows which check refused each rep, and the file can become a test.
+JSON. `replay-trace.sh` shows which check refused each rep, and the file can become a test. A screen
+recording of the app works too: `tools/video_to_trace.py` runs the app's own lite model over it and
+writes the same JSON. It runs at the recording's frame rate, not the phone's, so replay every second
+and third frame as well — a fix that held at 40 fps once failed at 20.
 
 Run `check-resources.sh` before every push that touches `strings.xml`. A duplicated or missing
 string is not a Kotlin error, so `test-core.sh` cannot see it and it surfaces four minutes later as
@@ -62,16 +65,40 @@ not in paragraphs.
 a knee plank and plain standing all line up down the image the way a plank does, and all of them
 used to hold; side on, the picture-based frame collapsed and a real plank never held.
 `PlankRigTest` pins every pose from the front, side, back and diagonal. World landmarks are
-camera-aligned, so the phone's tilt is in them; `Body3d` reproduces that.
+camera-aligned, so the phone's tilt is in them; `Body3d` reproduces that. The legs are taken from the
+skeleton whether the camera sees them or not — from the head they are behind the body, from a phone
+close by the side past the edge of the picture — and requiring them is why a real plank never held
+on a phone. Unseen legs still gate the pose (a folded knee is not a plank) but are left out of the
+form score, and the placement coach does not ask for them.
+
+**A single frame never moves the calibration.** The lite model misplaces a landmark for a frame —
+a shoulder on the neck, the shoulders swapped — often enough to matter. A scale jump is a new subject
+only once it has held (`BodyFrameTracker.SWITCH_CONFIRM_FRAMES`/`_MS`), a short shoulder line is a
+turned torso only on its second frame, and the rest anchor is the median of a held stretch, never the
+largest value seen. One stray frame once set a pushup's top at 2.38 against a real 1.5-1.8, and the
+set stopped at one rep.
+
+**A range whose top the body never reaches must be able to recover.** Arming needs the top band and
+only a completed rep teaches the calibrator, so a top set too high — by a stray frame, a stale profile
+or a prior that does not fit — is a trap that holds while the tracker says OK. Two ways out, both
+guarded by the working joint's own 3-D angle so half reps cannot use them: a joint-confirmed lockout
+completes the rep and re-arms, and the arming watchdog moves the top to where the user actually
+turns around after two swings in `h` short of the band. The watchdog follows `h`, not the gauge;
+read through the count line of the very range that was wrong, it missed at a phone's frame rate.
+
+**Real sets are replayed at a phone's frame rates.** `RealTraceTest` plays two sets recorded on a
+phone — from nothing, from the stuck calibration the phone was left with, and from a stale profile —
+at the recording's rate and at every second and third frame. A detector change that passes the rig
+and fails there is not done. New recordings go in `core/src/test/resources/traces/`.
 
 **Pull-ups and dips are read along the spine** (`AxisSource.TORSO`), not across the shoulder line:
 at the distance a pull-up needs, the shoulder line is barely over the minimum scale from the front
 and gone from the side. `HangingRigTest` pins front, side, back and diagonal from four placements.
 
 **A lunge needs a split stance** (`StanceCheck`, from world landmarks): the depth signal reads a
-squat exactly like a lunge. The same measurement names the front leg, which is how the game asks
-for the other one (`LegAlternator`). "Forward" is square to the hip line and the spine, never
-"horizontal" — world landmarks are in the camera's tilted frame.
+squat exactly like a lunge. "Forward" is square to the hip line and the spine, never "horizontal" —
+world landmarks are in the camera's tilted frame. The game does not tell the user which leg to put
+forward, by the owner's decision: either leg counts, and the same leg twice is not remarked on.
 
 **A class is a way of training, and it decides what a rep is worth**, by the owner's decision: two
 classes, no more. 기사 is 근비대 — a rep whose lowering (top band to the 깊게 line) takes at least

@@ -44,12 +44,10 @@ import com.pushuprpg.app.ui.theme.Palette
 import com.pushuprpg.app.ui.theme.Type
 import com.pushuprpg.app.ui.battle.SkeletonOverlay
 import com.pushuprpg.app.ui.components.FramingGuide
-import com.pushuprpg.app.ui.components.NextLegChip
 import com.pushuprpg.app.ui.components.PlacementBanner
 import com.pushuprpg.app.ui.components.exerciseLabelRes
 import com.pushuprpg.core.detect.ExerciseType
 import com.pushuprpg.core.detect.Exercises
-import com.pushuprpg.core.detect.BodySide
 import com.pushuprpg.core.detect.Placement
 import com.pushuprpg.core.detect.RenderSkeleton
 import com.pushuprpg.core.survival.CatLine
@@ -78,8 +76,6 @@ fun SurvivalScreen(
     modifier: Modifier = Modifier,
     cat: CatView = CatView(),
     placement: Placement = Placement(),
-    /** For a lunge, the leg to put forward next. */
-    nextFront: BodySide? = null,
     /** The skeleton while setting up, for lining up with the framing guide; null once started. */
     setupSkeleton: RenderSkeleton? = null,
     /** As the user typed it; blank is the default name. */
@@ -168,10 +164,6 @@ fun SurvivalScreen(
             // camera loses them — which matters more here than anywhere, because the ceiling does
             // not wait. The tutorial never went through a picker, so this is its only placement
             // advice, and a phone put where the movement cannot be seen counts nothing.
-            if (state.alive && state.started) {
-                Spacer(Modifier.height(10.dp))
-                NextLegChip(next = nextFront)
-            }
             if (state.alive) {
                 Spacer(Modifier.height(10.dp))
                 PlacementBanner(

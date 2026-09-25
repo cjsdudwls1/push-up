@@ -78,18 +78,6 @@
   "key": "voice_style_lagging"
  },
  {
-  "file": "24ca000d341d.ogg",
-  "text": "왼발 앞으로!",
-  "style": "COACH",
-  "key": "voice_leg_left"
- },
- {
-  "file": "4f3c10089055.ogg",
-  "text": "오른발 앞으로!",
-  "style": "COACH",
-  "key": "voice_leg_right"
- },
- {
   "file": "19131ffad519.ogg",
   "text": "좋아요, 시작해요!",
   "style": "COACH",

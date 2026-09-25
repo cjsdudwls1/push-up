@@ -1,6 +1,5 @@
 package com.pushuprpg.core.audio
 
-import com.pushuprpg.core.detect.BodySide
 import com.pushuprpg.core.detect.PlacementAdvice
 import com.pushuprpg.core.game.Encounter
 import com.pushuprpg.core.run.AlertKey
@@ -22,8 +21,6 @@ data class Announcement(
     val answersLeft: Int? = null,
     val placement: PlacementAdvice? = null,
     val cat: CatSpeech? = null,
-    /** The leg to put forward next, for a lunge. */
-    val leg: BodySide? = null,
 )
 
 /**
@@ -52,7 +49,6 @@ class Announcer {
     private var lastPlacement: PlacementAdvice? = null
     private val placementSaidAt = HashMap<PlacementAdvice, Long>()
     private var lastCat: CatSpeech? = null
-    private var lastLeg: BodySide? = null
 
     /** Folds in one battle frame. [nowMs] is the frame's timestamp. */
     fun battle(state: BattleState, nowMs: Long): List<Announcement> {
@@ -86,7 +82,6 @@ class Announcer {
         }
 
         placementLine(state.placement.advice, nowMs)?.let { out += it }
-        legLine(state.nextFront)?.let { out += it }
         return gate(out, nowMs)
     }
 
@@ -95,25 +90,12 @@ class Announcer {
         cat: CatSpeech?,
         placement: PlacementAdvice?,
         nowMs: Long,
-        nextFront: BodySide? = null,
     ): List<Announcement> {
         val out = ArrayList<Announcement>()
-        // The leg first: it is the instruction for the rep about to start, the cat can wait.
-        legLine(nextFront)?.let { out += it }
         if (cat != null && cat != lastCat) out += Announcement(VoiceStyle.CAT, cat = cat)
         lastCat = cat
         placementLine(placement, nowMs)?.let { out += it }
         return gate(out, nowMs)
-    }
-
-    /**
-     * "왼발!" as the next rep's leg changes — every rep of a lunge set, which is the point: the
-     * user is looking at the floor, not at the phone.
-     */
-    private fun legLine(next: BodySide?): Announcement? {
-        if (next == lastLeg) return null
-        lastLeg = next
-        return next?.let { Announcement(VoiceStyle.COACH, leg = it) }
     }
 
     fun reset() {
@@ -124,7 +106,6 @@ class Announcer {
         lastPlacement = null
         placementSaidAt.clear()
         lastCat = null
-        lastLeg = null
     }
 
     private fun placementLine(advice: PlacementAdvice?, nowMs: Long): Announcement? {
@@ -143,9 +124,7 @@ class Announcer {
         val kept = if (urgent.isNotEmpty()) {
             // An urgent line cuts in; anything calmer said in the same breath would only be cut off.
             listOf(urgent.last())
-        } else if (lastSpokenMs == Long.MIN_VALUE || nowMs - lastSpokenMs >= MIN_GAP_MS || lines.first().leg != null) {
-            // The leg call is never dropped for being close behind another line: it is the one
-            // instruction that is wrong a rep later.
+        } else if (lastSpokenMs == Long.MIN_VALUE || nowMs - lastSpokenMs >= MIN_GAP_MS) {
             listOf(lines.first())
         } else {
             emptyList()

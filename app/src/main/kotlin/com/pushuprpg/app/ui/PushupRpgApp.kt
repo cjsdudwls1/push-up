@@ -495,7 +495,6 @@ fun PushupRpgApp(
                     val best by vm.bestScore.collectAsState()
                     val cat by vm.catView.collectAsState()
                     val placement by vm.placement.collectAsState()
-                    val nextFront by vm.nextFront.collectAsState()
                     val setupSkeleton by vm.setupSkeleton.collectAsState()
 
                     DisposableEffect(vm) {
@@ -510,7 +509,6 @@ fun PushupRpgApp(
                             bestScore = best,
                             cat = cat,
                             placement = placement,
-                            nextFront = nextFront,
                             setupSkeleton = setupSkeleton,
                             catName = settings.catName,
                             catCoat = settings.catCoat,

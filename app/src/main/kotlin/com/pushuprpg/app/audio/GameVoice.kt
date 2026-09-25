@@ -10,7 +10,6 @@ import android.speech.tts.UtteranceProgressListener
 import com.pushuprpg.app.R
 import com.pushuprpg.core.audio.Announcement
 import com.pushuprpg.core.audio.VoiceStyle
-import com.pushuprpg.core.detect.BodySide
 import com.pushuprpg.core.detect.ExerciseType
 import com.pushuprpg.core.detect.PlacementAdvice
 import com.pushuprpg.core.game.PlayerClass
@@ -190,9 +189,6 @@ class GameVoice(context: Context, private val music: MusicPlayer) {
         }
         a.placement?.let { return placementText(it, exercise) }
         a.cat?.let { return catText(it.line, it.serial, it.arg) }
-        a.leg?.let {
-            return res.getString(if (it == BodySide.LEFT) R.string.voice_leg_left else R.string.voice_leg_right)
-        }
         return when (a.alert) {
             AlertKey.ULTIMATE_INCOMING -> when {
                 exercise == ExerciseType.PLANK -> res.getString(R.string.voice_ultimate_hold)

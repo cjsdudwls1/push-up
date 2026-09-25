@@ -205,9 +205,10 @@ class PlacementCoach(
             val descriptor = Exercises.of(type)
             val out = sortedSetOf(Lm.LEFT_SHOULDER, Lm.RIGHT_SHOULDER)
             if (descriptor.kind == MovementKind.HOLD) {
-                // The plank reads the line from shoulder to heel: without the ankles a plank on
-                // the knees would pass for one, so they have to be in the picture too.
-                out += listOf(Lm.LEFT_HIP, Lm.RIGHT_HIP, Lm.LEFT_KNEE, Lm.RIGHT_KNEE, Lm.LEFT_ANKLE, Lm.RIGHT_ANKLE)
+                // The plank needs the shoulders and hips seen; the legs it takes from the model's
+                // 3-D skeleton whether the camera sees them or not, so feet past the edge of the
+                // picture do not stop it and the coach must not say they do.
+                out += listOf(Lm.LEFT_HIP, Lm.RIGHT_HIP)
             } else {
                 out += descriptor.watchedLandmarks
             }

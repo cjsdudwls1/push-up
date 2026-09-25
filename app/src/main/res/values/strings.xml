@@ -200,12 +200,6 @@
     <string name="voice_combo">%1$d 콤보!</string>
     <string name="voice_shallow">조금만 더 깊게요!</string>
     <string name="voice_ready">좋아요, 시작해요!</string>
-    <string name="voice_leg_left">왼발 앞으로!</string>
-    <string name="voice_leg_right">오른발 앞으로!</string>
-    <string name="leg_left">왼발</string>
-    <string name="leg_right">오른발</string>
-    <string name="next_leg">다음은 %1$s 앞으로</string>
-    <string name="battle_same_leg">같은 다리였어요. 이번엔 %1$s 앞으로!</string>
     <string name="battle_not_split">다리를 앞뒤로 벌려야 런지로 세요</string>
     <!-- A rep that counted but was worth half, and what makes the next one whole. -->
     <string name="battle_style_too_quick">천천히 해야 한 칸이에요</string>

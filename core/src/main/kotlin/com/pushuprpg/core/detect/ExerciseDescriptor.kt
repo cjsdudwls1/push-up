@@ -523,9 +523,12 @@ object Exercises {
             topEnter = 18f, topExit = 30f,
             countEnter = 70f, countExit = 55f,
             deepEnter = 88f, deepExit = 80f,
-            // A pull-up is slow and there are few of them. The rate cap matters more than for any
-            // other movement because kipping is the cheat, and it is a cadence, not a shape.
-            maxDescentSpeed = 400f, minAscentMs = 250, minRepPeriodMs = 1000,
+            // The rate cap matters more than for any other movement because kipping is the cheat,
+            // and it is a cadence, not a shape — minRepPeriodMs holds that. The speed through the
+            // band cannot: filmed from behind, the wrists on the bar are lost as the head comes up
+            // to it and read as falling, and the pulls of a set recorded on a phone crossed the
+            // band in 41-101 ms. At 400 that set counted none to two of its four armable pulls.
+            maxDescentSpeed = 900f, minAscentMs = 250, minRepPeriodMs = 1000,
             maxDescentMs = 5000, maxBottomMs = 4000,
             signalMinCutoff = 1.0f, signalBeta = 15f,
             // Dead hang puts the wrists about one and a half shoulder widths above the acromion;

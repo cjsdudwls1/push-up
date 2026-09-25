@@ -49,6 +49,12 @@ class BodyFrameTracker(private val config: DetectorConfig) {
     private var scaleEma = 0f
     private var initialized = false
 
+    // A scale that has jumped, not yet believed. See [update].
+    private var jumpFrames = 0
+    private var jumpScale = 0f
+    private var jumpSinceMs = 0L
+    private var shrunkFrames = 0
+
     /** 0 until the normal's sign has been decided; only used when the descriptor latches it. */
     private var latchedSign = 0
     private var lastTMs = 0L
@@ -57,6 +63,8 @@ class BodyFrameTracker(private val config: DetectorConfig) {
         scaleEma = 0f
         initialized = false
         lastTMs = 0L
+        jumpFrames = 0
+        shrunkFrames = 0
     }
 
     /** The current averaged shoulder width, or 0 before it is known. */
@@ -73,6 +81,22 @@ class BodyFrameTracker(private val config: DetectorConfig) {
          * Below this the projection is small enough that landmark noise decides it.
          */
         const val SIGN_LATCH_FRACTION = 0.40f
+
+        /**
+         * A jumped scale is a new subject or a new placement only once it has held this long, and
+         * this many frames, at a level consistent with itself.
+         *
+         * Before, one frame was enough, and one frame is what the lite model gets wrong: a shoulder
+         * put on the neck for a single frame, filmed from the head. On a phone that frame reset the
+         * filter, abandoned the rep, and — through the calibrator, which kept the largest value it
+         * had seen — moved the top of the range somewhere the body never returned to. Every rep
+         * after the first then read 40-60 at lockout and never re-armed.
+         */
+        const val SWITCH_CONFIRM_FRAMES = 3
+        const val SWITCH_CONFIRM_MS = 100L
+
+        /** Frames the shoulder line must stay short before it is a turned torso, not a glitch. */
+        const val ROTATED_CONFIRM_FRAMES = 2
     }
 
     fun update(frame: PoseFrame, confidence: FloatArray): BodyFrameState? {
@@ -143,11 +167,28 @@ class BodyFrameTracker(private val config: DetectorConfig) {
         } else {
             val dtMs = (frame.timestampMs - lastTMs).coerceAtLeast(0L)
             if (abs(instantScale - scaleEma) / scaleEma > config.scaleJumpFraction) {
-                // A jump this large is not a person moving; it is the model switching subjects or
-                // the user repositioning entirely. Re-seed rather than average across the change.
+                // A jump this large is not a person moving: it is the model switching subjects, the
+                // user repositioning entirely — or the model misplacing a landmark for a frame. The
+                // first two persist and the last does not, so the frame is set aside until the new
+                // scale has held (see SWITCH_CONFIRM_FRAMES), and only then re-seeded.
+                val consistent = jumpFrames > 0 &&
+                    abs(instantScale - jumpScale) / jumpScale <= config.scaleJumpFraction / 2f
+                if (!consistent) {
+                    jumpFrames = 1
+                    jumpScale = instantScale
+                    jumpSinceMs = frame.timestampMs
+                } else {
+                    jumpFrames++
+                    jumpScale += 0.5f * (instantScale - jumpScale)
+                }
+                if (jumpFrames < SWITCH_CONFIRM_FRAMES || frame.timestampMs - jumpSinceMs < SWITCH_CONFIRM_MS) {
+                    return null
+                }
                 scaleEma = instantScale
                 scaleReset = true
+                jumpFrames = 0
             } else {
+                jumpFrames = 0
                 val tauMs = config.scaleTauSec * 1000f
                 val alpha = (dtMs / (tauMs + dtMs)).coerceIn(0f, 1f)
                 scaleEma += alpha * (instantScale - scaleEma)
@@ -198,8 +239,12 @@ class BodyFrameTracker(private val config: DetectorConfig) {
         // ratio and hand out depth for a twist. Flagging it lets the state machine refuse to count.
         // Read along the spine there is no shoulder width to foreshorten, and turning is allowed.
         val spine = descriptor.axisSource == AxisSource.TORSO
-        val torsoRotated = !spine && scaleEma > 0f &&
-            instantScale / scaleEma < config.torsoRotatedFraction
+        val shrunk = !spine && scaleEma > 0f && instantScale / scaleEma < config.torsoRotatedFraction
+        shrunkFrames = if (shrunk) shrunkFrames + 1 else 0
+        // One short frame is the model misplacing a shoulder; a turned torso stays turned. The
+        // single frame is set aside rather than read — its h would be inflated by the same factor.
+        if (shrunk && shrunkFrames < ROTATED_CONFIRM_FRAMES) return null
+        val torsoRotated = shrunk
 
         return BodyFrameState(
             aspect = aspect,

@@ -20,8 +20,6 @@ import com.pushuprpg.core.detect.DetectorFactory
 import com.pushuprpg.app.domain.capacityOf
 import com.pushuprpg.app.domain.withCapacity
 import com.pushuprpg.core.detect.ExerciseType
-import com.pushuprpg.core.detect.BodySide
-import com.pushuprpg.core.detect.LegAlternator
 import com.pushuprpg.core.detect.Placement
 import com.pushuprpg.core.detect.PlacementAdvice
 import com.pushuprpg.core.detect.PlacementCoach
@@ -79,11 +77,6 @@ class SurvivalViewModel(
 
     private val announcer = Announcer()
 
-    // For a lunge: the leg to put forward next, shown and said after every rep.
-    private val legs = LegAlternator()
-    private val _nextFront = MutableStateFlow<BodySide?>(null)
-    val nextFront: StateFlow<BodySide?> = _nextFront.asStateFlow()
-
     // The skeleton, only while setting up: the mode hides it on purpose, but lining up with the
     // framing guide is done by watching the lines.
     private val _setupSkeleton = MutableStateFlow<RenderSkeleton?>(null)
@@ -132,7 +125,6 @@ class SurvivalViewModel(
         for (event in tick.events) {
             when (event) {
                 is RepEvent.Strike -> {
-                    legs.onRep(event.front)
                     reps++
                     maxCombo = maxOf(maxCombo, event.combo)
                     events += game.onRep(event.grade, event.depth, event.tMs)
@@ -155,10 +147,9 @@ class SurvivalViewModel(
         val catView = cat.view()
         // The cat's lines are heard as well as read: the bubble is small and the phone is far.
         voice.announce(
-            announcer.survival(catView.speech, _placement.value.advice, tick.tMs, nextFront = legs.next),
+            announcer.survival(catView.speech, _placement.value.advice, tick.tMs),
             exercise = exercise,
         )
-        _nextFront.value = legs.next
         _state.value = now
         _cat.value = catView
         detector.skeletonMode = if (now.started) SkeletonMode.OFF else SkeletonMode.FULL
@@ -184,8 +175,6 @@ class SurvivalViewModel(
         _cat.value = cat.view()
         coach.reset()
         announcer.reset()
-        legs.reset()
-        _nextFront.value = null
         reps = 0
         maxCombo = 0
         startedAtMs = 0L

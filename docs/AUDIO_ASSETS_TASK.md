@@ -65,7 +65,7 @@ ffmpeg -version              # 없으면: pip install imageio-ffmpeg 후 그 경
 python3 tools/voice_lines.py --check
 ```
 
-`tools/voice/lines.json`에 대사가 들어 있습니다(현재 104개). 항목마다 `file`(저장할 파일 이름),
+`tools/voice/lines.json`에 대사가 들어 있습니다(현재 102개). 항목마다 `file`(저장할 파일 이름),
 `text`(읽을 문장), `style`, `key`(어느 문자열에서 왔는지)가 있습니다.
 
 **파일 이름은 절대 바꾸지 않습니다.** 앱은 문장의 SHA-1으로 파일을 찾습니다. 발음이 어색하면(예:
@@ -86,7 +86,7 @@ python3 tools/voice_lines.py --check
 | style | 무엇 | 목소리 |
 |---|---|---|
 | `URGENT` | 필살기 예고, 남은 막기 횟수, 막았다/맞았다 | 게임 목소리와 같은 화자. 빠르게(+20–25%), 음을 살짝 높게(+1–2반음), 긴박하고 힘 있게. 비명이나 겁먹은 톤이 아니라 "지금 해!"라는 경고. 2–3 m 떨어져 운동 중인 사람이 바로 알아들어야 합니다. |
-| `COACH` | 자세 안내, 왼발/오른발, 콤보, 쉬는 시간 | 따뜻하고 격려하는 트레이닝 파트너, 해요체. 보통~조금 빠르게. 교관처럼 명령하지 않습니다. |
+| `COACH` | 자세 안내, 콤보, 쉬는 시간 | 따뜻하고 격려하는 트레이닝 파트너, 해요체. 보통~조금 빠르게. 교관처럼 명령하지 않습니다. |
 | `CAT` | 고냥이 대사 | 다른 화자. 높고 귀여운 목소리, 조금 빠르게. `scared`, `panic`은 겁먹게, `saved`는 안도하게, `calm`, `hello`는 편안하게. |
 
 `URGENT`와 `COACH`는 한 화자로 통일해서 게임 목소리가 하나로 들리게 합니다.
@@ -100,8 +100,8 @@ python3 tools/voice_lines.py --check
 - 폴더 전체가 3 MB 안팎이면 충분합니다.
 
 **확인:**
-- `python3 tools/voice_lines.py --check`가 `clips: 104 of 104 present`를 출력하고 `stale`이 없어야
-  합니다.
+- `python3 tools/voice_lines.py --check`가 `clips: 101 of 102 present`를 출력하고 `stale`이 없어야
+  합니다. 빠진 하나(`796f104f1460`)는 일부러 뺀 것입니다(AUDIO_CREDITS.md 참고).
 - style별로 몇 개씩 직접 들어 봅니다. 특히 숫자("세 번", "두 번 더!", "30초")와 "냥"의 발음.
 
 **기록:** `docs/AUDIO_CREDITS.md`의 "음성" 표에 도구·모델·화자 이름·라이선스를 적습니다.
