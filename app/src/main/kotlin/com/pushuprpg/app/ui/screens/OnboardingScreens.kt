@@ -98,14 +98,15 @@ internal fun classStrings(playerClass: PlayerClass): Pair<Int, Int> = when (play
  * Class selection.
  *
  * The cards describe a way of training rather than a stat spread, because that is what the choice
- * actually is — the knight is for people who like slow heavy reps, the mage for people who would
- * rather hold a position than do many, the archer for people who like pace. Framing it as numbers
- * would make it a min-max puzzle instead of a question about their own body.
+ * actually is — the knight (근비대) is for people who like slow, deep reps, the archer (수행능력)
+ * for people who like pace. There are two; the mage was folded into the knight. Framing it as
+ * numbers would make it a min-max puzzle instead of a question about their own body.
  *
  * The same screen changes the class later: pass the player's [current] class and it is marked,
  * and the copy says what a change keeps. Null means onboarding, where nothing has been chosen.
- * A change costs nothing: level, XP and records belong to the player rather than the class, and a
- * fight's HP is a count of reps that is the same whichever class is doing them.
+ * A change costs nothing: level, XP and records belong to the player rather than the class. What
+ * it changes is the fight — each class's [PlayerClass.repCostScale] sets how many reps a monster
+ * costs, and [com.pushuprpg.core.game.ClassStyle] which reps are whole.
  *
  * Each card also says what the first dungeon asks with that class, at [difficulty], because that
  * is what the choice decides first: the same dungeon is more than twice as many pushups for one as
@@ -121,8 +122,6 @@ fun ClassPickScreen(
     current: PlayerClass? = null,
 ) {
     val colors = LocalGameColors.current
-    // Isometric holds turn time under tension into damage, which is the one route that works for
-    // someone who cannot yet do many reps at all.
     // Fewer, slower reps a fight: the gentler start for someone with few reps in them yet.
     val recommended = if (capacity < 8f) PlayerClass.KNIGHT else null
 
