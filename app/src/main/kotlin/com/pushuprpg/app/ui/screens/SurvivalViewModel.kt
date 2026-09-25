@@ -51,7 +51,7 @@ class SurvivalViewModel(
     private val voice: GameVoice,
     /** Chosen on the way in; always pushups for the tutorial (see Routes.survival). */
     private val exercise: ExerciseType,
-    /** The first run, which ends only at its game over; see [leave]. */
+    /** The first run, skipped or finished rather than left; see [skipTutorial] and [finishTutorial]. */
     private val tutorial: Boolean,
     /** Where the run is banked: it outlives this screen, which may be popped before a write lands. */
     private val appScope: CoroutineScope,
@@ -113,6 +113,9 @@ class SurvivalViewModel(
 
     /** A run is banked by its game over or by [leave], from two threads, and exactly once. */
     private val saved = AtomicBoolean(false)
+
+    /** The tutorial ends once: skipped, or finished by its card, by back, or by the screen going. */
+    private val tutorialEnded = AtomicBoolean(false)
 
     @Volatile
     private var restartRequested = false
@@ -194,12 +197,13 @@ class SurvivalViewModel(
      * There is no confirm to answer first. The ceiling never pauses, by the owner's decision, so it
      * would keep falling while the question was on screen.
      *
-     * Not for the tutorial, which is left as it was: it ends at its game over.
+     * The tutorial, left once its run has started, is finished rather than only banked: see
+     * [finishTutorial]. Left before, it is not skipped here — only [skipTutorial] skips it.
      */
     fun leave() {
         val now = _state.value
-        if (tutorial || !now.started) return
-        save(score = now.score, survivedMs = now.elapsedMs)
+        if (!now.started) return
+        if (tutorial) finishTutorial() else save(score = now.score, survivedMs = now.elapsedMs)
     }
 
     override fun onCleared() {
@@ -218,10 +222,17 @@ class SurvivalViewModel(
      * The first survival run is the calibration set: it is the only moment the app can ask someone
      * to do as many as they can without it feeling like a test, because they are busy protecting a
      * cat. Every dungeon from then on is sized from this number.
+     *
+     * The done card's button ends it, and so does back once the ceiling is moving; a run ended
+     * before the ceiling came down is banked first, as a game over banks it. Once, however many
+     * ways it is asked for: a double tap on the card applied the capacity twice.
      */
     fun finishTutorial() {
+        if (!tutorialEnded.compareAndSet(false, true)) return
+        val now = _state.value
+        if (now.started) save(score = now.score, survivedMs = now.elapsedMs)
         val observed = maxCombo
-        telemetry.log(Event.TutorialCompleted(reps, _state.value.elapsedMs))
+        telemetry.log(Event.TutorialCompleted(reps, now.elapsedMs))
         // The tap that calls this also leaves the screen; in its own scope the write could be
         // cancelled, and the tutorial would come back on the next launch.
         appScope.launch {
@@ -233,6 +244,23 @@ class SurvivalViewModel(
                     )
                     .copy(onboarded = true)
             }
+        }
+    }
+
+    /**
+     * Leaves the tutorial before its run has started: 건너뛰기, or back while the ceiling waits.
+     *
+     * Someone who cannot get down on the floor, whose room will not fit the phone, or whose phone
+     * cannot run the model was held on a camera screen with no way past it: back closed the app, and
+     * opening it again opened the tutorial. Onboarding is complete and nothing is measured — the
+     * capacity keeps what it was, which is what a skipped calibration should mean.
+     */
+    fun skipTutorial() {
+        if (!tutorialEnded.compareAndSet(false, true)) return
+        telemetry.log(Event.TutorialSkipped)
+        // In the app's scope, as in finishTutorial: the tap that calls this also leaves the screen.
+        appScope.launch {
+            progressRepository.update { it.copy(onboarded = true) }
         }
     }
 

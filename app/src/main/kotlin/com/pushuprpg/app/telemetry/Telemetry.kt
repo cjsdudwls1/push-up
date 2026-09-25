@@ -116,6 +116,9 @@ sealed class Event(val name: String, val params: Map<String, Any> = emptyMap()) 
     data class TutorialCompleted(val reps: Int, val durationMs: Long) :
         Event("tutorial_completed", mapOf("reps" to reps, "duration_ms" to durationMs))
 
+    /** Left before its run started, so nothing was measured: how many never got a first rep in. */
+    data object TutorialSkipped : Event("tutorial_skipped")
+
     data class RunStarted(
         val dungeon: Int,
         val difficulty: Difficulty,

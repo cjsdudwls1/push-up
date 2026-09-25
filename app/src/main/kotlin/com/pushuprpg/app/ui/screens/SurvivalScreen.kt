@@ -22,7 +22,11 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -62,6 +66,7 @@ import com.pushuprpg.core.survival.CatName
 import com.pushuprpg.core.survival.CatSpeech
 import com.pushuprpg.core.survival.CatView
 import com.pushuprpg.core.survival.SurvivalState
+import kotlinx.coroutines.delay
 
 /**
  * 고냥이 지켜줘.
@@ -79,9 +84,16 @@ fun SurvivalScreen(
     isTutorial: Boolean,
     onRetry: () -> Unit,
     onShare: (ShareCardData) -> Unit,
-    /** Back to the hub; outside the tutorial, also the close button and the back gesture. */
+    /**
+     * Leaves the run. Outside the tutorial: 홈으로, the close button and back, all banking what was
+     * done. In the tutorial, its ending: the done card's button, and back once the run has started.
+     */
     onHome: () -> Unit,
     modifier: Modifier = Modifier,
+    /** The tutorial's way out before its run has started: 건너뛰기, and back while the ceiling waits. */
+    onSkip: () -> Unit = {},
+    /** The pose model did not load, so nothing will ever count: the tutorial offers its skip at once. */
+    modelFailed: Boolean = false,
     cat: CatView = CatView(),
     placement: Placement = Placement(),
     /** The skeleton while setting up, for lining up with the framing guide; null once started. */
@@ -93,9 +105,19 @@ fun SurvivalScreen(
     KeepScreenOn()
     val name = catName.ifBlank { stringResource(R.string.cat_default_name) }
 
-    // Outside the tutorial, back leaves with what was done banked — no confirm, because the ceiling
-    // does not pause for one. The tutorial is left as it was.
-    BackHandler(enabled = !isTutorial, onBack = onHome)
+    // Back leaves with what was done banked — no confirm, because the ceiling does not pause for
+    // one. In the tutorial it skips while the ceiling waits and ends the tutorial once it moves:
+    // the tutorial is the root of the stack, and back used to close the app from it.
+    BackHandler(onBack = if (isTutorial && !state.started) onSkip else onHome)
+
+    // Long enough to look stuck: the tutorial offers its skip after this much waiting to start.
+    var waitedForStart by rememberSaveable { mutableStateOf(false) }
+    if (isTutorial) {
+        LaunchedEffect(Unit) {
+            delay(SKIP_OFFERED_AFTER_MS)
+            waitedForStart = true
+        }
+    }
 
     BoxWithConstraints(modifier.fillMaxSize().background(Color(0xFF1A1208))) {
 
@@ -203,6 +225,30 @@ fun SurvivalScreen(
                     imageVector = Icons.Filled.Close,
                     contentDescription = stringResource(R.string.action_close),
                     tint = Palette.TextPrimary,
+                )
+            }
+        }
+
+        // The tutorial's way out, where a run's close button sits: once the wait to start has gone on
+        // long enough to look stuck, or at once when the model never loaded and nothing can count.
+        // Someone who cannot get onto the floor must not be held here by it.
+        if (isTutorial && !state.started && (waitedForStart || modelFailed)) {
+            Box(
+                Modifier
+                    .align(Alignment.TopStart)
+                    .windowInsetsPadding(WindowInsets.safeDrawing)
+                    .padding(start = 16.dp, top = 8.dp)
+                    .height(48.dp)
+                    .clip(CircleShape)
+                    .background(Palette.ScrimPanelHigh)
+                    .clickable(onClick = onSkip)
+                    .padding(horizontal = 18.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = stringResource(R.string.action_skip),
+                    style = Type.labelL,
+                    color = Palette.TextPrimary,
                 )
             }
         }
@@ -330,6 +376,9 @@ private const val FLOOR_AT = 0.82f
 
 /** The screen width, in the cat's own units, that draws it at scale 1. */
 private const val CAT_SCALE_WIDTH = 420f
+
+/** How long the tutorial waits for its run to start before it offers 건너뛰기. */
+private const val SKIP_OFFERED_AFTER_MS = 10_000L
 
 /**
  * The speech bubble, popping in for each new line and gone between them.

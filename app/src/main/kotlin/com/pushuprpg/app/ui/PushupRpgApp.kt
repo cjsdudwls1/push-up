@@ -180,24 +180,28 @@ fun PushupRpgApp(
                     )
                 }
 
-                composable(Routes.CLASS_PICK) {
+                composable(Routes.CLASS_PICK) { entry ->
                     ClassPickScreen(
                         capacity = progress.capacityOf(ExerciseType.PUSHUP),
                         onPick = { playerClass: PlayerClass ->
-                            scope.launch {
-                                container.progressRepository.update {
-                                    it.copy(playerClass = playerClass, classChosen = true)
+                            // A second tap during the transition would write a second class and
+                            // push a second tutorial behind the first.
+                            if (navController.isOnTop(entry)) {
+                                scope.launch {
+                                    container.progressRepository.update {
+                                        it.copy(playerClass = playerClass, classChosen = true)
+                                    }
+                                    container.telemetry.log(Event.ClassPicked(playerClass.name))
                                 }
-                                container.telemetry.log(Event.ClassPicked(playerClass.name))
-                            }
-                            // Onboarding is not finished here: the tutorial run is what completes
-                            // it, because that run is also the calibration set every dungeon is
-                            // sized from. Marking it done earlier would let someone reach a dungeon
-                            // with no measured capacity at all.
-                            navController.navigate(
-                                if (granted) Routes.survival(tutorial = true) else Routes.PERMISSION
-                            ) {
-                                popUpTo(Routes.ONBOARDING) { inclusive = true }
+                                // Onboarding is not finished here: the tutorial run is what
+                                // completes it, because that run is also the calibration set every
+                                // dungeon is sized from. Marking it done earlier would let someone
+                                // reach a dungeon with no measured capacity at all.
+                                navController.navigate(
+                                    if (granted) Routes.survival(tutorial = true) else Routes.PERMISSION
+                                ) {
+                                    popUpTo(Routes.ONBOARDING) { inclusive = true }
+                                }
                             }
                         },
                     )
@@ -538,11 +542,25 @@ fun PushupRpgApp(
                             isTutorial = isTutorial,
                             onRetry = vm::restart,
                             onShare = onShare,
-                            onHome = {
-                                if (isTutorial) {
-                                    vm.finishTutorial()
+                            modelFailed = poseError != null,
+                            onSkip = {
+                                if (navController.isOnTop(entry)) {
+                                    vm.skipTutorial()
                                     navController.navigate(Routes.HOME) {
                                         popUpTo(Routes.SURVIVAL) { inclusive = true }
+                                    }
+                                }
+                            },
+                            onHome = {
+                                if (isTutorial) {
+                                    // The done card's button, or back once the run has started. A
+                                    // double tap on the card finished it twice and pushed a second
+                                    // hub.
+                                    if (navController.isOnTop(entry)) {
+                                        vm.finishTutorial()
+                                        navController.navigate(Routes.HOME) {
+                                            popUpTo(Routes.SURVIVAL) { inclusive = true }
+                                        }
                                     }
                                 } else {
                                     // Mid-run too, from the close button or the back gesture: what
