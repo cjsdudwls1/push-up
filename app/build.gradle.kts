@@ -130,6 +130,10 @@ android {
     androidResources {
         // The pose model is already compressed; re-compressing it slows first-run load.
         noCompress += "task"
+        // Voice clips are opened with AssetManager.openFd, which throws on a compressed entry, and
+        // GameVoice then quietly falls back to the phone's TTS. The APK packager leaves .ogg alone
+        // by default; this says so for the Play bundle as well rather than relying on that.
+        noCompress += "ogg"
     }
 
     compileOptions {
