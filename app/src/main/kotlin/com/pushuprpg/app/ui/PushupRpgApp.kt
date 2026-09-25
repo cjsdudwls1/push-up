@@ -684,9 +684,24 @@ fun PushupRpgApp(
 
                 composable(Routes.PAYWALL) {
                     val plans by container.billing.plans.collectAsState()
+                    val plansUnavailable by container.billing.plansUnavailable.collectAsState()
                     val activity = context as? android.app.Activity
+                    // However the entitlement opened — this purchase, a restore, a purchase made on
+                    // another device — the offer is over: say so, and go back to what it opened over.
+                    LaunchedEffect(entitlement.hasFullAccess) {
+                        if (entitlement.hasFullAccess) {
+                            toast(context, R.string.paywall_unlocked)
+                            navController.popBackStack(Routes.PAYWALL, inclusive = true)
+                        }
+                    }
+                    LaunchedEffect(Unit) {
+                        container.billing.events.collect { event ->
+                            paywallMessage(event)?.let { toast(context, it) }
+                        }
+                    }
                     PaywallScreen(
                         plans = plans,
+                        plansUnavailable = plansUnavailable,
                         lifetimeReps = progress.lifetimeReps,
                         // As the hub shows it: a missed day has already broken the stored one.
                         streakDays = Streak.shown(
@@ -695,9 +710,16 @@ fun PushupRpgApp(
                         ),
                         level = progress.level,
                         onPurchase = { plan ->
-                            activity?.let { container.billing.launchPurchaseFlow(it, plan) }
+                            if (activity == null || !container.billing.launchPurchaseFlow(activity, plan)) {
+                                toast(context, R.string.paywall_purchase_error)
+                            }
                         },
-                        onRestore = { scope.launch { container.entitlementRepository.refresh() } },
+                        onRestore = {
+                            scope.launch {
+                                paywallMessage(container.billing.restore())?.let { toast(context, it) }
+                            }
+                        },
+                        onRetry = { scope.launch { container.billing.refresh() } },
                         // By route, so a second tap cannot pop what opened it along with it.
                         onDismiss = { navController.popBackStack(Routes.PAYWALL, inclusive = true) },
                     )

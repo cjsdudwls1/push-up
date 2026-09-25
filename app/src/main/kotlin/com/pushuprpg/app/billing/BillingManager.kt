@@ -49,9 +49,24 @@ enum class BillingAvailability {
 /** One-shot things the paywall may want to react to. Never state — state lives in the flows. */
 sealed interface BillingEvent {
     data object PurchaseCompleted : BillingEvent
+
+    /** Bought with a payment that clears later: nothing is granted until Play says it has. */
+    data object PurchasePending : BillingEvent
+
     data object PurchaseCancelled : BillingEvent
     data object AlreadyOwned : BillingEvent
     data class PurchaseFailed(val responseCode: Int) : BillingEvent
+}
+
+/** What 구매 복원 found, so the paywall can say so rather than look as if nothing happened. */
+enum class RestoreOutcome {
+    FOUND,
+
+    /** Play answered, and this account holds no subscription. */
+    NOTHING,
+
+    /** Play could not be asked; nothing is known either way. */
+    UNREACHABLE,
 }
 
 /**
@@ -85,6 +100,14 @@ class BillingManager(
     private val _plans = MutableStateFlow<List<SubscriptionPlan>>(emptyList())
     val plans: StateFlow<List<SubscriptionPlan>> = _plans.asStateFlow()
 
+    /**
+     * True once a refresh has run to its end with still no plan to sell: Play unreachable, or
+     * reachable and offering nothing — no network, signed out, a build Play will not sell from.
+     * Until then an empty [plans] means "still asking", and the paywall can say which.
+     */
+    private val _plansUnavailable = MutableStateFlow(false)
+    val plansUnavailable: StateFlow<Boolean> = _plansUnavailable.asStateFlow()
+
     private val _events = MutableSharedFlow<BillingEvent>(
         extraBufferCapacity = 8,
         onBufferOverflow = BufferOverflow.DROP_OLDEST,
@@ -105,8 +128,13 @@ class BillingManager(
         when (result.responseCode) {
             BillingClient.BillingResponseCode.OK -> {
                 scope.launch {
-                    purchases.orEmpty().forEach { acknowledgeIfNeeded(it) }
-                    _events.tryEmit(BillingEvent.PurchaseCompleted)
+                    val bought = purchases.orEmpty()
+                    bought.forEach { acknowledgeIfNeeded(it) }
+                    // Paid by a method that clears later is not paid yet, and saying it was would
+                    // leave the user looking at a paywall that has just told them they are in.
+                    val pending = bought.isNotEmpty() &&
+                        bought.none { it.purchaseState == Purchase.PurchaseState.PURCHASED }
+                    _events.tryEmit(if (pending) BillingEvent.PurchasePending else BillingEvent.PurchaseCompleted)
                     // The callback carries only what just changed; re-query for the whole picture.
                     refresh()
                 }
@@ -152,38 +180,52 @@ class BillingManager(
     }
 
     /**
-     * Re-reads purchases and plan pricing from Play.
+     * Re-reads purchases and plan pricing from Play, and says whether Play answered for the
+     * purchases.
      *
      * Leaves the last known values in place on failure rather than clearing them: an empty answer
      * we invented is indistinguishable, downstream, from Play saying the user owns nothing.
      */
-    suspend fun refresh() {
-        refreshMutex.withLock {
-            if (!ensureConnected()) return
-
-            queryPurchasesOnce()?.let { purchases ->
-                purchases.forEach { acknowledgeIfNeeded(it) }
-                _activePurchases.value = purchases
-            }
-
-            queryPlansOnce().takeIf { it.isNotEmpty() }?.let { _plans.value = it }
+    suspend fun refresh(): Boolean = refreshMutex.withLock {
+        _plansUnavailable.value = false
+        if (!ensureConnected()) {
+            _plansUnavailable.value = _plans.value.isEmpty()
+            return@withLock false
         }
+
+        val purchases = queryPurchasesOnce()
+        purchases?.let {
+            it.forEach { purchase -> acknowledgeIfNeeded(purchase) }
+            _activePurchases.value = it
+        }
+
+        queryPlansOnce().takeIf { it.isNotEmpty() }?.let { _plans.value = it }
+        _plansUnavailable.value = _plans.value.isEmpty()
+        purchases != null
+    }
+
+    /** 구매 복원: asks Play again what this account owns. */
+    suspend fun restore(): RestoreOutcome {
+        if (!refresh()) return RestoreOutcome.UNREACHABLE
+        val owned = _activePurchases.value.orEmpty().any {
+            it.purchaseState == Purchase.PurchaseState.PURCHASED &&
+                BillingProducts.grantsFullAccess(it.products)
+        }
+        return if (owned) RestoreOutcome.FOUND else RestoreOutcome.NOTHING
     }
 
     /**
      * Starts Play's purchase sheet. Must be called on the main thread with a started Activity.
      *
-     * Returns the immediate response code; the actual outcome arrives later on [events]. A
-     * non-OK return means the sheet never opened.
+     * Returns whether the sheet opened; the actual outcome arrives later on [events].
      */
-    fun launchPurchaseFlow(activity: Activity, plan: SubscriptionPlan): Int {
+    fun launchPurchaseFlow(activity: Activity, plan: SubscriptionPlan): Boolean {
         if (!client.isReady) {
             scope.launch { refresh() }
-            return BillingClient.BillingResponseCode.SERVICE_DISCONNECTED
+            return false
         }
 
-        val details = productDetails[plan.productId]
-            ?: return BillingClient.BillingResponseCode.ITEM_UNAVAILABLE
+        val details = productDetails[plan.productId] ?: return false
 
         val params = BillingFlowParams.newBuilder()
             .setProductDetailsParamsList(
@@ -200,7 +242,7 @@ class BillingManager(
         if (result.responseCode != BillingClient.BillingResponseCode.OK) {
             Log.w(TAG, "launchBillingFlow refused: ${result.responseCode} ${result.debugMessage}")
         }
-        return result.responseCode
+        return result.responseCode == BillingClient.BillingResponseCode.OK
     }
 
     fun dispose() {
