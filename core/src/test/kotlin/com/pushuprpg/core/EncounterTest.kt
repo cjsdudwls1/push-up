@@ -304,6 +304,23 @@ class EncounterTest {
     }
 
     @Test
+    fun `a rep's XP is what it took off the monster, at the depth it reached`() {
+        // Two 기사 reps down to the same depth: one slow and whole, one a quick dive and half.
+        fun knightRep(loweringMs: Int, depth: Float?): Encounter = bigFight(PlayerClass.KNIGHT).apply {
+            onRep(plainRep(), 3000)
+            if (depth != null) onDepth(depth)
+            onDeep(loweringMs, 3400)
+            onRepEnd(3900)
+        }
+        val whole = knightRep(loweringMs = 800, depth = 95f)
+        val half = knightRep(loweringMs = 300, depth = 95f)
+        assertEquals(whole.xp / 2f, half.xp, 1e-4f, "a half rep was not paid half")
+        // Paid at the strike, which comes at the 인정 line, every rep was the shallowest that counts.
+        val atStrike = knightRep(loweringMs = 800, depth = null)
+        assertTrue(whole.xp > atStrike.xp, "going deeper paid nothing: ${whole.xp} vs ${atStrike.xp}")
+    }
+
+    @Test
     fun `a rep the tracker lost is not blamed on the user`() {
         val e = bigFight(PlayerClass.KNIGHT)
         e.onRep(RepInput(72f, RepGrade.COUNTED, ExerciseType.PUSHUP, cycleMs = 4000), 4000)

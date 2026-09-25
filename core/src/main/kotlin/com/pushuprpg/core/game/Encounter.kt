@@ -85,8 +85,10 @@ class Encounter(
         private set
     var repsCounted: Int = 0
         private set
-    var runXp: Int = 0
+    /** XP earned in this fight, booked rep by rep as each one's worth and depth become known. */
+    var xp: Float = 0f
         private set
+    val runXp: Int get() = xp.roundToInt()
     var finished: Boolean = false
         private set
 
@@ -150,6 +152,14 @@ class Encounter(
     private var repAnswered = false
     /** The rep in progress is one of the open answer window's. */
     private var repInWindow = false
+
+    // The last rep struck, as its XP is booked: what it is worth off the count so far, how deep it
+    // has gone and the XP already booked for it. See [CombatResolver.repXp].
+    private var repHalves = 0
+    private var repDepth = 0f
+    private var repCrit = false
+    private var repExercise = ExerciseType.PUSHUP
+    private var repXp = 0f
 
     /** Roughly how many reps this fight should take, used to pace the boss's rage. */
     private val expectedReps: Int =
@@ -259,7 +269,12 @@ class Encounter(
         enemy = result.enemy
         damageDealt += result.damage
         repsCounted++
-        runXp += result.xp
+        repHalves = halves
+        repDepth = rep.depth
+        repCrit = result.crit
+        repExercise = rep.exercise
+        repXp = 0f
+        bookRepXp()
         events += CombatEvent.Hit(atMs, result)
         repOpen = true
         repReachedDeep = false
@@ -308,6 +323,8 @@ class Encounter(
         if (player.playerClass == PlayerClass.KNIGHT) {
             if (ClassStyle.knightSlowEnough(loweringMs)) {
                 enemy = enemy.spend(1)
+                repHalves = 2
+                bookRepXp()
                 styleReps++
                 events += CombatEvent.Style(atMs, null, enemy.remaining)
                 if (telegraphed) answer()
@@ -332,6 +349,22 @@ class Encounter(
      */
     fun onRepEnd(atMs: Long, seen: Boolean = true): List<CombatEvent> =
         if (finished) emptyList() else closeRep(atMs, seen)
+
+    /**
+     * The last rep struck has gone [depth] deep: at the deep line, or as it finished. Its XP rises
+     * to match, even if its monster has already fallen — the rep was done.
+     */
+    fun onDepth(depth: Float) {
+        if (depth <= repDepth) return
+        repDepth = depth
+        bookRepXp()
+    }
+
+    private fun bookRepXp() {
+        val now = resolver.repXp(repDepth, repExercise, player.playerClass, repHalves, repCrit)
+        xp += now - repXp
+        repXp = now
+    }
 
     private fun closeRep(atMs: Long, seen: Boolean = true): List<CombatEvent> {
         val events = mutableListOf<CombatEvent>()
@@ -437,10 +470,9 @@ class Encounter(
                 rejected = false,
                 player = player,
                 enemy = enemy,
-                xp = 1,
             ),
         )
-        runXp += 1
+        xp += 1f
 
         if (enemy.isDead) {
             events += defeated(atMs)
@@ -535,9 +567,16 @@ class Encounter(
         min(MAX_CRACK, 0.5f * damageDealt.toFloat() / enemy.maxHp.coerceAtLeast(1))
 
     /** Clear bonus, kept deliberately small: most XP is already banked per rep. */
-    fun clearBonusXp(): Int = (0.43f * runXp).roundToInt()
+    fun clearBonusXp(): Int = clearBonusFor(xp).roundToInt()
 
     companion object {
+        /**
+         * The bonus for clearing a run that earned [runXp] — the whole run's, not its last fight's.
+         * Read off the boss alone it came to a sixth of what the first dungeon's reps earned.
+         */
+        fun clearBonusFor(runXp: Float): Float = CLEAR_BONUS * runXp
+
+        const val CLEAR_BONUS = 0.43f
         const val TICK_MS = 3_000L
         const val RAGE_EVENTS_PER_ENCOUNTER = 4
         const val MIN_REPS_PER_RAGE = 6

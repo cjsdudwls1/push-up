@@ -9,6 +9,7 @@ import com.pushuprpg.core.audio.SoundRequest
 import com.pushuprpg.core.detect.*
 import com.pushuprpg.core.game.*
 import com.pushuprpg.core.pose.PoseFrame
+import kotlin.math.roundToInt
 
 /**
  * One number floating up the screen when a rep lands.
@@ -248,7 +249,8 @@ class BattleEngine(
     private var bookedRep = -1
     private var bookedDepth = 0f
     private var bookedDeep = false
-    private var xpTotal = 0
+    /** XP from floors already cleared; the current floor's is on its encounter. */
+    private var xpBanked = 0f
     private var shallowStreak = 0
     /** Half-worth reps in a row, so a reminder is given on the first and then only now and then. */
     private var styleMisses = 0
@@ -412,7 +414,6 @@ class BattleEngine(
                             is CombatEvent.Hit -> {
                                 repsTotal++
                                 depthSum += event.depth
-                                xpTotal += ce.result.xp
                                 if (ce.result.deep) deepReps++
                                 segReps++
                                 segDepthSum += event.depth
@@ -734,6 +735,7 @@ class BattleEngine(
         // first would leave the HUD showing "4 / 3" on the clear screen.
         if (floorIndex >= dungeon.floors.size - 1) return finish(cleared = true, atMs = atMs)
         styleRepsTotal += encounter.styleReps
+        xpBanked += encounter.xp
         floorIndex++
         enemyDiedAtMs = Long.MIN_VALUE
         // Between floors the player is topped up and the chain starts again; a dungeon should be a
@@ -759,14 +761,17 @@ class BattleEngine(
 
     private fun finish(cleared: Boolean, atMs: Long): Outcome {
         val all = segments + segmentSoFar(atMs)
-        val bonus = if (cleared) encounter.clearBonusXp() else 0
+        // Every rep's XP is banked whether the run was cleared or not; the bonus is the only part
+        // that waits for the clear.
+        val xp = xpBanked + encounter.xp
+        val bonus = if (cleared) Encounter.clearBonusFor(xp) else 0f
         return Outcome(
             cleared = cleared,
             reps = repsTotal,
             maxCombo = maxOf(state.maxCombo, player.combo),
             deepReps = deepReps,
             durationMs = if (startedAtMs == Long.MIN_VALUE) 0 else atMs - startedAtMs,
-            xpEarned = xpTotal + bonus,
+            xpEarned = (xp + bonus).roundToInt(),
             crackFraction = if (cleared) 0f else encounter.crackFraction(),
             meanDepth = if (repsTotal == 0) 0f else depthSum / repsTotal,
             styleReps = styleRepsTotal + encounter.styleReps,
@@ -789,6 +794,7 @@ class BattleEngine(
      */
     private fun deepen(repIndex: Int, depth: Float, deep: Boolean) {
         if (repIndex != bookedRep) return
+        encounter.onDepth(depth)
         val more = (depth - bookedDepth).coerceAtLeast(0f)
         depthSum += more
         segDepthSum += more

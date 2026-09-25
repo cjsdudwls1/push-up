@@ -7,7 +7,9 @@ import com.pushuprpg.core.detect.RepDetectorImpl
 import com.pushuprpg.core.detect.UserProfile
 import com.pushuprpg.core.fixtures.PoseFixtures
 import com.pushuprpg.core.game.*
+import com.pushuprpg.core.progression.Levels
 import com.pushuprpg.core.run.BattleEngine
+import com.pushuprpg.core.run.Outcome
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -98,6 +100,51 @@ class VolumeModelTest {
         assertEquals(2 * advertised, state.outcome!!.reps, "quick reps were not worth half")
         assertEquals(0, state.outcome!!.styleReps)
         assertEquals(state.outcome!!.reps, state.runTotalReps, "the total did not grow to what was done")
+    }
+
+    /** Plays [frames] until the run ends, and returns how it ended. */
+    private fun clear(cls: PlayerClass, frames: List<com.pushuprpg.core.pose.PoseFrame>): Outcome {
+        val e = engine(Dungeons.FREE_DUNGEON, cls)
+        var state = e.currentState()
+        frames.forEach { if (state.outcome == null) state = e.onPoseFrame(it) }
+        assertEquals(true, state.outcome?.cleared, "$cls: the dungeon did not clear")
+        return state.outcome!!
+    }
+
+    /**
+     * Onboarding has to produce a level-up: the first session is where retention is won. XP was
+     * read at the strike, which fires at the 인정 line on the way down, and paid per rep whatever
+     * the rep was worth — so a 기사's ten slow, full reps earned about 24 of the 50 needed.
+     */
+    @Test
+    fun `the first dungeon done either class's way levels the player up`() {
+        for (cls in PlayerClass.entries) {
+            val advertised = Dungeons.FREE_DUNGEON.repCost(Difficulty.STANDARD, ExerciseType.PUSHUP, cls)
+            val outcome = clear(cls, inStyle(cls, advertised + 20, 3_600_000L))
+            val levelled = Levels.apply(level = 1, xpIntoLevel = 0, gained = outcome.xpEarned)
+            assertTrue(levelled.leveledUp, "$cls earned ${outcome.xpEarned} XP, needed ${Levels.xpToNext(1)}")
+        }
+    }
+
+    /**
+     * Paid per rep whatever it was worth, a 기사 who dived through twice the reps, half of them short
+     * of 깊게, earned nearly twice the XP of one who did the class's ten slow, full ones. Paid what
+     * each rep took off the monster, at the depth it reached, the class's way is not the poorer one.
+     */
+    @Test
+    fun `a 기사 is not paid more for diving through twice the reps`() {
+        val advertised = Dungeons.FREE_DUNGEON.repCost(Difficulty.STANDARD, ExerciseType.PUSHUP, PlayerClass.KNIGHT)
+        val whole = clear(PlayerClass.KNIGHT, inStyle(PlayerClass.KNIGHT, advertised + 20, 3_600_000L))
+        val dived = clear(
+            PlayerClass.KNIGHT,
+            PoseFixtures.trace(count = 2 * advertised + 20, startMs = 3_600_000L, descentMs = 600, peakDepth = 0.8f),
+        )
+        assertEquals(2 * advertised, dived.reps, "the quick reps were not all half")
+        assertTrue(dived.deepReps < dived.reps, "every quick rep reached 깊게; the fixture should fall short on some")
+        assertTrue(
+            whole.xpEarned >= dived.xpEarned,
+            "${whole.reps} whole reps earned ${whole.xpEarned} XP, ${dived.reps} half ones ${dived.xpEarned}",
+        )
     }
 
     @Test

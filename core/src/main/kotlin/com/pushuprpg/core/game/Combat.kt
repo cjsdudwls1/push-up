@@ -129,7 +129,6 @@ data class AttackResult(
     val tempoMultiplier: Float = 1f,
     val formMultiplier: Float = 1f,
     val weaknessMultiplier: Float = 1f,
-    val xp: Int = 0,
     val player: PlayerState,
     val enemy: Enemy,
 ) {
@@ -245,8 +244,6 @@ class CombatResolver(
         // weak to. Same intent, in whole reps.
         val nextEnemy = enemy.spend(halves)
 
-        val xp = (2.0f * depthMult).roundToInt() + if (crit) 1 else 0
-
         return AttackResult(
             damage = shown,
             halvesSpent = halves,
@@ -258,7 +255,6 @@ class CombatResolver(
             tempoMultiplier = tempoMult,
             formMultiplier = formMult,
             weaknessMultiplier = weaknessMult,
-            xp = xp,
             player = advanced,
             enemy = nextEnemy,
         )
@@ -273,10 +269,30 @@ class CombatResolver(
         // Costly, but never a wipe: a cheated rep should sting, not end the run.
         player = player.copy(combo = (player.combo - 3).coerceAtLeast(0)),
         enemy = enemy,
-        xp = 0,
     )
 
+    /**
+     * XP for one rep: [XP_PER_REP] for a standard rep at the 인정 line, more the deeper it went and
+     * for a crit, times what the rep is worth off the count — [halves] of two, and [repWorth] of the
+     * content's standard reps.
+     *
+     * [depth] is how deep the rep went, not where it struck: the strike fires at the 인정 line on the
+     * way down, so reading it there paid every rep as the shallowest that counts. And a rep's worth
+     * is what the monster lost for it, so a dungeon pays the same XP however it is done: a 기사's ten
+     * slow reps, a 궁수's twenty-six brisk ones and a handful of pull-ups are all the same eighteen
+     * standard reps of work. Paid by the rep instead, a 기사 doing it the class's way earned half of
+     * what diving through twice as many half reps did, and never levelled on the first dungeon.
+     */
+    fun repXp(depth: Float, exercise: ExerciseType, playerClass: PlayerClass, halves: Int, crit: Boolean): Float {
+        val base = XP_PER_REP * depthMultiplier(depth, playerClass, 0) + if (crit) CRIT_XP else 0f
+        return base * halves / 2f * repWorth(exercise, playerClass)
+    }
+
     companion object {
+        /** XP for a standard rep at the 인정 line, and what a crit adds to it. */
+        const val XP_PER_REP = 2f
+        const val CRIT_XP = 1f
+
         /** What fraction of a non-plank hit goes into wearing down a ward. */
         const val WARD_CHIP = 0.45f
 
@@ -328,10 +344,20 @@ class CombatResolver(
             playerClass: PlayerClass? = null,
         ): Int {
             val descriptor = Exercises.of(exercise)
-            val classScale = if (playerClass == null || descriptor.kind == MovementKind.HOLD) 1f
-            else playerClass.repCostScale
-            return (standardRepCost * difficulty.repMultiplier * descriptor.sessionVolumeScale * classScale)
+            return (standardRepCost * difficulty.repMultiplier * descriptor.sessionVolumeScale * classScale(exercise, playerClass))
                 .roundToInt().coerceAtLeast(1)
         }
+
+        /**
+         * How many of the content's standard reps one rep of [exercise] is worth: the inverse of what
+         * [expectedReps] prices a standard rep at, so a rep's share of a fight is its share of the
+         * fight's cost. For a hold, one second's.
+         */
+        fun repWorth(exercise: ExerciseType, playerClass: PlayerClass? = null): Float =
+            1f / (Exercises.of(exercise).sessionVolumeScale * classScale(exercise, playerClass))
+
+        private fun classScale(exercise: ExerciseType, playerClass: PlayerClass?): Float =
+            if (playerClass == null || Exercises.of(exercise).kind == MovementKind.HOLD) 1f
+            else playerClass.repCostScale
     }
 }

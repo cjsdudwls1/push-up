@@ -207,14 +207,8 @@ class ProgressionTest {
         assertEquals(1f, top.fraction)
     }
 
-    @Test
-    fun `the first dungeon clear levels the player up`() {
-        // Onboarding has to produce a level-up; the first session is where retention is won.
-        val xpFromReps = 14 * 3
-        val clearBonus = (0.43f * xpFromReps).toInt()
-        val result = Levels.apply(level = 1, xpIntoLevel = 0, gained = xpFromReps + clearBonus)
-        assertTrue(result.leveledUp, "gained ${xpFromReps + clearBonus} XP, needed ${Levels.xpToNext(1)}")
-    }
+    // That the first dungeon clear levels the player up is played through the engine, class by
+    // class, in VolumeModelTest: a sum worked out here by hand agreed with nothing the run paid.
 
     @Test
     fun `levelling stops at the cap without losing xp accounting`() {
