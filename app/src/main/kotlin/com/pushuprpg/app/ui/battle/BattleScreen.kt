@@ -72,8 +72,11 @@ fun BattleScreen(
     onQuit: () -> Unit,
     onSwitchExercise: (ExerciseType) -> Unit,
     modifier: Modifier = Modifier,
+    /** The pose model did not load, and the app says so along the foot of the screen. */
+    modelFailed: Boolean = false,
 ) {
     KeepScreenOn()
+    val poseReady by poseSource.ready.collectAsState()
 
     var picking by remember { mutableStateOf(false) }
     // Where to put the phone for the movement just switched to — the one thing worth reading at
@@ -209,11 +212,13 @@ fun BattleScreen(
         // Where the phone and the user are, said live while it matters and silent when it does
         // not. When tracking drops mid-fight this is also what explains the boss standing still.
         // Not while the camera will not open: the card says why, and a placement line under it
-        // would only send the user looking in the wrong place.
-        if (!cameraFailed) {
+        // would only send the user looking in the wrong place. Nor with no model, whose error takes
+        // this place; until the model's first frame it says the camera is getting ready.
+        if (!cameraFailed && !modelFailed) {
             PlacementBanner(
                 placement = state.placement,
                 exercise = state.exercise,
+                preparing = !poseReady,
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .padding(start = 20.dp, end = 20.dp, bottom = 40.dp),

@@ -3,6 +3,7 @@ package com.pushuprpg.app.ui
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
@@ -118,7 +119,12 @@ fun PushupRpgApp(
     val poseSource = remember {
         PoseLandmarkerSource(
             context = context,
-            onFrame = frameSink::emit,
+            onFrame = { frame ->
+                frameSink.emit(frame)
+                // Frames coming again are the model working again. One error used to leave the
+                // banner on every screen for the rest of the session.
+                if (poseError != null) poseError = null
+            },
             onError = { poseError = it },
         )
     }
@@ -367,6 +373,7 @@ fun PushupRpgApp(
                                 gaugeOnRight = settings.gaugeOnRight,
                                 showGaugeNumber = settings.showGaugeNumber,
                                 audioOnly = settings.audioOnly,
+                                modelFailed = poseError != null,
                                 onSwitchExercise = vm::switchExercise,
                                 onQuit = {
                                     if (navController.isOnTop(entry)) {
@@ -700,7 +707,9 @@ fun PushupRpgApp(
             // Both delegates failing leaves a live preview with a counter frozen at zero. Saying
             // so is the difference between a broken app and a recoverable one.
             poseError?.let {
-                // Over whichever screen is up, camera included, on a fixed dark scrim.
+                // Over whichever screen is up, camera included, on a fixed dark scrim that runs
+                // under the navigation bar with the line above it. The camera screens put their
+                // placement line away while it shows; the two used to sit one over the other.
                 AlwaysDark {
                     Text(
                         text = stringResource(R.string.error_model_load),
@@ -711,6 +720,7 @@ fun PushupRpgApp(
                             .align(Alignment.BottomCenter)
                             .fillMaxWidth()
                             .background(Palette.ScrimPanelHigh)
+                            .navigationBarsPadding()
                             .padding(horizontal = 20.dp, vertical = 14.dp),
                     )
                 }

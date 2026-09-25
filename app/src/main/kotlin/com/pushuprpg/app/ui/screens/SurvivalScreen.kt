@@ -23,6 +23,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -128,6 +129,7 @@ fun SurvivalScreen(
     // Raised by the camera and cleared by it once it opens; the card's retry binds it again.
     var cameraFailed by remember { mutableStateOf(false) }
     var cameraAttempt by remember { mutableIntStateOf(0) }
+    val poseReady by poseSource.ready.collectAsState()
 
     BoxWithConstraints(modifier.fillMaxSize().background(Color(0xFF1A1208))) {
 
@@ -220,12 +222,14 @@ fun SurvivalScreen(
             // camera loses them — which matters more here than anywhere, because the ceiling does
             // not wait. The tutorial never went through a picker, so this and its intro are its only
             // placement advice, and a phone put where the movement cannot be seen counts nothing.
-            // Not while the camera will not open, where the card says why.
-            if (state.alive && !cameraFailed) {
+            // Not while the camera will not open, where the card says why, nor with no model, whose
+            // error says it; until the model's first frame it says the camera is getting ready.
+            if (state.alive && !cameraFailed && !modelFailed) {
                 Spacer(Modifier.height(10.dp))
                 PlacementBanner(
                     placement = placement,
                     exercise = exercise,
+                    preparing = !poseReady,
                     modifier = Modifier.padding(horizontal = 20.dp),
                 )
             }

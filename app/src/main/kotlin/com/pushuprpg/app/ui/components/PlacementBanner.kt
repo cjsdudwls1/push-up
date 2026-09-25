@@ -43,13 +43,22 @@ fun PlacementBanner(
     placement: Placement,
     exercise: ExerciseType,
     modifier: Modifier = Modifier,
+    /**
+     * The pose model has not returned a frame yet. The coach's 화면 안으로 들어와 주세요 would then
+     * mean only that no frame has come, so the line says the camera is getting ready instead.
+     */
+    preparing: Boolean = false,
 ) {
     val advice = placement.advice
-    val line = advice?.let { stringResource(placementRes(it, exercise)) }
+    val line = if (preparing) {
+        stringResource(R.string.camera_preparing)
+    } else {
+        advice?.let { stringResource(placementRes(it, exercise)) }
+    }
     // Name the parts that left the picture: "아래쪽이 잘려요" is the fix, "화면 밖: 무릎, 발목" is
     // the reason for it, and the reason is what lets the user tell which way to move the phone.
     val parts = placement.offFrame.map { bodyPartRes(it) }.distinct().map { stringResource(it) }
-    val detail = if (parts.isEmpty()) null else stringResource(R.string.placement_off_frame, parts.joinToString(", "))
+    val detail = if (preparing || parts.isEmpty()) null else stringResource(R.string.placement_off_frame, parts.joinToString(", "))
 
     // Kept through the fade-out, so the banner fades the sentence rather than an empty pill.
     var lastLine by remember { mutableStateOf("") }
@@ -58,7 +67,7 @@ fun PlacementBanner(
     if (line != null) {
         lastLine = line
         lastDetail = detail
-        lastReady = advice == PlacementAdvice.READY
+        lastReady = !preparing && advice == PlacementAdvice.READY
     }
 
     AnimatedVisibility(

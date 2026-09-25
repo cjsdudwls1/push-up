@@ -126,6 +126,8 @@
     <string name="placement_start_pull_up">바에 매달려 주세요</string>
     <string name="placement_start_dip">봉을 잡고 팔을 펴 주세요</string>
     <string name="placement_ready">좋아요! 이대로 시작해요</string>
+    <!-- In the banner's place until the pose model has returned its first frame: before that there is no one to place. -->
+    <string name="camera_preparing">카메라를 준비하고 있어요</string>
     <string name="placement_off_frame">화면 밖: %1$s</string>
     <string name="body_part_shoulder">어깨</string>
     <string name="body_part_elbow">팔꿈치</string>

@@ -14,6 +14,11 @@ import com.google.mediapipe.tasks.vision.poselandmarker.PoseLandmarkerResult
 import com.pushuprpg.core.pose.Landmark
 import com.pushuprpg.core.pose.PoseFrame
 import com.pushuprpg.core.pose.PoseLandmarks
+import java.util.concurrent.atomic.AtomicBoolean
+import kotlin.concurrent.thread
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 
 /**
  * Wraps MediaPipe's Pose Landmarker and turns its results into `:core`'s plain [PoseFrame].
@@ -41,9 +46,24 @@ class PoseLandmarkerSource(
     var usingCpu: Boolean = false
         private set
 
-    fun setup(preferGpu: Boolean = true) {
+    /** Set by the GPU delegate's first error on a frame; every setup after it goes to the CPU. */
+    private val gpuFailedOnFrame = AtomicBoolean(false)
+
+    /** The fallback sets up from its own thread, and two setups at once would leak a landmarker. */
+    private val setupLock = Any()
+
+    private val _ready = MutableStateFlow(false)
+
+    /**
+     * Whether the landmarker has returned a result since it was set up: the model has loaded and
+     * frames are reaching it. Loading takes a second or three, and until now that stretch read as
+     * 화면 안으로 들어와 주세요, said to someone already standing in the picture.
+     */
+    val ready: StateFlow<Boolean> = _ready.asStateFlow()
+
+    fun setup(preferGpu: Boolean = true): Unit = synchronized(setupLock) {
         close()
-        if (preferGpu && tryCreate(Delegate.GPU)) return
+        if (preferGpu && !gpuFailedOnFrame.get() && tryCreate(Delegate.GPU)) return
         // A GPU delegate can fail at creation on plenty of real devices — driver bugs, an OEM
         // OpenCL stub, a headless emulator. Falling back is normal operation, not an error path.
         if (!tryCreate(Delegate.CPU)) {
@@ -68,7 +88,7 @@ class PoseLandmarkerSource(
             .setMinTrackingConfidence(MIN_TRACKING_CONFIDENCE)
             .setOutputSegmentationMasks(false)
             .setResultListener { result, input -> publish(result, input) }
-            .setErrorListener { e -> onError(e.message ?: "pose error") }
+            .setErrorListener { e -> onRunError(delegate, e) }
             .build()
 
         landmarker = PoseLandmarker.createFromOptions(context, options)
@@ -80,6 +100,27 @@ class PoseLandmarkerSource(
     } catch (e: IllegalStateException) {
         Log.w(TAG, "pose landmarker failed on $delegate", e)
         false
+    }
+
+    /**
+     * An error from a landmarker that is already running.
+     *
+     * A GPU delegate that builds can still fail on its first frames, and that left a live preview
+     * with a counter frozen at zero and the model error on screen. The first such error moves to
+     * the CPU, once, as a failure at creation already does; what the GPU says after that is from
+     * the landmarker being replaced.
+     */
+    private fun onRunError(delegate: Delegate, e: RuntimeException) {
+        Log.w(TAG, "pose landmarker error on $delegate", e)
+        if (delegate != Delegate.GPU) {
+            onError(e.message ?: "pose error")
+            return
+        }
+        if (gpuFailedOnFrame.compareAndSet(false, true)) {
+            // Not on this thread, which is the landmarker's own: it cannot close itself from
+            // inside its own callback.
+            thread(name = "pose-cpu-fallback") { setup(preferGpu = false) }
+        }
     }
 
     /**
@@ -127,6 +168,7 @@ class PoseLandmarkerSource(
     }
 
     private fun publish(result: PoseLandmarkerResult, input: MPImage) {
+        _ready.value = true
         val timestampMs = result.timestampMs()
         val poses = result.landmarks()
 
@@ -166,9 +208,17 @@ class PoseLandmarkerSource(
 
     fun close() {
         synchronized(markerLock) {
-            landmarker?.close()
+            // A graph that failed while running throws its error again from close(): MediaPipe
+            // gives the runner no listener, so it rethrows. From the CPU fallback's own thread that
+            // would take the app down on the way to the recovery.
+            try {
+                landmarker?.close()
+            } catch (e: RuntimeException) {
+                Log.w(TAG, "pose landmarker did not close cleanly", e)
+            }
             landmarker = null
             lastTimestampMs = -1L
+            _ready.value = false
         }
     }
 
