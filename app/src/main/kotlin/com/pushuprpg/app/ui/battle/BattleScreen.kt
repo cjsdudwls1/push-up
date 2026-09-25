@@ -169,17 +169,17 @@ fun BattleScreen(
             Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.94f)))
         }
 
-        Box(
-            Modifier
-                .fillMaxSize()
-                .graphicsLayer {
-                    if (shakeOffset > 0f) {
-                        translationX = sin(shakePhase.toFloat()) * shakeOffset
-                        translationY = sin(shakePhase * 1.7f) * shakeOffset * 0.6f
-                    }
+        // The HUD's own layer, shared by its messages at the foot of the screen: they shake and dim
+        // with it.
+        val hudLayer = Modifier
+            .graphicsLayer {
+                if (shakeOffset > 0f) {
+                    translationX = sin(shakePhase.toFloat()) * shakeOffset
+                    translationY = sin(shakePhase * 1.7f) * shakeOffset * 0.6f
                 }
-                .alpha(if (audioOnly) 0.12f else 1f)
-        ) {
+            }
+            .alpha(if (audioOnly) 0.12f else 1f)
+        Box(Modifier.fillMaxSize().then(hudLayer)) {
             BattleHudLayout(
                 state = state,
                 playerClass = playerClass,
@@ -213,16 +213,72 @@ fun BattleScreen(
         // not. When tracking drops mid-fight this is also what explains the boss standing still.
         // Not while the camera will not open: the card says why, and a placement line under it
         // would only send the user looking in the wrong place. Nor with no model, whose error takes
-        // this place; until the model's first frame it says the camera is getting ready.
-        if (!cameraFailed && !modelFailed) {
-            PlacementBanner(
-                placement = state.placement,
-                exercise = state.exercise,
-                preparing = !poseReady,
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(start = 20.dp, end = 20.dp, bottom = 40.dp),
-            )
+        // this place; until the model's first frame it says the camera is getting ready. The
+        // switch hint is placement advice too, and gives way the same.
+        val placementShown = !cameraFailed && !modelFailed
+        val placementSpeaking = placementShown && (!poseReady || state.placement.advice != null)
+        // Tracking lost and found are the placement line's to explain while it is up. The wind-up's
+        // words are the warning's own title, up for as long as the wind-up lasts: as a toast as well
+        // they were said twice, and after it they would announce one that is over.
+        val alert = state.alert?.takeUnless {
+            it.textKey == AlertKey.ULTIMATE_INCOMING ||
+                (placementSpeaking && (it.textKey == AlertKey.QUALITY_LOST || it.textKey == AlertKey.QUALITY_RECOVERED))
+        }
+        // Everything said along the foot of the screen, in one column and a fixed order. The lines
+        // used to be placed apart by hand, and a tracking notice or the combo landed on 아래쪽이
+        // 잘려요 at the moment it most needed reading.
+        Column(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .navigationBarsPadding()
+                .padding(start = 20.dp, end = 20.dp, bottom = BOTTOM_MARGIN),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Column(
+                modifier = hudLayer,
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                UltimateWarning(
+                    visible = state.ultimateIncoming,
+                    repsLeft = state.ultimateRepsLeft,
+                    answers = state.ultimateAnswers,
+                    answersNeeded = com.pushuprpg.core.game.Encounter.ANSWERS_TO_BLOCK,
+                    playerClass = playerClass,
+                    exercise = state.exercise,
+                )
+                AlertSlot(alert)
+                ComboPill(combo = state.combo)
+            }
+            // The lowest band is the placement line's even while it is silent. The HUD's messages
+            // stay above it, where the user's own shoulders do not cover them at the bottom of a rep.
+            Column(
+                modifier = Modifier.heightIn(min = PLACEMENT_BAND),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.Bottom),
+            ) {
+                if (placementShown) {
+                    placementFor?.let { exercise ->
+                        Text(
+                            text = stringResource(exerciseLabelRes(exercise)) + " · " + stringResource(exerciseHintRes(exercise)),
+                            style = Type.bodyM,
+                            color = Palette.TextPrimary,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(18.dp))
+                                .background(Palette.ScrimPanelHigh)
+                                .padding(horizontal = 18.dp, vertical = 12.dp),
+                        )
+                    }
+                    PlacementBanner(
+                        placement = state.placement,
+                        exercise = state.exercise,
+                        preparing = !poseReady,
+                    )
+                }
+            }
         }
 
         // Top right, opposite the close button: switching is a between-sets act, done standing in
@@ -250,21 +306,6 @@ fun BattleScreen(
                 contentDescription = stringResource(R.string.battle_switch_title),
                 tint = Palette.TextPrimary,
                 modifier = Modifier.size(20.dp),
-            )
-        }
-
-        placementFor?.let { exercise ->
-            Text(
-                text = stringResource(exerciseLabelRes(exercise)) + " · " + stringResource(exerciseHintRes(exercise)),
-                style = Type.bodyM,
-                color = Palette.TextPrimary,
-                textAlign = TextAlign.Center,
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(start = 20.dp, end = 20.dp, bottom = 120.dp)
-                    .clip(RoundedCornerShape(18.dp))
-                    .background(Palette.ScrimPanelHigh)
-                    .padding(horizontal = 18.dp, vertical = 12.dp),
             )
         }
 
@@ -424,6 +465,15 @@ private fun BoxScope.ExerciseSwitcher(
 
 private const val PLACEMENT_HINT_MS = 7_000L
 
+/** From the navigation bar to the lowest line said along the foot of the screen. */
+private val BOTTOM_MARGIN = 24.dp
+
+/**
+ * The band the placement line keeps at the foot of the screen, said or silent: one line of advice
+ * and the parts it names.
+ */
+private val PLACEMENT_BAND = 72.dp
+
 @Composable
 private fun BoxScope.BattleHudLayout(
     state: BattleState,
@@ -538,26 +588,6 @@ private fun BoxScope.BattleHudLayout(
             .padding(horizontal = 6.dp)
             .fillMaxHeight(0.62f),
     )
-
-    Column(
-        modifier = Modifier
-            .align(Alignment.BottomCenter)
-            .padding(bottom = 104.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        UltimateWarning(
-            visible = state.ultimateIncoming,
-            repsLeft = state.ultimateRepsLeft,
-            answers = state.ultimateAnswers,
-            answersNeeded = com.pushuprpg.core.game.Encounter.ANSWERS_TO_BLOCK,
-            playerClass = playerClass,
-            exercise = state.exercise,
-        )
-        Spacer(Modifier.height(10.dp))
-        AlertSlot(state)
-        Spacer(Modifier.height(10.dp))
-        ComboPill(combo = state.combo)
-    }
 }
 
 /** Which floor of the dungeon, as pips rather than "2 / 3" — read faster, no numerals to parse. */
@@ -620,8 +650,7 @@ private fun DamageNumbers(
 }
 
 @Composable
-private fun AlertSlot(state: BattleState) {
-    val alert = state.alert
+private fun AlertSlot(alert: Toast?) {
     // The content lambda keeps recomposing through the exit animation, by which point the live
     // alert is already null. Holding the last one means the message fades out as itself rather
     // than flickering into whatever the fallback happens to be.
