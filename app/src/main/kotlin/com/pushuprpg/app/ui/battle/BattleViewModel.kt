@@ -109,6 +109,10 @@ class BattleViewModel(
     private val _levelsGained = MutableStateFlow(0)
     val levelsGained: StateFlow<Int> = _levelsGained.asStateFlow()
 
+    /** The level the run ends on, for the result screen's 레벨 N 달성; set with [levelsGained]. */
+    private val _levelReached = MutableStateFlow(1)
+    val levelReached: StateFlow<Int> = _levelReached.asStateFlow()
+
     init {
         viewModelScope.launch {
             settingsRepository.settings.collect {
@@ -233,8 +237,10 @@ class BattleViewModel(
         lastReportedQuality = next.quality
 
         sessionBestDepth = maxOf(sessionBestDepth, next.depth)
-        _state.value = next
+        // Banked before it is published: the screen opens the result the moment it sees an
+        // outcome, and reads the level-up as it does.
         next.outcome?.let { finish(it) }
+        _state.value = next
     }
 
     fun currentSessionBestDepth(): Float = sessionBestDepth
@@ -272,6 +278,13 @@ class BattleViewModel(
      */
     private fun finish(outcome: Outcome) {
         if (!saved.compareAndSet(false, true)) return
+
+        // Worked out here, from the progress the run started with, not inside the write below:
+        // the result screen reads it as it opens, long before any write has landed, and so never
+        // said 레벨 N 달성. Nothing else earns XP during a run, so the two agree.
+        val reached = Levels.apply(progress.level, progress.xpIntoLevel, outcome.xpEarned)
+        _levelReached.value = reached.level
+        _levelsGained.value = reached.levelsGained
 
         // One entry per movement, in order. A run that never switched is one entry and banks
         // exactly as a run always did; the segment list only matters once there is more than one.
@@ -336,7 +349,6 @@ class BattleViewModel(
 
             progressRepository.update { current ->
                 val levelled = Levels.apply(current.level, current.xpIntoLevel, outcome.xpEarned)
-                _levelsGained.value = levelled.levelsGained
                 val streak = advanceStreak(current, epochDay, segments)
                 // Capacity is measured in each movement's own unit: reps for a counted exercise,
                 // seconds for a hold, and a hold's best is its longest, not an average. A movement

@@ -335,6 +335,7 @@ fun PushupRpgApp(
                         state.outcome?.takeIf { navController.isOnTop(entry) }?.let { outcome ->
                             lastOutcome = outcome
                             lastLevelsGained = vm.levelsGained.value
+                            lastLevelReached = vm.levelReached.value
                             navController.navigate(Routes.result(dungeonIndex)) {
                                 popUpTo(Routes.BATTLE) { inclusive = true }
                             }
@@ -355,6 +356,7 @@ fun PushupRpgApp(
                                 if (navController.isOnTop(entry)) {
                                     lastOutcome = vm.quit()
                                     lastLevelsGained = vm.levelsGained.value
+                                    lastLevelReached = vm.levelReached.value
                                     navController.navigate(Routes.result(dungeonIndex)) {
                                         popUpTo(Routes.BATTLE) { inclusive = true }
                                     }
@@ -419,7 +421,8 @@ fun PushupRpgApp(
                                 playerClass = progress.playerClass,
                                 dungeonName = Dungeons.byIndex(dungeonIndex)?.korean.orEmpty(),
                                 lifetimeReps = progress.lifetimeReps,
-                                level = progress.level,
+                                // The run's own, not the stored level: that lands after this opens.
+                                level = lastLevelReached,
                                 levelsGained = lastLevelsGained,
                                 hasNextDungeon = dungeonIndex < Dungeons.ALL.size,
                                 onNextDungeon = {
@@ -671,6 +674,9 @@ internal var lastOutcome: com.pushuprpg.core.run.Outcome? = null
 
 /** Travels with [lastOutcome]; the battle entry is popped before the result screen composes. */
 internal var lastLevelsGained: Int = 0
+
+/** The level [lastOutcome] ended on; travels with it for the same reason. */
+internal var lastLevelReached: Int = 1
 
 /**
  * Status and navigation bar icons that match the surface under them.
