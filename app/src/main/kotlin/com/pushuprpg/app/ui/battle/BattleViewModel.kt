@@ -95,6 +95,9 @@ class BattleViewModel(
     /** finish() is reachable from both the pose thread and quit(); the run must bank exactly once. */
     private val saved = AtomicBoolean(false)
 
+    /** One run per model: see [start]. Main thread only. */
+    private var started = false
+
     /**
      * A movement switch, built on the main thread and waiting to be applied on the pose thread.
      *
@@ -125,6 +128,11 @@ class BattleViewModel(
     }
 
     fun start(dungeonIndex: Int) {
+        // Called again when the activity is recreated around a live run — split screen, a fold
+        // opening, a font size change — and this model outlives that. Starting over threw the
+        // live engine away unbanked and put the counter back to zero.
+        if (started) return
+        started = true
         this.dungeonIndex = dungeonIndex
         saved.set(false)
         sessionBestDepth = 0f
