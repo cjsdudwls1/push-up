@@ -90,16 +90,30 @@ class VolumeModelTest {
         // A 기사 diving down in under half a second: every rep counts, each is half.
         val e = engine(dungeon, PlayerClass.KNIGHT)
         var state = e.currentState()
+        var total = state.runTotalReps
+        var lastId = 0L
+        val numbers = mutableMapOf<Int, MutableList<Int>>()
         PoseFixtures.trace(count = 2 * advertised + 20, startMs = 3_600_000L, descentMs = 600).forEach {
-            if (state.outcome == null) state = e.onPoseFrame(it)
-            if (state.outcome == null) {
-                assertTrue(state.runTotalReps >= advertised, "the total shrank to ${state.runTotalReps}")
+            if (state.outcome != null) return@forEach
+            state = e.onPoseFrame(it)
+            assertTrue(state.runTotalReps >= total, "the total went back from $total to ${state.runTotalReps}")
+            total = state.runTotalReps
+            for (d in state.damages) if (d.id > lastId) {
+                numbers.getOrPut(state.floorIndex) { mutableListOf() } += d.amount
+                lastId = d.id
             }
         }
         assertEquals(true, state.outcome?.cleared, "half-worth reps never cleared the dungeon")
         assertEquals(2 * advertised, state.outcome!!.reps, "quick reps were not worth half")
         assertEquals(0, state.outcome!!.styleReps)
         assertEquals(state.outcome!!.reps, state.runTotalReps, "the total did not grow to what was done")
+        // A half rep leaves the count where it was, so a number can repeat; it never goes up, and
+        // every monster's last is the zero it fell at.
+        dungeon.floors.indices.forEach { i ->
+            val shown = numbers[i].orEmpty()
+            assertEquals(shown.sortedDescending(), shown, "floor $i's numbers went up: $shown")
+            assertEquals(0, shown.lastOrNull(), "floor $i fell without its zero: $shown")
+        }
     }
 
     /** Plays [frames] until the run ends, and returns how it ended. */

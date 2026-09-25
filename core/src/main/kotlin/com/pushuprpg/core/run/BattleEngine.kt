@@ -448,9 +448,10 @@ class BattleEngine(
                                     },
                                     rate = BattleAudio.pitchForCombo(event.combo),
                                 )
-                                // A 궁수's rep is decided here; a 기사's number waits for its Style.
+                                // A 궁수's rep is decided here; a 기사's number waits for its Style,
+                                // unless this half was the last the monster had.
                                 strikeCrit = ce.result.crit
-                                if (playerClass != PlayerClass.KNIGHT) {
+                                if (playerClass != PlayerClass.KNIGHT || ce.result.enemyDefeated) {
                                     damageSeq++
                                     damages += FloatingDamage(
                                         damageSeq, ce.result.enemy.remaining, ce.result.crit,
