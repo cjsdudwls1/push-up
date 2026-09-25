@@ -221,7 +221,8 @@ class SurvivalViewModel(
      *
      * The first survival run is the calibration set: it is the only moment the app can ask someone
      * to do as many as they can without it feeling like a test, because they are busy protecting a
-     * cat. Every dungeon from then on is sized from this number.
+     * cat. The difficulty the dungeon list recommends is read from this number; what a dungeon
+     * asks is not — that is its rep cost, which the done card quotes.
      *
      * The done card's button ends it, and so does back once the ceiling is moving; a run ended
      * before the ceiling came down is banked first, as a game over banks it. Once, however many

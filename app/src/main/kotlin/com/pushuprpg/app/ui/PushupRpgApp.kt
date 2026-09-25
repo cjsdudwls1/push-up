@@ -193,10 +193,9 @@ fun PushupRpgApp(
                                     }
                                     container.telemetry.log(Event.ClassPicked(playerClass.name))
                                 }
-                                // Onboarding is not finished here: the tutorial run is what
-                                // completes it, because that run is also the calibration set every
-                                // dungeon is sized from. Marking it done earlier would let someone
-                                // reach a dungeon with no measured capacity at all.
+                                // Onboarding is not finished here: the tutorial finishes it, run
+                                // or skipped, because its run is also the first measurement of the
+                                // player's capacity.
                                 navController.navigate(
                                     if (granted) Routes.survival(tutorial = true) else Routes.PERMISSION
                                 ) {
@@ -543,6 +542,11 @@ fun PushupRpgApp(
                             onRetry = vm::restart,
                             onShare = onShare,
                             modelFailed = poseError != null,
+                            firstDungeonReps = Dungeons.FREE_DUNGEON.repCost(
+                                settings.difficulty,
+                                ExerciseType.PUSHUP,
+                                progress.playerClass,
+                            ),
                             onSkip = {
                                 if (navController.isOnTop(entry)) {
                                     vm.skipTutorial()

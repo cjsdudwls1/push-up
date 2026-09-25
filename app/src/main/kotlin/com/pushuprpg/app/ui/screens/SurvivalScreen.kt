@@ -95,6 +95,8 @@ fun SurvivalScreen(
     onSkip: () -> Unit = {},
     /** The pose model did not load, so nothing will ever count: the tutorial offers its skip at once. */
     modelFailed: Boolean = false,
+    /** What the first dungeon asks in pushups, as every screen that quotes it computes it. */
+    firstDungeonReps: Int = 0,
     cat: CatView = CatView(),
     placement: Placement = Placement(),
     /** The skeleton while setting up, for lining up with the framing guide; null once started. */
@@ -265,6 +267,7 @@ fun SurvivalScreen(
             if (isTutorial) {
                 TutorialDoneCard(
                     reps = state.reps,
+                    firstDungeonReps = firstDungeonReps,
                     onContinue = onHome,
                     modifier = Modifier.align(Alignment.Center),
                 )
@@ -493,13 +496,15 @@ private fun TutorialIntro(modifier: Modifier = Modifier) {
 /**
  * The tutorial's ending.
  *
- * It reports the reps rather than the score, because the number that matters here is the one the
- * game will use to size every dungeon from now on — and because telling a beginner their score
- * before they know what a good one is invites the wrong comparison.
+ * It reports the reps rather than the score, because telling a beginner their score before they
+ * know what a good one is invites the wrong comparison — and what the first dungeon will ask, which
+ * is the number that matters next. It used to promise to set the dungeons by the reps, and nothing
+ * did: a dungeon's size is its rep cost, the same after three pushups as after forty.
  */
 @Composable
 private fun TutorialDoneCard(
     reps: Int,
+    firstDungeonReps: Int,
     onContinue: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -518,7 +523,7 @@ private fun TutorialDoneCard(
         )
         Spacer(Modifier.height(10.dp))
         Text(
-            text = stringResource(R.string.tutorial_done_body, reps),
+            text = stringResource(R.string.tutorial_done_body, reps, firstDungeonReps),
             style = Type.bodyL,
             color = Palette.TextSecondary,
             textAlign = TextAlign.Center,
