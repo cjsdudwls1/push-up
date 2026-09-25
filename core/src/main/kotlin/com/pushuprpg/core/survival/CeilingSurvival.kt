@@ -4,7 +4,11 @@ import com.pushuprpg.core.detect.DetectorConfig
 import com.pushuprpg.core.detect.ExerciseType
 import com.pushuprpg.core.detect.Exercises
 import com.pushuprpg.core.detect.PlankConfig
+import com.pushuprpg.core.detect.PoseQuality
+import com.pushuprpg.core.detect.PoseTick
+import com.pushuprpg.core.detect.RepEvent
 import com.pushuprpg.core.detect.RepGrade
+import com.pushuprpg.core.detect.RepPhase
 import kotlin.math.pow
 import kotlin.math.roundToInt
 
@@ -110,6 +114,31 @@ class CeilingSurvival(
     )
 
     /**
+     * One frame of the detector, played into the run: its reps and holds, then the clock.
+     *
+     * The app's own path, here rather than on the screen so a test can play a real detector's
+     * output through it. A counted rep pushes ([onRep]); a rep the detector refused as shallow is a
+     * near miss and moves nothing; a stretch of a hold pushes for as long as it was held, in the
+     * detector's own tick steps ([onHold]). Being in position — seen, and armed at the top or inside
+     * a rep — is what starts the run, and after that nothing stops it; see [update].
+     */
+    fun onTick(tick: PoseTick): List<SurvivalEvent> {
+        val events = mutableListOf<SurvivalEvent>()
+        for (event in tick.events) {
+            when (event) {
+                is RepEvent.Strike -> events += onRep(event.grade, event.depth, event.tMs)
+                is RepEvent.Shallow -> events += onRep(RepGrade.SHALLOW, event.maxDepth, event.tMs)
+                is RepEvent.HoldTick -> events += onHold(event.score, HOLD_TICK_SECONDS, event.tMs)
+                else -> Unit
+            }
+        }
+        val inPosition = tick.quality == PoseQuality.OK &&
+            tick.phase != RepPhase.IDLE && tick.phase != RepPhase.LOST
+        events += update(tick.tMs, inPosition = inPosition)
+        return events
+    }
+
+    /**
      * Advances the ceiling. Call every frame with the current pose timestamp.
      *
      * [inPosition] — the detector is armed or mid-rep with good tracking — only starts the run.
@@ -177,41 +206,33 @@ class CeilingSurvival(
      *
      * [depth] survives only to scale the lift between the accepted and deep bands.
      *
-     * A rep the detector rejected still gives a little, and is reported as a near miss rather than
-     * ignored. This mode is the on-ramp for people who have never used the app; making a shallow
-     * rep feel like nothing happened is how you teach someone that they are bad at it.
+     * A rep the detector refused ([RepGrade.SHALLOW], its [RepEvent.Shallow]) moves nothing and
+     * counts nothing — no push, no points, no rep on the card that says how many were done — but it
+     * is not ignored either: it is a near miss, and the cat says so. This mode is the on-ramp for
+     * people who have never used the app, and a half rep that made nothing happen at all read as a
+     * camera that could not see them; the near miss tells them to go deeper instead. It once lifted
+     * a little as well, which made this a second judge of what counts beside the detector.
      */
     fun onRep(grade: RepGrade, depth: Float, atMs: Long): List<SurvivalEvent> {
         if (!alive) return emptyList()
+        if (grade == RepGrade.SHALLOW) return listOf(SurvivalEvent.NearMiss(atMs))
         if (startedAtMs == Long.MIN_VALUE) {
             startedAtMs = atMs
             lastUpdateMs = atMs
         }
 
-        val counted = grade != RepGrade.SHALLOW
         val isDeep = grade == RepGrade.DEEP
-
-        // Far short of even the forgiving line: acknowledged, but it moves nothing.
-        if (!counted && depth < config.countEnter * SHALLOW_CREDIT_FLOOR) {
-            return listOf(SurvivalEvent.NearMiss(atMs))
-        }
-
         val accept = config.countEnter
         val deep = config.deepEnter
-        val lift = when {
-            isDeep -> DEEP_LIFT
-            counted -> LIFT + (DEEP_LIFT - LIFT) * ((depth - accept) / (deep - accept)).coerceIn(0f, 1f)
-            // Short of the line but genuinely tried: a fraction of the push, and a near miss.
-            else -> LIFT * SHALLOW_LIFT_FRACTION
+        val lift = if (isDeep) {
+            DEEP_LIFT
+        } else {
+            LIFT + (DEEP_LIFT - LIFT) * ((depth - accept) / (deep - accept)).coerceIn(0f, 1f)
         }
 
         reps++
-        if (counted) {
-            combo++
-            bestCombo = maxOf(bestCombo, combo)
-        } else {
-            combo = 0
-        }
+        combo++
+        bestCombo = maxOf(bestCombo, combo)
 
         // Consecutive deep reps are worth compounding, which is what makes a good run feel good
         // rather than merely long.
@@ -220,11 +241,7 @@ class CeilingSurvival(
 
         height = (height + lift * pushupsPerRep).coerceAtMost(1f)
 
-        return if (counted) {
-            listOf(SurvivalEvent.Pushed(atMs, lift * pushupsPerRep, isDeep, combo))
-        } else {
-            listOf(SurvivalEvent.Pushed(atMs, lift * pushupsPerRep, false, combo), SurvivalEvent.NearMiss(atMs))
-        }
+        return listOf(SurvivalEvent.Pushed(atMs, lift * pushupsPerRep, isDeep, combo))
     }
 
     /**
@@ -276,6 +293,9 @@ class CeilingSurvival(
         /** The form score a plank must hold to count as holding at all; see [PlankConfig]. */
         private val HOLD_LINE = PlankConfig().holdingScore
 
+        /** How long each [RepEvent.HoldTick] stands for: the plank detector's own tick step. */
+        private val HOLD_TICK_SECONDS = 1f / PlankConfig().dotTickHz
+
         /** Height units per second at the very start of a run. */
         const val BASE_DESCENT = 0.040f
 
@@ -284,10 +304,6 @@ class CeilingSurvival(
 
         const val LIFT = 0.075f
         const val DEEP_LIFT = 0.115f
-        const val SHALLOW_LIFT_FRACTION = 0.35f
-
-        /** Below this fraction of the accept line, nothing meaningful happened. */
-        const val SHALLOW_CREDIT_FLOOR = 0.55f
 
         const val SCORE_PER_SECOND = 10f
         const val SCORE_PER_REP = 25f

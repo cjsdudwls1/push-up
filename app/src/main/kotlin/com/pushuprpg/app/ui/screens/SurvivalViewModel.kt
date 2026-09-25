@@ -23,11 +23,8 @@ import com.pushuprpg.core.detect.ExerciseType
 import com.pushuprpg.core.detect.Placement
 import com.pushuprpg.core.detect.PlacementAdvice
 import com.pushuprpg.core.detect.PlacementCoach
-import com.pushuprpg.core.detect.PlankConfig
-import com.pushuprpg.core.detect.PoseQuality
 import com.pushuprpg.core.detect.PoseTick
 import com.pushuprpg.core.detect.RepDetector
-import com.pushuprpg.core.detect.RepPhase
 import com.pushuprpg.core.detect.RepEvent
 import com.pushuprpg.core.detect.RenderSkeleton
 import com.pushuprpg.core.detect.SkeletonMode
@@ -130,24 +127,16 @@ class SurvivalViewModel(
         if (startedAtMs == 0L) startedAtMs = tick.tMs
         _placement.value = coach.update(frame, tick)
 
-        val events = mutableListOf<SurvivalEvent>()
+        // What is banked is what the detector counted: its strikes, and nothing it refused.
         for (event in tick.events) {
-            when (event) {
-                is RepEvent.Strike -> {
-                    reps++
-                    maxCombo = maxOf(maxCombo, event.combo)
-                    events += game.onRep(event.grade, event.depth, event.tMs)
-                }
-                // A hold pushes for as long as it is held, in the detector's own tick steps.
-                is RepEvent.HoldTick -> events += game.onHold(event.score, HOLD_TICK_SECONDS, event.tMs)
-                else -> Unit
+            if (event is RepEvent.Strike) {
+                reps++
+                maxCombo = maxOf(maxCombo, event.combo)
             }
         }
-        // Being in position — seen, and armed at the top or inside a rep — starts the run. After
-        // that the ceiling never stops: resting is not a pause. See CeilingSurvival.update.
-        val inPosition = tick.quality == PoseQuality.OK &&
-            tick.phase != RepPhase.IDLE && tick.phase != RepPhase.LOST
-        events += game.update(tick.tMs, inPosition = inPosition)
+        // Reps, near misses and holds, then the clock, which never stops once the run has started:
+        // resting is not a pause. See CeilingSurvival.onTick.
+        val events = game.onTick(tick)
         handle(events)
 
         val now = game.state()
@@ -282,8 +271,6 @@ class SurvivalViewModel(
     }
 
     companion object {
-        private val HOLD_TICK_SECONDS = 1f / PlankConfig().dotTickHz
-
         fun factory(
             container: AppContainer,
             exercise: ExerciseType,

@@ -1,9 +1,14 @@
 package com.pushuprpg.core
 
 import com.pushuprpg.core.detect.DetectorConfig
+import com.pushuprpg.core.detect.DetectorFactory
 import com.pushuprpg.core.detect.ExerciseType
 import com.pushuprpg.core.detect.Exercises
 import com.pushuprpg.core.detect.RepGrade
+import com.pushuprpg.core.fixtures.PoseFixtures
+import com.pushuprpg.core.pose.PoseFrame
+import com.pushuprpg.core.survival.CatCompanion
+import com.pushuprpg.core.survival.CatLine
 import com.pushuprpg.core.survival.CeilingSurvival
 import com.pushuprpg.core.survival.SurvivalEvent
 import kotlin.test.Test
@@ -152,15 +157,21 @@ class CeilingSurvivalTest {
             "an accepted rep gets a full push, not a consolation nudge: lift=${pushed.lift}")
     }
 
+    /**
+     * The detector decides what counts. A rep it refused is a near miss, and nothing else: no push,
+     * no points, and no rep on the card that tells the tutorial how many were done.
+     */
     @Test
-    fun `a rep that falls short still helps, and says so`() {
+    fun `a rep that falls short moves nothing and counts nothing, and says so`() {
         val game = CeilingSurvival()
         game.update(0)
         game.update(1000)
-        val before = game.state().height
-        val events = game.onRep(graded(50f), 50f, 1000)
-        assertTrue(game.state().height > before, "a genuine attempt should lift something")
-        assertTrue(events.any { it is SurvivalEvent.NearMiss }, "and should be reported as a near miss")
+        val before = game.state()
+        val events = game.onRep(graded(60f), 60f, 1000)
+        assertEquals(listOf<SurvivalEvent>(SurvivalEvent.NearMiss(1000)), events)
+        assertEquals(before.height, game.state().height, "a refused rep lifted the ceiling")
+        assertEquals(before.score, game.state().score, "a refused rep scored")
+        assertEquals(0, game.state().reps, "a refused rep was counted")
     }
 
     @Test
@@ -230,6 +241,51 @@ class CeilingSurvivalTest {
         }
         assertTrue(milestones.isNotEmpty(), "a run of ${game.state().elapsedMs}ms announced nothing")
         assertEquals(milestones.sorted(), milestones)
+    }
+
+    // ------------------------------------------------------------ played from a real detector
+
+    /** Plays [frames] through the detector and the run the way the app does, with the cat listening. */
+    private class Played(frames: List<PoseFrame>) {
+        val game = CeilingSurvival.forExercise(ExerciseType.PUSHUP)
+        val events = mutableListOf<SurvivalEvent>()
+        val lines = mutableListOf<CatLine>()
+
+        init {
+            val detector = DetectorFactory.create(ExerciseType.PUSHUP)
+            val cat = CatCompanion()
+            for (frame in frames) {
+                val tick = detector.onFrame(frame)
+                val now = game.onTick(tick)
+                events += now
+                cat.update(game.state(), now, tick.tMs)
+                cat.view().speech?.line?.let { if (lines.lastOrNull() != it) lines += it }
+            }
+        }
+    }
+
+    /**
+     * A beginner's half reps, from the detector itself: each reaches the cat as a near miss and
+     * none reaches the count. RepEvent.Shallow used to be dropped on the way, so half reps did
+     * nothing at all while the ceiling came down — which reads as a camera that cannot see you.
+     */
+    @Test
+    fun `half reps the detector refused are near misses the cat answers, never reps`() {
+        // Past the top band, nowhere near the 인정 line.
+        val played = Played(PoseFixtures.trace(count = 6, peakDepth = 0.50f))
+        assertTrue(played.game.state().started, "the half reps were done in position; the run should have started")
+        assertEquals(6, played.events.count { it is SurvivalEvent.NearMiss }, "every half rep is a near miss")
+        assertTrue(played.events.none { it is SurvivalEvent.Pushed }, "a half rep pushed the ceiling")
+        assertEquals(0, played.game.state().reps, "a half rep was counted")
+        assertTrue(CatLine.NEAR_MISS in played.lines, "the cat never said to go deeper: ${played.lines}")
+    }
+
+    @Test
+    fun `whole reps from the detector push the ceiling and count`() {
+        val played = Played(PoseFixtures.trace(count = 6))
+        assertEquals(6, played.events.count { it is SurvivalEvent.Pushed })
+        assertTrue(played.events.none { it is SurvivalEvent.NearMiss })
+        assertEquals(6, played.game.state().reps)
     }
 
     // ------------------------------------------------------------ every movement, not only pushups

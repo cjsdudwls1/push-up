@@ -41,7 +41,7 @@ class CatCompanionTest {
             if (moods.lastOrNull() != view.mood) moods += view.mood
         }
 
-        /** A depth the detector would have given [grade]; a shallow one still tried, so it still lifts. */
+        /** A depth the detector would have given [grade]; a shallow one is short of the count line. */
         private fun depthFor(grade: RepGrade): Float = when (grade) {
             RepGrade.DEEP -> config.deepEnter
             RepGrade.COUNTED -> config.countEnter
@@ -124,8 +124,8 @@ class CatCompanionTest {
     fun `panic easing into fear is not called saved`() {
         val run = Run()
         run.until { it.mood == CatMood.PANIC }
-        // Shallow reps: together enough to leave panic, not enough to leave fear.
-        repeat(4) { run.frame(rep = RepGrade.SHALLOW) }
+        // One rep: enough to leave panic, not enough to leave fear.
+        run.frame(rep = RepGrade.COUNTED)
         assertEquals(CatMood.SCARED, run.cat.view().mood)
         assertTrue(run.lines.none { it.line == CatLine.SAVED }, "said saved while still frightened: ${run.lines}")
     }
@@ -144,8 +144,8 @@ class CatCompanionTest {
         assertEquals(0f, run.cat.view().cheer)
         assertEquals(0, run.cat.view().hearts)
 
-        run.frame(rep = RepGrade.SHALLOW)
-        assertEquals(1, run.cat.view().hearts)
+        run.frame(rep = RepGrade.COUNTED)
+        assertEquals(2, run.cat.view().hearts)
     }
 
     @Test
