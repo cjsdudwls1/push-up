@@ -348,23 +348,25 @@ class BattleEngineTest {
 class PlankCombatTest {
 
     @Test
-    fun `a held plank damages the enemy and keeps the boss off the player`() {
+    fun `a held plank takes a second off per second held and keeps the boss off the player`() {
         val player = com.pushuprpg.core.game.PlayerState.create(PlayerClass.KNIGHT, level = 1)
         val enemy = Dungeons.FREE_DUNGEON.floors.first()
-            .spawn(Difficulty.STANDARD, ExerciseType.PUSHUP)
+            .spawn(Difficulty.STANDARD, ExerciseType.PLANK)
         val encounter = Encounter(player, enemy, rng = NoCritRng, startedAtMs = 0L)
 
         var t = 0L
         var dealt = 0
-        // Thirty seconds of a good plank at the detector's 2Hz tick.
-        repeat(60) {
+        // A good plank at the detector's 2Hz tick: a whole second comes due every other tick.
+        while (!encounter.finished && t < 600_000) {
             t += 500
             encounter.setHolding(true, t)
-            dealt += encounter.onHold(3.0f, t).filterIsInstance<CombatEvent.Hit>().sumOf { h -> h.result.damage }
+            val seconds = if (t % 1000 == 0L) 1 else 0
+            dealt += encounter.onHold(seconds, t).filterIsInstance<CombatEvent.Hit>().sumOf { h -> h.result.damage }
             encounter.advanceTo(t)
         }
 
-        assertTrue(dealt > 0, "a held plank should actually hurt the enemy")
+        assertEquals(enemy.maxHp, dealt, "a second held was not a second off")
+        assertEquals(enemy.maxHp * 1000L, t, "a ${enemy.maxHp}-second monster fell after ${t}ms of holding")
         assertEquals(player.maxHp, encounter.player.hp, "holding should keep the boss off entirely")
     }
 
@@ -373,19 +375,102 @@ class PlankCombatTest {
         val player = com.pushuprpg.core.game.PlayerState.create(PlayerClass.KNIGHT, level = 12)
         val template = Dungeons.byIndex(6)!!.floors.last()
 
-        fun tickPlank(): Int {
+        fun holdPlank(): Int {
             val e = Encounter(player, template.spawn(Difficulty.STANDARD, ExerciseType.PUSHUP), rng = NoCritRng, startedAtMs = 0L)
             var t = 0L
-            var ticks = 0
-            while (e.enemy.warded && ticks < 5000) {
-                t += 500
-                e.onHold(6.0f, t)
-                ticks++
+            var seconds = 0
+            while (e.enemy.warded && seconds < 5000) {
+                t += 1000
+                e.onHold(1, t)
+                seconds++
             }
-            return ticks
+            return seconds
         }
 
-        assertTrue(tickPlank() < 5000, "the ward should break under a sustained plank")
+        assertTrue(holdPlank() < 5000, "the ward should break under a sustained plank")
+    }
+
+    @Test
+    fun `holding through a wind-up blocks it`() {
+        val player = PlayerState.create(PlayerClass.KNIGHT, level = 1)
+        val e = Encounter(player, Enemy(id = "test", korean = "시험용", maxHp = 20, hp = 20), rng = NoCritRng, startedAtMs = 0L)
+        var t = 0L
+        while (!e.ultimateWindingUp && t < 300_000) {
+            t += 3000
+            e.onRep(RepInput(72f, RepGrade.COUNTED, ExerciseType.PUSHUP, cycleMs = 3000), t)
+            e.onRepEnd(t + 900)
+        }
+        assertTrue(e.ultimateWindingUp, "no wind-up")
+
+        val events = mutableListOf<CombatEvent>()
+        repeat(Encounter.ANSWERS_TO_BLOCK) { t += 500; events += e.onHold(0, t) }
+        assertEquals(Mitigation.FULL, events.filterIsInstance<CombatEvent.Ultimate>().single().mitigation)
+        assertEquals(player.maxHp, e.player.hp)
+    }
+
+    private fun plankEngine(dungeon: Dungeon = Dungeons.FREE_DUNGEON) = BattleEngine(
+        dungeon = dungeon,
+        difficulty = Difficulty.STANDARD,
+        capacity = 8f,
+        initialPlayer = PlayerState.create(PlayerClass.KNIGHT, level = 1),
+        detector = DetectorFactory.create(ExerciseType.PLANK),
+        resolver = CombatResolver(DetectorConfig.forExercise(ExerciseType.PLANK)),
+    )
+
+    /**
+     * What a plank run used to be: the HUD read 0개 and 0초 / 36 the whole way, because it showed a
+     * count of reps a plank never makes; the 36초 dungeon was over in about eight, because each tick
+     * took off a form-weighted damage figure; and stopping part way banked no XP.
+     */
+    @Test
+    fun `a plank dungeon takes the seconds it quoted, counted up on the HUD`() {
+        val quoted = Dungeons.FREE_DUNGEON.repCost(Difficulty.STANDARD, ExerciseType.PLANK, PlayerClass.KNIGHT)
+        val e = plankEngine()
+        var state = e.currentState()
+        var shown = 0
+        var owed = state.enemyHp
+        for (f in PoseFixtures.plankTrace(durationMs = (quoted + 15) * 1000)) {
+            val floor = state.floorIndex
+            state = e.onPoseFrame(f)
+            assertEquals(quoted, state.runTotalReps, "the total moved off the quote")
+            val held = (state.heldMs / 1000L).toInt()
+            assertTrue(held >= shown, "the seconds on the HUD went back from $shown to $held")
+            shown = held
+            if (state.floorIndex == floor) {
+                assertTrue(state.enemyHp in owed - 1..owed, "the monster lost ${owed - state.enemyHp} in a frame")
+            }
+            owed = state.enemyHp
+            if (state.outcome != null) break
+        }
+
+        val outcome = state.outcome
+        assertEquals(true, outcome?.cleared, "held ${state.heldMs}ms of a ${quoted}s dungeon and it did not clear")
+        val held = outcome!!.segments.single().holdMs
+        assertTrue(
+            held in quoted * 1000L..(quoted + 2) * 1000L,
+            "a ${quoted}s dungeon took ${held}ms of holding",
+        )
+        assertEquals(0, outcome.reps)
+        assertTrue(outcome.xpEarned > 0)
+    }
+
+    @Test
+    fun `stopping a hold part way keeps its time and its XP`() {
+        // A first floor of fourteen seconds, so ten of them all come off the one monster.
+        val e = plankEngine(Dungeons.byIndex(3)!!)
+        var state = e.currentState()
+        PoseFixtures.plankTrace(durationMs = 10_000).forEach { state = e.onPoseFrame(it) }
+        assertEquals(0, state.floorIndex)
+        val outcome = e.quit()
+
+        assertTrue(!outcome.cleared)
+        val held = outcome.segments.single().holdMs
+        assertTrue(held > 8_000, "held ${held}ms of 10s")
+        assertEquals(state.heldMs, held, "the HUD's seconds are not the ones banked")
+        assertTrue(outcome.xpEarned >= 8, "${held}ms of plank banked ${outcome.xpEarned} XP")
+        // And the monster owes what the HUD says was held off it, give or take the tick in flight.
+        val off = state.enemyMaxHp - state.enemyHp
+        assertTrue(off in (held / 1000L).toInt() - 1..(held / 1000L).toInt(), "held ${held}ms, took $off off")
     }
 }
 
@@ -596,6 +681,26 @@ class BattleEnginePresentationTest {
         val after = feed(e, pushups)
         assertEquals(held.heldMs, after.heldMs, "pushups added time held")
         assertEquals(e.quit().segments.sumOf { it.holdMs }, after.heldMs)
+    }
+
+    /** Pushups then a plank: the total is seconds from the switch on, never reps and seconds added. */
+    @Test
+    fun `switching to a hold counts the run in seconds`() {
+        val dungeon = Dungeons.byIndex(3)!!
+        val e = engineIn(dungeon)
+        val pushups = PoseFixtures.trace(count = 3, peakDepth = 0.95f, restMs = 250)
+        val before = feed(e, pushups)
+        assertTrue(before.reps > 0 && before.floorIndex == 0, "the fixture should have hit the first floor")
+
+        e.switchExercise(DetectorFactory.create(ExerciseType.PLANK))
+        val switched = e.currentState()
+        val rest = dungeon.floors.drop(1).sumOf { it.repCost(Difficulty.STANDARD, ExerciseType.PLANK, PlayerClass.KNIGHT) }
+        assertEquals(switched.enemyHp + rest, switched.runTotalReps, "the pushups were added to a count of seconds")
+
+        val held = feed(e, PoseFixtures.plankTrace(durationMs = 6_000, startMs = pushups.last().timestampMs + 33))
+        assertEquals(switched.runTotalReps, held.runTotalReps, "holding moved the total")
+        assertEquals(before.reps, held.reps)
+        assertTrue(held.heldMs > 4_000 && held.enemyHp < switched.enemyHp, "held ${held.heldMs}ms for nothing")
     }
 
     @Test

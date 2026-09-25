@@ -432,47 +432,51 @@ class Encounter(
     }
 
     /**
-     * Applies one tick of damage from a held position rather than from a rep.
+     * One tick of a held position: [seconds] of it that the detector accepted since the last tick,
+     * each one taken off the monster, the ward first.
      *
-     * A plank tears through a ward at full rate, which is the whole reason a warded enemy is worth
-     * answering with one. It does not build combo — a hold is not a sequence of attacks — but it
-     * does count as activity, so the rest timer resets.
+     * A hold's count is seconds (see [CombatResolver.expectedReps]), so a second held is exactly one
+     * off it, and the 36초 the entry screen quotes takes thirty-six seconds of holding. It used to
+     * take off a damage figure weighted by form, up to six a second, so a 36-second fight was over in
+     * about eight and the count the HUD showed had nothing to do with the clock. Form still grades a
+     * hold; it does not shorten it.
+     *
+     * Called every tick, whole seconds or none: a held plank is the defensive stance, and every tick
+     * of it answers an ultimate and advances its window the way a rep does. It does not build combo
+     * — a hold is not a sequence of attacks. Each second is paid its XP as it is held, like a rep, so
+     * a hold stopped part way keeps what it earned.
      */
-    fun onHold(damage: Float, atMs: Long): List<CombatEvent> {
-        if (finished || damage <= 0f) return emptyList()
+    fun onHold(seconds: Int, atMs: Long, exercise: ExerciseType = ExerciseType.PLANK): List<CombatEvent> {
+        if (finished) return emptyList()
         val events = mutableListOf<CombatEvent>()
 
-        val dealt = damage.roundToInt().coerceAtLeast(1)
-        enemy = if (enemy.warded) {
-            val remainingWard = (enemy.wardHp - dealt).coerceAtLeast(0)
-            val spill = (dealt - enemy.wardHp).coerceAtLeast(0)
-            enemy.copy(wardHp = remainingWard, hp = (enemy.hp - spill).coerceAtLeast(0))
-        } else {
-            enemy.copy(hp = (enemy.hp - dealt).coerceAtLeast(0))
-        }
-
-        damageDealt += dealt
         lastRepAtMs = atMs
         tickIndex = 0
-        // A held plank is the defensive stance: every tick of it answers, so holding through a
-        // wind-up blocks it. Ticks advance the window the way reps do.
         if (telegraphed) {
             repsSinceTelegraph++
             answersLanded++
         }
 
-        events += CombatEvent.Hit(
-            atMs,
-            AttackResult(
-                damage = dealt,
-                crit = false,
-                deep = false,
-                rejected = false,
-                player = player,
-                enemy = enemy,
-            ),
-        )
-        xp += 1f
+        if (seconds > 0) {
+            val fromWard = min(seconds, enemy.wardHp)
+            enemy = enemy.copy(
+                wardHp = enemy.wardHp - fromWard,
+                hp = (enemy.hp - (seconds - fromWard)).coerceAtLeast(0),
+            )
+            damageDealt += seconds
+            xp += CombatResolver.XP_PER_REP * seconds * CombatResolver.repWorth(exercise, player.playerClass)
+            events += CombatEvent.Hit(
+                atMs,
+                AttackResult(
+                    damage = seconds,
+                    crit = false,
+                    deep = false,
+                    rejected = false,
+                    player = player,
+                    enemy = enemy,
+                ),
+            )
+        }
 
         if (enemy.isDead) {
             events += defeated(atMs)

@@ -58,6 +58,7 @@
     <!-- Battle -->
     <string name="battle_countdown_go">시작!</string>
     <string name="battle_unit_reps">개</string>
+    <string name="battle_unit_seconds">초</string>
     <string name="battle_combo">콤보 ×%1$d</string>
     <string name="battle_deep_strike">깊은 타격!</string>
     <string name="battle_ultimate_incoming">필살기 준비!</string>

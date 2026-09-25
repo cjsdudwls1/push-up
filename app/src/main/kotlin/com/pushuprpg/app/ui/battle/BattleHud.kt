@@ -1,5 +1,6 @@
 package com.pushuprpg.app.ui.battle
 
+import androidx.annotation.StringRes
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -238,7 +239,7 @@ fun ComboPill(combo: Int, modifier: Modifier = Modifier) {
 }
 
 /**
- * The rep counter.
+ * The rep counter — or, for a hold, the seconds held, in [unitRes].
  *
  * Placed at the vertical centre of the screen rather than at the bottom, where the demo had it. At
  * the bottom of a pushup the user's own shoulders occlude the lower band of the screen and their
@@ -247,7 +248,8 @@ fun ComboPill(combo: Int, modifier: Modifier = Modifier) {
  */
 @Composable
 fun RepCounter(
-    reps: Int,
+    count: Int,
+    @StringRes unitRes: Int,
     dimmed: Boolean,
     compact: Boolean,
     modifier: Modifier = Modifier,
@@ -257,13 +259,13 @@ fun RepCounter(
         verticalAlignment = Alignment.Bottom,
     ) {
         CameraText(
-            text = reps.toString(),
+            text = count.toString(),
             style = if (compact) Type.heroCountSmall else Type.heroCount,
             color = Palette.TextPrimary,
         )
         Spacer(Modifier.width(6.dp))
         CameraText(
-            text = stringResource(R.string.battle_unit_reps),
+            text = stringResource(unitRes),
             style = Type.titleL,
             color = Palette.TextSecondary,
             modifier = Modifier.padding(bottom = 18.dp),

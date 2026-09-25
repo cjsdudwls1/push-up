@@ -266,6 +266,8 @@ class BattleEngine(
     private var segMaxCombo = 0
     /** Time held by the movements already switched away from. */
     private var heldBeforeMs = 0L
+    /** How much of the current detector's time held has been taken off monsters, in whole seconds. */
+    private var holdCreditedMs = 0L
 
     /**
      * What the run costs in total, computed once at spawn from the same rule the entry screen quoted.
@@ -483,13 +485,17 @@ class BattleEngine(
                     if (enemyDiedAtMs == Long.MIN_VALUE) onAfterStrike(encounter.onRepEnd(event.tMs))
                 }
 
-                // A plank pays out continuously rather than per rep. It freezes the boss's rest
-                // timer for as long as it is held, which is what lets a player whose arms have
-                // given out stay in the fight instead of choosing between quitting and being hit.
+                // A plank pays out continuously rather than per rep: every second the detector
+                // counts as held is a second off the monster. Seconds held while one is falling go
+                // to the next, so the quote is exactly the time the run takes.
                 is RepEvent.HoldTick -> {
                     plankHolding = true
                     lastHoldTickMs = event.tMs
-                    val hit = encounter.onHold(event.damage, event.tMs)
+                    val hit = if (enemyDiedAtMs != Long.MIN_VALUE) emptyList() else {
+                        val seconds = ((detector.sessionSummary().holdMs - holdCreditedMs) / 1000L).toInt()
+                        holdCreditedMs += seconds * 1000L
+                        encounter.onHold(seconds, event.tMs, detector.config.exercise)
+                    }
                     for (ce in hit) {
                         when (ce) {
                             is CombatEvent.Hit -> {
@@ -672,8 +678,9 @@ class BattleEngine(
         segDeep = 0
         segDepthSum = 0f
         segMaxCombo = 0
-        // The new detector numbers its reps from one again.
+        // The new detector numbers its reps from one again, and counts its time held from zero.
         bookedRep = -1
+        holdCreditedMs = 0L
 
         detector = next
         // A new movement wants the phone somewhere else, and gets talked into position afresh.
@@ -681,7 +688,7 @@ class BattleEngine(
         resolver = CombatResolver(next.config)
         val to = next.config.exercise
         encounter.switchMovement(dungeon.floors[floorIndex].spawn(difficulty, to, playerClass), resolver)
-        runTotalReps = repsTotal + owedFromHere()
+        runTotalReps = doneSoFar() + owedFromHere()
 
         // The retired movement's rhythm says nothing about the new one's.
         lastStrikeMs = Long.MIN_VALUE
@@ -709,6 +716,14 @@ class BattleEngine(
         return encounter.repsOwed + dungeon.floors.drop(floorIndex + 1)
             .sumOf { it.repCost(difficulty, to, playerClass) }
     }
+
+    /**
+     * What the run has done in the unit of the movement being done now: reps, or for a hold every
+     * second held this run. The two are never added together — a total of reps and seconds is
+     * neither.
+     */
+    private fun doneSoFar(): Int =
+        if (Exercises.of(detector.config.exercise).kind == MovementKind.HOLD) (heldMs() / 1000L).toInt() else repsTotal
 
     /** The movements left behind, and the one in progress if it is a hold: what the run banks as held. */
     private fun heldMs(): Long {

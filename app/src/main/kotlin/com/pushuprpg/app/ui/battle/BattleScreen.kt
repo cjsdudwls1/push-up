@@ -409,6 +409,10 @@ private fun BoxScope.BattleHudLayout(
     compact: Boolean,
 ) {
     val colors = LocalGameColors.current
+    // A hold counts no reps: what it has done is the time held, the same seconds the run banks and
+    // the unit its total is counted in.
+    val hold = Exercises.of(state.exercise).kind == MovementKind.HOLD
+    val done = if (hold) (state.heldMs / 1000L).toInt() else state.reps
 
     Column(
         modifier = Modifier
@@ -449,16 +453,15 @@ private fun BoxScope.BattleHudLayout(
         // The big bars are counts, not health: the left is what the user has done, the right what
         // this monster still owes, both in the movement they chose. Health is the thin strip under
         // the left one — only a monster's unanswered ultimate touches it, and never a rest.
-        val hold = Exercises.of(state.exercise).kind == MovementKind.HOLD
         val unit = if (hold) R.string.battle_count_seconds else R.string.battle_count_reps
         Row(verticalAlignment = Alignment.Top) {
             Column(Modifier.weight(1f)) {
                 HealthBar(
                     name = stringResource(R.string.battle_player_label),
-                    hp = state.reps,
+                    hp = done,
                     maxHp = state.runTotalReps.coerceAtLeast(1),
                     color = colors.playerHp,
-                    label = stringResource(unit, state.reps) + " / " + state.runTotalReps,
+                    label = stringResource(unit, done) + " / " + state.runTotalReps,
                 )
                 Spacer(Modifier.height(4.dp))
                 HpStrip(hp = state.playerHp, maxHp = state.playerMaxHp)
@@ -485,7 +488,8 @@ private fun BoxScope.BattleHudLayout(
     // The counter, dead centre. Dimmed while tracking is lost so the user can tell at a glance
     // that the game is waiting for them rather than ignoring them.
     RepCounter(
-        reps = state.reps,
+        count = done,
+        unitRes = if (hold) R.string.battle_unit_seconds else R.string.battle_unit_reps,
         dimmed = state.paused,
         compact = compact,
         modifier = Modifier.align(Alignment.Center),
