@@ -301,12 +301,15 @@ class SurvivalViewModel(
                     plausibility = plausibility,
                 )
             )
+            // As a dungeon run does: only the run that met the day's bar maintains the streak.
+            var maintained: Int? = null
             progressRepository.update { current ->
                 val streak = Streak.advance(
                     StreakState(current.streakDays, current.lastActiveEpochDay),
                     epochDay,
                     Streak.sum(doneEarlier, work),
                 )
+                maintained = streak.days.takeIf { streak.lastActiveDay != current.lastActiveEpochDay }
                 current.copy(
                     lifetimeReps = current.lifetimeReps + repsDone,
                     bestCombo = maxOf(current.bestCombo, combo),
@@ -317,6 +320,7 @@ class SurvivalViewModel(
                     lastActiveEpochDay = streak.lastActiveDay,
                 )
             }
+            maintained?.let { telemetry.log(Event.StreakMaintained(it)) }
         }
     }
 

@@ -364,6 +364,9 @@ class BattleViewModel(
                 progressRepository.saveCalibrationProfile(exercise, det.updatedProfile(previous))
             }
 
+            // The streak's new length when this run is the one that met the day's bar; a later run
+            // the same day keeps the streak without maintaining it again. Logged once written.
+            var maintained: Int? = null
             progressRepository.update { current ->
                 val levelled = Levels.apply(current.level, current.xpIntoLevel, outcome.xpEarned)
                 val streak = Streak.advance(
@@ -371,6 +374,7 @@ class BattleViewModel(
                     epochDay,
                     Streak.sum(doneEarlier, runWork(segments)),
                 )
+                maintained = streak.days.takeIf { streak.lastActiveDay != current.lastActiveEpochDay }
                 // Capacity is measured in each movement's own unit: reps for a counted exercise,
                 // seconds for a hold, and a hold's best is its longest, not an average. A movement
                 // done twice in one run is judged by its better stretch.
@@ -397,6 +401,7 @@ class BattleViewModel(
                     } else current.highestDungeonCleared,
                 )
             }
+            maintained?.let { telemetry.log(Event.StreakMaintained(it)) }
         }
     }
 

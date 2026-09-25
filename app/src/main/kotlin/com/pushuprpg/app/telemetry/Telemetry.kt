@@ -175,6 +175,10 @@ sealed class Event(val name: String, val params: Map<String, Any> = emptyMap()) 
     data class PurchaseCompleted(val plan: String) :
         Event("purchase_completed", mapOf("plan" to plan))
 
+    /**
+     * A run met the day's streak bar, and the streak is now [days] long. Sent once for each day
+     * that counts, so a second run on a day already kept sends nothing.
+     */
     data class StreakMaintained(val days: Int) :
         Event("streak_maintained", mapOf("days" to days))
 }
