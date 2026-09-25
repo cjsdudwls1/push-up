@@ -480,6 +480,7 @@ fun PushupRpgApp(
                                             dungeonName = Dungeons.byIndex(dungeonIndex)?.korean.orEmpty(),
                                             cleared = outcome.cleared,
                                             reps = outcome.reps,
+                                            heldSeconds = (outcome.segments.sumOf { it.holdMs } / 1000).toInt(),
                                             maxCombo = outcome.maxCombo,
                                             seconds = (outcome.durationMs / 1000).toInt(),
                                             rankKorean = Rank.forLifetimeReps(progress.lifetimeReps).korean,

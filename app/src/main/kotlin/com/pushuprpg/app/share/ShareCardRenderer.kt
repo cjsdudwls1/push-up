@@ -271,23 +271,43 @@ object ShareCardRenderer {
         )
         hero(
             canvas,
-            value = format(data.reps),
-            suffix = res.getString(R.string.share_card_rep_suffix),
+            value = format(if (data.inSeconds) data.heldSeconds else data.reps),
+            suffix = res.getString(
+                if (data.inSeconds) R.string.share_card_second_suffix else R.string.share_card_rep_suffix
+            ),
             color = TEXT_PRIMARY,
             suffixColor = accent,
         )
-        heroLabel(canvas, res.getString(R.string.share_card_dungeon_hero_label))
-
-        stats(
+        heroLabel(
             canvas,
-            Stat(
-                res.getString(R.string.result_combo_value, data.maxCombo),
-                res.getString(R.string.share_card_stat_combo),
-                COMBO,
+            res.getString(
+                if (data.inSeconds) R.string.share_card_dungeon_hero_label_hold
+                else R.string.share_card_dungeon_hero_label
             ),
-            Stat(duration(res, data.seconds), res.getString(R.string.share_card_stat_time), INFO),
-            Stat(data.rankKorean, res.getString(R.string.share_card_stat_rank), ACCEPT),
         )
+
+        val time = Stat(duration(res, data.seconds), res.getString(R.string.share_card_stat_time), INFO)
+        val rank = Stat(data.rankKorean, res.getString(R.string.share_card_stat_rank), ACCEPT)
+        if (data.inSeconds) {
+            // A hold builds no combo, so there is no ×0 tile; and the run's length is plain 시간,
+            // since 버틴 시간 is now the number above it.
+            stats(
+                canvas,
+                Stat(time.value, res.getString(R.string.result_tile_time), INFO),
+                rank,
+            )
+        } else {
+            stats(
+                canvas,
+                Stat(
+                    res.getString(R.string.result_combo_value, data.maxCombo),
+                    res.getString(R.string.share_card_stat_combo),
+                    COMBO,
+                ),
+                time,
+                rank,
+            )
+        }
         footer(res, canvas)
     }
 

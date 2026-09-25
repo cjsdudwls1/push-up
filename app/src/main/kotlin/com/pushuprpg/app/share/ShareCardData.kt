@@ -22,9 +22,17 @@ sealed interface ShareCardData {
         val dungeonName: String,
         val cleared: Boolean,
         val reps: Int,
+        /** Seconds held in a hold such as the plank; zero for a run of counted movements. */
+        val heldSeconds: Int,
         val maxCombo: Int,
         val seconds: Int,
         val rankKorean: String,
         val lifetimeReps: Int,
-    ) : ShareCardData
+    ) : ShareCardData {
+        /**
+         * A run that only held is told in seconds, as its HUD and the result screen told it. Its
+         * reps are zero by construction, and a card saying 0개 is a card nobody posts.
+         */
+        val inSeconds: Boolean get() = reps == 0 && heldSeconds > 0
+    }
 }
