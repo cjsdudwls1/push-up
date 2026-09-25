@@ -23,7 +23,9 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -488,11 +490,15 @@ private fun BoxScope.BattleHudLayout(
     // the unit its total is counted in.
     val hold = Exercises.of(state.exercise).kind == MovementKind.HOLD
     val done = if (hold) (state.heldMs / 1000L).toInt() else state.reps
+    // How far down the HUD reaches, status bar included, so the gauge can start under it.
+    var hudHeightPx by remember { mutableIntStateOf(0) }
+    val density = LocalDensity.current
 
     Column(
         modifier = Modifier
             .align(Alignment.TopCenter)
             .fillMaxWidth()
+            .onSizeChanged { hudHeightPx = it.height }
             .windowInsetsPadding(WindowInsets.safeDrawing)
             .padding(horizontal = 16.dp)
             .padding(top = 8.dp),
@@ -577,6 +583,10 @@ private fun BoxScope.BattleHudLayout(
             .padding(bottom = 200.dp),
     )
 
+    // Between the HUD and the placement line's band. It was 62% of the screen's height, centred,
+    // whatever the HUD above took, and reached up into the monster's bar and its 남은 N개. The
+    // bottom is the band's fixed top rather than the column above it: the gauge is watched the
+    // whole set, and its lines must not move each time a toast comes or goes.
     DepthGauge(
         depth = state.depth,
         countEnter = state.countEnter,
@@ -585,8 +595,11 @@ private fun BoxScope.BattleHudLayout(
         showNumber = showGaugeNumber,
         modifier = Modifier
             .align(if (gaugeOnRight) Alignment.CenterEnd else Alignment.CenterStart)
+            .padding(top = with(density) { hudHeightPx.toDp() })
+            .navigationBarsPadding()
+            .padding(bottom = BOTTOM_MARGIN + PLACEMENT_BAND)
             .padding(horizontal = 6.dp)
-            .fillMaxHeight(0.62f),
+            .fillMaxHeight(),
     )
 }
 
