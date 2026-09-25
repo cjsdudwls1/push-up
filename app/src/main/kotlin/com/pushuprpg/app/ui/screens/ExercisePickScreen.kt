@@ -36,6 +36,7 @@ import com.pushuprpg.app.R
 import com.pushuprpg.app.domain.CatCoat
 import com.pushuprpg.app.ui.components.ExerciseNotes
 import com.pushuprpg.app.ui.components.Pill
+import com.pushuprpg.app.ui.components.PrimaryButton
 import com.pushuprpg.app.ui.components.cardSurface
 import com.pushuprpg.app.ui.components.drawCat
 import com.pushuprpg.app.ui.components.exerciseLabelRes
@@ -198,17 +199,8 @@ private fun ExerciseRow(
         if (expanded) {
             ExerciseNotes(exercise)
             Spacer(Modifier.height(12.dp))
-            Text(
-                text = stringResource(R.string.pick_exercise_start),
-                style = Type.labelL,
-                color = Palette.TextOnBrand,
-                textAlign = TextAlign.Center,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .cardSurface(shape = RoundedCornerShape(14.dp), color = Palette.Brand600)
-                    .clickable(onClick = onStart)
-                    .padding(vertical = 14.dp),
-            )
+            // The app's one start button, not a lookalike drawn for this card.
+            PrimaryButton(text = stringResource(R.string.pick_exercise_start), onClick = onStart)
         }
     }
 }
