@@ -35,8 +35,11 @@ class AppContainer(context: Context) {
     /**
      * Outlives any screen. Billing has to keep listening for purchases that complete while the
      * user is somewhere else entirely — including in the Play Store app.
+     *
+     * A finished run is written here too. The screen that ended it is popped straight away, and a
+     * write in that screen's own scope could be cancelled between the record row and the XP.
      */
-    private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    internal val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     val progressRepository: ProgressRepository by lazy {
         DataStoreProgressRepository(appContext)

@@ -40,6 +40,7 @@ import com.pushuprpg.core.run.BattleEngine
 import com.pushuprpg.core.run.BattleState
 import com.pushuprpg.core.run.ExerciseSegment
 import com.pushuprpg.core.run.Outcome
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -66,6 +67,8 @@ class BattleViewModel(
     private val telemetry: Telemetry,
     private val traces: RunTraces,
     private val voice: GameVoice,
+    /** Where the run is banked: it outlives this screen, which is popped as the run ends. */
+    private val appScope: CoroutineScope,
 ) : ViewModel() {
 
     // What is said aloud: the phone is two metres away and the banners cannot be read from there.
@@ -204,7 +207,7 @@ class BattleViewModel(
             traces.mark("switch=${frame.timestampMs}:${exercise.name}:$pendingProfileNote")
             // Banked now rather than at the end: the retired detector is no longer fed frames, so
             // it is safe to read here, and a run that is killed later keeps what it learned.
-            viewModelScope.launch {
+            appScope.launch {
                 val previous = progressRepository.calibrationProfile(from)
                 progressRepository.saveCalibrationProfile(from, retired.updatedProfile(previous))
             }
@@ -286,7 +289,10 @@ class BattleViewModel(
             )
         )
 
-        viewModelScope.launch {
+        // Not viewModelScope: the result screen pops this one as soon as the outcome lands, and a
+        // write cancelled halfway would keep the record row and lose the XP, the streak and the
+        // unlock.
+        appScope.launch {
             val epochDay = Instant.now().atZone(ZoneId.systemDefault()).toLocalDate().toEpochDay()
 
             // Each movement gets its own row, so the records screen says what was actually done.
@@ -394,6 +400,7 @@ class BattleViewModel(
                     container.telemetry,
                     container.traces,
                     container.voice,
+                    container.appScope,
                 )
             }
         }

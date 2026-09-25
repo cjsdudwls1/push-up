@@ -37,6 +37,7 @@ import com.pushuprpg.core.survival.CatView
 import com.pushuprpg.core.survival.CeilingSurvival
 import com.pushuprpg.core.survival.SurvivalEvent
 import com.pushuprpg.core.survival.SurvivalState
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -52,6 +53,8 @@ class SurvivalViewModel(
     private val voice: GameVoice,
     /** Chosen on the way in; always pushups for the tutorial (see Routes.survival). */
     private val exercise: ExerciseType,
+    /** Where the run is banked: it outlives this screen, which may be popped before a write lands. */
+    private val appScope: CoroutineScope,
 ) : ViewModel() {
 
     // Any movement, each worth what it is worth everywhere else: a pull-up moves the ceiling about
@@ -205,7 +208,9 @@ class SurvivalViewModel(
     fun finishTutorial() {
         val observed = maxCombo
         telemetry.log(Event.TutorialCompleted(reps, _state.value.elapsedMs))
-        viewModelScope.launch {
+        // The tap that calls this also leaves the screen; in its own scope the write could be
+        // cancelled, and the tutorial would come back on the next launch.
+        appScope.launch {
             progressRepository.update { current ->
                 current
                     .withCapacity(
@@ -222,8 +227,10 @@ class SurvivalViewModel(
         saved = true
         val repsDone = reps
         val combo = maxCombo
+        // Read here, on the thread that feeds the detector, rather than inside the write.
+        val plausibility = detector.sessionSummary().plausibility
 
-        viewModelScope.launch {
+        appScope.launch {
             sessionRepository.insert(
                 SessionRecord(
                     startedAtMs = System.currentTimeMillis() - over.survivedMs,
@@ -236,7 +243,7 @@ class SurvivalViewModel(
                     dungeonIndex = null,
                     cleared = false,
                     xpEarned = 0,
-                    plausibility = detector.sessionSummary().plausibility,
+                    plausibility = plausibility,
                 )
             )
             progressRepository.update { current ->
@@ -264,6 +271,7 @@ class SurvivalViewModel(
                     container.audio,
                     container.voice,
                     exercise,
+                    container.appScope,
                 )
             }
         }
