@@ -92,7 +92,7 @@ class RealTraceTest {
         done = 5,
         scenarios = scenarios(
             ExerciseType.PULL_UP,
-            stuck = CalibrationSnapshot(ExerciseType.PULL_UP, 1.60f, 0.50f, 0.50f, CalibrationState.CONVERGED, 1),
+            stuck = CalibrationSnapshot(ExerciseType.PULL_UP, 1.60f, 0.50f, 0.50f, CalibrationState.CONVERGED, 1, 70f, 88f),
             stale = UserProfile(1.6f, 0.5f, 3),
         ),
         least = mapOf(
@@ -112,7 +112,7 @@ class RealTraceTest {
         done = 4,
         scenarios = scenarios(
             ExerciseType.PUSHUP,
-            stuck = CalibrationSnapshot(ExerciseType.PUSHUP, 2.38f, 1.23f, 1.23f, CalibrationState.CONVERGED, 1),
+            stuck = CalibrationSnapshot(ExerciseType.PUSHUP, 2.38f, 1.23f, 1.23f, CalibrationState.CONVERGED, 1, 70f, 88f),
             stale = UserProfile(2.4f, 1.2f, 3),
         ),
         least = mapOf(

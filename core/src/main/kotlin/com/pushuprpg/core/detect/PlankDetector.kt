@@ -101,12 +101,7 @@ class PlankDetector(
             repCount = (totalHoldMs / 1000).toInt(),
             combo = 0,
             maxCombo = 0,
-            calibration = CalibrationSnapshot(
-                exercise = ExerciseType.PLANK,
-                top = 0f, bottom = 0f, bottomBest = 0f,
-                state = CalibrationState.CONVERGED,
-                completedReps = 0,
-            ),
+            calibration = snapshotCalibration(),
             render = skeletonBuilder.build(frame, confidence, skeletonMode, holding),
             events = events,
         )
@@ -502,7 +497,7 @@ class PlankDetector(
     }
 
     override fun snapshotCalibration(): CalibrationSnapshot = CalibrationSnapshot(
-        ExerciseType.PLANK, 0f, 0f, 0f, CalibrationState.CONVERGED, 0
+        ExerciseType.PLANK, 0f, 0f, 0f, CalibrationState.CONVERGED, 0, config.countEnter, config.deepEnter,
     )
 
     override fun restoreCalibration(snapshot: CalibrationSnapshot) = Unit

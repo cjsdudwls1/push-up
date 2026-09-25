@@ -3,7 +3,8 @@ package com.pushuprpg.core.detect
 /**
  * Every tunable in the detector, in one place.
  *
- * The UI reads [countEnter] and [deepEnter] to place the two marker lines on the 깊이 gauge, so the
+ * The UI places the two marker lines on the 깊이 gauge at [countEnter] and [deepEnter] — or at the
+ * bootstrap lines while those are the ones counting, as [CalibrationSnapshot] carries them — so the
  * gauge is the state machine rendered rather than a picture of it that can drift out of sync when
  * balance changes.
  */

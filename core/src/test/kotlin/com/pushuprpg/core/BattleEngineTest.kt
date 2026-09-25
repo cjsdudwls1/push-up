@@ -287,47 +287,75 @@ class BattleEngineTest {
         }
     }
 
-    @Test
-    fun `the gauge thresholds the HUD draws come from the detector`() {
-        val config = DetectorConfig.pushup()
-        val state = engine().currentState()
-        assertEquals(config.countEnter, state.countEnter)
-        assertEquals(config.deepEnter, state.deepEnter)
-    }
-
     /**
-     * The test above compares a config with itself. This is the rule it stands for: once the range
-     * is learned, the rep counts on the frame the gauge crosses the 인정 line the HUD draws, and the
-     * 깊은 타격 comes on the frame it crosses the 깊게 line.
+     * While a first session is still learning the range the detector counts at its bootstrap lines,
+     * not its config's, and the gauge has to draw those. Drawn at the config's, the first reps of a
+     * new install counted in the gauge's 얕음 band, and a 깊게 on the gauge struck nothing.
      */
     @Test
-    fun `a learned rep counts and goes deep where the gauge's lines are drawn`() {
-        val e = engine(playerClass = PlayerClass.ARCHER)
+    fun `the gauge draws the lines the detector is counting at, learning and learned`() {
+        val config = DetectorConfig.pushup()
+        val e = engine()
+        assertEquals(config.bootstrapCountEnter, e.currentState().countEnter, "before the first frame")
+        assertEquals(config.bootstrapDeepEnter, e.currentState().deepEnter, "before the first frame")
+
         var prev = e.currentState()
-        var counted = 0
-        var deepened = 0
-        for (f in PoseFixtures.trace(count = 14, peakDepth = 0.95f, restMs = 250)) {
+        var first: BattleState? = null
+        for (f in PoseFixtures.trace(count = 8, peakDepth = 0.95f, restMs = 250)) {
             val s = e.onPoseFrame(f)
-            if (!prev.calibrating && !s.calibrating) {
-                if (s.reps > prev.reps) {
-                    assertTrue(
-                        prev.depth < s.countEnter && s.depth >= s.countEnter,
-                        "counted going from ${prev.depth} to ${s.depth}; the gauge draws 인정 at ${s.countEnter}",
-                    )
-                    counted++
-                }
-                if (s.deepReps > prev.deepReps) {
-                    assertTrue(
-                        prev.depth < s.deepEnter && s.depth >= s.deepEnter,
-                        "깊게 going from ${prev.depth} to ${s.depth}; the gauge draws it at ${s.deepEnter}",
-                    )
-                    deepened++
-                }
+            if (first == null && s.reps > prev.reps) {
+                first = s
+                assertTrue(s.calibrating, "the first rep should count while the range is being learned")
+                assertEquals(config.bootstrapCountEnter, s.countEnter, "the 인정 line the first rep counted at")
+                assertEquals(config.bootstrapDeepEnter, s.deepEnter, "the 깊게 line while learning")
+                assertTrue(
+                    prev.depth < s.countEnter && s.depth >= s.countEnter,
+                    "the first rep counted going from ${prev.depth} to ${s.depth}; the gauge draws 인정 at ${s.countEnter}",
+                )
             }
             prev = s
             if (s.outcome != null) break
         }
-        assertTrue(counted >= 5 && deepened >= 5, "checked $counted counts and $deepened deep lines")
+        assertTrue(first != null, "no rep counted")
+        assertTrue(!prev.calibrating, "the range should be learned after eight reps")
+        assertEquals(config.countEnter, prev.countEnter, "the 인정 line once learned")
+        assertEquals(config.deepEnter, prev.deepEnter, "the 깊게 line once learned")
+    }
+
+    /**
+     * The rule the test above stands for, on every rep: the rep counts on the frame the gauge
+     * crosses the 인정 line the HUD draws, and the 깊은 타격 comes on the frame it crosses the 깊게
+     * line — while the range is being learned as well as after.
+     */
+    @Test
+    fun `every rep counts and goes deep where the gauge's lines are drawn`() {
+        val e = engine(playerClass = PlayerClass.ARCHER)
+        var prev = e.currentState()
+        var counted = 0
+        var deepened = 0
+        var learning = 0
+        for (f in PoseFixtures.trace(count = 14, peakDepth = 0.95f, restMs = 250)) {
+            val s = e.onPoseFrame(f)
+            if (s.reps > prev.reps) {
+                assertTrue(
+                    prev.depth < s.countEnter && s.depth >= s.countEnter,
+                    "counted going from ${prev.depth} to ${s.depth}; the gauge draws 인정 at ${s.countEnter}",
+                )
+                counted++
+                if (s.calibrating) learning++
+            }
+            if (s.deepReps > prev.deepReps) {
+                assertTrue(
+                    prev.depth < s.deepEnter && s.depth >= s.deepEnter,
+                    "깊게 going from ${prev.depth} to ${s.depth}; the gauge draws it at ${s.deepEnter}",
+                )
+                deepened++
+            }
+            prev = s
+            if (s.outcome != null) break
+        }
+        assertTrue(learning >= 1, "no rep was counted while the range was being learned")
+        assertTrue(counted >= 7 && deepened >= 7, "checked $counted counts and $deepened deep lines")
     }
 
     /**

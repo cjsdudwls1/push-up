@@ -272,6 +272,8 @@ class RangeCalibrator(
         bottomBest = bottomBest,
         state = state,
         completedReps = completedReps,
+        countEnter = countEnter(),
+        deepEnter = deepEnter(),
     )
 
     fun restore(s: CalibrationSnapshot) {

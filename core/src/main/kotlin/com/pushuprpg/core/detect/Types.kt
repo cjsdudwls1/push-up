@@ -81,6 +81,14 @@ data class CalibrationSnapshot(
     val bottomBest: Float,
     val state: CalibrationState,
     val completedReps: Int,
+    /**
+     * The 인정 and 깊게 lines reps are counted against right now: [DetectorConfig.countEnter] and
+     * [DetectorConfig.deepEnter], or the bootstrap lines while a first session is still learning the
+     * range. What the gauge draws, so the line the user aims at is the one that counts. They follow
+     * from [state], so a restore does not read them.
+     */
+    val countEnter: Float,
+    val deepEnter: Float,
 )
 
 /**

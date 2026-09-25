@@ -294,8 +294,9 @@ class BattleEngine(
         floorCount = dungeon.floors.size,
         runTotalReps = runTotalReps,
         exercise = detector.config.exercise,
-        countEnter = detector.config.countEnter,
-        deepEnter = detector.config.deepEnter,
+        // The lines the detector counts at now, which are not its config's while it is learning.
+        countEnter = detector.snapshotCalibration().countEnter,
+        deepEnter = detector.snapshotCalibration().deepEnter,
     )
 
     fun currentState(): BattleState = state
@@ -651,8 +652,11 @@ class BattleEngine(
             shake = shake,
             outcome = outcome,
             elapsedMs = if (startedAtMs == Long.MIN_VALUE) 0 else tick.tMs - startedAtMs,
-            countEnter = detector.config.countEnter,
-            deepEnter = detector.config.deepEnter,
+            // The lines this frame was counted against. While a first session is learning the range
+            // the detector counts at its bootstrap lines, and a gauge drawn at the config's showed
+            // reps counting in its 얕음 band and a 깊게 that struck nothing.
+            countEnter = tick.calibration.countEnter,
+            deepEnter = tick.calibration.deepEnter,
             playerAnim = anim,
             enemyId = encounter.enemy.id,
             enemyIsBoss = encounter.enemy.isBoss,
@@ -704,10 +708,11 @@ class BattleEngine(
         readyTopSinceMs = Long.MIN_VALUE
         plankHolding = false
 
+        val lines = next.snapshotCalibration()
         state = state.copy(
             exercise = to,
-            countEnter = next.config.countEnter,
-            deepEnter = next.config.deepEnter,
+            countEnter = lines.countEnter,
+            deepEnter = lines.deepEnter,
             runTotalReps = runTotalReps,
             heldMs = heldMs(),
             enemyHp = encounter.enemy.remaining,
