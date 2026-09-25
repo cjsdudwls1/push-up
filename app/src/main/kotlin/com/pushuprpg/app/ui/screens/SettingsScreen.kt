@@ -367,6 +367,9 @@ private fun <T> SegmentedSetting(
                             color = if (active) Palette.Brand500 else Palette.Bg3,
                         )
                         .clickable { onSelect(option) }
+                        // A touch target: the label and its padding alone came to 40dp.
+                        .heightIn(min = 48.dp)
+                        .wrapContentHeight()
                         .padding(vertical = 11.dp),
                 )
             }
