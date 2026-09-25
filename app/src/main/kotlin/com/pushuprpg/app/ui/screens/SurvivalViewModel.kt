@@ -105,6 +105,7 @@ class SurvivalViewModel(
         // One recording for the whole visit, restarts included: the run worth sending is often the
         // one before the retry. Replays with the defaults — survival starts from no calibration.
         traces.begin("mode=survival exercise=${exercise.name} profile=none")
+        if (tutorial) telemetry.log(Event.TutorialStarted)
         // Scoped to the destination, so without loading it back the mode reported "최고 0점" every
         // time the user returned — in the one place the product is built around a score.
         viewModelScope.launch { _bestScore.value = progressRepository.current().bestSurvivalScore }

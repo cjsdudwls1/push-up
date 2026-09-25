@@ -129,12 +129,15 @@ class BillingManager(
             BillingClient.BillingResponseCode.OK -> {
                 scope.launch {
                     val bought = purchases.orEmpty()
-                    bought.forEach { acknowledgeIfNeeded(it) }
                     // Paid by a method that clears later is not paid yet, and saying it was would
                     // leave the user looking at a paywall that has just told them they are in.
                     val pending = bought.isNotEmpty() &&
                         bought.none { it.purchaseState == Purchase.PurchaseState.PURCHASED }
+                    // Before the acknowledgement, which waits on Play's servers: the resume's own
+                    // refresh can open the entitlement and close the paywall first, and the paywall
+                    // is what logs purchase_completed.
                     _events.tryEmit(if (pending) BillingEvent.PurchasePending else BillingEvent.PurchaseCompleted)
+                    bought.forEach { acknowledgeIfNeeded(it) }
                     // The callback carries only what just changed; re-query for the whole picture.
                     refresh()
                 }

@@ -112,6 +112,12 @@ sealed class Event(val name: String, val params: Map<String, Any> = emptyMap()) 
     data class PermissionResolved(val granted: Boolean) :
         Event("camera_permission", mapOf("granted" to granted))
 
+    /**
+     * The tutorial's screen opened: H3's denominator. Started minus completed minus skipped is
+     * everyone who closed the app on the camera screen without either.
+     */
+    data object TutorialStarted : Event("tutorial_started")
+
     /** The tutorial run, which is also the calibration set. */
     data class TutorialCompleted(val reps: Int, val durationMs: Long) :
         Event("tutorial_completed", mapOf("reps" to reps, "duration_ms" to durationMs))

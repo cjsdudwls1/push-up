@@ -686,6 +686,9 @@ fun PushupRpgApp(
                     val plans by container.billing.plans.collectAsState()
                     val plansUnavailable by container.billing.plansUnavailable.collectAsState()
                     val activity = context as? android.app.Activity
+                    // The plan whose sheet is open, for the purchase event: Play's callback does
+                    // not say which it was.
+                    var buying by remember { mutableStateOf<String?>(null) }
                     // However the entitlement opened — this purchase, a restore, a purchase made on
                     // another device — the offer is over: say so, and go back to what it opened over.
                     LaunchedEffect(entitlement.hasFullAccess) {
@@ -696,6 +699,9 @@ fun PushupRpgApp(
                     }
                     LaunchedEffect(Unit) {
                         container.billing.events.collect { event ->
+                            if (event == com.pushuprpg.app.billing.BillingEvent.PurchaseCompleted) {
+                                container.telemetry.log(Event.PurchaseCompleted(buying ?: "unknown"))
+                            }
                             paywallMessage(event)?.let { toast(context, it) }
                         }
                     }
@@ -710,7 +716,10 @@ fun PushupRpgApp(
                         ),
                         level = progress.level,
                         onPurchase = { plan ->
-                            if (activity == null || !container.billing.launchPurchaseFlow(activity, plan)) {
+                            if (activity != null && container.billing.launchPurchaseFlow(activity, plan)) {
+                                buying = plan.period.name
+                                container.telemetry.log(Event.PurchaseStarted(plan.period.name))
+                            } else {
                                 toast(context, R.string.paywall_purchase_error)
                             }
                         },

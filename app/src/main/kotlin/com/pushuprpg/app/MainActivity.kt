@@ -16,6 +16,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.pushuprpg.app.share.ShareCardData
 import com.pushuprpg.app.share.ShareCards
+import com.pushuprpg.app.telemetry.Event
 import com.pushuprpg.app.ui.PushupRpgApp
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
@@ -29,6 +30,8 @@ class MainActivity : ComponentActivity() {
         ActivityResultContracts.RequestPermission()
     ) { granted ->
         cameraGranted.value = granted
+        // H1 in docs/LAUNCH.md: of the people asked, how many let the camera in.
+        (application as PushupApp).container.telemetry.log(Event.PermissionResolved(granted))
         // "Denied and we may no longer ask" is the state that leads with settings: the system dialog
         // may not appear again. Only may — from Android 11 a dialog dismissed without an answer
         // reads the same — so the permission screen keeps a button that asks as well.
@@ -45,6 +48,16 @@ class MainActivity : ComponentActivity() {
         ) == PackageManager.PERMISSION_GRANTED
 
         val container = (application as PushupApp).container
+
+        // Exactly when the graph starts at onboarding — no class chosen yet — and once per launch
+        // rather than per visit to the screen, which going back from the class picker repeats.
+        if (savedInstanceState == null) {
+            lifecycleScope.launch {
+                if (!container.progressRepository.current().classChosen) {
+                    container.telemetry.log(Event.OnboardingStarted)
+                }
+            }
+        }
 
         setContent {
             PushupRpgApp(

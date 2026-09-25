@@ -91,7 +91,8 @@ class BattleViewModel(
     @Volatile private var exercise: ExerciseType = ExerciseType.PUSHUP
     @Volatile private var dungeonIndex: Int = 1
     @Volatile private var sessionBestDepth: Float = 0f
-    @Volatile private var lastReportedQuality: PoseQuality = PoseQuality.OK
+    /** Null, not OK, before the first frame: see the quality_lost log in [onPoseFrame]. */
+    @Volatile private var lastReportedQuality: PoseQuality? = null
 
     /** finish() is reachable from both the pose thread and quit(); the run must bank exactly once. */
     private val saved = AtomicBoolean(false)
@@ -240,6 +241,9 @@ class BattleViewModel(
         // on which device. Every detection constant here is reasoned rather than measured, so
         // without this there is no way to learn that a threshold is wrong for a phone nobody here
         // has held.
+        //
+        // Only once tracking has been OK: a run starts with nobody in position yet, and counting
+        // that first frame as a drop put nearly every session into H2's quality_lost rate.
         if (next.quality != PoseQuality.OK && lastReportedQuality == PoseQuality.OK) {
             telemetry.log(Event.QualityLost(next.quality, next.reps))
         }
