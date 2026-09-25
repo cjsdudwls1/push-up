@@ -67,7 +67,8 @@ data class ExerciseDescriptor(
     val latchNormalSign: Boolean = false,
     /**
      * False while an exercise's signal has never been checked against a recorded trace of a real
-     * set. The UI says so rather than pretending otherwise.
+     * set. The UI says so rather than pretending otherwise. True only for a movement a recording in
+     * RealTraceTest replays and counts, which that test pins.
      */
     val validatedOnDevice: Boolean = false,
     val damageCoefficient: Float,
@@ -435,6 +436,7 @@ object Exercises {
             allowJointFallback = true,
         ),
         config = DetectorConfig(ExerciseType.PUSHUP),
+        validatedOnDevice = true,
         damageCoefficient = 1.00f,
         sessionVolumeScale = 1.00f,
         defaultCapacity = 8f,
@@ -545,6 +547,7 @@ object Exercises {
             topClampMin = 0.80f, topClampMax = 2.20f,
             botClampMin = 0.05f, botClampMax = 1.30f,
         ),
+        validatedOnDevice = true,
         // A pull-up is worth roughly two and a half pushups: typical untrained maxima are about
         // twenty and seven. This coefficient is the knob to turn if a floor feels wrong — never an
         // enemy HP number, because there isn't one.
@@ -565,6 +568,7 @@ object Exercises {
         normalToward = WRISTS,
         signal = null,
         config = DetectorConfig(ExerciseType.PLANK),
+        validatedOnDevice = true,
         damageCoefficient = 1.00f,
         sessionVolumeScale = 2.00f,
         defaultCapacity = 20f,
@@ -628,6 +632,7 @@ object Exercises {
             topClampMin = 0.60f, topClampMax = 1.60f,
             botClampMin = -0.60f, botClampMax = 0.70f,
         ),
+        validatedOnDevice = true,
         damageCoefficient = 0.95f,
         sessionVolumeScale = 0.87f,
         defaultCapacity = 12f,
@@ -702,6 +707,7 @@ object Exercises {
             topClampMin = 0.80f, topClampMax = 2.20f,
             botClampMin = 0.30f, botClampMax = 1.60f,
         ),
+        validatedOnDevice = true,
         // Between a pushup and a pull-up, nearer the pull-up: a dip is near-max for most people but
         // the hands carry less than a full hang.
         damageCoefficient = 1.90f,

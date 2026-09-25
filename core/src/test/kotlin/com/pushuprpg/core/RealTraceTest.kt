@@ -4,6 +4,7 @@ import com.pushuprpg.core.detect.CalibrationSnapshot
 import com.pushuprpg.core.detect.CalibrationState
 import com.pushuprpg.core.detect.DetectorFactory
 import com.pushuprpg.core.detect.ExerciseType
+import com.pushuprpg.core.detect.Exercises
 import com.pushuprpg.core.detect.RepDetector
 import com.pushuprpg.core.detect.RepEvent
 import com.pushuprpg.core.detect.UserProfile
@@ -163,6 +164,16 @@ class RealTraceTest {
                 assertTrue(reps in set.least..set.done, "${set.why}, every $stride: $reps reps, wanted ${set.least}-${set.done}; refused $refused")
             }
         }
+    }
+
+    /**
+     * 시험 중 on the picker is the honest word for a movement no real set has been counted for. Every
+     * movement a recording here replays and counts is marked validated, and no other.
+     */
+    @Test
+    fun `the movements marked validated are the ones recorded here`() {
+        val recorded = setOf(ExerciseType.PUSHUP, ExerciseType.PULL_UP, ExerciseType.PLANK) + camera.map { it.type }
+        assertEquals(recorded, Exercises.ALL.filter { it.validatedOnDevice }.map { it.type }.toSet())
     }
 
     @Test

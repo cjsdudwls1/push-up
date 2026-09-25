@@ -115,6 +115,5 @@ class DipDetectorTest {
         val d = Exercises.of(ExerciseType.DIP)
         assertTrue(d.sessionVolumeScale < 0.5f, "a dip session is near-max, not 150 reps")
         assertTrue(d.damageCoefficient > 1f, "a dip is worth more than a pushup per rep")
-        assertTrue(!d.validatedOnDevice, "no real body has done this yet, and the UI must say so")
     }
 }
