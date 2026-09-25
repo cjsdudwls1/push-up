@@ -18,6 +18,10 @@ import com.pushuprpg.core.pose.PoseFrame
  * briefly was — a decorative figure in the twenties while the monster lost a single rep. The count
  * remaining is the number the user is actually working toward, and it is true.
  *
+ * It rises when the rep's worth is known: at the strike for a 궁수, and for a 기사 at the deep line
+ * or the rep's end, since a 기사's strike takes only the first half of a rep. So the numbers only
+ * ever fall.
+ *
  * [crit] and [deep] still style it, so a deep rep looks better without being worth more.
  */
 data class FloatingDamage(
@@ -225,6 +229,8 @@ class BattleEngine(
     private var lastBottomMs = 0
     private var readyTopSinceMs = Long.MIN_VALUE
     private var damageSeq = 0L
+    /** The last strike's crit, which styles a 기사's number when the rep is decided. */
+    private var strikeCrit = false
     private val animator = FighterAnimator(initialPlayer.playerClass)
     private var enemyHurtAtMs = Long.MIN_VALUE
     private var enemyDiedAtMs = Long.MIN_VALUE
@@ -330,6 +336,12 @@ class BattleEngine(
         // How a rep measured up to the class's way. A half-worth rep is said on the first of a run of
         // them and then every third, so the reminder is heard without becoming the soundtrack.
         fun onStyle(ce: CombatEvent.Style) {
+            // A 기사's rep is worth what it is only from here, so this is where its number rises:
+            // at the strike it showed a count the deep line was about to take one off.
+            if (playerClass == PlayerClass.KNIGHT) {
+                damageSeq++
+                damages += FloatingDamage(damageSeq, ce.left, strikeCrit, ce.miss != StyleMiss.NOT_FULL, ce.atMs)
+            }
             val miss = ce.miss
             if (miss == null) {
                 styleMisses = 0
@@ -425,11 +437,15 @@ class BattleEngine(
                                     },
                                     rate = BattleAudio.pitchForCombo(event.combo),
                                 )
-                                damageSeq++
-                                damages += FloatingDamage(
-                                    damageSeq, ce.result.enemy.remaining, ce.result.crit,
-                                    ce.result.deep, event.tMs,
-                                )
+                                // A 궁수's rep is decided here; a 기사's number waits for its Style.
+                                strikeCrit = ce.result.crit
+                                if (playerClass != PlayerClass.KNIGHT) {
+                                    damageSeq++
+                                    damages += FloatingDamage(
+                                        damageSeq, ce.result.enemy.remaining, ce.result.crit,
+                                        ce.result.deep, event.tMs,
+                                    )
+                                }
                                 shake = (shake + if (ce.result.crit) 1.0f else 0.45f).coerceAtMost(1f)
                                 shallowStreak = 0
                                 if (event.combo > 0 && event.combo % COMBO_MILESTONE == 0) {
@@ -579,8 +595,9 @@ class BattleEngine(
         val dying = enemyDiedAtMs != Long.MIN_VALUE
 
         // A half-worth rep makes the run a little longer, and the total says so: done so far plus
-        // what is still owed if every rep from here is done the class's way.
-        if (Exercises.of(detector.config.exercise).kind == MovementKind.REP && enemyDiedAtMs == Long.MIN_VALUE) {
+        // what is still owed if every rep from here is done the class's way. On the frame the
+        // monster falls too, or the total stays on whatever the last rep's strike made it.
+        if (Exercises.of(detector.config.exercise).kind == MovementKind.REP) {
             runTotalReps = repsTotal + owedFromHere()
         }
 
@@ -688,7 +705,7 @@ class BattleEngine(
      */
     private fun owedFromHere(): Int {
         val to = detector.config.exercise
-        return encounter.enemy.remaining + dungeon.floors.drop(floorIndex + 1)
+        return encounter.repsOwed + dungeon.floors.drop(floorIndex + 1)
             .sumOf { it.repCost(difficulty, to, playerClass) }
     }
 

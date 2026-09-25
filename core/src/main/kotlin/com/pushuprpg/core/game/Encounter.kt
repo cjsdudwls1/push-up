@@ -37,9 +37,10 @@ sealed interface CombatEvent {
 
     /**
      * How a rep measured up to the class's way of doing it, once that is known: at the strike for a
-     * 궁수, at the deep line or the rep's end for a 기사. [miss] is null for a whole rep.
+     * 궁수, at the deep line or the rep's end for a 기사. [miss] is null for a whole rep. [left] is
+     * what the monster still owes once the rep is decided — the number a 기사's rep shows.
      */
-    data class Style(override val atMs: Long, val miss: StyleMiss?) : CombatEvent
+    data class Style(override val atMs: Long, val miss: StyleMiss?, val left: Int) : CombatEvent
 }
 
 enum class Mitigation {
@@ -125,6 +126,22 @@ class Encounter(
     /** Reps done the class's way, whole reps off the count. */
     var styleReps: Int = 0
         private set
+
+    /**
+     * Reps this monster still owes if every rep from here is done the class's way, the one in
+     * progress included — what the run's total is counted from.
+     *
+     * A 기사's rep takes its first half at the strike and is not decided until the deep line. Counted
+     * as half until then, the total rose by one at every strike and fell back at the deep line, and
+     * a run done perfectly ended on 10개 / 11. So the half still to come of an undecided rep is
+     * counted as coming; a rep that ends half raises the total then, once, as it should.
+     */
+    val repsOwed: Int
+        get() {
+            val pending = repOpen && !repReachedDeep && player.playerClass == PlayerClass.KNIGHT
+            val halves = 2 * enemy.remaining - (if (enemy.halfTaken) 1 else 0) - (if (pending) 1 else 0)
+            return ((halves + 1) / 2).coerceAtLeast(0)
+        }
 
     // The rep in progress, from its strike to its end: a 기사's is not decided until it has either
     // reached the deep line or come back up without it.
@@ -250,7 +267,7 @@ class Encounter(
 
         if (player.playerClass == PlayerClass.ARCHER) {
             if (halves == 2) styleReps++
-            events += CombatEvent.Style(atMs, if (halves == 2) null else StyleMiss.LAGGING)
+            events += CombatEvent.Style(atMs, if (halves == 2) null else StyleMiss.LAGGING, enemy.remaining)
         }
 
         // Pushing through without resting earns a little health back.
@@ -292,11 +309,11 @@ class Encounter(
             if (ClassStyle.knightSlowEnough(loweringMs)) {
                 enemy = enemy.spend(1)
                 styleReps++
-                events += CombatEvent.Style(atMs, null)
+                events += CombatEvent.Style(atMs, null, enemy.remaining)
                 if (telegraphed) answer()
                 if (enemy.isDead) return events + defeated(atMs)
             } else {
-                events += CombatEvent.Style(atMs, StyleMiss.TOO_QUICK)
+                events += CombatEvent.Style(atMs, StyleMiss.TOO_QUICK, enemy.remaining)
             }
         } else if (telegraphed) {
             answer()
@@ -319,7 +336,7 @@ class Encounter(
     private fun closeRep(atMs: Long, seen: Boolean = true): List<CombatEvent> {
         val events = mutableListOf<CombatEvent>()
         if (seen && repOpen && !repReachedDeep && player.playerClass == PlayerClass.KNIGHT) {
-            events += CombatEvent.Style(atMs, StyleMiss.NOT_FULL)
+            events += CombatEvent.Style(atMs, StyleMiss.NOT_FULL, enemy.remaining)
         }
         // A rep the tracker lost is not held against the user. Unless it had already answered, it
         // gives its chance in the window back — a 기사's answer comes at the deep line, after the
@@ -510,6 +527,8 @@ class Encounter(
             wardHp = share(enemy.wardHp, enemy.wardMaxHp, repriced.wardMaxHp),
         )
         this.resolver = resolver
+        // The rep in progress was the last movement's; its end will never be reported.
+        repOpen = false
     }
 
     fun crackFraction(): Float =

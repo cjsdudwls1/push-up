@@ -168,27 +168,60 @@ class VolumeModelTest {
     @Test
     fun `a warded dungeon takes the reps it quoted, and the bar moves through the ward`() {
         val dungeon = Dungeons.byIndex(6)!!
-        val cls = PlayerClass.ARCHER
-        val quoted = dungeon.repCost(Difficulty.STANDARD, ExerciseType.PUSHUP, cls)
         val warded = dungeon.floors.indexOfFirst { it.wardFraction > 0f }
-        val wardedCount = dungeon.floors[warded].repCost(Difficulty.STANDARD, ExerciseType.PUSHUP, cls)
+        for (cls in PlayerClass.entries) {
+            val quoted = dungeon.repCost(Difficulty.STANDARD, ExerciseType.PUSHUP, cls)
+            val wardedCount = dungeon.floors[warded].repCost(Difficulty.STANDARD, ExerciseType.PUSHUP, cls)
 
-        val e = engine(dungeon, cls)
+            val e = engine(dungeon, cls)
+            var state = e.currentState()
+            val barOnWardedFloor = mutableSetOf<Int>()
+            inStyle(cls, quoted + 20, 3_600_000L).forEach {
+                if (state.outcome != null) return@forEach
+                state = e.onPoseFrame(it)
+                assertEquals(quoted, state.runTotalReps, "$cls: the total moved off the quote at ${state.reps}")
+                if (state.floorIndex == warded) {
+                    assertEquals(wardedCount, state.enemyMaxHp)
+                    barOnWardedFloor += state.enemyHp
+                }
+            }
+
+            assertEquals(true, state.outcome?.cleared, "$cls: the dungeon did not clear")
+            assertEquals(quoted, state.outcome!!.reps, "$cls: quoted $quoted reps, took ${state.outcome?.reps}")
+            assertEquals((0..wardedCount).toSet(), barOnWardedFloor, "$cls: the bar skipped or stuck on the warded floor")
+        }
+    }
+
+    /**
+     * A 기사's strike takes the first half of a rep and the deep line the second. Counted as half
+     * until then, the total rose by one at every strike and fell back at the deep line, the number
+     * that rose showed a count the deep line was about to change, and a perfect run ended on
+     * 10개 / 11.
+     */
+    @Test
+    fun `a 기사's own way keeps the total still and the numbers only falling`() {
+        val dungeon = Dungeons.FREE_DUNGEON
+        val quoted = dungeon.repCost(Difficulty.STANDARD, ExerciseType.PUSHUP, PlayerClass.KNIGHT)
+        val e = engine(dungeon, PlayerClass.KNIGHT)
         var state = e.currentState()
-        val barOnWardedFloor = mutableSetOf<Int>()
-        inStyle(cls, quoted + 20, 3_600_000L).forEach {
+        var lastId = 0L
+        val numbers = mutableMapOf<Int, MutableList<Int>>()
+        inStyle(PlayerClass.KNIGHT, quoted + 20, 3_600_000L).forEach {
             if (state.outcome != null) return@forEach
             state = e.onPoseFrame(it)
-            if (state.outcome == null) assertEquals(quoted, state.runTotalReps, "the total moved off the quote at ${state.reps}")
-            if (state.floorIndex == warded) {
-                assertEquals(wardedCount, state.enemyMaxHp)
-                barOnWardedFloor += state.enemyHp
+            assertEquals(quoted, state.runTotalReps, "the total moved at ${state.reps} reps")
+            for (d in state.damages) if (d.id > lastId) {
+                numbers.getOrPut(state.floorIndex) { mutableListOf() } += d.amount
+                lastId = d.id
             }
         }
 
-        assertEquals(true, state.outcome?.cleared, "the dungeon did not clear")
-        assertEquals(quoted, state.outcome!!.reps, "quoted $quoted reps, took ${state.outcome?.reps}")
-        assertEquals((0..wardedCount).toSet(), barOnWardedFloor, "the bar skipped or stuck on the warded floor")
+        assertEquals(true, state.outcome?.cleared)
+        assertEquals(state.runTotalReps, state.reps, "the run ended short of its own total")
+        dungeon.floors.forEachIndexed { i, floor ->
+            val count = floor.repCost(Difficulty.STANDARD, ExerciseType.PUSHUP, PlayerClass.KNIGHT)
+            assertEquals<List<Int>?>((count - 1 downTo 0).toList(), numbers[i], "floor $i's numbers")
+        }
     }
 
     @Test
