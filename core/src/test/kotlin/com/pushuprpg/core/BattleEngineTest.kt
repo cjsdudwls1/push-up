@@ -296,6 +296,41 @@ class BattleEngineTest {
     }
 
     /**
+     * The test above compares a config with itself. This is the rule it stands for: once the range
+     * is learned, the rep counts on the frame the gauge crosses the 인정 line the HUD draws, and the
+     * 깊은 타격 comes on the frame it crosses the 깊게 line.
+     */
+    @Test
+    fun `a learned rep counts and goes deep where the gauge's lines are drawn`() {
+        val e = engine(playerClass = PlayerClass.ARCHER)
+        var prev = e.currentState()
+        var counted = 0
+        var deepened = 0
+        for (f in PoseFixtures.trace(count = 14, peakDepth = 0.95f, restMs = 250)) {
+            val s = e.onPoseFrame(f)
+            if (!prev.calibrating && !s.calibrating) {
+                if (s.reps > prev.reps) {
+                    assertTrue(
+                        prev.depth < s.countEnter && s.depth >= s.countEnter,
+                        "counted going from ${prev.depth} to ${s.depth}; the gauge draws 인정 at ${s.countEnter}",
+                    )
+                    counted++
+                }
+                if (s.deepReps > prev.deepReps) {
+                    assertTrue(
+                        prev.depth < s.deepEnter && s.depth >= s.deepEnter,
+                        "깊게 going from ${prev.depth} to ${s.depth}; the gauge draws it at ${s.deepEnter}",
+                    )
+                    deepened++
+                }
+            }
+            prev = s
+            if (s.outcome != null) break
+        }
+        assertTrue(counted >= 5 && deepened >= 5, "checked $counted counts and $deepened deep lines")
+    }
+
+    /**
      * The device-shaped version of the rule: the tracker loses the user at the bottom of the rep
      * that closes the answer window, and the detector abandons it. Nothing may land while they are
      * out of view, and coming back must not be met with the hit either.
