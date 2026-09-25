@@ -58,8 +58,8 @@
     <string name="battle_ultimate_blocked">막았어요!</string>
     <string name="battle_ultimate_hit">아야, 체력이 %1$d 줄었어요. 다음엔 막아요!</string>
     <string name="battle_hp_label">체력</string>
-    <string name="battle_bootstrap">처음 몇 개로 당신의 범위를 배울게요</string>
-    <string name="battle_calibrated">범위를 익혔어요. 이제 정확해요.</string>
+    <string name="battle_bootstrap">처음 몇 개로 내 몸에 맞출게요</string>
+    <string name="battle_calibrated">내 몸에 맞췄어요. 이제 제대로 세요</string>
     <string name="battle_shallow_twice">조금만 더 내려가 볼까요?</string>
     <string name="battle_shallow_four">힘들면 무릎 대고 해도 괜찮아요</string>
     <string name="battle_shallow_pull">조금만 더 끌어올려 볼까요?</string>
@@ -267,7 +267,7 @@
     <string name="pick_exercise_cost_seconds">%1$,d초</string>
     <string name="settings_privacy">개인정보 처리방침</string>
     <string name="settings_terms">이용약관·건강 안내</string>
-    <string name="settings_recalibrate">깊이 기준 초기화</string>
+    <string name="settings_recalibrate">내 몸에 다시 맞추기</string>
 
     <!-- Exercises -->
     <string name="exercise_pushup">푸쉬업</string>
@@ -278,10 +278,11 @@
     <string name="exercise_dip">딥스</string>
 
     <!-- Camera placement, in one line: the rest is said live by the placement banner. A plank is
-         read from the 3-D skeleton, so front and side both work; the heels must be in the picture. -->
+         read from the 3-D skeleton, so from the head and from the side both work, and the legs are
+         taken from the skeleton whether the camera sees them or not: the hint does not ask for them. -->
     <string name="exercise_hint_pushup">폰은 머리 앞쪽 바닥에 세워 두세요</string>
     <string name="exercise_hint_squat">폰은 정면에, 무릎까지 보이게 두세요</string>
-    <string name="exercise_hint_plank">폰은 바닥에, 머리부터 발끝까지 보이게 두세요 (앞·옆 다 돼요)</string>
+    <string name="exercise_hint_plank">폰은 바닥에 세워 두세요 (머리 쪽·옆 다 돼요)</string>
     <string name="exercise_hint_pull_up">폰은 멀리, 바부터 발까지 보이게 두세요 (앞·옆·뒤 다 돼요)</string>
     <string name="exercise_hint_lunge">폰은 바닥에 세워 두세요 (앞·옆 다 돼요)</string>
     <string name="exercise_hint_dip">폰은 평행봉 앞이나 옆, 온몸이 보이게 두세요</string>
@@ -432,7 +433,7 @@
     <string name="settings_difficulty">난이도</string>
     <string name="settings_difficulty_sub">몬스터가 버티는 개수가 달라져요. 언제든 바꿀 수 있어요.</string>
     <string name="settings_recalibrate_sub">개수가 잘 안 세지거나 너무 쉽게 세질 때, 폰 위치를 바꿨을 때 눌러요. 다음 운동의 처음 몇 개로 내 몸에 다시 맞춰요.</string>
-    <string name="settings_recalibrate_done">깊이 기준을 초기화했어요. 다음 운동 처음 몇 개로 다시 맞춰요.</string>
+    <string name="settings_recalibrate_done">다음 운동 처음 몇 개로 다시 맞출게요</string>
     <!-- Share card -->
     <string name="share_card_survival_headline">고냥이를 지켰어요</string>
     <string name="share_card_survival_hero_label">천장을 밀어 올린 점수</string>
