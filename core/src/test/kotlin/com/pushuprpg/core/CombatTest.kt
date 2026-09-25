@@ -37,6 +37,16 @@ class CombatTest {
     }
 
     @Test
+    fun `whether a rep was deep is the detector's verdict, not a second look at its depth`() {
+        // While it learns a range the detector goes 깊게 at 92, not the config's 88, and the gauge
+        // draws 92. A strike at 90 is then an ordinary rep on screen, so it is one here too.
+        val learning = resolver.resolve(knight(), dummy(), RepInput(90f, RepGrade.COUNTED), NoCritRng)
+        assertTrue(!learning.deep)
+        val deep = resolver.resolve(knight(), dummy(), RepInput(90f, RepGrade.DEEP), NoCritRng)
+        assertTrue(deep.deep)
+    }
+
+    @Test
     fun `damage rises monotonically with depth and with combo`() {
         val byDepth = listOf(70f, 80f, 88f, 95f, 100f).map {
             resolver.resolve(knight(combo = 5), dummy(), rep(it, cycleMs = 5000), NoCritRng).damage

@@ -212,7 +212,9 @@ class CombatResolver(
         }
 
         val advanced = player.copy(combo = combo, tempoStreak = tempoStreak)
-        val deep = rep.depth >= detectorConfig.deepEnter
+        // The detector's verdict, not a second look at the depth: while it is still learning a range
+        // it goes 깊게 at a different line than the config's, and the gauge draws the one it uses.
+        val deep = rep.grade == RepGrade.DEEP
 
         var raw = advanced.attack *
             depthMult * comboMult * tempoMult * formMult * weaknessMult *
