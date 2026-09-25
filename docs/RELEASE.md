@@ -19,7 +19,9 @@ in the repository secrets, every push to the install branch is signed and upload
 ### Play Console products
 `app/src/main/kotlin/com/pushuprpg/app/billing/BillingProducts.kt` names one subscription product
 with two base plans and a 7-day trial offer on each. Those ids must be created in the Play Console
-exactly as written, or `queryProductDetails` returns nothing and the paywall renders empty.
+exactly as written, or `queryProductDetails` returns nothing and the paywall has no plan to sell:
+it says it cannot load the subscription and offers 다시 시도, which cannot help until the products
+exist.
 
 Pricing is read from `ProductDetails` and never hardcoded, so set KRW prices in the Console. Set the
 Korean price by hand rather than letting Play convert from USD — converted prices land on values
