@@ -42,6 +42,8 @@ object Body3d {
     const val ANKLE_HEIGHT = 0.08f
     const val NOSE_ABOVE_SHOULDER = 0.24f
     const val NOSE_FORWARD = 0.09f
+    /** The knee joint's height off the floor with the knee on it. */
+    const val KNEE_ON_FLOOR = 0.06f
 
     const val STANDING_HIP_Y = ANKLE_HEIGHT + SHANK + THIGH
     const val STANDING_SHOULDER_Y = STANDING_HIP_Y + TORSO
@@ -254,11 +256,16 @@ object Body3d {
      * [heading] is the horizontal direction the head points and [shoulderAt] the point on the floor
      * the shoulders sit over. The default lies across the lens with the head to the viewer's left:
      * the side view the placement line asks for.
+     *
+     * [onKnees] is the knee pushup the game offers when pushups get hard: the same arms, and the
+     * body one straight line from the shoulders to the knees on the floor, hips extended, pivoting
+     * there, with the shins flat on the floor behind.
      */
     fun pushup(
         depth: Float,
         heading: V3 = V3(-1f, 0f, 0f),
         shoulderAt: V3 = V3(-0.55f, 0f, 0f),
+        onKnees: Boolean = false,
     ): Skeleton {
         val s = Skeleton()
         val h = heading.unit()
@@ -280,15 +287,15 @@ object Body3d {
             s[shoulder] = shoulderMid + left * (side * SHOULDER_WIDTH / 2f)
             s[elbow] = midJoint(s[shoulder], s[wrist], UPPER_ARM, FOREARM, h * -1f + left * (side * 0.8f))
         }
-        val bodyLength = TORSO + THIGH + SHANK
-        val drop = shoulderY - ANKLE_HEIGHT
+        val bodyLength = TORSO + THIGH + if (onKnees) 0f else SHANK
+        val drop = shoulderY - if (onKnees) KNEE_ON_FLOOR else ANKLE_HEIGHT
         val toFeet = (h * -sqrt(bodyLength * bodyLength - drop * drop) + V3(0f, -drop, 0f)).unit()
         val hipMid = shoulderMid + toFeet * TORSO
         for ((side, hip, knee, ankle) in SIDES_LEG) {
             val x = left * (side * HIP_WIDTH / 2f)
             s[hip] = hipMid + x
             s[knee] = hipMid + toFeet * THIGH + x
-            s[ankle] = hipMid + toFeet * (THIGH + SHANK) + x
+            s[ankle] = if (onKnees) s[knee] - h * SHANK else hipMid + toFeet * (THIGH + SHANK) + x
         }
         // The head in line with the body, face to the floor.
         val faceDown = (down - toFeet * down.dot(toFeet)).unit()

@@ -134,10 +134,10 @@ class MovementRigTest {
     // ---------------------------------------------------------------- the pushup
 
     /** A pushup with the shoulders over the origin and the head turned [yawDeg] away from the lens. */
-    private fun pushupAt(yawDeg: Float): (Float) -> Body3d.Skeleton {
+    private fun pushupAt(yawDeg: Float, onKnees: Boolean = false): (Float) -> Body3d.Skeleton {
         val yaw = Math.toRadians(yawDeg.toDouble())
         val heading = Body3d.V3(-sin(yaw).toFloat(), 0f, cos(yaw).toFloat())
-        return { depth -> Body3d.pushup(depth, heading, Body3d.V3(0f, 0f, 0f)) }
+        return { depth -> Body3d.pushup(depth, heading, Body3d.V3(0f, 0f, 0f), onKnees) }
     }
 
     /**
@@ -158,6 +158,37 @@ class MovementRigTest {
                 )
             }
         }
+    }
+
+    /**
+     * 힘들면 무릎 대고 해도 괜찮아요 is what the game tells someone whose pushups keep falling short,
+     * so a knee pushup has to count, and until this it had never been measured. It counts: the
+     * signal and both witnesses are the arms and the head, and the knees on the floor only tilt the
+     * body more steeply. From the floor in front of the head, near and far, and from waist and chest
+     * height; and a half one still reads shallow.
+     */
+    @Test
+    fun `a knee pushup counts from the floor, waist and chest, and a half one does not`() {
+        val cameras = listOf(
+            "the floor 1.3m away" to Camera.onFloor(1.3f, 12f),
+            "the floor 2.0m away" to Camera.onFloor(2.0f, 8f),
+            "waist height" to waist,
+            "chest height" to chest,
+        )
+        for ((where, camera) in cameras) for (yaw in listOf(0f, 30f, 60f)) {
+            // From above, 60 degrees off the head is side on enough to lose the shoulder line and be
+            // told to face the phone — on the toes too. That is the pushup's, not the knees'.
+            if (yaw == 60f && camera.position.y > 0.5f) continue
+            val r = run(ExerciseType.PUSHUP, pushupAt(yaw, onKnees = true), camera)
+            val what = "a knee pushup from $where, ${yaw.toInt()} degrees off the head"
+            assertEquals(8, r.reps, "$what counted ${r.reps} of 8; refused as ${r.refusals.distinct()}, shallow ${r.shallow}")
+            // Close by at 60 degrees a few of the rig's deepest reps stop short of 깊게, on the toes too.
+            val deep = r.events.count { it is RepEvent.DeepUpgrade }
+            if (yaw < 60f) assertEquals(8, deep, "$what went 깊게 on $deep of 8")
+        }
+        val half = run(ExerciseType.PUSHUP, pushupAt(0f, onKnees = true), Camera.onFloor(1.3f, 12f), peakDepth = 0.6f)
+        assertEquals(0, half.reps, "a half knee pushup counted")
+        assertEquals(8, half.shallow, "a half knee pushup was not reported as shallow")
     }
 
     @Test
