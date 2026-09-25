@@ -141,7 +141,11 @@
     <string name="result_defeat">다음엔 잡아요</string>
     <string name="result_defeat_sub">오늘도 몸은 확실히 썼어요</string>
     <string name="result_banner">%1$d개가 기록에 올라갔어요. 이기든 지든 사라지지 않아요.</string>
-    <string name="result_tile_reps">푸쉬업</string>
+    <string name="result_banner_hold">%1$d초가 기록에 올라갔어요. 이기든 지든 사라지지 않아요.</string>
+    <!-- A run in which the camera counted nothing at all. Said as the camera's miss, never the user's,
+         and followed by the movement's one-line placement hint. -->
+    <string name="result_nothing_counted">카메라가 아직 한 개도 못 셌어요</string>
+    <string name="result_nothing_counted_hold">카메라가 아직 버틴 시간을 못 셌어요</string>
     <string name="result_tile_combo">최고 콤보</string>
     <string name="result_tile_time">시간</string>
     <string name="result_tile_deep">깊게</string>
@@ -265,6 +269,7 @@
     <string name="result_stars_three">깊이까지 완벽했어요</string>
     <string name="result_stars_two">좋아요. 조금만 더 내려가면 별 세 개예요</string>
     <string name="result_stars_one">개수는 다 채웠어요. 다음엔 더 깊게 가봐요</string>
+    <string name="result_stars_one_defeat">다음엔 조금 더 깊게 가봐요</string>
     <string name="battle_count_reps">%1$,d개</string>
     <string name="battle_count_seconds">%1$,d초</string>
     <string name="battle_remaining">남은 %1$,d개</string>

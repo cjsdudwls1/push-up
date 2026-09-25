@@ -8,7 +8,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -22,10 +21,16 @@ import androidx.compose.ui.unit.dp
 import com.pushuprpg.app.R
 import com.pushuprpg.app.ui.components.KeepScreenOn
 import com.pushuprpg.app.ui.components.PrimaryButton
+import com.pushuprpg.app.ui.components.RankCard
 import com.pushuprpg.app.ui.components.SecondaryButton
+import com.pushuprpg.app.ui.components.exerciseHintRes
+import com.pushuprpg.app.ui.components.exerciseLabelRes
 import com.pushuprpg.app.ui.theme.LocalGameColors
 import com.pushuprpg.app.ui.theme.Palette
 import com.pushuprpg.app.ui.theme.Type
+import com.pushuprpg.core.detect.ExerciseType
+import com.pushuprpg.core.detect.Exercises
+import com.pushuprpg.core.detect.MovementKind
 import com.pushuprpg.core.game.PlayerClass
 import com.pushuprpg.core.progression.RankProgress
 import com.pushuprpg.core.run.Outcome
@@ -66,6 +71,23 @@ fun ResultScreen(
 ) {
     val colors = LocalGameColors.current
     val rank = RankProgress.of(lifetimeReps)
+    // What the run did, in each movement's own unit: the reps counted, and the seconds held.
+    val heldMs = outcome.segments
+        .filter { Exercises.of(it.exercise).kind == MovementKind.HOLD }
+        .sumOf { it.holdMs }
+    val lastExercise = outcome.segments.lastOrNull()?.exercise ?: ExerciseType.PUSHUP
+    // The camera counted nothing at all. Said plainly, with where the phone goes, instead of a star
+    // for depth nobody measured and a banner saying 0개 were kept.
+    val nothingCounted = !outcome.cleared && outcome.reps == 0 && heldMs < 1_000L
+    // A run that only held is told in seconds, as its HUD counted it, not as the reps it never made.
+    val inSeconds = outcome.reps == 0 && heldMs >= 1_000L
+    // The tile is named after what was done: the movement, or 개수 when there was more than one.
+    val worked = outcome.segments
+        .filter { if (inSeconds) it.holdMs >= 1_000L else it.reps > 0 }
+        .ifEmpty { outcome.segments }
+    val tileLabel = worked.map { it.exercise }.distinct().singleOrNull()
+        ?.let { stringResource(exerciseLabelRes(it)) }
+        ?: stringResource(R.string.records_label_reps)
 
     Column(
         modifier = modifier
@@ -92,41 +114,72 @@ fun ResultScreen(
         )
         Spacer(Modifier.height(4.dp))
         Text(
-            text = if (outcome.cleared) {
-                stringResource(R.string.result_cleared_sub, dungeonName)
-            } else {
-                stringResource(R.string.result_defeat_sub)
+            text = when {
+                outcome.cleared -> stringResource(R.string.result_cleared_sub, dungeonName)
+                nothingCounted -> stringResource(
+                    if (Exercises.of(lastExercise).kind == MovementKind.HOLD) R.string.result_nothing_counted_hold
+                    else R.string.result_nothing_counted
+                )
+                else -> stringResource(R.string.result_defeat_sub)
             },
             style = Type.bodyL,
             color = Palette.TextSecondary,
             textAlign = TextAlign.Center,
         )
 
-        Spacer(Modifier.height(18.dp))
-        StarRow(outcome.stars)
-        // How many reps were done the class's way — whole reps — out of all of them. Only for
-        // counted movements: a hold has no way to do it or not.
-        if (outcome.reps > 0 && outcome.segments.any { it.holdMs == 0L }) {
-            Spacer(Modifier.height(6.dp))
+        if (nothingCounted) {
+            Spacer(Modifier.height(18.dp))
             Text(
-                text = stringResource(
-                    if (playerClass == PlayerClass.ARCHER) R.string.result_style_archer else R.string.result_style_knight,
-                    outcome.styleReps, outcome.reps,
-                ),
-                style = Type.labelL,
-                color = colors.deep,
+                text = stringResource(exerciseHintRes(lastExercise)),
+                style = Type.bodyM,
+                color = Palette.TextPrimary,
                 textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(Palette.Bg2)
+                    .padding(horizontal = 14.dp, vertical = 12.dp),
+            )
+        } else {
+            // Stars grade the depth of counted reps, so a run with none — a hold — has none to show.
+            if (outcome.reps > 0) {
+                Spacer(Modifier.height(18.dp))
+                StarRow(outcome.stars, cleared = outcome.cleared)
+            }
+            // How many reps were done the class's way — whole reps — out of all of them. Only for
+            // counted movements: a hold has no way to do it or not.
+            if (outcome.reps > 0 && outcome.segments.any { it.holdMs == 0L }) {
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    text = stringResource(
+                        if (playerClass == PlayerClass.ARCHER) R.string.result_style_archer else R.string.result_style_knight,
+                        outcome.styleReps, outcome.reps,
+                    ),
+                    style = Type.labelL,
+                    color = colors.deep,
+                    textAlign = TextAlign.Center,
+                )
+            }
+
+            Spacer(Modifier.height(18.dp))
+            ReassuranceBanner(
+                text = if (inSeconds) {
+                    stringResource(R.string.result_banner_hold, (heldMs / 1000).toInt())
+                } else {
+                    stringResource(R.string.result_banner, outcome.reps)
+                },
             )
         }
-
-        Spacer(Modifier.height(18.dp))
-        ReassuranceBanner(reps = outcome.reps)
 
         Spacer(Modifier.height(20.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             ResultTile(
-                value = outcome.reps.toString(),
-                label = stringResource(R.string.result_tile_reps),
+                value = if (inSeconds) {
+                    stringResource(R.string.result_time_value, heldMs / 1000)
+                } else {
+                    outcome.reps.toString()
+                },
+                label = tileLabel,
                 accent = Palette.TextPrimary,
                 modifier = Modifier.weight(1f),
             )
@@ -164,7 +217,7 @@ fun ResultScreen(
         }
 
         Spacer(Modifier.height(20.dp))
-        RankCardLocal(rank = rank)
+        RankCard(rankProgress = rank)
 
         // Losing still leaves a mark on the enemy, and saying so turns a failed attempt into
         // visible progress rather than a wasted one.
@@ -276,7 +329,7 @@ private fun RestCard(
 
 /** The line that has to arrive before the verdict does. */
 @Composable
-private fun ReassuranceBanner(reps: Int) {
+private fun ReassuranceBanner(text: String) {
     val colors = LocalGameColors.current
     Row(
         modifier = Modifier
@@ -294,7 +347,7 @@ private fun ReassuranceBanner(reps: Int) {
         )
         Spacer(Modifier.width(10.dp))
         Text(
-            text = stringResource(R.string.result_banner, reps),
+            text = text,
             style = Type.bodyM,
             color = Palette.TextPrimary,
         )
@@ -321,37 +374,6 @@ private fun ResultTile(
     }
 }
 
-@Composable
-private fun RankCardLocal(rank: RankProgress) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .background(Palette.Bg2)
-            .padding(16.dp),
-    ) {
-        Text(text = rank.rank.korean, style = Type.titleL, color = Palette.TierLegend)
-        Spacer(Modifier.height(6.dp))
-        LinearProgressIndicator(
-            progress = { rank.fraction },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(6.dp)
-                .clip(RoundedCornerShape(3.dp)),
-            color = Palette.TierLegend,
-            trackColor = Palette.Bg3,
-        )
-        Spacer(Modifier.height(8.dp))
-        Text(
-            text = rank.next?.let {
-                stringResource(R.string.result_rank_to_next, it.korean, rank.repsToNext)
-            } ?: stringResource(R.string.rank_max),
-            style = Type.labelM,
-            color = Palette.TextTertiary,
-        )
-    }
-}
-
 /**
  * The run's depth grade, one to three.
  *
@@ -362,7 +384,7 @@ private fun RankCardLocal(rank: RankProgress) {
  * Dim stars are drawn rather than omitted, so the grade reads as "two of three" instead of "two".
  */
 @Composable
-private fun StarRow(stars: Stars) {
+private fun StarRow(stars: Stars, cleared: Boolean) {
     val colors = LocalGameColors.current
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -380,7 +402,8 @@ private fun StarRow(stars: Stars) {
                 when (stars) {
                     Stars.THREE -> R.string.result_stars_three
                     Stars.TWO -> R.string.result_stars_two
-                    Stars.ONE -> R.string.result_stars_one
+                    // 개수는 다 채웠어요 is only true of a run that did.
+                    Stars.ONE -> if (cleared) R.string.result_stars_one else R.string.result_stars_one_defeat
                 }
             ),
             style = Type.bodyM,
