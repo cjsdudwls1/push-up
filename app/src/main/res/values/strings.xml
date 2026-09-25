@@ -280,7 +280,7 @@
     <string name="exercise_hint_squat">폰은 정면에, 무릎까지 보이게 두세요</string>
     <string name="exercise_hint_plank">폰은 바닥에, 머리부터 발끝까지 보이게 두세요 (앞·옆 다 돼요)</string>
     <string name="exercise_hint_pull_up">폰은 멀리, 바부터 발까지 보이게 두세요 (앞·옆·뒤 다 돼요)</string>
-    <string name="exercise_hint_lunge">폰은 정면 바닥에 세워 두세요</string>
+    <string name="exercise_hint_lunge">폰은 바닥에 세워 두세요 (앞·옆 다 돼요)</string>
     <string name="exercise_hint_dip">폰은 평행봉 앞이나 옆, 온몸이 보이게 두세요</string>
 
     <!-- A pill on a movement no real body has confirmed the count for yet. -->

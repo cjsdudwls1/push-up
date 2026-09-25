@@ -33,6 +33,46 @@ class LungeRigTest {
         return frames
     }
 
+    /**
+     * The device report: lunges filmed at an angle counted nothing. Read across the shoulder line, a
+     * body turned that far was too narrow to measure; read along the spine, the side is as good as
+     * the front, and a squat is still refused from all of them.
+     */
+    @Test
+    fun `a lunge counts from the front, the side and between, and a squat from none of them`() {
+        // From the floor, where the placement line sends the phone; a level camera sees the thigh's
+        // travel end on, which MovementRigTest records as a fact about the geometry.
+        for (yaw in listOf(0f, 45f, 90f, 135f)) for ((where, cam) in listOf(
+            "2.2m on the floor" to floor, "3m on the floor" to Camera.onFloor(3f, 20f),
+        )) {
+            val r = Math.toRadians(yaw.toDouble())
+            val facing = Body3d.V3(-kotlin.math.sin(r).toFloat(), 0f, kotlin.math.cos(r).toFloat())
+            val lunge = DetectorFactory.create(ExerciseType.LUNGE)
+            Body3d.trace({ d -> Body3d.rotated(Body3d.lunge(d, true), facing) }, cam, 6).forEach { lunge.onFrame(it) }
+            // From behind, the front knee's travel is along the line of sight and the range's first
+            // guess is too deep: two reps fall short, and the bottom watchdog moves the range to them.
+            val least = if (yaw > 90f) 4 else 6
+            assertTrue(lunge.sessionSummary().repCount in least..6, "lunges at ${yaw.toInt()}° from $where: ${lunge.sessionSummary().repCount}")
+            val squat = DetectorFactory.create(ExerciseType.LUNGE)
+            Body3d.trace({ d -> Body3d.rotated(Body3d.squat(d), facing) }, cam, 6).forEach { squat.onFrame(it) }
+            assertEquals(0, squat.sessionSummary().repCount, "a squat at ${yaw.toInt()}° from $where counted as a lunge")
+        }
+    }
+
+    @Test
+    fun `half lunges never teach the range to meet them, from any side`() {
+        // The bottom watchdog moves the range only for reps whose knee bent fully by its own 3-D
+        // angle. A half lunge reads 60 on the knee, from wherever it is filmed.
+        for (yaw in listOf(0f, 90f, 135f)) {
+            val r = Math.toRadians(yaw.toDouble())
+            val facing = Body3d.V3(-kotlin.math.sin(r).toFloat(), 0f, kotlin.math.cos(r).toFloat())
+            val detector = DetectorFactory.create(ExerciseType.LUNGE)
+            Body3d.trace({ d -> Body3d.rotated(Body3d.lunge(d, true), facing) }, floor, 8, peakDepth = 0.5f)
+                .forEach { detector.onFrame(it) }
+            assertEquals(0, detector.sessionSummary().repCount, "half lunges at ${yaw.toInt()}° counted")
+        }
+    }
+
     @Test
     fun `a squat is not a lunge`() {
         val detector = DetectorFactory.create(ExerciseType.LUNGE)

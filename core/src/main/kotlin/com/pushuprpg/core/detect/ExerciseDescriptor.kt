@@ -173,6 +173,14 @@ data class JointAngleCheck(
     val topDeg: Float,
     /** The angle at a standard full-depth position — depth 100. */
     val bottomDeg: Float,
+    /**
+     * Whether the angle keeps closing to the bottom of the movement, so that a fully bent joint
+     * means a full rep. True for a lunge's knee, a dip's elbow and a pull-up's: on the rig they read
+     * 60-70 at a half rep and 95-99 at a full one. False for a pushup's elbow and a squat's knee,
+     * which reach their bottom angle by half depth (92 and 88 at a half rep) and cannot tell a half
+     * rep from a whole one. Only a joint that can is trusted to move the bottom of the range.
+     */
+    val confirmsFullDepth: Boolean = false,
 ) {
     init {
         // Deliberately not "the joint must close as the user descends". It does for a pushup, a
@@ -511,7 +519,7 @@ object Exercises {
             proximal = SHOULDERS,
             distal = WRISTS,
             scale = ScaleReference.SHOULDER_WIDTH,
-            jointCheck = JointAngleCheck(ELBOWS, SHOULDERS, WRISTS, HANG_TOP_DEG, HANG_BOTTOM_DEG),
+            jointCheck = JointAngleCheck(ELBOWS, SHOULDERS, WRISTS, HANG_TOP_DEG, HANG_BOTTOM_DEG, confirmsFullDepth = true),
             bodyTravel = null,
             crossCheck = CrossCheckPolicy.JOINT_REQUIRED,
             allowJointFallback = true,
@@ -577,12 +585,18 @@ object Exercises {
     val LUNGE = ExerciseDescriptor(
         type = ExerciseType.LUNGE,
         kind = MovementKind.REP,
+        // Read along the spine, like a pull-up: a lunge is filmed from the side or at an angle at
+        // least as often as from the front, and across the shoulder line a body turned that far is
+        // too narrow to measure — a real set filmed at an angle read LOW_CONFIDENCE on 161 frames
+        // of 165 and counted nothing.
+        axisSource = AxisSource.TORSO,
+        coreConfidence = CoreConfidence.NEAR_SIDE,
         normalToward = HIPS,
         signal = RepSignal(
             proximal = HIPS,
             distal = KNEES,
             scale = ScaleReference.SHOULDER_WIDTH,
-            jointCheck = JointAngleCheck(KNEES, HIPS, ANKLES, KNEE_TOP_DEG, KNEE_BOTTOM_DEG),
+            jointCheck = JointAngleCheck(KNEES, HIPS, ANKLES, KNEE_TOP_DEG, KNEE_BOTTOM_DEG, confirmsFullDepth = true),
             bodyTravel = BodyTravelCheck(BodyPoint.Midpoint(SHOULDERS), BodyPoint.Midpoint(ANKLES), invert = true),
             sideCombiner = SideCombiner.DEEPER_SIDE,
             crossCheck = CrossCheckPolicy.BEST_AVAILABLE,
@@ -598,11 +612,20 @@ object Exercises {
             // and the reading shifts with step length, so a strict line rejects honest reps.
             countEnter = 65f, countExit = 50f,
             deepEnter = 88f, deepExit = 80f,
-            maxDescentSpeed = 450f, minAscentMs = 250, minRepPeriodMs = 900,
+            // Pacing is minRepPeriodMs's job. Read along the spine, the rig's brisk 1-second lunge
+            // crossed the band too fast for a cap of 450 at 12 fps and counted none of ten.
+            maxDescentSpeed = 600f, minAscentMs = 250, minRepPeriodMs = 900,
             maxDescentMs = 5000, maxBottomMs = 6000,
             signalMinCutoff = 1.0f, signalBeta = 18f,
-            hTopPrior = 1.10f, hBotPrior = -0.10f, rMin = 0.50f,
-            topClampMin = 0.75f, topClampMax = 1.60f,
+            // Thigh over most of the spine. The rig stands at 0.9-1.2 depending on where the phone
+            // is, but a person filmed on a phone stood at 0.76-0.90: the model puts the hips lower
+            // and the shoulders higher than the rig's joints, so its spine is longer against the
+            // leg. At 1.10 that person read 17 on the gauge standing, drifted past the top band
+            // before the wait to arm was over, and the first lunge never counted. At 0.95 the rig,
+            // standing 14 above the top, crossed the band in a frame at 12 fps and was refused as
+            // too fast. 1.00 serves both.
+            hTopPrior = 1.00f, hBotPrior = -0.10f, rMin = 0.50f,
+            topClampMin = 0.60f, topClampMax = 1.60f,
             botClampMin = -0.60f, botClampMax = 0.70f,
         ),
         damageCoefficient = 0.95f,
@@ -654,7 +677,7 @@ object Exercises {
             proximal = SHOULDERS,
             distal = WRISTS,
             scale = ScaleReference.SHOULDER_WIDTH,
-            jointCheck = JointAngleCheck(ELBOWS, SHOULDERS, WRISTS, DIP_TOP_DEG, DIP_BOTTOM_DEG),
+            jointCheck = JointAngleCheck(ELBOWS, SHOULDERS, WRISTS, DIP_TOP_DEG, DIP_BOTTOM_DEG, confirmsFullDepth = true),
             bodyTravel = null,
             crossCheck = CrossCheckPolicy.JOINT_REQUIRED,
             allowJointFallback = true,
@@ -666,7 +689,10 @@ object Exercises {
             topEnter = 18f, topExit = 30f,
             countEnter = 70f, countExit = 55f,
             deepEnter = 88f, deepExit = 80f,
-            maxDescentSpeed = 420f, minAscentMs = 250, minRepPeriodMs = 900,
+            // Pacing is minRepPeriodMs's job. Filmed from the front on a phone, honest dips crossed
+            // the band at 470-500 points a second on the range the prior gives before any rep has
+            // taught it — twice their speed on their own range — and at 420 the first were refused.
+            maxDescentSpeed = 600f, minAscentMs = 250, minRepPeriodMs = 900,
             maxDescentMs = 5000, maxBottomMs = 4000,
             signalMinCutoff = 1.0f, signalBeta = 15f,
             // h at lockout IS arm length over shoulder width, so the prior has to span real builds:

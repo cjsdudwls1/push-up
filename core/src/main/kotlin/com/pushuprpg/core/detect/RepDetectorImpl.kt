@@ -76,6 +76,17 @@ class RepDetectorImpl(
     private var hTopThisRep = Float.NEGATIVE_INFINITY
     private var hBotThisRep = Float.POSITIVE_INFINITY
     private var maxDepthThisRep = 0f
+    /** The working joint's deepest reading on this rep, by its own 3-D angle; NaN when unseen. */
+    private var maxJointThisRep = Float.NaN
+    /** Where recent reps turned around short of the count line with the joint fully bent. */
+    private val shallowBottoms = ArrayList<Float>()
+    /** This rep reached the count line and was refused as [AbandonReason.TOO_FAST]. */
+    private var refusedFastThisRep = false
+
+    /** The working joint bent all the way on this rep, by a joint that can tell. */
+    private fun jointConfirmedFull(): Boolean =
+        config.descriptor.signal?.jointCheck?.confirmsFullDepth == true &&
+            !maxJointThisRep.isNaN() && maxJointThisRep >= BOTTOM_WATCHDOG_JOINT_MIN
     private var deepFiredThisRep = false
     private var struckThisRep = false
     private var asymmetryThisRep = 0f
@@ -221,6 +232,8 @@ class RepDetectorImpl(
                     tTopExit = crossedAt(config.topExit, tMs)
                     maxDepthThisRep = depth
                     hBotThisRep = h
+                    maxJointThisRep = sample.jointDepth
+                    refusedFastThisRep = false
                     asymmetryThisRep = sample.asymmetry
                     deepFiredThisRep = false
                     struckThisRep = false
@@ -231,6 +244,7 @@ class RepDetectorImpl(
                 maxDepthThisRep = maxOf(maxDepthThisRep, depth)
                 hBotThisRep = minOf(hBotThisRep, h)
                 asymmetryThisRep = maxOf(asymmetryThisRep, sample.asymmetry)
+                if (!sample.jointDepth.isNaN() && !(sample.jointDepth <= maxJointThisRep)) maxJointThisRep = sample.jointDepth
 
                 when {
                     depth >= calibrator.countEnter() -> {
@@ -241,6 +255,7 @@ class RepDetectorImpl(
                             strike(tMs, events)
                         } else {
                             events += RepEvent.Abandoned(tMs, reason)
+                            refusedFastThisRep = reason == AbandonReason.TOO_FAST
                         }
                     }
 
@@ -250,6 +265,7 @@ class RepDetectorImpl(
                             shallowCount++
                             shallowConsecutive++
                             events += RepEvent.Shallow(tMs, maxDepthThisRep, shallowConsecutive)
+                            watchBottom()
                         }
                         arm(h)
                     }
@@ -266,6 +282,7 @@ class RepDetectorImpl(
             RepPhase.BOTTOM -> {
                 maxDepthThisRep = maxOf(maxDepthThisRep, depth)
                 hBotThisRep = minOf(hBotThisRep, h)
+                if (!sample.jointDepth.isNaN() && !(sample.jointDepth <= maxJointThisRep)) maxJointThisRep = sample.jointDepth
 
                 if (!deepFiredThisRep && struckThisRep && depth >= calibrator.deepEnter()) {
                     deepFiredThisRep = true
@@ -512,6 +529,37 @@ class RepDetectorImpl(
         }
     }
 
+    /**
+     * The other end of [watchArming]: a range whose bottom the body never reaches.
+     *
+     * The count line is a fraction of this user's range, but the range's bottom starts as a guess
+     * and only a counted rep moves it — so a guess too deep for how this phone sees this body is a
+     * trap too. A lunge filmed from behind at a diagonal read 60 at the bottom against a line at 65
+     * while the knee, by its own 3-D angle, was fully bent: every rep Shallow, none counted, forever.
+     *
+     * After [WATCHDOG_TURNS] Shallow reps in a row that turned around at a consistent `h` with the
+     * working joint at least [BOTTOM_WATCHDOG_JOINT_MIN] of the way to a full bend, the bottom moves
+     * up to the least deep of them. The joint is what keeps it honest: a half rep does not bend it,
+     * and the calibration cannot move it — which is why only a joint that
+     * [JointAngleCheck.confirmsFullDepth] is asked.
+     */
+    private fun watchBottom() {
+        if (config.descriptor.signal?.jointCheck?.confirmsFullDepth != true) return
+        if (!jointConfirmedFull() || hBotThisRep == Float.POSITIVE_INFINITY) {
+            shallowBottoms.clear()
+            return
+        }
+        shallowBottoms += hBotThisRep
+        if (shallowBottoms.size < WATCHDOG_TURNS) return
+        val spread = shallowBottoms.max() - shallowBottoms.min()
+        if (spread <= WATCHDOG_SPREAD_OF_RANGE * calibrator.range) {
+            calibrator.reanchorBottom(shallowBottoms.max())
+            shallowBottoms.clear()
+        } else {
+            shallowBottoms.removeAt(0)
+        }
+    }
+
     private fun resetWatchdog() {
         wdRising = true
         wdMax = Float.NaN
@@ -543,6 +591,7 @@ class RepDetectorImpl(
     }
 
     private fun strike(tMs: Long, events: MutableList<RepEvent>) {
+        shallowBottoms.clear()
         repCount++
         struckThisRep = true
         tLastStrike = tMs
@@ -564,7 +613,17 @@ class RepDetectorImpl(
     }
 
     private fun complete(tMs: Long, events: MutableList<RepEvent>) {
-        if (!struckThisRep) return
+        if (!struckThisRep) {
+            // Refused for speed, but down and back up with the working joint fully bent: a real
+            // rep through a band too narrow for this body. Let it widen the range, and only widen.
+            if (refusedFastThisRep && jointConfirmedFull() &&
+                hTopThisRep != Float.NEGATIVE_INFINITY && hBotThisRep != Float.POSITIVE_INFINITY
+            ) {
+                calibrator.widen(hTopThisRep, hBotThisRep)
+            }
+            refusedFastThisRep = false
+            return
+        }
 
         val grade = if (maxDepthThisRep >= calibrator.deepEnter()) RepGrade.DEEP else RepGrade.COUNTED
         val record = RepRecord(
@@ -698,6 +757,9 @@ class RepDetectorImpl(
         tLastTracked = Long.MIN_VALUE
         prevDepth = Float.NaN
         resetWatchdog()
+        shallowBottoms.clear()
+        maxJointThisRep = Float.NaN
+        refusedFastThisRep = false
         topReachedThisAscent = false
         bodyDropAtTop = Float.POSITIVE_INFINITY
         repCount = 0
@@ -762,6 +824,8 @@ class RepDetectorImpl(
         const val WATCHDOG_JOINT_REST_MAX = 35f
         /** And at or over which it bent: a rep, not someone shifting their weight. */
         const val WATCHDOG_JOINT_BENT_MIN = 45f
+        /** The working joint's own depth at or over which a rep that fell short of the line was full. */
+        const val BOTTOM_WATCHDOG_JOINT_MIN = 90f
 
         /** Longest frame gap a line crossing is interpolated across: three frames at 15 fps. */
         const val MAX_INTERPOLATION_GAP_MS = 200L

@@ -36,13 +36,29 @@ class PlankRigTest {
         "2m, tilted 30°" to Camera.onFloor(2f, 30f),
     )
 
-    private fun ticks(pose: Body3d.Skeleton, camera: Camera, legsSeen: Boolean, seconds: Int = 6): Int {
+    private fun ticks(pose: Body3d.Skeleton, camera: Camera, legsSeen: Boolean, seconds: Int = 6, feetOut: Boolean = false): Int {
         val d = PlankDetector()
         return (0 until seconds * 30).sumOf { i ->
             val frame = Body3d.frame(i * 33L, pose, camera)
-            d.onFrame(if (legsSeen) frame else legsHidden(frame)).events.count { it is RepEvent.HoldTick }
+            val seen = when {
+                feetOut -> feetOffFrame(frame)
+                legsSeen -> frame
+                else -> legsHidden(frame)
+            }
+            d.onFrame(seen).events.count { it is RepEvent.HoldTick }
         }
     }
+
+    /**
+     * The feet past the edge of the picture and the knees in it: a phone close by the side. The
+     * model still places the feet, where the rig says they are; ConfidenceEstimator gives a point
+     * off the edge nothing, and that is what a phone reported.
+     */
+    private fun feetOffFrame(frame: PoseFrame): PoseFrame = frame.copy(
+        landmarks = frame.landmarks.mapIndexed { i, lm ->
+            if (i >= Lm.LEFT_ANKLE) lm.copy(visibility = 0f, presence = 0f) else lm
+        },
+    )
 
     /**
      * The legs as a phone gets them from the head end: behind the body, so the model reports them
@@ -99,6 +115,24 @@ class PlankRigTest {
     fun `a plank holds when the camera cannot see the legs`() {
         assertHolds("a high plank, legs hidden", legsSeen = false) { h -> Body3d.pushup(0f, h, h * 0.65f) }
         assertHolds("a forearm plank, legs hidden", legsSeen = false) { h -> Body3d.forearmPlank(h, h * 0.65f) }
+    }
+
+    @Test
+    fun `side on with the feet past the edge, a plank holds and the knees down do not`() {
+        // The device report: a side plank with the feet out of the picture never held. The model's
+        // guess at the shins read 139-145, a knee plank's angle; the knees' height off the floor
+        // tells them apart instead.
+        val side = heading(90f)
+        for ((where, cam) in cameras) {
+            assertTrue(ticks(Body3d.forearmPlank(side, side * 0.65f), cam, legsSeen = true, feetOut = true) > 0,
+                "a forearm plank with the feet out of frame from $where never held")
+            assertTrue(ticks(Body3d.pushup(0f, side, side * 0.65f), cam, legsSeen = true, feetOut = true) > 0,
+                "a high plank with the feet out of frame from $where never held")
+            assertTrue(ticks(Body3d.kneePlank(side, side * 0.4f), cam, legsSeen = true, feetOut = true) == 0,
+                "a knee plank with the feet out of frame from $where held")
+            assertTrue(ticks(Body3d.allFours(side, side * 0.3f), cam, legsSeen = true, feetOut = true) == 0,
+                "all fours with the feet out of frame from $where held")
+        }
     }
 
     @Test

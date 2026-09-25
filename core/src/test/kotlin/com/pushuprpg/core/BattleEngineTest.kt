@@ -6,6 +6,7 @@ import com.pushuprpg.core.detect.ExerciseType
 import com.pushuprpg.core.game.*
 import com.pushuprpg.core.run.BattleEngine
 import com.pushuprpg.core.run.BattleState
+import com.pushuprpg.core.run.Stars
 import com.pushuprpg.core.pose.PoseFrame
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -460,6 +461,34 @@ class BattleEnginePresentationTest {
         assertEquals(pushupReps, outcome.segments[0].reps)
         assertTrue(outcome.segments[1].reps > 0, "the squats after the switch did not count")
         assertEquals(outcome.reps, outcome.segments.sumOf { it.reps }, "a rep went missing between segments")
+    }
+
+    /**
+     * The device report: every rep went chest to the floor, and the result screen said 다음엔 더 깊게.
+     * A rep counts at the 인정 line on its way down, so the depth it strikes at is always about 70;
+     * the stars averaged that, and could not rise above one whatever the user did.
+     */
+    @Test
+    fun `reps that go all the way down earn three stars and count as 깊게`() {
+        val e = engineIn(Dungeons.byIndex(3)!!)
+        feed(e, PoseFixtures.trace(count = 8, peakDepth = 0.98f, restMs = 250))
+        val outcome = e.quit()
+        assertTrue(outcome.reps >= 6, "counted ${outcome.reps} of 8")
+        assertEquals(Stars.THREE, outcome.stars, "mean depth ${outcome.meanDepth}")
+        assertEquals(outcome.reps, outcome.deepReps, "every rep reached 깊게 and was told so")
+        assertEquals(outcome.deepReps, outcome.segments.single().deepReps)
+    }
+
+    @Test
+    fun `reps that stop at the 인정 line are still one star`() {
+        val e = engineIn(Dungeons.byIndex(3)!!)
+        // Just past the 인정 line and nowhere near 깊게. The range learns this user and the later reps
+        // read a little deeper (70 to 83), which is the calibration working, not the stars.
+        feed(e, PoseFixtures.trace(count = 8, peakDepth = 0.70f, restMs = 250))
+        val outcome = e.quit()
+        assertTrue(outcome.reps > 0, "the shallow-but-counted reps did not count")
+        assertEquals(Stars.ONE, outcome.stars, "mean depth ${outcome.meanDepth}")
+        assertEquals(0, outcome.deepReps)
     }
 
     @Test

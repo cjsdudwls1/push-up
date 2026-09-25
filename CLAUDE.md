@@ -69,7 +69,11 @@ camera-aligned, so the phone's tilt is in them; `Body3d` reproduces that. The le
 skeleton whether the camera sees them or not — from the head they are behind the body, from a phone
 close by the side past the edge of the picture — and requiring them is why a real plank never held
 on a phone. Unseen legs still gate the pose (a folded knee is not a plank) but are left out of the
-form score, and the placement coach does not ask for them.
+form score, and the placement coach does not ask for them. With the feet past the edge and the
+knees in the picture, the knees' height off the floor (elbow to shoulder is up; the lower of elbow and
+wrist is the floor) can pass the legs instead of the model's guess at the shins, which read a real
+side-on plank as bent. The arm check that tells a plank from standing is not asked of a torso past
+level: from the head on the forearms the model put the elbow behind the shoulder half the time.
 
 **A single frame never moves the calibration.** The lite model misplaces a landmark for a frame —
 a shoulder on the neck, the shoulders swapped — often enough to matter. A scale jump is a new subject
@@ -85,15 +89,28 @@ guarded by the working joint's own 3-D angle so half reps cannot use them: a joi
 completes the rep and re-arms, and the arming watchdog moves the top to where the user actually
 turns around after two swings in `h` short of the band. The watchdog follows `h`, not the gauge;
 read through the count line of the very range that was wrong, it missed at a phone's frame rate.
+The bottom has the same trap and the same guard: two Shallow reps with the working joint fully bent
+move the bottom up to them, and a rep refused as too fast that went all the way may *widen* the
+range, never narrow it. Only a joint whose angle keeps closing to the bottom
+(`JointAngleCheck.confirmsFullDepth`: lunge, dip, pull-up) is asked — a pushup's elbow and a squat's
+knee are fully bent at half depth and cannot tell a half rep from a whole one.
 
 **Real sets are replayed at a phone's frame rates.** `RealTraceTest` plays two sets recorded on a
 phone — from nothing, from the stuck calibration the phone was left with, and from a stale profile —
 at the recording's rate and at every second and third frame. A detector change that passes the rig
 and fails there is not done. New recordings go in `core/src/test/resources/traces/`.
 
-**Pull-ups and dips are read along the spine** (`AxisSource.TORSO`), not across the shoulder line:
-at the distance a pull-up needs, the shoulder line is barely over the minimum scale from the front
-and gone from the side. `HangingRigTest` pins front, side, back and diagonal from four placements.
+**Pull-ups, dips and lunges are read along the spine** (`AxisSource.TORSO`), not across the
+shoulder line: at the distance a pull-up needs, the shoulder line is barely over the minimum scale
+from the front and gone from the side, and a lunge filmed at an angle — as people film it — was too
+narrow to measure at all. `HangingRigTest` and `LungeRigTest` pin front, side, back and diagonal.
+The model's spine is longer against the limbs than the rig's (people stand at 0.7-0.8 of the rig's
+`h`), so a prior that only fits the rig is a prior that never arms on a phone.
+
+**A rep's depth is how deep it went, not where it counted.** A rep strikes at the 인정 line on its way
+down, so the strike's depth is always about 70. The stars and the 깊게 tally take each rep's depth
+from its deep upgrade and its finished record; averaged at the strike, a set with the chest on the
+floor graded one star and the result screen said 다음엔 더 깊게.
 
 **A lunge needs a split stance** (`StanceCheck`, from world landmarks): the depth signal reads a
 squat exactly like a lunge. "Forward" is square to the hip line and the spine, never "horizontal" —

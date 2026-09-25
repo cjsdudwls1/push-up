@@ -7,6 +7,14 @@ import com.pushuprpg.core.detect.ExerciseType
 import com.pushuprpg.core.detect.RepDetector
 import com.pushuprpg.core.detect.RepEvent
 import com.pushuprpg.core.detect.UserProfile
+import com.pushuprpg.core.game.CombatResolver
+import com.pushuprpg.core.game.Difficulty
+import com.pushuprpg.core.game.Dungeons
+import com.pushuprpg.core.game.PlayerClass
+import com.pushuprpg.core.game.PlayerState
+import com.pushuprpg.core.run.BattleEngine
+import com.pushuprpg.core.run.Stars
+import kotlin.test.assertEquals
 import com.pushuprpg.core.trace.PoseTrace
 import com.pushuprpg.core.trace.TraceReplay
 import java.util.zip.GZIPInputStream
@@ -122,6 +130,68 @@ class RealTraceTest {
             val (_, events) = replay(pushups.every(stride), DetectorFactory.create(ExerciseType.PLANK))
             val ticks = events.count { it is RepEvent.HoldTick }
             assertTrue(ticks > 0, "every $stride: the pushup tops never held as a plank")
+        }
+    }
+
+    // --- the second round: six sets filmed with the phone's own camera, 24-30 fps ---
+    //
+    // The device report: pushups graded 다음엔 더 깊게 with the chest on the floor, lunges filmed at
+    // an angle never counted, the plank held neither from the head on the forearms nor side on with
+    // the feet out of the picture, and dips were refused as too fast. Each is replayed at the
+    // recording's rate and at every second frame, 12-15 fps.
+
+    private class Set(val file: String, val type: ExerciseType, val least: Int, val done: Int, val why: String)
+
+    private val camera = listOf(
+        Set("pushup-head-camera.json.gz", ExerciseType.PUSHUP, 5, 5, "five pushups"),
+        Set("lunge-angled-a.json.gz", ExerciseType.LUNGE, 3, 3, "three lunges filmed at an angle"),
+        // The first lunge is at the bottom when the recording starts.
+        Set("lunge-angled-b.json.gz", ExerciseType.LUNGE, 2, 3, "lunges filmed at the other angle"),
+        // The first pull is under way when the recording starts.
+        Set("pullup-behind-camera.json.gz", ExerciseType.PULL_UP, 2, 3, "pull-ups from behind"),
+        // The first dip starts 0.3 s in, inside the wait to arm; the last is cut off by the end.
+        Set("dip-front.json.gz", ExerciseType.DIP, 2, 4, "dips from the front"),
+    )
+
+    @Test
+    fun `every set filmed with the camera counts the reps it shows`() {
+        for (set in camera) {
+            val trace = load(set.file)
+            for (stride in listOf(1, 2)) {
+                val (reps, events) = replay(trace.every(stride), DetectorFactory.create(set.type))
+                val refused = events.filterIsInstance<RepEvent.Abandoned>().map { it.reason }
+                assertTrue(reps in set.least..set.done, "${set.why}, every $stride: $reps reps, wanted ${set.least}-${set.done}; refused $refused")
+            }
+        }
+    }
+
+    @Test
+    fun `pushups with the chest on the floor grade three stars, every one 깊게`() {
+        val engine = BattleEngine(
+            dungeon = Dungeons.byIndex(3)!!,
+            difficulty = Difficulty.STANDARD,
+            capacity = 8f,
+            initialPlayer = PlayerState.create(PlayerClass.KNIGHT, level = 1),
+            detector = DetectorFactory.create(ExerciseType.PUSHUP),
+            resolver = CombatResolver(),
+        )
+        TraceReplay.frames(load("pushup-head-camera.json.gz")).forEach { engine.onPoseFrame(it) }
+        val outcome = engine.quit()
+        assertEquals(5, outcome.reps)
+        assertEquals(5, outcome.deepReps, "reps that went to the floor were not counted 깊게")
+        assertEquals(Stars.THREE, outcome.stars, "mean depth ${outcome.meanDepth}: the result screen said 다음엔 더 깊게")
+    }
+
+    @Test
+    fun `the plank holds on the forearms from the head and side on, and not on all fours between`() {
+        val trace = load("plank-front-then-side.json.gz")
+        for (stride in listOf(1, 2)) {
+            val detector = DetectorFactory.create(ExerciseType.PLANK)
+            val (_, events) = replay(trace.every(stride), detector)
+            val ticks = events.filterIsInstance<RepEvent.HoldTick>().map { (it.tMs - trace.frames.first().t) / 1000f }
+            assertTrue(ticks.any { it < 2.5f }, "every $stride: the forearm plank from the head never held: $ticks")
+            assertTrue(ticks.count { it > 8.5f } >= 5, "every $stride: the side-on plank with the feet out of frame held for ${ticks.count { it > 8.5f }} ticks")
+            assertTrue(ticks.none { it in 3.0f..8.5f }, "every $stride: all fours and turning held as a plank at $ticks")
         }
     }
 }

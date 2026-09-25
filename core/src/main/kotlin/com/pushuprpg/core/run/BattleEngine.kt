@@ -218,6 +218,15 @@ class BattleEngine(
     private var repsTotal = 0
     private var deepReps = 0
     private var depthSum = 0f
+    /**
+     * The rep whose depth is on the books, and how much it has put there. A rep counts at the 인정
+     * line, on its way down, so the depth it strikes at is always about 70; how deep it went is only
+     * known as it keeps going. Averaging the strike depth graded every set one star and told people
+     * whose chest touched the floor to go deeper next time.
+     */
+    private var bookedRep = -1
+    private var bookedDepth = 0f
+    private var bookedDeep = false
     private var xpTotal = 0
     private var shallowStreak = 0
     /** Half-worth reps in a row, so a reminder is given on the first and then only now and then. */
@@ -379,6 +388,9 @@ class BattleEngine(
                                 segReps++
                                 segDepthSum += event.depth
                                 if (ce.result.deep) segDeep++
+                                bookedRep = event.repIndex
+                                bookedDepth = event.depth
+                                bookedDeep = ce.result.deep
                                 // The detector's own combo: it restarts with each movement and at
                                 // each rest, so its peak is this movement's longest set.
                                 segMaxCombo = maxOf(segMaxCombo, event.combo)
@@ -424,6 +436,7 @@ class BattleEngine(
                 }
 
                 is RepEvent.DeepUpgrade -> {
+                    deepen(event.repIndex, event.depth, deep = true)
                     alert = Toast(AlertKey.DEEP_STRIKE, 0, event.tMs)
                     shake = (shake + 0.3f).coerceAtMost(1f)
                     sounds += SoundRequest(SoundCue.REP_DEEP)
@@ -431,6 +444,7 @@ class BattleEngine(
                 }
 
                 is RepEvent.Completed -> {
+                    deepen(event.record.repIndex, event.record.maxDepth, deep = false)
                     lastBottomMs = event.record.bottomMs
                     if (enemyDiedAtMs == Long.MIN_VALUE) onAfterStrike(encounter.onRepEnd(event.tMs))
                 }
@@ -616,6 +630,8 @@ class BattleEngine(
         segDeep = 0
         segDepthSum = 0f
         segMaxCombo = 0
+        // The new detector numbers its reps from one again.
+        bookedRep = -1
 
         detector = next
         // A new movement wants the phone somewhere else, and gets talked into position afresh.
@@ -713,6 +729,24 @@ class BattleEngine(
             else all.sumOf { (it.plausibility * it.reps).toDouble() }.toFloat() / repsTotal,
             segments = all,
         )
+    }
+
+    /**
+     * Raises the booked rep to how deep it actually went: [depth] from the deep line or from the
+     * finished rep. [deep] marks it a 깊게 rep in the tallies, as the 깊은 타격 toast already told the
+     * user. Only the rep that was booked, and only upward.
+     */
+    private fun deepen(repIndex: Int, depth: Float, deep: Boolean) {
+        if (repIndex != bookedRep) return
+        val more = (depth - bookedDepth).coerceAtLeast(0f)
+        depthSum += more
+        segDepthSum += more
+        bookedDepth += more
+        if (deep && !bookedDeep) {
+            bookedDeep = true
+            deepReps++
+            segDeep++
+        }
     }
 
     private fun alertFor(event: CombatEvent): Toast? = when (event) {

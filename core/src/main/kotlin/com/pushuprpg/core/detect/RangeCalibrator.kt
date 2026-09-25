@@ -199,6 +199,36 @@ class RangeCalibrator(
     }
 
     /**
+     * Moves the bottom of the range up to where this user actually turns around, when reps that
+     * bent the working joint fully keep falling short of the count line. Only ever up: a bottom set
+     * too shallow is not a trap, it is a rep counting. See [RepDetectorImpl]'s bottom watchdog, which
+     * decides when this is called and guards it against half reps.
+     */
+    fun reanchorBottom(hBottom: Float) {
+        if (hBottom.isNaN() || hBottom <= bottom) return
+        bottom = hBottom
+        bottomBest = bottom
+        applyGuards()
+        reanchors++
+    }
+
+    /**
+     * Widens the range to take in a rep that went further than it — and only widens it. For a rep
+     * that went all the way and came back but was refused, which [onRepExtremes] must never see:
+     * refused for crossing the count band too fast, when the band was too narrow for this body.
+     * Moving the ends apart only ever makes the line harder to reach, so no rep can use it to
+     * count more easily; what it undoes is a range so small that every honest rep reads too fast
+     * and none is ever counted to correct it.
+     */
+    fun widen(hTop: Float, hBottom: Float) {
+        if (hTop.isNaN() || hBottom.isNaN()) return
+        if (hTop > top) top += config.alphaExpand * (hTop - top)
+        if (hBottom < bottom) bottom += config.alphaExpand * (hBottom - bottom)
+        bottomBest = min(bottomBest, bottom)
+        applyGuards()
+    }
+
+    /**
      * Feeds one **completed** rep's extremes. Incomplete reps must never reach here: a user who
      * never returns to the top would otherwise move their own bar downward for free.
      */

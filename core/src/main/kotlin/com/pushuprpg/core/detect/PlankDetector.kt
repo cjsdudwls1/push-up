@@ -226,7 +226,9 @@ class PlankDetector(
         val knee = point(Lm.LEFT_KNEE, Lm.RIGHT_KNEE)
         val ankle = point(Lm.LEFT_ANKLE, Lm.RIGHT_ANKLE)
         val elbow = if (seen(Lm.LEFT_ELBOW, Lm.RIGHT_ELBOW)) point(Lm.LEFT_ELBOW, Lm.RIGHT_ELBOW) else null
-        val legsSeen = seen(Lm.LEFT_KNEE, Lm.RIGHT_KNEE) && seen(Lm.LEFT_ANKLE, Lm.RIGHT_ANKLE)
+        val kneesSeen = seen(Lm.LEFT_KNEE, Lm.RIGHT_KNEE)
+        val legsSeen = kneesSeen && seen(Lm.LEFT_ANKLE, Lm.RIGHT_ANKLE)
+        val wrist = if (seen(Lm.LEFT_WRIST, Lm.RIGHT_WRIST)) point(Lm.LEFT_WRIST, Lm.RIGHT_WRIST) else null
 
         val torso = floatArrayOf(hip[0] - shoulder[0], hip[1] - shoulder[1], hip[2] - shoulder[2])
         val torsoLen = kotlin.math.sqrt(torso[0] * torso[0] + torso[1] * torso[1] + torso[2] * torso[2])
@@ -239,9 +241,31 @@ class PlankDetector(
             bodyLine = angle3(shoulder, hip, knee),
             legs = angle3(hip, knee, ankle),
             legsSeen = legsSeen,
+            kneesSeen = kneesSeen,
             fromVertical = fromVertical,
             arm = elbow?.let { angle3(hip, shoulder, it) },
+            kneeLift = elbow?.let { kneeLift(shoulder, it, wrist, knee) },
         )
+    }
+
+    /**
+     * How far the knees are off the floor, as a fraction of how far the shoulders are: 0 with the
+     * knees down, 0.4 in a forearm plank on the rig and 0.6-0.9 in one filmed on a phone.
+     *
+     * In a plank the arm that holds the body up is vertical whatever the phone sees, so elbow to
+     * shoulder is up; and whichever of the elbow and the wrist is lower is on the floor — the elbow
+     * on the forearms, the wrist on the hands. That reads the one thing a knee plank changes, where
+     * the knees are, from joints the camera sees side on even when the feet are past the edge of
+     * the picture and the knee angle is the model's guess at a shin it cannot see.
+     */
+    private fun kneeLift(shoulder: FloatArray, elbow: FloatArray, wrist: FloatArray?, knee: FloatArray): Float? {
+        val ux = shoulder[0] - elbow[0]; val uy = shoulder[1] - elbow[1]; val uz = shoulder[2] - elbow[2]
+        val len = kotlin.math.sqrt(ux * ux + uy * uy + uz * uz)
+        if (len < 1e-4f) return null
+        fun up(p: FloatArray) = ((p[0] - shoulder[0]) * ux + (p[1] - shoulder[1]) * uy + (p[2] - shoulder[2]) * uz) / len
+        val floor = minOf(up(elbow), wrist?.let { up(it) } ?: 0f)
+        if (floor > -1e-3f) return null
+        return (up(knee) - floor) / -floor
     }
 
     /**
@@ -260,23 +284,39 @@ class PlankDetector(
         imageStability(frame)?.let { weighted += it * W_STILL; weight += W_STILL }
         val score = 100f * weighted / weight
 
+        // The legs, from whatever of them the camera sees. With the feet past the edge of the
+        // picture the knee angle is the model's guess at a shin it cannot see — a real side-on plank
+        // read 139-145, a knee plank's angle — so the knees' height off the floor can say it too.
+        // Either will do: the height leans on the arm being upright, and hands a little ahead of the
+        // shoulders read a plank on the rig as 0.16.
+        val legsStraight = p.legs >= MIN_LEGS_DEG ||
+            (!p.legsSeen && p.kneesSeen && p.kneeLift != null && p.kneeLift >= MIN_KNEE_LIFT)
         val isPlank = p.fromVertical >= UPRIGHT_MAX_DEG &&
             p.bodyLine >= MIN_BODY_LINE_DEG &&
-            p.legs >= MIN_LEGS_DEG &&
+            legsStraight &&
             // Arms reaching down to the floor, not hanging at the sides: the second thing that
-            // tells a plank from standing still, and one the camera's tilt cannot touch.
-            (p.arm == null || p.arm >= MIN_ARM_DEG)
+            // tells a plank from standing still, and one the camera's tilt cannot touch. Not asked
+            // of a torso past level, which no one standing has: from the head on the forearms the
+            // model put the elbow behind the shoulder in half the frames and read 10-35.
+            (p.arm == null || p.arm >= MIN_ARM_DEG || p.fromVertical >= LEVEL_DEG)
         return if (isPlank) score else minOf(score, NOT_A_PLANK_CAP)
     }
 
-    /** Shoulder jitter in the picture, against the torso's length in the picture. */
+    /**
+     * Shoulder jitter in the picture, against the body's size in the picture: the torso's length
+     * or the shoulders' width, whichever is larger. Filmed from the head the torso points at the
+     * lens and is a sliver of the picture, and against it alone a plank held still read as shaking.
+     */
     private fun imageStability(frame: PoseFrame): Float? {
         val sc = maxOf(confidence[Lm.LEFT_SHOULDER], confidence[Lm.RIGHT_SHOULDER])
         val hc = maxOf(confidence[Lm.LEFT_HIP], confidence[Lm.RIGHT_HIP])
         if (sc < config.minCoreConfidence || hc < config.minCoreConfidence) return null
         val shoulder = frame.midpoint2(Lm.LEFT_SHOULDER, Lm.RIGHT_SHOULDER)
         val hip = frame.midpoint2(Lm.LEFT_HIP, Lm.RIGHT_HIP)
-        val torso = Geometry.norm(hip.first - shoulder.first, hip.second - shoulder.second)
+        val torso = maxOf(
+            Geometry.norm(hip.first - shoulder.first, hip.second - shoulder.second),
+            Geometry.norm(frame.u(Lm.LEFT_SHOULDER) - frame.u(Lm.RIGHT_SHOULDER), frame.v(Lm.LEFT_SHOULDER) - frame.v(Lm.RIGHT_SHOULDER)),
+        )
         if (torso <= 1e-4f) return null
         recentShoulderU.addLast(shoulder.first)
         recentShoulderV.addLast(shoulder.second)
@@ -329,8 +369,11 @@ class PlankDetector(
         val bodyLine: Float,
         val legs: Float,
         val legsSeen: Boolean,
+        val kneesSeen: Boolean,
         val fromVertical: Float,
         val arm: Float?,
+        /** See [kneeLift]; null when the elbow is not seen. */
+        val kneeLift: Float?,
     )
 
     /**
@@ -512,6 +555,12 @@ class PlankDetector(
         const val MIN_LEGS_DEG = 150f
         /** How much a side neither camera nor model is sure of still counts toward the average. */
         const val UNSEEN_WEIGHT = 0.1f
+        /**
+         * Knees this far off the floor, as a fraction of the shoulders' height, are not resting on
+         * it. A knee plank and all fours on the rig read 0.03; a forearm plank 0.40 on the rig and
+         * 0.61-0.92 filmed side on by a phone.
+         */
+        const val MIN_KNEE_LIFT = 0.25f
         /**
          * A torso within this of upright is standing, not planking. World y is the camera's down,
          * not gravity's, so the phone's own tilt is in the reading: a phone on the floor tilted up
