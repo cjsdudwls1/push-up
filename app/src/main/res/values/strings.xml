@@ -153,7 +153,12 @@
     <string name="result_time_value">%1$d초</string>
     <string name="result_rank_to_next">%1$s까지 %2$,d개</string>
     <string name="result_level_up">레벨 %1$d 달성!</string>
-    <string name="result_crack">균열을 냈어요. 다시 도전하면 더 빨리 부서져요.</string>
+    <!-- Where a run stopped part way: the monster it was fighting and what that monster still owed,
+         the same count the next try starts from. -->
+    <string name="result_left">%1$s에게 %2$,d개 남기고 멈췄어요. 다음엔 잡아요.</string>
+    <string name="result_left_hold">%1$s에게 %2$,d초 남기고 멈췄어요. 다음엔 잡아요.</string>
+    <!-- The run stopped just as that monster fell, before the next one came. -->
+    <string name="result_fell">%1$s까지 쓰러뜨리고 멈췄어요. 다음엔 잡아요.</string>
 
     <!-- Home -->
     <string name="home_today_reps">오늘 %1$d개</string>

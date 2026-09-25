@@ -219,12 +219,19 @@ fun ResultScreen(
         Spacer(Modifier.height(20.dp))
         RankCard(rankProgress = rank)
 
-        // Losing still leaves a mark on the enemy, and saying so turns a failed attempt into
-        // visible progress rather than a wasted one.
-        if (!outcome.cleared && outcome.crackFraction > 0f) {
+        // Where the run stopped, as a fact: the monster and what it still owed, in the fight's own
+        // unit. It used to promise the next try would break it faster, and nothing carries over —
+        // the next try asks exactly what the entry screen quotes. A monster that fell as the run
+        // ended owes nothing, and is said to have fallen rather than to have 0개 left.
+        if (!outcome.cleared && !nothingCounted && outcome.enemyName.isNotEmpty()) {
             Spacer(Modifier.height(14.dp))
             Text(
-                text = stringResource(R.string.result_crack),
+                text = when {
+                    outcome.enemyLeft <= 0 -> stringResource(R.string.result_fell, outcome.enemyName)
+                    Exercises.of(lastExercise).kind == MovementKind.HOLD ->
+                        stringResource(R.string.result_left_hold, outcome.enemyName, outcome.enemyLeft)
+                    else -> stringResource(R.string.result_left, outcome.enemyName, outcome.enemyLeft)
+                },
                 style = Type.bodyM,
                 color = colors.deep,
                 textAlign = TextAlign.Center,
