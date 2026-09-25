@@ -22,6 +22,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavController
@@ -416,14 +418,22 @@ fun PushupRpgApp(
                         }
                         if (canAutoNext && !autoNextCancelled) {
                             LaunchedEffect(Unit) {
-                                while (restLeft > 0) {
-                                    delay(1_000)
-                                    restLeft--
-                                    // Heard from across the room, where the rest is taken.
-                                    if (restLeft == 10) container.voice.say(context.getString(R.string.voice_rest_ten))
+                                // Only while this screen is in front. A rest spent on a phone call
+                                // counted on behind it, announced the next dungeon and 시작! over
+                                // the call, and came back to a dungeon already under way. Back in
+                                // front it carries on from where it stopped, since restLeft is saved.
+                                entry.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+                                    // Already run out, and the next dungeon is on its way.
+                                    if (restLeft == 0) return@repeatOnLifecycle
+                                    while (restLeft > 0) {
+                                        delay(1_000)
+                                        restLeft--
+                                        // Heard from across the room, where the rest is taken.
+                                        if (restLeft == 10) container.voice.say(context.getString(R.string.voice_rest_ten))
+                                    }
+                                    container.voice.say(context.getString(R.string.voice_rest_go))
+                                    startNextNow()
                                 }
-                                container.voice.say(context.getString(R.string.voice_rest_go))
-                                startNextNow()
                             }
                         }
                         AlwaysDark {
