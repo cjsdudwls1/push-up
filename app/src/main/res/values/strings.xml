@@ -37,9 +37,11 @@
     <string name="class_pick_title">어떻게 싸울까요?</string>
     <string name="class_pick_body">직업은 운동 방식을 고르는 거예요. 언제든 바꿀 수 있어요.</string>
     <string name="class_knight">기사</string>
-    <string name="class_knight_desc">근비대. 2초쯤 천천히, 끝까지 내려간 렙이 한 칸이에요. 아니면 반 칸. 횟수는 적어요.</string>
+    <string name="class_knight_desc">천천히 깊게 (근비대). 2초쯤 들여 끝까지 내려가면 1개, 아니면 반 개로 쳐요. 대신 몬스터가 적은 개수에 쓰러져요.</string>
     <string name="class_archer">궁수</string>
-    <string name="class_archer_desc">수행능력. 쉬지 않고 빠르게 이어 간 렙이 한 칸이에요. 아니면 반 칸. 횟수는 많아요.</string>
+    <string name="class_archer_desc">빠르게 이어서 (수행능력). 쉬지 않고 이어 가면 1개, 늘어지면 반 개로 쳐요. 대신 몬스터가 많은 개수를 버텨요.</string>
+    <!-- On each class card: what the free first dungeon asks with that class, at the chosen difficulty. -->
+    <string name="class_first_dungeon">첫 던전: 푸쉬업 %1$,d개</string>
     <string name="class_change_title">직업 바꾸기</string>
     <string name="class_change_body">싸우는 방식만 바뀌어요. 레벨과 기록은 그대로고, 몇 번이든 다시 바꿀 수 있어요.</string>
     <string name="class_current">지금 직업</string>
@@ -205,11 +207,11 @@
     <string name="voice_ready">좋아요, 시작해요!</string>
     <string name="battle_not_split">다리를 앞뒤로 벌려야 런지로 세요</string>
     <!-- A rep that counted but was worth half, and what makes the next one whole. -->
-    <string name="battle_style_too_quick">천천히 해야 한 칸이에요</string>
-    <string name="battle_style_not_full">끝까지 가야 한 칸이에요</string>
-    <string name="battle_style_lagging">쉬지 않고 이어 가야 한 칸이에요</string>
-    <string name="result_style_knight">천천히 끝까지 한 렙 %1$d / %2$d</string>
-    <string name="result_style_archer">쉬지 않고 이어 간 렙 %1$d / %2$d</string>
+    <string name="battle_style_too_quick">천천히 해야 1개로 쳐요</string>
+    <string name="battle_style_not_full">끝까지 가야 1개로 쳐요</string>
+    <string name="battle_style_lagging">쉬지 않고 이어 가야 1개로 쳐요</string>
+    <string name="result_style_knight">천천히 끝까지 해서 1개로 친 것 %1$d / %2$d</string>
+    <string name="result_style_archer">쉬지 않고 이어 가서 1개로 친 것 %1$d / %2$d</string>
     <string name="voice_times_1">한 번</string>
     <string name="voice_times_2">두 번</string>
     <string name="voice_times_3">세 번</string>

@@ -21,6 +21,9 @@ import com.pushuprpg.app.ui.components.cardSurface
 import com.pushuprpg.app.ui.theme.LocalGameColors
 import com.pushuprpg.app.ui.theme.Palette
 import com.pushuprpg.app.ui.theme.Type
+import com.pushuprpg.core.detect.ExerciseType
+import com.pushuprpg.core.game.Difficulty
+import com.pushuprpg.core.game.Dungeons
 import com.pushuprpg.core.game.PlayerClass
 
 /**
@@ -102,10 +105,16 @@ internal fun classStrings(playerClass: PlayerClass): Pair<Int, Int> = when (play
  * and the copy says what a change keeps. Null means onboarding, where nothing has been chosen.
  * A change costs nothing: level, XP and records belong to the player rather than the class, and a
  * fight's HP is a count of reps that is the same whichever class is doing them.
+ *
+ * Each card also says what the first dungeon asks with that class, at [difficulty], because that
+ * is what the choice decides first: the same dungeon is more than twice as many pushups for one as
+ * for the other, and that was said nowhere before the first fight.
  */
 @Composable
 fun ClassPickScreen(
     capacity: Float,
+    /** The difficulty the first dungeon's count on each card is quoted at. */
+    difficulty: Difficulty,
     onPick: (PlayerClass) -> Unit,
     modifier: Modifier = Modifier,
     current: PlayerClass? = null,
@@ -175,6 +184,16 @@ fun ClassPickScreen(
                     text = stringResource(descRes),
                     style = Type.bodyM,
                     color = Palette.TextSecondary,
+                )
+                Spacer(Modifier.height(8.dp))
+                // The count the run will ask for, from the call every screen that quotes one uses.
+                Text(
+                    text = stringResource(
+                        R.string.class_first_dungeon,
+                        Dungeons.FREE_DUNGEON.repCost(difficulty, ExerciseType.PUSHUP, playerClass),
+                    ),
+                    style = Type.labelL,
+                    color = Palette.TextPrimary,
                 )
             }
         }

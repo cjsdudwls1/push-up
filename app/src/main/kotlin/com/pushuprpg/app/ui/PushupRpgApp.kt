@@ -183,6 +183,7 @@ fun PushupRpgApp(
                 composable(Routes.CLASS_PICK) { entry ->
                     ClassPickScreen(
                         capacity = progress.capacityOf(ExerciseType.PUSHUP),
+                        difficulty = settings.difficulty,
                         onPick = { playerClass: PlayerClass ->
                             // A second tap during the transition would write a second class and
                             // push a second tutorial behind the first.
@@ -209,6 +210,7 @@ fun PushupRpgApp(
                 composable(Routes.CLASS_CHANGE) {
                     ClassPickScreen(
                         capacity = progress.capacityOf(ExerciseType.PUSHUP),
+                        difficulty = settings.difficulty,
                         current = progress.playerClass,
                         onPick = { playerClass: PlayerClass ->
                             val from = progress.playerClass
