@@ -381,6 +381,8 @@
     <string name="home_class_level">%1$s · 레벨 %2$d</string>
     <string name="home_week">최근 7일</string>
     <string name="home_today_good">좋아요, 오늘 몸은 확실히 썼어요</string>
+    <!-- The hub's big button before any dungeon has been cleared: there is nothing yet to continue. -->
+    <string name="home_start_first">첫 던전 도전하기</string>
     <string name="home_replay">%1$s 다시 도전</string>
     <string name="home_continue_locked">구독하면 이어서 갈 수 있어요</string>
     <string name="home_trial_left">무료 체험 %1$d일 남았어요</string>

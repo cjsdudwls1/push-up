@@ -43,6 +43,10 @@ data class HomeUiState(
  * Built around one question — "am I doing this today?" — so today's count and the streak come
  * first, and the single loud button below them resumes exactly where the player left off. Anything
  * that makes a user navigate before they can start exercising is a tax on the habit.
+ *
+ * Where the player left off may be a dungeon that is not free. The loud button is then the one a
+ * free player can press, the free dungeon again, and the way on sits under it saying what it opens
+ * — it used to be the loud button, and led to the paywall without a word.
  */
 @Composable
 fun HomeScreen(
@@ -119,13 +123,27 @@ fun HomeScreen(
         Spacer(Modifier.height(24.dp))
         val dungeon = Dungeons.byIndex(state.nextDungeon)
         val playable = FreeTier.canPlayDungeon(state.nextDungeon, state.entitlement)
-        PrimaryButton(
-            text = stringResource(R.string.action_continue),
-            supportingText = dungeon?.korean,
-            onClick = {
-                if (playable) onStartDungeon(state.nextDungeon) else onRequestPaywall()
-            },
-        )
+        if (playable) {
+            PrimaryButton(
+                text = stringResource(
+                    if (state.progress.highestDungeonCleared == 0) R.string.home_start_first
+                    else R.string.action_continue
+                ),
+                supportingText = dungeon?.korean,
+                onClick = { onStartDungeon(state.nextDungeon) },
+            )
+        } else {
+            PrimaryButton(
+                text = stringResource(R.string.home_replay, Dungeons.FREE_DUNGEON.korean),
+                onClick = { onStartDungeon(FreeTier.FREE_DUNGEON_INDEX) },
+            )
+            Spacer(Modifier.height(10.dp))
+            SecondaryButton(
+                text = dungeon?.korean.orEmpty(),
+                supportingText = stringResource(R.string.home_continue_locked),
+                onClick = onRequestPaywall,
+            )
+        }
 
         Spacer(Modifier.height(10.dp))
         SecondaryButton(

@@ -259,6 +259,8 @@ fun SecondaryButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
+    /** A second, smaller line: where the button leads when its label alone would not say. */
+    supportingText: String? = null,
 ) {
     OutlinedButton(
         onClick = onClick,
@@ -276,7 +278,20 @@ fun SecondaryButton(
         ),
         contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp),
     ) {
-        Text(text = text, style = Type.titleM, maxLines = 1)
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(text = text, style = Type.titleM, maxLines = 1)
+            if (supportingText != null) {
+                Spacer(Modifier.height(3.dp))
+                Text(
+                    text = supportingText,
+                    style = Type.labelM,
+                    color = LocalContentColor.current.copy(alpha = 0.75f),
+                    textAlign = TextAlign.Center,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
     }
 }
 

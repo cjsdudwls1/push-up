@@ -430,18 +430,20 @@ fun PushupRpgApp(
                                 level = lastLevelReached,
                                 levelsGained = lastLevelsGained,
                                 hasNextDungeon = dungeonIndex < Dungeons.ALL.size,
+                                // The same gate the dungeon list applies; without it the clear
+                                // screen was a way past the paywall.
+                                nextLocked = !FreeTier.canPlayDungeon(next, entitlement),
                                 onNextDungeon = {
-                                    val next = dungeonIndex + 1
-                                    // The same gate the dungeon list applies; without it the clear
-                                    // screen was a way past the paywall.
-                                    val route = if (FreeTier.canPlayDungeon(next, entitlement)) {
-                                        Routes.exercisePick(next)
-                                    } else {
-                                        Routes.PAYWALL
-                                    }
                                     if (navController.isOnTop(entry)) {
-                                        navController.navigate(route) {
-                                            popUpTo(Routes.RESULT) { inclusive = true }
+                                        if (FreeTier.canPlayDungeon(next, entitlement)) {
+                                            navController.navigate(Routes.exercisePick(next)) {
+                                                popUpTo(Routes.RESULT) { inclusive = true }
+                                            }
+                                        } else {
+                                            // Over the result rather than in place of it, so closing
+                                            // the paywall comes back to the run just finished.
+                                            container.telemetry.log(Event.PaywallShown("result"))
+                                            navController.navigate(Routes.PAYWALL)
                                         }
                                     }
                                 },
