@@ -26,7 +26,7 @@
 <div class="legal wrap">
 
 <h1>개인정보처리방침</h1>
-<p class="updated">시행일: 2026년 9월 14일 · 최종 수정일: 2026년 9월 23일</p>
+<p class="updated">시행일: 2026년 9월 14일 · 최종 수정일: 2026년 9월 25일</p>
 
 <div class="callout">
   <p><strong>가장 중요한 것 하나.</strong> 카메라 영상은 저장되지 않고 어디로도 전송되지 않습니다.
@@ -114,6 +114,7 @@
 <ul>
   <li>앱이 비정상 종료된 시점의 호출 스택과 오류 메시지</li>
   <li>기기 모델명, 운영체제 버전, 앱 버전, 사용 가능한 메모리·저장공간</li>
+  <li>오류가 났을 때 하고 있던 운동 종류(예: 푸쉬업)</li>
   <li>Crashlytics가 자동 생성하는 설치 식별자(앱을 삭제하면 소멸하며, 이용자 본인을 식별하지 않습니다)</li>
 </ul>
 
@@ -250,7 +251,7 @@
 </p>
 <p>
   Two things are sent off the device. Firebase Crashlytics receives crash stack traces with device
-  model, OS version and app version (retained up to 90 days). Firebase Analytics receives the
+  model, OS version, app version and the movement being tracked (retained up to 90 days). Firebase Analytics receives the
   specific product events listed in section 4-2 — onboarding, class choice and later class changes, camera permission
   outcome, tutorial completion, run start and finish, tracking loss, paywall and purchase steps,
   and streak length — together with an app instance identifier and country-level region (retained
