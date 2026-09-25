@@ -48,17 +48,17 @@ with the objection that kills installs for a camera app.
 팔굽혀펴기 한 개가 몬스터를 한 번 때려요.
 
 폰을 바닥에 세워두고 엎드리면 카메라가 자세를 봐요. 개수를 손으로 세지 않아도 되고,
-몇 개 했는지 기억할 필요도 없어요. 내려간 만큼 데미지가 들어가니까, 대충 하면 몬스터가
+몇 개 했는지 기억할 필요도 없어요. 얕게 하면 개수로 안 치니까, 대충 하면 몬스터가
 안 죽어요.
 
 ▶ 카메라가 세는 팔굽혀펴기
-어깨와 손목의 위치로 내려간 깊이를 재요. 카메라와의 거리나 폰의 각도가 달라져도
-같은 기준으로 세기 때문에, 폰을 어디에 두든 상관없어요.
+어깨와 손목의 위치로 내려간 깊이를 재요. 카메라가 멀든 가깝든 같은 기준으로 세요.
+폰은 머리 앞쪽 바닥에 세워 두세요. 옆에서 찍으면 못 세요.
 
 ▶ 얕게 하면 안 맞아요
 개수는 올라가는데 체력은 안 깎이는 일이 없어요. 깊이를 판정하는 곳이 한 군데뿐이라,
-인정된 한 개는 반드시 한 번의 공격이에요. 더 깊게 내려가면 '깊은 타격'으로 더 아프게
-들어가요.
+인정된 한 개는 반드시 한 번의 공격이에요. 더 깊게 내려가면 '깊은 타격'이 뜨고,
+결과 화면의 별로 남아요.
 
 ▶ 져도 남아요
 경험치는 이긴 순간이 아니라 개수마다 들어와요. 보스를 못 잡고 끝나도 오늘 한 개수는
@@ -70,8 +70,8 @@ with the objection that kills installs for a camera app.
 이 모드는 계속 무료예요.
 
 ▶ 팔굽혀펴기만 있는 게 아니에요
-스쿼트·플랭크 같은 다른 맨몸운동으로도 싸울 수 있어요. 플랭크는 버티는 동안 계속
-데미지가 들어가고, 스쿼트는 무릎이 엉덩이보다 낮아지는 순간을 기준으로 세요.
+스쿼트·플랭크 같은 다른 맨몸운동으로도 싸울 수 있어요. 플랭크는 개수 대신 버틴
+시간으로 세요. 폰을 어디에 두면 되는지는 운동을 고를 때 한 줄로 알려줘요.
 
 ▶ 기록
 누적 개수, 최대 콤보, 운동한 시간, 연속 운동 일수를 남겨요.
@@ -103,7 +103,7 @@ with the objection that kills installs for a camera app.
 개인정보처리방침: https://cjsdudwls1.github.io/push-up/privacy.html
 ```
 
-About 1,280 characters — well inside the limit, and every remaining character would be worse than
+About 1,290 characters — well inside the limit, and every remaining character would be worse than
 white space. Play does not reward length.
 
 ### Keyword coverage
