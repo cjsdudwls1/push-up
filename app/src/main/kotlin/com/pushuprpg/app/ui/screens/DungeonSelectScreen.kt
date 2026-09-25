@@ -17,11 +17,15 @@ import com.pushuprpg.app.R
 import com.pushuprpg.app.domain.Entitlement
 import com.pushuprpg.app.domain.FreeTier
 import com.pushuprpg.app.ui.components.Pill
+import com.pushuprpg.app.ui.components.SectionHeader
 import com.pushuprpg.app.ui.components.cardSurface
+import com.pushuprpg.app.ui.components.exerciseLabelRes
 import com.pushuprpg.app.ui.theme.LocalGameColors
 import com.pushuprpg.app.ui.theme.Palette
 import com.pushuprpg.app.ui.theme.Type
 import com.pushuprpg.core.detect.ExerciseType
+import com.pushuprpg.core.detect.Exercises
+import com.pushuprpg.core.detect.MovementKind
 import com.pushuprpg.core.game.Difficulty
 import com.pushuprpg.core.game.Dungeon
 import com.pushuprpg.core.game.Dungeons
@@ -30,7 +34,8 @@ import com.pushuprpg.core.game.PlayerClass
 /**
  * Dungeon list.
  *
- * Each card shows what the run costs, as a number of reps of the movement the user last chose.
+ * Each card shows what the run costs, as a number of reps of the movement the user last chose —
+ * named, and in seconds for a hold.
  * That is the only figure someone deciding whether they have twenty minutes and the energy can act
  * on — and under the volume model it is exact rather than an estimate, because the rep count IS the
  * enemy's health. It no longer depends on a measured capacity, so it says the same thing to a
@@ -52,6 +57,9 @@ fun DungeonSelectScreen(
     onRequestPaywall: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val exerciseName = stringResource(exerciseLabelRes(exercise))
+    val inSeconds = Exercises.of(exercise).kind == MovementKind.HOLD
+
     LazyColumn(
         modifier = modifier
             .fillMaxSize()
@@ -69,6 +77,7 @@ fun DungeonSelectScreen(
         }
 
         item {
+            SectionHeader(text = stringResource(R.string.difficulty_section))
             DifficultyRow(
                 selected = difficulty,
                 recommended = Difficulty.recommendedFor(capacity),
@@ -79,9 +88,15 @@ fun DungeonSelectScreen(
         items(Dungeons.ALL, key = { it.index }) { dungeon ->
             val unlocked = dungeon.index <= highestCleared + 1
             val paid = FreeTier.canPlayDungeon(dungeon.index, entitlement)
+            val cost = dungeon.repCost(difficulty, exercise, playerClass)
             DungeonCard(
                 dungeon = dungeon,
-                expectedReps = dungeon.repCost(difficulty, exercise, playerClass),
+                // Named, and in the movement's own unit: a plank's quote is seconds.
+                estimate = if (inSeconds) {
+                    stringResource(R.string.dungeon_estimated_seconds, exerciseName, cost)
+                } else {
+                    stringResource(R.string.dungeon_estimated_reps, exerciseName, cost)
+                },
                 cleared = dungeon.index <= highestCleared,
                 unlocked = unlocked,
                 paid = paid,
@@ -119,7 +134,10 @@ private fun DifficultyRow(
                         color = if (active) Palette.Brand600 else Palette.Bg2,
                     )
                     .clickable { onSelect(difficulty) }
+                    // A touch target, whether or not the chip carries its 추천 line.
+                    .heightIn(min = 48.dp)
                     .padding(horizontal = 16.dp, vertical = 10.dp),
+                verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Text(
@@ -145,7 +163,8 @@ private fun DifficultyRow(
 @Composable
 private fun DungeonCard(
     dungeon: Dungeon,
-    expectedReps: Int,
+    /** What the run asks, already worded: 푸쉬업 18개 예상. */
+    estimate: String,
     cleared: Boolean,
     unlocked: Boolean,
     paid: Boolean,
@@ -170,10 +189,11 @@ private fun DungeonCard(
                 color = if (unlocked) Palette.TextPrimary else Palette.TextDisabled,
             )
             when {
-                cleared -> Pill(text = "클리어", tint = colors.accept)
-                !unlocked -> Pill(text = "잠김", tint = Palette.TextTertiary)
-                !paid -> Pill(text = "구독 필요", tint = Palette.Brand400)
-                dungeon.index == FreeTier.FREE_DUNGEON_INDEX -> Pill(text = "무료", tint = colors.accept)
+                cleared -> Pill(text = stringResource(R.string.dungeon_cleared_badge), tint = colors.accept)
+                !unlocked -> Pill(text = stringResource(R.string.dungeon_locked_badge), tint = Palette.TextTertiary)
+                !paid -> Pill(text = stringResource(R.string.dungeon_locked_subscription), tint = Palette.Brand400)
+                dungeon.index == FreeTier.FREE_DUNGEON_INDEX ->
+                    Pill(text = stringResource(R.string.dungeon_free_badge), tint = colors.accept)
                 else -> Unit
             }
         }
@@ -181,12 +201,15 @@ private fun DungeonCard(
         Spacer(Modifier.height(8.dp))
         Text(
             text = if (unlocked) {
-                stringResource(R.string.dungeon_estimated_reps, expectedReps) +
-                    " · " + stringResource(
+                stringResource(
+                    R.string.dungeon_meta,
+                    estimate,
+                    stringResource(
                         R.string.dungeon_recommended_level,
                         dungeon.recommendedLevel.first,
                         dungeon.recommendedLevel.last,
-                    )
+                    ),
+                )
             } else {
                 stringResource(R.string.dungeon_locked)
             },

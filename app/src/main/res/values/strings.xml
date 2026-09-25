@@ -175,7 +175,9 @@
     <!-- Dungeon select -->
     <string name="dungeon_locked">이전 던전을 먼저 클리어해요</string>
     <string name="dungeon_recommended_level">권장 레벨 %1$d–%2$d</string>
-    <string name="dungeon_estimated_reps">예상 %1$d개</string>
+    <!-- %1$s is the movement the count is quoted in: the one picked last. -->
+    <string name="dungeon_estimated_reps">%1$s %2$,d개 예상</string>
+    <string name="dungeon_estimated_seconds">%1$s %2$,d초 예상</string>
     <string name="difficulty_recommended">추천</string>
 
     <!-- Records -->
@@ -394,7 +396,7 @@
     <string name="home_dungeons_sub">원하는 던전을 골라요</string>
     <string name="home_survival_sub">천장을 밀어 올려서 버텨요</string>
     <string name="home_xp_progress">%1$,d / %2$,d</string>
-    <string name="home_xp_to_next">다음 레벨까지 %1$,d</string>
+    <string name="home_xp_to_next">다음 레벨까지 경험치 %1$,d</string>
     <string name="home_max_level">최고 레벨에 닿았어요</string>
 
     <!-- Rank card -->

@@ -148,6 +148,18 @@ fun HomeScreen(
             color = Palette.Brand500,
             modifier = Modifier.fillMaxWidth(),
         )
+        // Named, because the rank card below has a bar of its own and the two measure different
+        // things: this one is the level, which XP moves.
+        Spacer(Modifier.height(6.dp))
+        Text(
+            text = if (xpNeeded == 0) {
+                stringResource(R.string.home_max_level)
+            } else {
+                stringResource(R.string.home_xp_to_next, (xpNeeded - state.progress.xpIntoLevel).coerceAtLeast(0))
+            },
+            style = Type.labelM,
+            color = Palette.TextTertiary,
+        )
 
         Spacer(Modifier.height(24.dp))
         val dungeon = Dungeons.byIndex(state.nextDungeon)
