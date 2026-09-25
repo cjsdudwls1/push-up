@@ -24,7 +24,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -43,6 +45,7 @@ import com.pushuprpg.app.domain.CatCoat
 import com.pushuprpg.app.pose.CameraPreview
 import com.pushuprpg.app.pose.PoseLandmarkerSource
 import com.pushuprpg.app.share.ShareCardData
+import com.pushuprpg.app.ui.components.CameraErrorCard
 import com.pushuprpg.app.ui.components.KeepScreenOn
 import com.pushuprpg.app.ui.components.PrimaryButton
 import com.pushuprpg.app.ui.components.SecondaryButton
@@ -122,9 +125,18 @@ fun SurvivalScreen(
         }
     }
 
+    // Raised by the camera and cleared by it once it opens; the card's retry binds it again.
+    var cameraFailed by remember { mutableStateOf(false) }
+    var cameraAttempt by remember { mutableIntStateOf(0) }
+
     BoxWithConstraints(modifier.fillMaxSize().background(Color(0xFF1A1208))) {
 
-        CameraPreview(source = poseSource, modifier = Modifier.fillMaxSize())
+        CameraPreview(
+            source = poseSource,
+            modifier = Modifier.fillMaxSize(),
+            attempt = cameraAttempt,
+            onCameraError = { failed -> cameraFailed = failed },
+        )
 
         // Warm wash over the camera: the room becomes a cosy room rather than a lab.
         Box(
@@ -208,7 +220,8 @@ fun SurvivalScreen(
             // camera loses them — which matters more here than anywhere, because the ceiling does
             // not wait. The tutorial never went through a picker, so this and its intro are its only
             // placement advice, and a phone put where the movement cannot be seen counts nothing.
-            if (state.alive) {
+            // Not while the camera will not open, where the card says why.
+            if (state.alive && !cameraFailed) {
                 Spacer(Modifier.height(10.dp))
                 PlacementBanner(
                     placement = placement,
@@ -240,9 +253,10 @@ fun SurvivalScreen(
         }
 
         // The tutorial's way out, where a run's close button sits: once the wait to start has gone on
-        // long enough to look stuck, or at once when the model never loaded and nothing can count.
-        // Someone who cannot get onto the floor must not be held here by it.
-        if (isTutorial && !state.started && (waitedForStart || modelFailed)) {
+        // long enough to look stuck, or at once when the model never loaded or the camera will not
+        // open, and nothing can count. Someone who cannot get onto the floor must not be held here
+        // by it.
+        if (isTutorial && !state.started && (waitedForStart || modelFailed || cameraFailed)) {
             Box(
                 Modifier
                     .align(Alignment.TopStart)
@@ -261,6 +275,18 @@ fun SurvivalScreen(
                     color = Palette.TextPrimary,
                 )
             }
+        }
+
+        // Only while the run is on. After it, its own card has the floor, and the next run brings
+        // this back if the camera is still out.
+        if (cameraFailed && state.alive) {
+            CameraErrorCard(
+                onRetry = {
+                    cameraFailed = false
+                    cameraAttempt++
+                },
+                modifier = Modifier.align(Alignment.Center),
+            )
         }
 
         if (!state.alive) {

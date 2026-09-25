@@ -1,7 +1,9 @@
 package com.pushuprpg.app.pose
 
+import android.util.Log
 import android.util.Size
 import androidx.camera.core.CameraSelector
+import androidx.camera.core.CameraState
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.Preview
 import androidx.camera.core.resolutionselector.ResolutionSelector
@@ -15,6 +17,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.Observer
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import java.util.concurrent.Executors
 
@@ -30,8 +34,15 @@ fun CameraPreview(
     source: PoseLandmarkerSource,
     modifier: Modifier = Modifier,
     frontCamera: Boolean = true,
+    /** Changed to bind the camera again: the retry after [onCameraError] said it would not open. */
+    attempt: Int = 0,
     /** Which camera actually bound. The overlay mirrors only for the front one. */
     onCameraBound: (Boolean) -> Unit = {},
+    /**
+     * Whether the camera cannot be used: true when no camera would bind or the camera reports an
+     * error — another app holding it, a policy that turns it off — and false once it is open.
+     */
+    onCameraError: (Boolean) -> Unit = {},
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -44,7 +55,7 @@ fun CameraPreview(
         }
     }
 
-    DisposableEffect(frontCamera) {
+    DisposableEffect(frontCamera, attempt) {
         // Owned by this effect rather than remembered across it, so a rebind cannot leave an
         // orphaned executor running behind the new one.
         val analysisExecutor = Executors.newSingleThreadExecutor()
@@ -52,13 +63,31 @@ fun CameraPreview(
         var provider: ProcessCameraProvider? = null
         var disposed = false
 
+        // A bind that succeeds is not a camera that opened. Another app holding it, or a device
+        // policy, shows only in the camera's own state, and it used to show as a black preview with
+        // nothing said. CameraX retries a recoverable error by itself, so OPEN clears it again.
+        var cameraState: LiveData<CameraState>? = null
+        val stateObserver = Observer<CameraState> { state ->
+            when {
+                state.error != null -> onCameraError(true)
+                state.type == CameraState.Type.OPEN -> onCameraError(false)
+            }
+        }
+
         providerFuture.addListener({
             // CameraX initialisation takes a few hundred milliseconds on the first call of a
             // process. Leaving the screen before it completes would otherwise run this listener
             // after onDispose and bind a camera nothing is left to unbind.
             if (disposed) return@addListener
 
-            val cameraProvider = providerFuture.get()
+            val cameraProvider = try {
+                providerFuture.get()
+            } catch (e: Exception) {
+                // CameraX could not start at all: no camera service it can reach.
+                Log.w(TAG, "camera provider unavailable", e)
+                onCameraError(true)
+                return@addListener
+            }
             provider = cameraProvider
 
             val preview = Preview.Builder().build().also {
@@ -112,10 +141,10 @@ fun CameraPreview(
                 CameraSelector.DEFAULT_BACK_CAMERA
             }
 
-            try {
+            val camera = try {
                 cameraProvider.unbindAll()
                 cameraProvider.bindToLifecycle(lifecycleOwner, selector, preview, analysis)
-                onCameraBound(frontCamera)
+                    .also { onCameraBound(frontCamera) }
             } catch (_: IllegalArgumentException) {
                 // No front camera on this device, or it is held by another app. Falling back is
                 // better than a black screen; the user simply has to turn the phone around — but
@@ -124,16 +153,28 @@ fun CameraPreview(
                 try {
                     cameraProvider.bindToLifecycle(
                         lifecycleOwner, CameraSelector.DEFAULT_BACK_CAMERA, preview, analysis
-                    )
-                    onCameraBound(false)
-                } catch (_: Exception) {
-                    // Surfaced to the user by the caller's error state.
+                    ).also { onCameraBound(false) }
+                } catch (e: Exception) {
+                    Log.w(TAG, "no camera would bind", e)
+                    null
                 }
+            } catch (e: IllegalStateException) {
+                Log.w(TAG, "camera would not bind", e)
+                null
+            }
+
+            if (camera == null) {
+                onCameraError(true)
+                return@addListener
+            }
+            cameraState = camera.cameraInfo.cameraState.also {
+                it.observe(lifecycleOwner, stateObserver)
             }
         }, ContextCompat.getMainExecutor(context))
 
         onDispose {
             disposed = true
+            cameraState?.removeObserver(stateObserver)
             provider?.unbindAll()
             analysisExecutor.shutdown()
         }
@@ -141,3 +182,5 @@ fun CameraPreview(
 
     AndroidView(factory = { previewView }, modifier = modifier)
 }
+
+private const val TAG = "CameraPreview"

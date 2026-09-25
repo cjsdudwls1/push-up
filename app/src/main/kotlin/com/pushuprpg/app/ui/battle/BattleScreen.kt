@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import com.pushuprpg.app.R
 import com.pushuprpg.app.pose.CameraPreview
 import com.pushuprpg.app.pose.PoseLandmarkerSource
+import com.pushuprpg.app.ui.components.CameraErrorCard
 import com.pushuprpg.app.ui.components.KeepScreenOn
 import com.pushuprpg.app.ui.components.exerciseHintRes
 import com.pushuprpg.app.ui.components.FramingGuide
@@ -124,10 +125,15 @@ fun BattleScreen(
         // no usable front camera falls back to the back one, and mirroring that would put the
         // skeleton on the wrong side of the body.
         var mirrored by remember { mutableStateOf(true) }
+        // Raised by the camera and cleared by it once it opens; the card's retry binds it again.
+        var cameraFailed by remember { mutableStateOf(false) }
+        var cameraAttempt by remember { mutableIntStateOf(0) }
         CameraPreview(
             source = poseSource,
             modifier = Modifier.fillMaxSize(),
+            attempt = cameraAttempt,
             onCameraBound = { front -> mirrored = front },
+            onCameraError = { failed -> cameraFailed = failed },
         )
 
         if (!audioOnly) {
@@ -202,13 +208,17 @@ fun BattleScreen(
 
         // Where the phone and the user are, said live while it matters and silent when it does
         // not. When tracking drops mid-fight this is also what explains the boss standing still.
-        PlacementBanner(
-            placement = state.placement,
-            exercise = state.exercise,
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(start = 20.dp, end = 20.dp, bottom = 40.dp),
-        )
+        // Not while the camera will not open: the card says why, and a placement line under it
+        // would only send the user looking in the wrong place.
+        if (!cameraFailed) {
+            PlacementBanner(
+                placement = state.placement,
+                exercise = state.exercise,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(start = 20.dp, end = 20.dp, bottom = 40.dp),
+            )
+        }
 
         // Top right, opposite the close button: switching is a between-sets act, done standing in
         // front of the phone, so it can sit where the hands are not.
@@ -250,6 +260,16 @@ fun BattleScreen(
                     .clip(RoundedCornerShape(18.dp))
                     .background(Palette.ScrimPanelHigh)
                     .padding(horizontal = 18.dp, vertical = 12.dp),
+            )
+        }
+
+        if (cameraFailed) {
+            CameraErrorCard(
+                onRetry = {
+                    cameraFailed = false
+                    cameraAttempt++
+                },
+                modifier = Modifier.align(Alignment.Center),
             )
         }
 

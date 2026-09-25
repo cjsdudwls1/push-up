@@ -383,6 +383,7 @@
     <string name="error_model_load">준비 중 문제가 생겼어요. 앱을 다시 열어볼까요?</string>
     <string name="error_network">연결이 잠깐 끊겼어요. 운동은 그대로 진행돼요.</string>
     <string name="error_camera">카메라를 열 수 없어요. 다른 앱이 쓰고 있는지 확인해 주세요.</string>
+    <string name="error_camera_retry">카메라 다시 열기</string>
 
     <!-- Home hub -->
     <string name="home_title">거점</string>
