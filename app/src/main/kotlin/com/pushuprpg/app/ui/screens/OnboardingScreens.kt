@@ -16,6 +16,7 @@ import com.pushuprpg.app.R
 import com.pushuprpg.app.domain.ThemeMode
 import com.pushuprpg.app.ui.components.Pill
 import com.pushuprpg.app.ui.components.PrimaryButton
+import com.pushuprpg.app.ui.components.SecondaryButton
 import com.pushuprpg.app.ui.components.ThemeToggle
 import com.pushuprpg.app.ui.components.cardSurface
 import com.pushuprpg.app.ui.theme.LocalGameColors
@@ -250,6 +251,14 @@ fun PermissionScreen(
             PrimaryButton(
                 text = stringResource(R.string.permission_open_settings),
                 onClick = onOpenAppSettings,
+            )
+            // Asking stays. From Android 11 a dialog closed by a tap beside it reads exactly like
+            // 다시 묻지 않음, and the system would still show it again. Where it truly will not, the
+            // refusal comes straight back and this screen stays as it is.
+            Spacer(Modifier.height(10.dp))
+            SecondaryButton(
+                text = stringResource(R.string.permission_grant),
+                onClick = onRequestPermission,
             )
         } else {
             PrimaryButton(

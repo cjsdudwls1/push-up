@@ -29,8 +29,9 @@ class MainActivity : ComponentActivity() {
         ActivityResultContracts.RequestPermission()
     ) { granted ->
         cameraGranted.value = granted
-        // "Denied and we may no longer ask" is the state that needs a different screen: the system
-        // dialog will not appear again, so pointing at the in-app button would be a dead end.
+        // "Denied and we may no longer ask" is the state that leads with settings: the system dialog
+        // may not appear again. Only may — from Android 11 a dialog dismissed without an answer
+        // reads the same — so the permission screen keeps a button that asks as well.
         permissionPermanentlyDenied.value =
             !granted && !shouldShowRequestPermissionRationale(Manifest.permission.CAMERA)
     }
