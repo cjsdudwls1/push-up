@@ -749,4 +749,35 @@ class BattleEnginePresentationTest {
         assertEquals(ExerciseType.PUSHUP, outcome.segments.single().exercise)
         assertEquals(outcome.reps, outcome.segments.single().reps)
     }
+
+    /** So the result screen can say 고블린 킹에게 N개 남기고 멈췄어요, and mean it. */
+    @Test
+    fun `a stopped run says which monster it left, and how much of it`() {
+        val e = engineIn(Dungeons.byIndex(3)!!)
+        val state = feed(e, PoseFixtures.trace(count = 3, peakDepth = 0.95f, restMs = 250))
+        assertTrue(state.enemyHp in 1 until state.enemyMaxHp, "the fixture should leave the first monster part done")
+        val outcome = e.quit()
+        assertEquals(state.enemyName, outcome.enemyName)
+        assertEquals(state.enemyHp, outcome.enemyLeft)
+
+        // A hold's is in seconds, as its fight is.
+        val plank = BattleEngine(
+            dungeon = Dungeons.byIndex(3)!!,
+            difficulty = Difficulty.STANDARD,
+            capacity = 8f,
+            initialPlayer = PlayerState.create(PlayerClass.KNIGHT, level = 1),
+            detector = DetectorFactory.create(ExerciseType.PLANK),
+            resolver = CombatResolver(DetectorConfig.forExercise(ExerciseType.PLANK)),
+        )
+        val held = feed(plank, PoseFixtures.plankTrace(durationMs = 6_000))
+        val stopped = plank.quit()
+        assertEquals(held.enemyHp, stopped.enemyLeft)
+        assertTrue(stopped.enemyLeft < held.enemyMaxHp, "six seconds held took nothing off")
+
+        // And a cleared run left nothing.
+        val cleared = feed(engine(), PoseFixtures.trace(count = 80, peakDepth = 0.95f, restMs = 250)).outcome
+        assertEquals(true, cleared?.cleared)
+        assertEquals(0, cleared!!.enemyLeft)
+        assertEquals(Dungeons.FREE_DUNGEON.floors.last().korean, cleared.enemyName)
+    }
 }

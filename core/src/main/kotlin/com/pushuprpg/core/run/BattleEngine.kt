@@ -175,6 +175,14 @@ data class Outcome(
     val styleReps: Int = 0,
     /** The run movement by movement, in the order they were done. One entry if it never switched. */
     val segments: List<ExerciseSegment> = emptyList(),
+    /** The monster being fought when the run ended. */
+    val enemyName: String = "",
+    /**
+     * What that monster still owed, ward included, in the fight's own unit — reps, or seconds for a
+     * hold, as the last segment's movement says. Zero once cleared. What a run stopped part way can
+     * honestly say it left.
+     */
+    val enemyLeft: Int = 0,
 )
 
 /**
@@ -799,6 +807,8 @@ class BattleEngine(
             plausibility = if (repsTotal == 0) all.last().plausibility
             else all.sumOf { (it.plausibility * it.reps).toDouble() }.toFloat() / repsTotal,
             segments = all,
+            enemyName = encounter.enemy.korean,
+            enemyLeft = if (cleared) 0 else encounter.enemy.remaining,
         )
     }
 
