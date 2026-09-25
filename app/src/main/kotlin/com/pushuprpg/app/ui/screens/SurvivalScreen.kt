@@ -56,6 +56,7 @@ import com.pushuprpg.app.ui.theme.Type
 import com.pushuprpg.app.ui.battle.SkeletonOverlay
 import com.pushuprpg.app.ui.components.FramingGuide
 import com.pushuprpg.app.ui.components.PlacementBanner
+import com.pushuprpg.app.ui.components.exerciseHintRes
 import com.pushuprpg.app.ui.components.exerciseLabelRes
 import com.pushuprpg.core.detect.ExerciseType
 import com.pushuprpg.core.detect.Exercises
@@ -177,27 +178,34 @@ fun SurvivalScreen(
                 style = Type.numeralL,
                 color = Palette.TextPrimary,
             )
-            Spacer(Modifier.height(2.dp))
-            Text(
-                text = stringResource(R.string.survival_best, bestScore),
-                style = Type.labelM,
-                color = Palette.TextSecondary,
-            )
+            // Not in the tutorial: a best of 0 says nothing to someone who has never played.
+            if (!isTutorial) {
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    text = stringResource(R.string.survival_best, bestScore),
+                    style = Type.labelM,
+                    color = Palette.TextSecondary,
+                )
+            }
             // The ceiling waits for the user to be in position, and says so — a still ceiling with
-            // no explanation reads as a broken one.
+            // no explanation reads as a broken one. The tutorial says it in its intro.
             if (!state.started && state.alive) {
                 Spacer(Modifier.height(10.dp))
-                Text(
-                    text = stringResource(R.string.survival_waiting_with, stringResource(exerciseLabelRes(exercise))),
-                    style = Type.bodyM,
-                    color = Palette.TextSecondary,
-                    textAlign = TextAlign.Center,
-                )
+                if (isTutorial) {
+                    TutorialIntro(modifier = Modifier.padding(horizontal = 20.dp))
+                } else {
+                    Text(
+                        text = stringResource(R.string.survival_waiting_with, stringResource(exerciseLabelRes(exercise))),
+                        style = Type.bodyM,
+                        color = Palette.TextSecondary,
+                        textAlign = TextAlign.Center,
+                    )
+                }
             }
             // Where the phone and the user are, live: before the first rep, and again whenever the
             // camera loses them — which matters more here than anywhere, because the ceiling does
-            // not wait. The tutorial never went through a picker, so this is its only placement
-            // advice, and a phone put where the movement cannot be seen counts nothing.
+            // not wait. The tutorial never went through a picker, so this and its intro are its only
+            // placement advice, and a phone put where the movement cannot be seen counts nothing.
             if (state.alive) {
                 Spacer(Modifier.height(10.dp))
                 PlacementBanner(
@@ -251,12 +259,6 @@ fun SurvivalScreen(
                     color = Palette.TextPrimary,
                 )
             }
-        }
-
-        // The tutorial explains itself once, before the ceiling starts moving. After that the
-        // mapping does the teaching: pushing up is pushing the ceiling up, which needs no words.
-        if (isTutorial && state.reps == 0 && state.alive) {
-            IntroCard(modifier = Modifier.align(Alignment.Center))
         }
 
         if (!state.alive) {
@@ -453,26 +455,35 @@ private fun catLineText(speech: CatSpeech): String {
     }
 }
 
+/**
+ * The tutorial explaining itself, once, before the ceiling starts moving: where the phone goes,
+ * then what happens. After that the mapping does the teaching — pushing up is pushing the ceiling
+ * up, which needs no words.
+ *
+ * At the top, over the room rather than over the framing guide: it used to be an opaque card in
+ * the middle of the screen, on top of the ghost and the skeleton that setting up is done by. And
+ * the tutorial never goes through the picker, so where the phone goes was said nowhere — and side
+ * on, where people tend to put it, is the one angle a pushup is not counted from.
+ */
 @Composable
-private fun IntroCard(modifier: Modifier = Modifier) {
+private fun TutorialIntro(modifier: Modifier = Modifier) {
     Column(
         modifier = modifier
-            .padding(horizontal = 28.dp)
-            .fillMaxWidth()
-            .cardSurface(shape = RoundedCornerShape(22.dp), color = Palette.Bg1)
-            .padding(22.dp),
+            .clip(RoundedCornerShape(18.dp))
+            .background(Palette.ScrimPanelHigh)
+            .padding(horizontal = 20.dp, vertical = 12.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(
-            text = stringResource(R.string.tutorial_intro_title),
-            style = Type.titleL,
-            color = Palette.TextPrimary,
+            text = stringResource(exerciseHintRes(ExerciseType.PUSHUP)),
+            style = Type.bodyL,
+            color = Palette.Brand400,
             textAlign = TextAlign.Center,
         )
-        Spacer(Modifier.height(10.dp))
+        Spacer(Modifier.height(4.dp))
         Text(
             text = stringResource(R.string.tutorial_intro_body),
-            style = Type.bodyL,
+            style = Type.bodyM,
             color = Palette.TextSecondary,
             textAlign = TextAlign.Center,
         )

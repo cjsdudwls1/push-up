@@ -302,8 +302,8 @@
     <string name="survival_waiting_with">%1$s 자세를 잡으면 천장이 내려오기 시작해요</string>
     <string name="pick_survival_title">뭐로 밀어 올릴까요?</string>
     <string name="pick_survival_sub">한 번 할 때마다 천장이 올라가요. 힘든 운동일수록 더 많이 올라가요.</string>
-    <string name="tutorial_intro_title">먼저 몸을 풀어볼까요</string>
-    <string name="tutorial_intro_body">천장이 내려와요. 푸쉬업으로 밀어 올려서 고냥이를 지켜주세요.\n할 수 있는 만큼만 하면 돼요 — 여기서 당신의 페이스를 배울게요.</string>
+    <!-- Under the pushup placement hint, before the tutorial's ceiling starts. -->
+    <string name="tutorial_intro_body">푸쉬업 자세를 잡으면 천장이 내려와요. 밀어 올려서 고냥이를 지켜 주세요.</string>
     <string name="tutorial_done_title">준비 끝!</string>
     <string name="tutorial_done_body">%1$d개 하셨어요. 이걸 기준으로 던전 난이도를 맞춰둘게요.</string>
     <string name="tutorial_continue">던전으로 가기</string>
