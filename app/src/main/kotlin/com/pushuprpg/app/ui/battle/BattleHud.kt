@@ -298,6 +298,10 @@ fun UltimateWarning(
             playerClass == PlayerClass.ARCHER -> stringResource(R.string.battle_ultimate_how_archer, answersNeeded)
             else -> stringResource(R.string.battle_ultimate_how_knight, answersNeeded)
         }
+        // Dark ink on the bright red, about 6:1. White on it was under 3:1, and this is the line
+        // read from the floor at an angle with a hit coming; the red stays bright, since it is also
+        // what catches the eye mid-rep.
+        val ink = Palette.TextOnAccent
         Column(
             modifier = Modifier
                 .clip(RoundedCornerShape(22.dp))
@@ -308,21 +312,21 @@ fun UltimateWarning(
             Text(
                 text = stringResource(R.string.battle_ultimate_incoming),
                 style = Type.titleL,
-                color = Palette.TextPrimary,
+                color = ink,
                 textAlign = TextAlign.Center,
             )
             Spacer(Modifier.height(2.dp))
             Text(
                 text = how,
-                style = Type.labelL,
-                color = Palette.TextPrimary,
+                style = Type.bodyL,
+                color = ink,
                 textAlign = TextAlign.Center,
             )
             Spacer(Modifier.height(4.dp))
             Text(
                 text = stringResource(R.string.battle_ultimate_progress, repsLeft, answers, answersNeeded),
-                style = Type.labelM,
-                color = Palette.TextPrimary.copy(alpha = 0.85f),
+                style = Type.bodyM,
+                color = ink,
                 textAlign = TextAlign.Center,
             )
         }
