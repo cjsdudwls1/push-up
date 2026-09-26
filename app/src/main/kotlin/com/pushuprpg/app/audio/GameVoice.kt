@@ -273,10 +273,7 @@ class GameVoice(context: Context, private val music: MusicPlayer) {
             PlacementAdvice.SHOW_BELOW -> R.string.placement_show_below
             PlacementAdvice.SHOW_ABOVE -> R.string.placement_show_above
             PlacementAdvice.CENTER -> R.string.placement_center
-            PlacementAdvice.FACE_CAMERA -> when (exercise) {
-                ExerciseType.PUSHUP, ExerciseType.PLANK -> R.string.placement_face_floor
-                else -> R.string.placement_face_standing
-            }
+            PlacementAdvice.FACE_CAMERA -> R.string.placement_face_standing
             PlacementAdvice.CLEARER -> R.string.placement_clearer
             PlacementAdvice.HOLD_PHONE_STILL -> R.string.quality_unstable_camera
             PlacementAdvice.SETTLING -> R.string.quality_subject_switch

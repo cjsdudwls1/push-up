@@ -95,7 +95,6 @@
     <string name="placement_show_below">아래쪽이 잘려요. 폰을 조금 뒤로 두거나 아래로 기울여 주세요</string>
     <string name="placement_show_above">위쪽이 잘려요. 폰을 조금 뒤로 두거나 위로 기울여 주세요</string>
     <string name="placement_center">화면 가운데로 와 주세요</string>
-    <string name="placement_face_floor">머리가 폰을 향하게 엎드려 주세요. 옆모습은 못 세요</string>
     <string name="placement_face_standing">몸 앞쪽이 폰을 향하게 해 주세요</string>
     <string name="placement_clearer">몸이 잘 안 보여요. 더 밝은 곳에서 해 볼까요?</string>
     <string name="placement_start_pushup">팔을 펴고 엎드려 주세요</string>

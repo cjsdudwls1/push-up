@@ -109,12 +109,9 @@ private fun placementRes(advice: PlacementAdvice, exercise: ExerciseType): Int =
     PlacementAdvice.SHOW_BELOW -> R.string.placement_show_below
     PlacementAdvice.SHOW_ABOVE -> R.string.placement_show_above
     PlacementAdvice.CENTER -> R.string.placement_center
-    // On the floor the fix is where the head points; standing or hanging, it is which way the
-    // chest faces.
-    PlacementAdvice.FACE_CAMERA -> when (exercise) {
-        ExerciseType.PUSHUP, ExerciseType.PLANK -> R.string.placement_face_floor
-        else -> R.string.placement_face_standing
-    }
+    // Only a movement read across the shoulder line with no side view is told to turn — the squat,
+    // standing — so the fix is which way the chest faces. A pushup is read side on as well.
+    PlacementAdvice.FACE_CAMERA -> R.string.placement_face_standing
     PlacementAdvice.CLEARER -> R.string.placement_clearer
     PlacementAdvice.HOLD_PHONE_STILL -> R.string.quality_unstable_camera
     PlacementAdvice.SETTLING -> R.string.quality_subject_switch

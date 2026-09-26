@@ -57,10 +57,12 @@ data class Placement(
  * would say 좋아요 over a set that counts nothing — the failure this exists to end.
  *
  * The geometry, measured on the projected rig body in the core tests rather than assumed:
- * - The body frame is the shoulder pair. Side on, it collapses — a pushup or plank from the side
- *   projects shoulders 0.04 of the image height apart against a torso of 0.21, under the
- *   detector's minimum scale, and never counts. A shoulder width under [SIDE_ON_RATIO] of the
- *   torso is that, not distance, and moving closer would not fix it; turning would.
+ * - The body frame is the shoulder pair. Side on, it collapses — a pushup from the side projected
+ *   shoulders 0.04 of the image height apart against a torso of 0.21, under the detector's minimum
+ *   scale. A shoulder width under [SIDE_ON_RATIO] of the torso is that, not distance, and for a
+ *   movement read only across it moving closer would not fix it; turning would. A movement with a
+ *   [SideView] — the pushup — is read along the torso there instead, so it is never told to turn:
+ *   side on, its size is the torso's and the hips are among what it needs in the picture.
  * - Too far is the same minimum scale with the shoulders square to the lens.
  * - A needed landmark off an edge is named by the edge it left through, because "move the phone
  *   back" and "tilt it down" fix different edges.
@@ -76,12 +78,16 @@ class PlacementCoach(
 
     /**
      * Whether turning side on can stop this movement counting. Only for one read across the
-     * shoulder line; a pull-up, a dip and a plank are read along the spine or in 3-D and count
-     * from the side, so telling their users to turn would be telling them something false.
+     * shoulder line with no side view; a pull-up, a dip and a plank are read along the spine or in
+     * 3-D, and a pushup has a [SideView], so all of them count from the side and telling their
+     * users to turn would be telling them something false.
      */
     private val sideOnMatters: Boolean = Exercises.of(exercise).let {
-        it.kind == MovementKind.REP && it.axisSource == AxisSource.SHOULDER_PAIR
+        it.kind == MovementKind.REP && it.axisSource == AxisSource.SHOULDER_PAIR && it.sideView == null
     }
+
+    /** Whether side on this movement is read along the torso, which then has to be in the picture. */
+    private val hasSideView: Boolean = Exercises.of(exercise).sideView != null
 
     private var shown: Placement = Placement()
     private var shownSinceMs = Long.MIN_VALUE
@@ -136,10 +142,23 @@ class PlacementCoach(
             else -> Unit
         }
 
+        val shoulderWidth = hypot(
+            frame.u(Lm.LEFT_SHOULDER) - frame.u(Lm.RIGHT_SHOULDER),
+            frame.v(Lm.LEFT_SHOULDER) - frame.v(Lm.RIGHT_SHOULDER),
+        )
+        val torso = hypot(
+            (frame.u(Lm.LEFT_SHOULDER) + frame.u(Lm.RIGHT_SHOULDER) - frame.u(Lm.LEFT_HIP) - frame.u(Lm.RIGHT_HIP)) / 2f,
+            (frame.v(Lm.LEFT_SHOULDER) + frame.v(Lm.RIGHT_SHOULDER) - frame.v(Lm.LEFT_HIP) - frame.v(Lm.RIGHT_HIP)) / 2f,
+        )
+        // Side on, a movement with a side view is measured along the torso: its size is the
+        // torso's, in shoulder widths as the detector takes it, and it needs the hips too.
+        val alongTorso = hasSideView && torso > 0f && shoulderWidth < SIDE_ON_RATIO * torso
+        val size = if (alongTorso) torso * TORSO_TO_SHOULDER_WIDTH else shoulderWidth
+
         val below = ArrayList<Int>()
         val above = ArrayList<Int>()
         val side = ArrayList<Int>()
-        for (i in required) {
+        for (i in if (alongTorso) required + SIDE_VIEW_LANDMARKS else required) {
             val lm = frame[i]
             // Off the edge outright, as the model extrapolates a point it cannot see — or pressed
             // against an edge with no confidence, as it also does.
@@ -151,27 +170,18 @@ class PlacementCoach(
             }
         }
         val off = (below + above + side).sorted()
-
-        val shoulderWidth = hypot(
-            frame.u(Lm.LEFT_SHOULDER) - frame.u(Lm.RIGHT_SHOULDER),
-            frame.v(Lm.LEFT_SHOULDER) - frame.v(Lm.RIGHT_SHOULDER),
-        )
-        val torso = hypot(
-            (frame.u(Lm.LEFT_SHOULDER) + frame.u(Lm.RIGHT_SHOULDER) - frame.u(Lm.LEFT_HIP) - frame.u(Lm.RIGHT_HIP)) / 2f,
-            (frame.v(Lm.LEFT_SHOULDER) + frame.v(Lm.RIGHT_SHOULDER) - frame.v(Lm.LEFT_HIP) - frame.v(Lm.RIGHT_HIP)) / 2f,
-        )
         val counting = tick.quality == PoseQuality.OK
 
         val advice = when {
             // Overflowing in two directions at once is one problem: the phone is too close.
             below.isNotEmpty() && above.isNotEmpty() -> PlacementAdvice.MOVE_PHONE_BACK
             side.isNotEmpty() && (below.isNotEmpty() || above.isNotEmpty()) -> PlacementAdvice.MOVE_PHONE_BACK
-            shoulderWidth > config.maxScale -> PlacementAdvice.MOVE_PHONE_BACK
+            size > config.maxScale -> PlacementAdvice.MOVE_PHONE_BACK
             below.isNotEmpty() -> PlacementAdvice.SHOW_BELOW
             above.isNotEmpty() -> PlacementAdvice.SHOW_ABOVE
             side.isNotEmpty() -> PlacementAdvice.CENTER
             sideOnMatters && !counting && torso > 0f && shoulderWidth < SIDE_ON_RATIO * torso -> PlacementAdvice.FACE_CAMERA
-            !counting && shoulderWidth < config.minScale * SMALL_MARGIN -> PlacementAdvice.COME_CLOSER
+            !counting && size < config.minScale * SMALL_MARGIN -> PlacementAdvice.COME_CLOSER
             sideOnMatters && tick.quality == PoseQuality.TORSO_ROTATED -> PlacementAdvice.FACE_CAMERA
             !counting -> PlacementAdvice.CLEARER
             tick.phase == RepPhase.IDLE || tick.phase == RepPhase.LOST -> PlacementAdvice.GET_IN_POSITION
@@ -199,6 +209,9 @@ class PlacementCoach(
 
         /** How near an edge a point with no confidence counts as having left through it. */
         const val EDGE = 0.03f
+
+        /** What a movement read in its [SideView] needs in the picture besides its own landmarks. */
+        private val SIDE_VIEW_LANDMARKS = listOf(Lm.LEFT_HIP, Lm.RIGHT_HIP)
 
         /** What must be in the picture for [type] to be measured at all. */
         fun requiredLandmarks(type: ExerciseType): List<Int> {

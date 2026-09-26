@@ -68,6 +68,23 @@ class PlacementCoachTest {
     }
 
     @Test
+    fun `side on with the hips out of the picture, a pushup is told it is cut off, not to turn`() {
+        // The side view reads along the torso, so the hips have to be in the picture: shoulders at
+        // the picture's edge and the body running out of it.
+        val offEdge = { d: Float -> Body3d.pushup(d, Body3d.V3(-1f, 0f, 0f), Body3d.V3(0.5f, 0f, 0f)) }
+        val heard = listen(ExerciseType.PUSHUP, Body3d.trace(offEdge, Camera.onFloor(1.3f, 12f), 4))
+        assertEquals(0, heard.reps)
+        assertEquals(PlacementAdvice.CENTER, heard.last)
+    }
+
+    @Test
+    fun `side on and too far, a pushup is told to come closer, not to turn`() {
+        val heard = listen(ExerciseType.PUSHUP, Body3d.trace(floorBody(90f), Camera.onFloor(5f, 5f), 4))
+        assertEquals(0, heard.reps)
+        assertEquals(PlacementAdvice.COME_CLOSER, heard.last)
+    }
+
+    @Test
     fun `a plank filmed from the side holds when centred, and with its feet off the edge`() {
         // The plank used to need the shoulders apart in the picture and never held side on; it
         // reads the 3-D skeleton now, so the side is as good as the front.
