@@ -35,6 +35,7 @@
 |---|---|
 | 앱 ID | `io.github.cjsdudwls1.pushuprpg` |
 | 크래시·분석 | Firebase Crashlytics + Analytics |
+| 개인정보처리방침·약관 | GitHub Pages (`site/`, 2026-09-26 켬). 건강 안내는 온보딩 첫 화면·약관·스토어 설명에 같은 문구로 |
 | 고냥이 모드 위치 | 온보딩 튜토리얼. 천장을 밀어올리는 동작이 말 없이 깊이를 가르칩니다 |
 
 앱 ID는 프로덕션 출시 후 영원히 바꿀 수 없습니다. 코드 패키지(`namespace`)는
@@ -119,6 +120,4 @@ Crashlytics를 넣기로 한 이상 개인정보처리방침과 Play Data Safety
 ## 아직 결정되지 않은 것
 
 - 수익 모델 (테스트 기간 중 결정. 검토: [MONETIZATION.md](MONETIZATION.md))
-- 개인정보처리방침 호스팅 위치
-- 건강 면책 문구
-- 스토어 등재 정보와 스크린샷
+- 스토어 스크린샷 (실기기에서 촬영. 등재 문구는 [STORE_LISTING.md](STORE_LISTING.md))

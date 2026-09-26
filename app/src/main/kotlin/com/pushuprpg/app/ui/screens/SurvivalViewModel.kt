@@ -308,9 +308,9 @@ class SurvivalViewModel(
      * Survival reps count toward the lifetime total and the day's streak exactly like dungeon reps,
      * and so do the tutorial's, which is banked here too.
      *
-     * They have to: rank is built from lifetime reps, and a free mode whose work did not count
-     * would quietly make the app's central promise conditional on paying. Left out of the streak,
-     * the mode a free player can always play could never start one.
+     * They have to: rank is built from lifetime reps, and a mode whose work did not count would
+     * quietly break the app's central promise that every rep is kept. Left out of the streak, the
+     * quickest mode to play could never start one.
      */
     private fun save(score: Int, survivedMs: Long) {
         if (!saved.compareAndSet(false, true)) return

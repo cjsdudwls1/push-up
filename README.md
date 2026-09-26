@@ -109,9 +109,9 @@ CI runs both. See `.github/workflows/ci.yml`.
 
 ## Before shipping
 
-`docs/RELEASE.md` has the checklist. The short version: a signing keystore, GitHub Pages switched on
-so the privacy policy URL resolves, a Data Safety declaration, store screenshots taken on a real
-device, and a content rating. There is nothing to sell: the app is free for the whole test period.
+`docs/RELEASE.md` has the checklist. The short version: a signing keystore, a Data Safety
+declaration, store screenshots taken on a real device, and a content rating. GitHub Pages is on, so
+the privacy policy URL already resolves. There is nothing to sell: the app is free for the whole test period.
 
 Three more documents cover the half of this that is not code:
 
