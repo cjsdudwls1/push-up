@@ -403,6 +403,19 @@ fun KeepScreenOn() {
 private val screenOnHolds = WeakHashMap<View, Int>()
 
 /**
+ * A run's length in the largest units that read naturally: 42초, 3분 12초, 1시간 5분.
+ *
+ * One for every screen that says how long a run took: the result screen said 214초 of the run the
+ * records called 3분 34초.
+ */
+@Composable
+fun durationText(seconds: Long): String = when {
+    seconds >= 3_600 -> stringResource(R.string.records_duration_hm, seconds / 3_600, seconds % 3_600 / 60)
+    seconds >= 60 -> stringResource(R.string.records_duration_ms, seconds / 60, seconds % 60)
+    else -> stringResource(R.string.records_duration_s, seconds)
+}
+
+/**
  * The Korean name of an exercise, as a string resource.
  *
  * Shared rather than written out at each call site: the settings picker and the battle HUD must

@@ -10,9 +10,15 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
@@ -23,6 +29,7 @@ import com.pushuprpg.app.ui.components.KeepScreenOn
 import com.pushuprpg.app.ui.components.PrimaryButton
 import com.pushuprpg.app.ui.components.RankCard
 import com.pushuprpg.app.ui.components.SecondaryButton
+import com.pushuprpg.app.ui.components.durationText
 import com.pushuprpg.app.ui.components.exerciseHintRes
 import com.pushuprpg.app.ui.components.exerciseLabelRes
 import com.pushuprpg.app.ui.theme.LocalGameColors
@@ -195,7 +202,7 @@ fun ResultScreen(
                 modifier = Modifier.weight(1f),
             )
             ResultTile(
-                value = stringResource(R.string.result_time_value, outcome.durationMs / 1000),
+                value = durationText(outcome.durationMs / 1000),
                 label = stringResource(R.string.result_tile_time),
                 accent = Palette.Info,
                 modifier = Modifier.weight(1f),
@@ -385,6 +392,11 @@ private fun ResultTile(
     accent: Color,
     modifier: Modifier = Modifier,
 ) {
+    // One line, at whatever size fits it. A third of a phone is narrower than 3분 34초 at the tile's
+    // size, and wrapped it stood a line taller than the tiles beside it. The line height stays, so
+    // the tiles stay level, and nothing is drawn until the value fits.
+    var scale by remember(value) { mutableFloatStateOf(1f) }
+    var fitted by remember(value) { mutableStateOf(false) }
     Column(
         modifier = modifier
             .clip(RoundedCornerShape(16.dp))
@@ -392,11 +404,24 @@ private fun ResultTile(
             .padding(vertical = 16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text(text = value, style = Type.numeralL, color = accent)
+        Text(
+            text = value,
+            style = Type.numeralL.copy(fontSize = Type.numeralL.fontSize * scale),
+            color = accent,
+            maxLines = 1,
+            softWrap = false,
+            onTextLayout = { layout ->
+                if (layout.didOverflowWidth && scale > MIN_TILE_SCALE) scale *= 0.9f else fitted = true
+            },
+            modifier = Modifier.drawWithContent { if (fitted) drawContent() },
+        )
         Spacer(Modifier.height(2.dp))
         Text(text = label, style = Type.labelM, color = Palette.TextTertiary)
     }
 }
+
+/** The smallest a tile's value is shrunk to fit, against the tile's own size. */
+private const val MIN_TILE_SCALE = 0.6f
 
 /**
  * The run's depth grade, one to three.

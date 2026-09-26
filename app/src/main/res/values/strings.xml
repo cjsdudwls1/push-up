@@ -469,7 +469,6 @@
     <string name="share_card_stat_best">최고 기록</string>
     <string name="share_card_new_record">신기록</string>
     <string name="share_card_new_record_label">축하해요</string>
-    <string name="share_card_stat_combo">최대 콤보</string>
     <string name="share_card_stat_rank">등급</string>
     <string name="share_card_seconds">%1$d초</string>
     <string name="share_card_minutes">%1$d분 %2$d초</string>

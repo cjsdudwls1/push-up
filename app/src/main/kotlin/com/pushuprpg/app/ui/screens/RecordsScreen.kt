@@ -20,6 +20,7 @@ import com.pushuprpg.app.ui.components.RankCard
 import com.pushuprpg.app.ui.components.SectionHeader
 import com.pushuprpg.app.ui.components.StatTile
 import com.pushuprpg.app.ui.components.cardSurface
+import com.pushuprpg.app.ui.components.durationText
 import com.pushuprpg.app.ui.components.exerciseLabelRes
 import com.pushuprpg.app.ui.theme.LocalGameColors
 import com.pushuprpg.app.ui.theme.Palette
@@ -252,12 +253,4 @@ private fun SessionRow(session: SessionRecord) {
             )
         }
     }
-}
-
-/** A run's length in the largest units that read naturally: 42초, 3분 12초, 1시간 5분. */
-@Composable
-private fun durationText(seconds: Long): String = when {
-    seconds >= 3_600 -> stringResource(R.string.records_duration_hm, seconds / 3_600, seconds % 3_600 / 60)
-    seconds >= 60 -> stringResource(R.string.records_duration_ms, seconds / 60, seconds % 60)
-    else -> stringResource(R.string.records_duration_s, seconds)
 }
