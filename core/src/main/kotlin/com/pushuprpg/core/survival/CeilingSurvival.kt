@@ -41,6 +41,12 @@ sealed interface SurvivalEvent {
         val hold: Boolean = false,
     ) : SurvivalEvent
 
+    /**
+     * The rep last pushed went on past the 깊게 line, and the ceiling rose the rest of a deep rep's
+     * way. The same push going deeper, not a second one.
+     */
+    data class Deepened(override val atMs: Long, val lift: Float) : SurvivalEvent
+
     /** A rep that did not go deep enough to lift anything. A near miss, not a punishment. */
     data class NearMiss(override val atMs: Long) : SurvivalEvent
 
@@ -101,6 +107,14 @@ class CeilingSurvival(
     private var alive = true
     private var lastMilestone = 0
 
+    // The rep last pushed, as it was paid: the detector's number for it, its lift, whether that was
+    // a deep rep's, and the combo bonus its score carried. A rep strikes at the 인정 line on its way
+    // down, so how deep it went is only known after it has pushed.
+    private var pushedRep = -1
+    private var pushedLift = 0f
+    private var pushedDeep = false
+    private var pushedComboBonus = 1f
+
     fun state(): SurvivalState = SurvivalState(
         height = height,
         score = score.roundToInt(),
@@ -117,8 +131,13 @@ class CeilingSurvival(
      * One frame of the detector, played into the run: its reps and holds, then the clock.
      *
      * The app's own path, here rather than on the screen so a test can play a real detector's
-     * output through it. A counted rep pushes ([onRep]); a rep the detector refused as shallow is a
-     * near miss and moves nothing; a stretch of a hold pushes for as long as it was held, in the
+     * output through it. A counted rep pushes ([onRep]) as it strikes, and is paid for its depth as
+     * the depth becomes known: the rest of a deep rep's push at the detector's deep line, or, short
+     * of it, as far as it went once it is back at the top. It strikes at the 인정 line on its way
+     * down, so read at the strike a chest on the floor pushed no harder than a rep that scraped the
+     * line, in the mode that is meant to teach depth without a word. A rep the detector refused as
+     * shallow is a near miss: it moves nothing, and ends the combo, as a rest long enough for the
+     * detector to end its own does. A stretch of a hold pushes for as long as it was held, in the
      * detector's own tick steps ([onHold]). Being in position — seen, and armed at the top or inside
      * a rep — is what starts the run, and after that nothing stops it; see [update].
      */
@@ -126,8 +145,16 @@ class CeilingSurvival(
         val events = mutableListOf<SurvivalEvent>()
         for (event in tick.events) {
             when (event) {
-                is RepEvent.Strike -> events += onRep(event.grade, event.depth, event.tMs)
+                // Pushed as counted whatever its grade: a strike already deep is followed by its
+                // DeepUpgrade on the same frame, so every rep is paid its depth in the one place.
+                is RepEvent.Strike -> {
+                    events += onRep(RepGrade.COUNTED, event.depth, event.tMs)
+                    pushedRep = event.repIndex
+                }
+                is RepEvent.DeepUpgrade -> if (event.repIndex == pushedRep) events += onDeepened(event.tMs)
+                is RepEvent.Completed -> if (event.repIndex == pushedRep) onRepFinished(event.record.maxDepth)
                 is RepEvent.Shallow -> events += onRep(RepGrade.SHALLOW, event.maxDepth, event.tMs)
+                is RepEvent.ComboBroken -> combo = 0
                 is RepEvent.HoldTick -> events += onHold(event.score, HOLD_TICK_SECONDS, event.tMs)
                 else -> Unit
             }
@@ -211,24 +238,22 @@ class CeilingSurvival(
      * is not ignored either: it is a near miss, and the cat says so. This mode is the on-ramp for
      * people who have never used the app, and a half rep that made nothing happen at all read as a
      * camera that could not see them; the near miss tells them to go deeper instead. It once lifted
-     * a little as well, which made this a second judge of what counts beside the detector.
+     * a little as well, which made this a second judge of what counts beside the detector. It does
+     * end the combo: a streak with a half rep in it is not the streak the cat counts out loud.
      */
     fun onRep(grade: RepGrade, depth: Float, atMs: Long): List<SurvivalEvent> {
         if (!alive) return emptyList()
-        if (grade == RepGrade.SHALLOW) return listOf(SurvivalEvent.NearMiss(atMs))
+        if (grade == RepGrade.SHALLOW) {
+            combo = 0
+            return listOf(SurvivalEvent.NearMiss(atMs))
+        }
         if (startedAtMs == Long.MIN_VALUE) {
             startedAtMs = atMs
             lastUpdateMs = atMs
         }
 
         val isDeep = grade == RepGrade.DEEP
-        val accept = config.countEnter
-        val deep = config.deepEnter
-        val lift = if (isDeep) {
-            DEEP_LIFT
-        } else {
-            LIFT + (DEEP_LIFT - LIFT) * ((depth - accept) / (deep - accept)).coerceIn(0f, 1f)
-        }
+        val lift = if (isDeep) DEEP_LIFT else liftAt(depth)
 
         reps++
         combo++
@@ -240,8 +265,43 @@ class CeilingSurvival(
         score += SCORE_PER_REP * pushupsPerRep * (if (isDeep) DEEP_SCORE_MULTIPLIER else 1f) * comboBonus
 
         height = (height + lift * pushupsPerRep).coerceAtMost(1f)
+        pushedRep = -1
+        pushedLift = lift
+        pushedDeep = isDeep
+        pushedComboBonus = comboBonus
 
         return listOf(SurvivalEvent.Pushed(atMs, lift * pushupsPerRep, isDeep, combo))
+    }
+
+    /**
+     * The rep last pushed reached the detector's deep line: the rest of a deep rep's lift, and the
+     * rest of its points at the combo it was struck on. Not a rep of its own — the count and the
+     * combo stay as they are.
+     */
+    private fun onDeepened(atMs: Long): List<SurvivalEvent> {
+        if (!alive || pushedDeep) return emptyList()
+        val lift = (DEEP_LIFT - pushedLift) * pushupsPerRep
+        height = (height + lift).coerceAtMost(1f)
+        score += SCORE_PER_REP * pushupsPerRep * (DEEP_SCORE_MULTIPLIER - 1f) * pushedComboBonus
+        pushedLift = DEEP_LIFT
+        pushedDeep = true
+        return listOf(SurvivalEvent.Deepened(atMs, lift))
+    }
+
+    /** The rep last pushed is back at the top, short of 깊게: its lift rises to the depth it reached. */
+    private fun onRepFinished(maxDepth: Float) {
+        if (!alive || pushedDeep) return
+        val lift = liftAt(maxDepth)
+        if (lift <= pushedLift) return
+        height = (height + (lift - pushedLift) * pushupsPerRep).coerceAtMost(1f)
+        pushedLift = lift
+    }
+
+    /** A counted rep's lift at [depth]: from the accepted band's push to the deep band's. */
+    private fun liftAt(depth: Float): Float {
+        val accept = config.countEnter
+        val deep = config.deepEnter
+        return LIFT + (DEEP_LIFT - LIFT) * ((depth - accept) / (deep - accept)).coerceIn(0f, 1f)
     }
 
     /**
@@ -278,6 +338,10 @@ class CeilingSurvival(
         bestCombo = 0
         alive = true
         lastMilestone = 0
+        pushedRep = -1
+        pushedLift = 0f
+        pushedDeep = false
+        pushedComboBonus = 1f
     }
 
     private fun descentPerSecond(elapsedSec: Float): Float =

@@ -4,9 +4,15 @@ import com.pushuprpg.core.detect.DetectorConfig
 import com.pushuprpg.core.detect.DetectorFactory
 import com.pushuprpg.core.detect.ExerciseType
 import com.pushuprpg.core.detect.Exercises
+import com.pushuprpg.core.detect.RepEvent
 import com.pushuprpg.core.detect.RepGrade
+import com.pushuprpg.core.fixtures.Body3d
+import com.pushuprpg.core.fixtures.Body3d.Camera
 import com.pushuprpg.core.fixtures.PoseFixtures
 import com.pushuprpg.core.pose.PoseFrame
+import com.pushuprpg.core.trace.PoseTrace
+import com.pushuprpg.core.trace.TraceReplay
+import java.util.zip.GZIPInputStream
 import com.pushuprpg.core.survival.CatCompanion
 import com.pushuprpg.core.survival.CatLine
 import com.pushuprpg.core.survival.CeilingSurvival
@@ -250,14 +256,20 @@ class CeilingSurvivalTest {
         val game = CeilingSurvival.forExercise(ExerciseType.PUSHUP)
         val events = mutableListOf<SurvivalEvent>()
         val lines = mutableListOf<CatLine>()
+        /** What the detector said, for checking the run against it. */
+        val detected = mutableListOf<RepEvent>()
+        /** The run's combo on every frame, with the frame's time. */
+        val combos = mutableListOf<Pair<Long, Int>>()
 
         init {
             val detector = DetectorFactory.create(ExerciseType.PUSHUP)
             val cat = CatCompanion()
             for (frame in frames) {
                 val tick = detector.onFrame(frame)
+                detected += tick.events
                 val now = game.onTick(tick)
                 events += now
+                combos += tick.tMs to game.state().combo
                 cat.update(game.state(), now, tick.tMs)
                 cat.view().speech?.line?.let { if (lines.lastOrNull() != it) lines += it }
             }
@@ -286,6 +298,99 @@ class CeilingSurvivalTest {
         assertEquals(6, played.events.count { it is SurvivalEvent.Pushed })
         assertTrue(played.events.none { it is SurvivalEvent.NearMiss })
         assertEquals(6, played.game.state().reps)
+    }
+
+    // ------------------------------------------------------------ depth and the combo, from a real detector
+
+    private val camera = Camera.onFloor(1.3f, 12f)
+
+    private fun pushup(depth: Float) = Body3d.pushup(depth, Body3d.V3(0f, 0f, 1f), Body3d.V3(0f, 0f, 0f))
+
+    /**
+     * [count] pushups on the rig, filmed from the head on the floor. Six seconds at the top first by
+     * default, so the ceiling has come down from its clamp at 1 before the first push lands.
+     */
+    private fun rig(count: Int, peak: Float, startMs: Long = 3_600_000L, settleMs: Int = 6_000, fps: Int = 30) =
+        Body3d.trace(::pushup, camera, count, startMs = startMs, peakDepth = peak, settleMs = settleMs, fps = fps)
+
+    private fun load(name: String): PoseTrace {
+        val stream = checkNotNull(javaClass.getResourceAsStream("/traces/$name")) { "missing trace $name" }
+        return GZIPInputStream(stream).use { PoseTrace.decode(it.readBytes().decodeToString()) }
+    }
+
+    /**
+     * A rep strikes at the 인정 line on its way down, so read at the strike every rep was about 70
+     * deep and a chest on the floor pushed the ceiling no further than a rep that scraped the line
+     * — in the tutorial, whose one lesson is depth. The two sets here are timed frame for frame
+     * alike, so the ceiling falls the same way under both and only what the reps pushed differs. The
+     * range learns the shorter set as it goes, and its last reps reach 깊게 too; read at the strike,
+     * it came out ahead.
+     */
+    @Test
+    fun `deep reps push the ceiling further than reps that stop short of 깊게`() {
+        for (fps in listOf(30, 15)) {
+            val deep = Played(rig(6, peak = 0.95f, fps = fps))
+            val short = Played(rig(6, peak = 0.75f, fps = fps))
+            assertEquals(6, deep.game.state().reps, "$fps fps: the deep set did not all count")
+            assertEquals(6, short.game.state().reps, "$fps fps: the shorter set did not all count")
+            assertTrue(
+                deep.game.state().height > short.game.state().height + 0.02f,
+                "$fps fps: the deep set left the ceiling at ${deep.game.state().height}, the shorter one at ${short.game.state().height}",
+            )
+            assertTrue(deep.game.state().score > short.game.state().score, "$fps fps: going deep scored nothing more")
+            fun pushedBy(p: Played) = p.events.sumOf {
+                when (it) {
+                    is SurvivalEvent.Pushed -> it.lift.toDouble()
+                    is SurvivalEvent.Deepened -> it.lift.toDouble()
+                    else -> 0.0
+                }
+            }
+            assertEquals(6 * CeilingSurvival.DEEP_LIFT.toDouble(), pushedBy(deep), 0.001, "$fps fps: a deep rep is a deep rep's push")
+        }
+    }
+
+    /**
+     * Every rep the detector takes past 깊게 is answered once as deep, however the frames fell: at a
+     * low frame rate the strike itself is already past the line, and that rep is paid at its
+     * DeepUpgrade like any other rather than twice, or not at all.
+     */
+    @Test
+    fun `every rep the detector takes past 깊게 deepens the push once, and counts once`() {
+        val trace = load("pushup-head-camera.json.gz")
+        val sets = listOf(1, 2, 3).map { stride ->
+            "the head camera, every $stride" to TraceReplay.frames(trace.copy(frames = trace.frames.filterIndexed { i, _ -> i % stride == 0 }))
+        } + listOf("the rig at 0.95" to rig(6, peak = 0.95f), "the rig at 0.75" to rig(6, peak = 0.75f))
+        for ((what, frames) in sets) {
+            val played = Played(frames)
+            val strikes = played.detected.count { it is RepEvent.Strike }
+            val upgrades = played.detected.count { it is RepEvent.DeepUpgrade }
+            assertTrue(strikes > 0, "$what: nothing counted")
+            assertEquals(upgrades, played.events.count { it is SurvivalEvent.Deepened }, "$what: deep lines and deepened pushes")
+            assertEquals(strikes, played.events.count { it is SurvivalEvent.Pushed }, "$what: a rep pushed twice, or not at all")
+            assertEquals(strikes, played.game.state().reps, "$what: going deep counted a rep of its own")
+            assertTrue(played.game.state().height <= 1f)
+        }
+    }
+
+    /** "10번 연속!" is a streak of whole reps. A half rep in it ends it, as the cat has just said so. */
+    @Test
+    fun `a half rep ends the combo`() {
+        val whole = rig(3, peak = 0.95f)
+        val played = Played(whole + rig(1, peak = 0.50f, startMs = whole.last().timestampMs + 33, settleMs = 0))
+        assertEquals(1, played.events.count { it is SurvivalEvent.NearMiss }, "the half rep was not a near miss")
+        assertEquals(3, played.game.state().bestCombo)
+        assertEquals(0, played.game.state().combo, "the streak outlived a half rep")
+    }
+
+    /** A rest long enough for the detector to end its combo ends the cat's too. */
+    @Test
+    fun `a rest ends the combo`() {
+        val whole = rig(3, peak = 0.95f)
+        val played = Played(whole + rig(0, peak = 0f, startMs = whole.last().timestampMs + 33, settleMs = 9_000))
+        val broken = played.detected.filterIsInstance<RepEvent.ComboBroken>().single()
+        assertEquals(3, broken.finalCombo)
+        assertTrue(played.combos.filter { it.first < broken.tMs }.any { it.second == 3 }, "the set never built a combo")
+        assertTrue(played.combos.filter { it.first >= broken.tMs }.all { it.second == 0 }, "the streak outlived an eight-second rest")
     }
 
     // ------------------------------------------------------------ every movement, not only pushups

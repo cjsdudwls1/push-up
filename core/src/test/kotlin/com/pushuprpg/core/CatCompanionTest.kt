@@ -3,7 +3,11 @@ package com.pushuprpg.core
 import com.pushuprpg.core.audio.SoundCue
 import com.pushuprpg.core.audio.SoundRequest
 import com.pushuprpg.core.detect.DetectorConfig
+import com.pushuprpg.core.detect.DetectorFactory
+import com.pushuprpg.core.detect.ExerciseType
+import com.pushuprpg.core.detect.RepEvent
 import com.pushuprpg.core.detect.RepGrade
+import com.pushuprpg.core.fixtures.Body3d
 import com.pushuprpg.core.survival.CatCompanion
 import com.pushuprpg.core.survival.CatLine
 import com.pushuprpg.core.survival.CatMood
@@ -244,6 +248,39 @@ class CatCompanionTest {
         run.frame()
         run.until { it.speech?.line == CatLine.UNEASY }
         assertEquals(firstUneasy + 1, run.cat.view().speech!!.serial, "the retry reused the first wording")
+    }
+
+    /**
+     * From a real detector a rep strikes at the 인정 line and reaches 깊게 a few frames on. The cat
+     * answers the strike with the push and the deep line with a deep rep's three hearts and its
+     * sound — once each, and the ceiling thumps once a rep, not again as the rep goes deeper.
+     */
+    @Test
+    fun `a rep that goes on past 깊게 gets a deep rep's hearts and sound, and one thump`() {
+        for (fps in listOf(30, 15)) {
+            val detector = DetectorFactory.create(ExerciseType.PUSHUP)
+            val game = CeilingSurvival.forExercise(ExerciseType.PUSHUP)
+            val cat = CatCompanion()
+            val cues = mutableListOf<SoundCue>()
+            var strikes = 0
+            var upgrades = 0
+            val frames = Body3d.trace(
+                { d -> Body3d.pushup(d, Body3d.V3(0f, 0f, 1f), Body3d.V3(0f, 0f, 0f)) },
+                Body3d.Camera.onFloor(1.3f, 12f), 6, peakDepth = 0.95f, fps = fps,
+            )
+            for (frame in frames) {
+                val tick = detector.onFrame(frame)
+                strikes += tick.events.count { it is RepEvent.Strike }
+                val deepened = tick.events.count { it is RepEvent.DeepUpgrade }
+                upgrades += deepened
+                val events = game.onTick(tick)
+                cues += cat.update(game.state(), events, tick.tMs).map { it.cue }
+                if (deepened > 0) assertEquals(3, cat.view().hearts, "$fps fps: the deep line earned ${cat.view().hearts} hearts")
+            }
+            assertEquals(6, upgrades, "$fps fps: the rig's reps did not all reach 깊게")
+            assertEquals(upgrades, cues.count { it == SoundCue.REP_DEEP }, "$fps fps: deep sounds")
+            assertEquals(strikes, cues.count { it == SoundCue.CEILING_PUSH }, "$fps fps: the ceiling thumped again as a rep went deeper")
+        }
     }
 
     @Test

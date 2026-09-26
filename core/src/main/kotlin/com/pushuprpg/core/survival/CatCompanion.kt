@@ -134,6 +134,13 @@ class CatCompanion {
                         }
                     }
                 }
+                // The same push gone on past 깊게: a deep rep's hearts and sound, and no second thump.
+                is SurvivalEvent.Deepened -> {
+                    pushed = true
+                    lastPushMs = event.atMs
+                    hearts = 3
+                    sounds += SoundRequest(SoundCue.REP_DEEP)
+                }
                 is SurvivalEvent.NearMiss -> say(CatLine.NEAR_MISS, event.atMs)
                 is SurvivalEvent.Milestone -> {
                     if (say(CatLine.MILESTONE, event.atMs, arg = event.seconds)) {
