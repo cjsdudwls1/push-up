@@ -610,6 +610,10 @@ private fun BoxScope.BattleHudLayout(
                 HpStrip(hp = state.playerHp, maxHp = state.playerMaxHp)
             }
             Spacer(Modifier.width(20.dp))
+            // What the monster still owes is the number that says whether one more rep ends it, and
+            // at a squat's or a pull-up's two or three metres 19sp could not be read. At numeralL it
+            // is still shorter than the left column, whose health strip sets the row's height, so
+            // the HUD above the counter grows by nothing.
             HealthBar(
                 name = state.enemyName,
                 hp = state.enemyHp,
@@ -620,6 +624,7 @@ private fun BoxScope.BattleHudLayout(
                     if (hold) R.string.battle_remaining_seconds else R.string.battle_remaining,
                     state.enemyHp,
                 ),
+                labelStyle = Type.numeralL,
                 modifier = Modifier.weight(1f),
             )
         }

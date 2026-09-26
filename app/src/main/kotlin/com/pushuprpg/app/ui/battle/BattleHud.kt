@@ -12,14 +12,19 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -49,7 +54,11 @@ fun CameraText(
     modifier: Modifier = Modifier,
     color: Color = Palette.TextPrimary,
     legibility: Legibility = Legibility.OUTLINE,
+    /** Laid out on one line however wide it is, for a caller that fits it with [onTextLayout]. */
+    singleLine: Boolean = false,
+    onTextLayout: (TextLayoutResult) -> Unit = {},
 ) {
+    val maxLines = if (singleLine) 1 else Int.MAX_VALUE
     when (legibility) {
         Legibility.OUTLINE -> Box(modifier) {
             // A real stroke, offset in four directions, rather than a drop shadow: a shadow fails
@@ -61,23 +70,43 @@ fun CameraText(
                     text = text,
                     style = style,
                     color = ink,
+                    softWrap = !singleLine,
+                    maxLines = maxLines,
                     modifier = Modifier.offset(x = dx.dp, y = dy.dp),
                 )
             }
-            Text(text = text, style = style, color = color)
+            Text(
+                text = text,
+                style = style,
+                color = color,
+                softWrap = !singleLine,
+                maxLines = maxLines,
+                onTextLayout = onTextLayout,
+            )
         }
 
         Legibility.PANEL -> Text(
             text = text,
             style = style,
             color = color,
+            softWrap = !singleLine,
+            maxLines = maxLines,
+            onTextLayout = onTextLayout,
             modifier = modifier
                 .clip(RoundedCornerShape(12.dp))
                 .background(Palette.ScrimPanel)
                 .padding(horizontal = 12.dp, vertical = 6.dp),
         )
 
-        Legibility.SCRIM -> Text(text = text, style = style, color = color, modifier = modifier)
+        Legibility.SCRIM -> Text(
+            text = text,
+            style = style,
+            color = color,
+            softWrap = !singleLine,
+            maxLines = maxLines,
+            onTextLayout = onTextLayout,
+            modifier = modifier,
+        )
     }
 }
 
@@ -135,6 +164,8 @@ fun HealthBar(
      * reads as progress through the run and the right one as the reps this monster still owes.
      */
     label: String? = null,
+    /** The label's type: the monster's count is set larger, to be read from across the room. */
+    labelStyle: TextStyle = Type.numeralM,
 ) {
     val fraction by animateFloatAsState(
         targetValue = (hp.toFloat() / maxHp.coerceAtLeast(1)).coerceIn(0f, 1f),
@@ -168,13 +199,28 @@ fun HealthBar(
             )
         }
         Spacer(Modifier.height(3.dp))
+        // One line, at whatever size fits it, as a result tile's value is: at the monster's size
+        // 남은 120초 is wider than half a narrow phone, and wrapped it would stand the HUD a line
+        // taller, and the gauge under it, down onto the counter. The line height stays, and the
+        // figures are tabular, so a fit holds until the count gains or loses a digit.
+        val text = label ?: "${format.format(hp)} / ${format.format(maxHp)}"
+        var scale by remember(text.length) { mutableFloatStateOf(1f) }
+        var fitted by remember(text.length) { mutableStateOf(false) }
         CameraText(
-            text = label ?: "${format.format(hp)} / ${format.format(maxHp)}",
-            style = Type.numeralM,
+            text = text,
+            style = labelStyle.copy(fontSize = labelStyle.fontSize * scale),
             color = Palette.TextPrimary,
+            singleLine = true,
+            onTextLayout = { layout ->
+                if (layout.didOverflowWidth && scale > MIN_LABEL_SCALE) scale *= 0.9f else fitted = true
+            },
+            modifier = Modifier.drawWithContent { if (fitted) drawContent() },
         )
     }
 }
+
+/** The smallest a bar's label is shrunk to fit, against its own size. */
+private const val MIN_LABEL_SCALE = 0.6f
 
 /**
  * The player's health, as a thin strip under the progress bar.
