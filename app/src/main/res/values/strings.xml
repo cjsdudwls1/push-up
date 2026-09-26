@@ -321,6 +321,8 @@
     <string name="tutorial_first_dungeon_knight">첫 던전은 천천히 깊게 하면 푸쉬업 %1$d개예요.</string>
     <string name="tutorial_first_dungeon_archer">첫 던전은 쉬지 않고 이어 가면 푸쉬업 %1$d개예요.</string>
     <string name="tutorial_continue">던전으로 가기</string>
+    <!-- Back while the tutorial's ceiling waits. Answered with 계속하기 or 건너뛰기; skipped, it does not come back. -->
+    <string name="tutorial_skip_confirm">튜토리얼을 건너뛸까요?</string>
     <string name="survival_share">자랑하기</string>
     <string name="survival_share_text">푸쉬업 RPG에서 고냥이를 %1$,d점만큼 지켰어요! 🐱💪</string>
 

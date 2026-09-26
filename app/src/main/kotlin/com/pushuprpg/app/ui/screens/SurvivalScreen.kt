@@ -99,7 +99,7 @@ fun SurvivalScreen(
      */
     onHome: () -> Unit,
     modifier: Modifier = Modifier,
-    /** The tutorial's way out before its run has started: 건너뛰기, and back while the ceiling waits. */
+    /** The tutorial's way out before its run has started: 건너뛰기, and back, asked first, while the ceiling waits. */
     onSkip: () -> Unit = {},
     /** The pose model did not load, so nothing will ever count: the tutorial offers its skip at once. */
     modelFailed: Boolean = false,
@@ -121,9 +121,15 @@ fun SurvivalScreen(
     val name = catName.ifBlank { stringResource(R.string.cat_default_name) }
 
     // Back leaves with what was done banked — no confirm, because the ceiling does not pause for
-    // one. In the tutorial it skips while the ceiling waits and ends the tutorial once it moves:
-    // the tutorial is the root of the stack, and back used to close the app from it.
-    BackHandler(onBack = if (isTutorial && !state.started) onSkip else onHome)
+    // one. In the tutorial it ends the tutorial once the ceiling moves: the tutorial is the root of
+    // the stack, and back used to close the app from it. While the ceiling waits it asks before
+    // skipping, which is for good: an edge swipe made while standing the phone up skipped the
+    // tutorial with no way back to it. Nothing moves while the question is up. 건너뛰기 does not ask.
+    var confirmingSkip by remember { mutableStateOf(false) }
+    val waitingTutorial = isTutorial && !state.started
+    BackHandler {
+        if (waitingTutorial) confirmingSkip = !confirmingSkip else onHome()
+    }
 
     // Long enough to look stuck: the tutorial offers its skip after this much waiting to start.
     var waitedForStart by rememberSaveable { mutableStateOf(false) }
@@ -342,6 +348,43 @@ fun SurvivalScreen(
                 )
             }
         }
+
+        // Gone the moment the run starts: the user got into position, which answers it.
+        if (confirmingSkip && waitingTutorial) {
+            SkipConfirm(onSkip = onSkip, onStay = { confirmingSkip = false })
+        }
+    }
+}
+
+/**
+ * Asked when back is pressed while the tutorial's ceiling waits, over the screen as a dungeon's
+ * quit is. Skipping is for good — the tutorial does not open again — and the ceiling is still until
+ * the user is in position, so there is nothing to lose by asking.
+ */
+@Composable
+private fun BoxScope.SkipConfirm(onSkip: () -> Unit, onStay: () -> Unit) {
+    Box(
+        Modifier
+            .matchParentSize()
+            .background(Palette.ScrimPanelHigh)
+            .clickable(onClick = onStay),
+    )
+    Column(
+        modifier = Modifier
+            .align(Alignment.Center)
+            .fillMaxWidth()
+            .windowInsetsPadding(WindowInsets.safeDrawing)
+            .padding(horizontal = 20.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Text(
+            text = stringResource(R.string.tutorial_skip_confirm),
+            style = Type.titleL,
+            color = Palette.TextPrimary,
+        )
+        Spacer(Modifier.height(4.dp))
+        PrimaryButton(text = stringResource(R.string.battle_resume), onClick = onStay)
+        SecondaryButton(text = stringResource(R.string.action_skip), onClick = onSkip)
     }
 }
 

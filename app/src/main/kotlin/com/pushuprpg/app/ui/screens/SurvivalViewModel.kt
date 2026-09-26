@@ -258,7 +258,8 @@ class SurvivalViewModel(
     }
 
     /**
-     * Leaves the tutorial before its run has started: 건너뛰기, or back while the ceiling waits.
+     * Leaves the tutorial before its run has started: 건너뛰기, or back while the ceiling waits and
+     * the question it asks answered.
      *
      * Someone who cannot get down on the floor, whose room will not fit the phone, or whose phone
      * cannot run the model was held on a camera screen with no way past it: back closed the app, and
