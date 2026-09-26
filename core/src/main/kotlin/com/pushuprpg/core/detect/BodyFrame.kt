@@ -127,11 +127,18 @@ class BodyFrameTracker(private val config: DetectorConfig) {
         /**
          * Shoulder width against the longer shoulder-to-hip line in the picture under which a
          * movement with a side view is side on. On the rig, from the floor, a pushup 70 degrees or
-         * more off the head reads 0.39 at most and 60 degrees off 0.45 at least — where the shoulder
-         * line still measures and still counts, as it always has; filmed side on by a phone, a plank
-         * read 0.00-0.05. Square to the head it is above 1.
+         * more off the head reads 0.48 at most, 60 degrees off 0.46-0.58 and 50 off 0.65 at least;
+         * filmed side on by a phone, a plank read 0.00-0.05. Square to the head it is above 1.
+         *
+         * It was 0.42, and from the floor 61-70 degrees off fell between the two views: the shoulder
+         * line there is too short for the far shoulder to be believed at the bottom of a rep, so
+         * the head-on reading lost it, and the ratio went under 0.42 only at the bottom, never for
+         * the second a switch needs. 1.3 m away a set 63 degrees off counted one rep in eight, 1 m
+         * away 62-64 off one or none, and around them the first rep was lost. At 0.55 the view
+         * turns 55-60 degrees off, where from a metre and further the head-on reading still counts
+         * every rep; 0.8 m away, 61-62 degrees off, the turn still costs the rep it lands in.
          */
-        const val SIDE_ON_RATIO = 0.42f
+        const val SIDE_ON_RATIO = 0.55f
 
         /**
          * Under this ratio, with the shoulder line also too short for the detector to measure at

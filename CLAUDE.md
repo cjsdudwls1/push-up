@@ -120,10 +120,12 @@ over the torso, not the separation along the torso's normal, which tilts with th
 head in line the nose never moves and a wave moves only the hands; and the range is anchored where
 the body rests even inside the head-on prior's top band.
 `MovementRigTest` pins it from the floor, waist and chest height, from either side and 60-75 degrees
-off, on the toes and the knees, at 30 and 15 fps, with waves, holds and a turn mid-set; 60 degrees
-off from the floor is still read across the shoulder line. It is validated on the rig only: until a
-real side-on set is in `core/src/test/resources/traces`, ask the owner for one (설정 → 테스트 → 동작
-기록 남기기, then 방금 한 운동 기록 보내기).
+off, on the toes and the knees, at 30 and 15 fps, with waves, holds and a turn mid-set. The view
+turns at shoulders 0.55 of the torso, 55-60 degrees off from the floor, where the head-on reading
+still counts; at 0.42 the band from 61 to 70 degrees fell between the views and a set there counted
+one rep in eight. It is validated on the rig only: until a real side-on set is in
+`core/src/test/resources/traces`, ask the owner for one (설정 → 테스트 → 동작 기록 남기기, then 방금 한
+운동 기록 보내기).
 
 **A rep's depth is how deep it went, not where it counted.** A rep strikes at the 인정 line on its way
 down, so the strike's depth is always about 70. The stars and the 깊게 tally take each rep's depth

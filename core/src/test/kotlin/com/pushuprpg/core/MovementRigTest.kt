@@ -194,8 +194,7 @@ class MovementRigTest {
      * floor — never counts: from every placement here, on the toes or the knees, at 30 fps or 15, and
      * thirty in a row do not train the range down to meet them. From the head and 30 degrees off it
      * every one is also reported shallow, which is what the game answers with 조금만 더 내려가 볼까요?;
-     * 60 degrees off from the floor, still read across the shoulder line, not reliably. (From waist
-     * and chest height 60 degrees off is read in the side view, where it is: see below.)
+     * 60 degrees off, which every placement here reads in the side view, as well: see below.
      *
      * That is the claim, and no more. A pushup to 60% counts today from most of these placements, and
      * one to 50% from waist and chest height, and nothing here pins either way. These pins used to
@@ -232,13 +231,12 @@ class MovementRigTest {
     )
 
     /**
-     * The views the side view reads: side on from the left and the right, 70-75 degrees off the
-     * head, and 60 from above — where the shoulder line is too short to measure at all. 60 degrees
-     * off from the floor is still read across the shoulder line, as it was, and pinned with the
-     * head-on placements above.
+     * The views the side view reads: side on from the left and the right, and 60-75 degrees off the
+     * head — from above, where the shoulder line is too short to measure at all, and from the floor,
+     * where it is too short at the bottom of a rep for the far shoulder to be believed. Where the
+     * view turns, 55-60 degrees off from the floor, is pinned below.
      */
-    private fun sideViews(camera: Camera): List<Float> =
-        listOf(90f, -90f, 75f, -75f, 70f) + if (camera.position.y > 0.5f) listOf(60f) else emptyList()
+    private val sideViews = listOf(90f, -90f, 75f, -75f, 70f, 60f)
 
     /**
      * The owner's ask: 푸시업은 옆에서 찍어도 인식되도록. Side on, the shoulder pair projects onto itself
@@ -249,7 +247,7 @@ class MovementRigTest {
      */
     @Test
     fun `side on, a pushup counts from either side and goes 깊게, near and far, on the toes and the knees`() {
-        for ((where, camera) in sideCameras) for (yaw in sideViews(camera)) for (onKnees in listOf(false, true)) {
+        for ((where, camera) in sideCameras) for (yaw in sideViews) for (onKnees in listOf(false, true)) {
             for (fps in listOf(30, 15)) {
                 val r = run(ExerciseType.PUSHUP, pushupAt(yaw, onKnees), camera, fps = fps)
                 val what = (if (onKnees) "a knee pushup" else "a pushup") +
@@ -262,19 +260,43 @@ class MovementRigTest {
     }
 
     /**
-     * The half rep, side on: 40% of the way down reads 44-52 on the gauge from every side-on
+     * The half rep, side on: 40% of the way down reads 43-53 on the gauge from every side-on
      * placement, is called short every time and never counts, thirty in a row. A pushup to 60% counts
      * side on from every placement here, as it does from the head at most; nothing pins that either way.
      */
     @Test
     fun `side on, a pushup 40 percent of the way down never counts, and is called short`() {
-        for ((where, camera) in sideCameras) for (yaw in sideViews(camera)) for (onKnees in listOf(false, true)) {
+        for ((where, camera) in sideCameras) for (yaw in sideViews) for (onKnees in listOf(false, true)) {
             for (fps in listOf(30, 15)) {
                 val r = run(ExerciseType.PUSHUP, pushupAt(yaw, onKnees), camera, count = 30, peakDepth = 0.4f, fps = fps)
                 val what = (if (onKnees) "a knee pushup" else "a pushup") +
                     " 40% down from $where, ${yaw.toInt()} degrees off the head, at $fps fps"
                 assertEquals(0, r.reps, "$what counted ${r.reps} of 30")
                 assertEquals(30, r.shallow, "$what was called short on ${r.shallow} of 30")
+            }
+        }
+    }
+
+    /**
+     * Between the diagonal and the side, from the floor, the shoulders sit at 0.38-0.49 of the torso
+     * through a rep: too narrow at the bottom for the far shoulder to be believed from the head, and
+     * narrower than 0.42 only there, never for the second a turn to the side view needs. The view
+     * used to turn at 0.42, and there the head-on reading lost the rep: 63 degrees off 1.3 m away
+     * counted one in eight, 62-64 off 1 m away one or none. It turns at 0.55 now, where the head-on
+     * reading still counts, and every rep counts on either side of it — near and far, on the toes
+     * and the knees, at 30 fps and 15 — and no 40% rep does.
+     */
+    @Test
+    fun `from the floor between the diagonal and the side, every pushup counts and no half one does`() {
+        for ((distance, tilt) in listOf(1.0f to 15f, 1.3f to 12f, 1.6f to 10f, 2.0f to 8f)) for (yaw in 55..68) {
+            for (onKnees in listOf(false, true)) for (fps in listOf(30, 15)) {
+                val camera = Camera.onFloor(distance, tilt)
+                val what = (if (onKnees) "a knee pushup" else "a pushup") +
+                    " from the floor ${distance}m away, $yaw degrees off the head, at $fps fps"
+                val full = run(ExerciseType.PUSHUP, pushupAt(yaw.toFloat(), onKnees), camera, fps = fps)
+                assertEquals(8, full.reps, "$what counted ${full.reps} of 8; refused as ${full.refusals.distinct()}, shallow ${full.shallow}")
+                val half = run(ExerciseType.PUSHUP, pushupAt(yaw.toFloat(), onKnees), camera, count = 30, peakDepth = 0.4f, fps = fps)
+                assertEquals(0, half.reps, "$what 40% down counted ${half.reps} of 30")
             }
         }
     }
