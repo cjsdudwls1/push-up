@@ -185,7 +185,7 @@
     <string name="settings_gauge_number">깊이 숫자 표시</string>
     <string name="settings_sfx">효과음</string>
     <string name="settings_auto_next">다음 던전 자동 시작</string>
-    <string name="settings_auto_next_sub">던전을 깨면 쉬는 시간이 지난 뒤, 같은 운동으로 다음 던전이 바로 시작돼요.</string>
+    <string name="settings_auto_next_sub">던전을 깨고 다음 던전이 열려 있으면, 쉬는 시간이 지난 뒤 같은 운동으로 바로 시작돼요.</string>
     <string name="settings_auto_next_off">끄기</string>
     <string name="settings_auto_next_minutes">%1$d분</string>
     <string name="result_rest_title">쉬는 시간</string>
