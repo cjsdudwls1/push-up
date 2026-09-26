@@ -681,8 +681,17 @@ class BattleEngine(
         return state
     }
 
-    /** Gives up the run. Everything earned so far is still banked — that is the whole promise. */
-    fun quit(): Outcome = finish(cleared = false, atMs = lastFrameMs)
+    /**
+     * Gives up the run. Everything earned so far is still banked — that is the whole promise.
+     *
+     * Stopped while the last monster is still coming apart, the run was cleared: the clear waits
+     * [DEATH_MS] for the animation and nothing else, and a run closed inside it — the X pressed as
+     * the boss fell, the app swiped away — lost its clear bonus and the record that it was cleared.
+     */
+    fun quit(): Outcome {
+        val lastFell = enemyDiedAtMs != Long.MIN_VALUE && floorIndex >= dungeon.floors.size - 1
+        return finish(cleared = lastFell, atMs = lastFrameMs)
+    }
 
     /**
      * Carries on the run with a different movement, as often as the user likes.

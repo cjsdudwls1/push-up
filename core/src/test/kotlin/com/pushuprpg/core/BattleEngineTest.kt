@@ -175,6 +175,44 @@ class BattleEngineTest {
         assertTrue(outcome.crackFraction > 0f, "reps dealt should shorten the retry")
     }
 
+    /**
+     * The clear comes [BattleEngine.DEATH_MS] after the last monster falls, once it has finished
+     * coming apart. A run stopped inside that — the X pressed as the boss fell, the app swiped away
+     * — was banked as not cleared: no clear bonus, and the dungeon not marked done.
+     */
+    @Test
+    fun `stopping while the last monster comes apart is a clear`() {
+        val frames = PoseFixtures.trace(count = 80, peakDepth = 0.95f, restMs = 250)
+        val whole = play(engine(), frames).outcome!!
+        assertTrue(whole.cleared, "the fixture should clear the dungeon")
+
+        val e = engine()
+        val last = Dungeons.FREE_DUNGEON.floors.size - 1
+        var falling = 0
+        for (f in frames) {
+            val s = e.onPoseFrame(f)
+            if (s.outcome != null) break
+            if (s.floorIndex == last && s.enemyDeath > 0f) {
+                falling++
+                val stopped = e.quit()
+                assertTrue(stopped.cleared, "stopped ${s.enemyDeath} of the way through the last fall: not a clear")
+                assertEquals(0, stopped.enemyLeft)
+                assertEquals(0f, stopped.crackFraction)
+                assertEquals(whole.reps, stopped.reps)
+                assertTrue(
+                    stopped.xpEarned >= whole.xpEarned - 1,
+                    "stopped as the boss fell: ${stopped.xpEarned} XP against the clear's ${whole.xpEarned}",
+                )
+            }
+        }
+        assertTrue(falling > 3, "the last monster's fall lasted $falling frames")
+
+        // Stopped a rep short, it is not.
+        val short = engine()
+        for (f in frames) if (short.onPoseFrame(f).let { it.floorIndex == last && it.enemyHp == 1 }) break
+        assertTrue(!short.quit().cleared, "a run stopped before the last monster fell was called a clear")
+    }
+
     @Test
     fun `quitting mid-run keeps what was earned`() {
         val e = engine()
