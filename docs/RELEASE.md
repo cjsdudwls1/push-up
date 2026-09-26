@@ -30,12 +30,16 @@ that read as foreign.
 ### Privacy policy and Data Safety
 The policy is written and hosted from `site/privacy.html`, and the app's settings rows open
 `R.string.privacy_policy_url` and `R.string.terms_url`. The contact address in section 11 of the
-policy, and in the terms, is cjsdudwls1357@gmail.com. One thing still has to happen by hand:
+policy, and in the terms, is cjsdudwls1357@gmail.com.
 
-- **Enable Pages.** Repository Settings → Pages → Source → "GitHub Actions".
-  `.github/workflows/pages.yml` publishes `site/` on every push that touches it. Until this is
-  switched on, `https://cjsdudwls1.github.io/push-up/privacy.html` 404s and the Play listing
-  cannot be submitted.
+- **Pages is on.** Repository Settings → Pages → Source was switched to "GitHub Actions" on
+  2026-09-26, and `https://cjsdudwls1.github.io/push-up/privacy.html` (the URL the Play Console
+  asks for) and `terms.html` beside it resolve. `.github/workflows/pages.yml` publishes `site/` on
+  every push that touches it.
+- **Pages deploys from one branch.** Both the workflow's `branches:` and the `github-pages`
+  environment's allowed deployment branches name `claude/pushup-rpg-app-2xnr4o`, so merging
+  `site/` into another branch, or renaming or deleting that one, stops the site updating until
+  both are changed together.
 
 The Data Safety form has to make one distinction carefully, because both halves are true:
 
