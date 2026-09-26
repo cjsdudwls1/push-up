@@ -46,10 +46,11 @@ class MovementRigTest {
         camera: Camera,
         count: Int = 8,
         peakDepth: Float = 0.95f,
+        fps: Int = 30,
     ): Run {
         val detector = RepDetectorImpl(Exercises.of(type).config)
         val events = mutableListOf<RepEvent>()
-        Body3d.trace(pose, camera, count, peakDepth = peakDepth).forEach { events += detector.onFrame(it).events }
+        Body3d.trace(pose, camera, count, peakDepth = peakDepth, fps = fps).forEach { events += detector.onFrame(it).events }
         return Run(detector.sessionSummary().repCount, events)
     }
 
@@ -165,10 +166,10 @@ class MovementRigTest {
      * so a knee pushup has to count, and until this it had never been measured. It counts: the
      * signal and both witnesses are the arms and the head, and the knees on the floor only tilt the
      * body more steeply. From the floor in front of the head, near and far, and from waist and chest
-     * height; and a half one still reads shallow.
+     * height. How far short a knee pushup can stop and still not count is pinned with the pushup's.
      */
     @Test
-    fun `a knee pushup counts from the floor, waist and chest, and a half one does not`() {
+    fun `a knee pushup counts from the floor, waist and chest`() {
         val cameras = listOf(
             "the floor 1.3m away" to Camera.onFloor(1.3f, 12f),
             "the floor 2.0m away" to Camera.onFloor(2.0f, 8f),
@@ -186,16 +187,37 @@ class MovementRigTest {
             val deep = r.events.count { it is RepEvent.DeepUpgrade }
             if (yaw < 60f) assertEquals(8, deep, "$what went 깊게 on $deep of 8")
         }
-        val half = run(ExerciseType.PUSHUP, pushupAt(0f, onKnees = true), Camera.onFloor(1.3f, 12f), peakDepth = 0.6f)
-        assertEquals(0, half.reps, "a half knee pushup counted")
-        assertEquals(8, half.shallow, "a half knee pushup was not reported as shallow")
     }
 
+    /**
+     * A pushup that stops 40% of the way down — the shoulders 40% of the way from lockout to the
+     * floor — never counts: from every placement here, on the toes or the knees, at 30 fps or 15, and
+     * thirty in a row do not train the range down to meet them. From the head and 30 degrees off it
+     * every one is also reported shallow, which is what the game answers with 조금만 더 내려가 볼까요?;
+     * 60 degrees off, nearly side on, not reliably.
+     *
+     * That is the claim, and no more. A pushup to 60% counts today from most of these placements, and
+     * one to 50% from waist and chest height, and nothing here pins either way. These pins used to
+     * test 60% from one placement only — the floor 1.3 m away, straight in front of the head — which
+     * happens to be where it does not count, and so they said something that was not true elsewhere.
+     */
     @Test
-    fun `a half pushup reads shallow rather than counting`() {
-        val r = run(ExerciseType.PUSHUP, pushupAt(0f), Camera.onFloor(1.3f, 12f), peakDepth = 0.6f)
-        assertEquals(0, r.reps, "a half pushup counted")
-        assertEquals(8, r.shallow, "a half pushup was not reported as shallow")
+    fun `a pushup 40 percent of the way down never counts from anywhere, and is called short`() {
+        val cameras = listOf(
+            "the floor 1.3m away" to Camera.onFloor(1.3f, 12f),
+            "the floor 2.0m away" to Camera.onFloor(2.0f, 8f),
+            "waist height" to waist,
+            "chest height" to chest,
+        )
+        for ((where, camera) in cameras) for (yaw in listOf(0f, 30f, 60f)) for (onKnees in listOf(false, true)) {
+            for (fps in listOf(30, 15)) {
+                val r = run(ExerciseType.PUSHUP, pushupAt(yaw, onKnees), camera, count = 30, peakDepth = 0.4f, fps = fps)
+                val what = (if (onKnees) "a knee pushup" else "a pushup") +
+                    " 40% down from $where, ${yaw.toInt()} degrees off the head, at $fps fps"
+                assertEquals(0, r.reps, "$what counted ${r.reps} of 30")
+                if (yaw < 60f) assertEquals(30, r.shallow, "$what was called short on ${r.shallow} of 30")
+            }
+        }
     }
 
     /**

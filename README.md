@@ -41,10 +41,13 @@ learns each user's own top and bottom rather than judging against a constant. Th
 needs no special cases for exercise variants — they simply shift the learned range.
 
 The hard part is stopping that range collapsing onto whatever the user is doing right now, because
-then every rep counts forever and the gauge becomes decoration. Three guards prevent it: a minimum
+then every rep counts forever and the gauge becomes decoration. Three guards limit it: a minimum
 range anchored at the lockout, a cap on how much range fatigue may take (30% of what the user has
-themselves demonstrated), and absolute anthropometric clamps. `RepDetectorTest` pins the degenerate
-case directly — thirty half-depth reps still count zero on rep thirty.
+themselves demonstrated), and absolute anthropometric clamps. They keep a set that stays well short
+from ever counting, not every short rep: `MovementRigTest` pins that thirty pushups stopping 40% of
+the way down count zero from every placement on the rig. Reps past about half depth can count in a
+first session, while the range is still being learned: on the rig a pushup 60% of the way down does,
+from most placements.
 
 ### Why the rep counts at the bottom
 

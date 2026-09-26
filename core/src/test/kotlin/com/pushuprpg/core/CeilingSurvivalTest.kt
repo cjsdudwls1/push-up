@@ -283,8 +283,10 @@ class CeilingSurvivalTest {
      */
     @Test
     fun `half reps the detector refused are near misses the cat answers, never reps`() {
-        // Past the top band, nowhere near the 인정 line.
-        val played = Played(PoseFixtures.trace(count = 6, peakDepth = 0.50f))
+        // On the rig, from the head on the floor: 40% of the way down, which never counts anywhere
+        // (MovementRigTest), but is past the top band and so a rep the detector saw. Started soon
+        // after getting into position, so the ceiling is still up for the sixth.
+        val played = Played(rig(6, peak = 0.40f, settleMs = 800))
         assertTrue(played.game.state().started, "the half reps were done in position; the run should have started")
         assertEquals(6, played.events.count { it is SurvivalEvent.NearMiss }, "every half rep is a near miss")
         assertTrue(played.events.none { it is SurvivalEvent.Pushed }, "a half rep pushed the ceiling")
