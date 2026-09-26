@@ -550,12 +550,20 @@ class BattleEngine(
                     encounter.breakCombo()
                 }
 
+                // Tracking lost and found never take the slot from another line still up: the
+                // placement line says what is wrong, and filmed from the head the tracker blinks
+                // about once a second, so a 기사's 천천히 해야 1개로 쳐요 was gone before it could be
+                // read. And tracking is lost once, as it goes: one reason becoming another is not news.
                 is RepEvent.QualityChanged -> {
-                    alert = when (event.quality) {
-                        PoseQuality.OK -> if (state.quality != PoseQuality.OK) {
-                            Toast(AlertKey.QUALITY_RECOVERED, 0, event.tMs)
-                        } else alert
-                        else -> Toast(AlertKey.QUALITY_LOST, 0, event.tMs)
+                    val other = alert?.takeUnless { it.textKey == AlertKey.QUALITY_LOST || it.textKey == AlertKey.QUALITY_RECOVERED }
+                    if (other == null) {
+                        alert = when {
+                            event.quality == PoseQuality.OK -> if (state.quality != PoseQuality.OK) {
+                                Toast(AlertKey.QUALITY_RECOVERED, 0, event.tMs)
+                            } else alert
+                            state.quality == PoseQuality.OK -> Toast(AlertKey.QUALITY_LOST, 0, event.tMs)
+                            else -> alert
+                        }
                     }
                 }
 

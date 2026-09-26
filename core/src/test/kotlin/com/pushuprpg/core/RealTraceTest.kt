@@ -5,6 +5,7 @@ import com.pushuprpg.core.detect.CalibrationState
 import com.pushuprpg.core.detect.DetectorFactory
 import com.pushuprpg.core.detect.ExerciseType
 import com.pushuprpg.core.detect.Exercises
+import com.pushuprpg.core.detect.PoseQuality
 import com.pushuprpg.core.detect.RepDetector
 import com.pushuprpg.core.detect.RepEvent
 import com.pushuprpg.core.detect.UserProfile
@@ -13,6 +14,7 @@ import com.pushuprpg.core.game.Difficulty
 import com.pushuprpg.core.game.Dungeons
 import com.pushuprpg.core.game.PlayerClass
 import com.pushuprpg.core.game.PlayerState
+import com.pushuprpg.core.run.AlertKey
 import com.pushuprpg.core.run.BattleEngine
 import com.pushuprpg.core.run.Stars
 import kotlin.test.assertEquals
@@ -122,6 +124,40 @@ class RealTraceTest {
             "stale profile" to listOf(3, 3, 2),
         ),
     )
+
+    /**
+     * From the head the tracker loses the body for a frame or two about once a second, and every
+     * drop put 추적이 끊긴 동안에는 보스도 멈춰 있어요 over whatever the alert slot was saying. A
+     * 기사's 천천히 해야 1개로 쳐요 — nearly the only place the class's rule is written — was gone in
+     * under a second. Lost and found now wait for the slot, and a drop from one reason to another is
+     * not a second loss.
+     */
+    @Test
+    fun `a coaching line stays up its whole time while the tracker blinks`() {
+        val tracking = setOf(AlertKey.QUALITY_LOST, AlertKey.QUALITY_RECOVERED)
+        for (stride in listOf(1, 2, 3)) {
+            val engine = BattleEngine(
+                dungeon = Dungeons.byIndex(3)!!,
+                difficulty = Difficulty.STANDARD,
+                capacity = 8f,
+                initialPlayer = PlayerState.create(PlayerClass.KNIGHT, level = 1),
+                detector = DetectorFactory.create(ExerciseType.PUSHUP),
+                resolver = CombatResolver(),
+            )
+            val states = TraceReplay.frames(pushups.every(stride)).map { it.timestampMs to engine.onPoseFrame(it) }
+            val lines = states.mapNotNull { it.second.alert }.filter { it.textKey !in tracking }.distinct()
+            assertTrue(lines.any { it.textKey == AlertKey.STYLE_TOO_QUICK }, "every $stride: no 기사 line to keep up: $lines")
+            for (line in lines) {
+                val over = states.firstOrNull { (t, s) ->
+                    t >= line.atMs && t - line.atMs < BattleEngine.ALERT_LIFETIME_MS && s.alert?.textKey in tracking
+                }
+                assertTrue(over == null, "every $stride: ${line.textKey} was covered by ${over?.second?.alert?.textKey} after ${over?.let { it.first - line.atMs }}ms")
+            }
+            val lost = states.mapNotNull { it.second.alert }.filter { it.textKey == AlertKey.QUALITY_LOST }.distinct().size
+            val drops = states.zipWithNext().count { (a, b) -> a.second.quality == PoseQuality.OK && b.second.quality != PoseQuality.OK }
+            assertTrue(lost <= drops, "every $stride: $lost tracking-lost toasts for $drops times tracking was lost")
+        }
+    }
 
     @Test
     fun `the tops of those pushups hold as a plank, though the camera never sees the legs`() {
