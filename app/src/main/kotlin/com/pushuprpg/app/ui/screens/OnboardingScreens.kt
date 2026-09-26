@@ -68,11 +68,12 @@ fun OnboardingScreen(
             )
             Spacer(Modifier.weight(1f))
             // Before the first workout, not buried in settings: an app that tells people to exercise
-            // says once, up front, that it is not medical advice and to stop if something hurts.
+            // says once, up front, that it is not medical advice and to stop if something hurts. In
+            // body type and colour: as 13sp tertiary grey it read as fine print, and faintly at that.
             Text(
                 text = stringResource(R.string.onboarding_health),
-                style = Type.bodyS,
-                color = Palette.TextTertiary,
+                style = Type.bodyM,
+                color = Palette.TextSecondary,
                 textAlign = TextAlign.Center,
             )
             Spacer(Modifier.height(16.dp))

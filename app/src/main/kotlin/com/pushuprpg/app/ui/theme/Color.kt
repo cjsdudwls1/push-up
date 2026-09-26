@@ -87,8 +87,9 @@ object Palette {
  * accents that are read as text on them.
  *
  * Every light value was chosen by contrast rather than by eye — at least 4.3:1 on every surface
- * it can land on, which is above what the dark theme's tertiary text already manages. The
- * disabled tone is the exception, in both themes, because it is meant to recede.
+ * it can land on. The dark theme's tertiary text is held to 4.5:1 on all four of its surfaces: at
+ * 4.0:1 on a card, the 13sp labels it carries, a result tile's name among them, read faint in a
+ * dark room. The disabled tone is the exception, in both themes, because it is meant to recede.
  */
 @Immutable
 data class ThemeColors(
@@ -121,7 +122,7 @@ data class ThemeColors(
             strokeHard = Color(0xFF2E3542),
             textPrimary = Color(0xFFF2F5FA),
             textSecondary = Color(0xFFA9B3C4),
-            textTertiary = Color(0xFF6E7A8E),
+            textTertiary = Color(0xFF7F8BA0),
             textDisabled = Color(0xFF4A5464),
             brandText = Color(0xFF9A8CFF),
             info = Color(0xFF35C3FF),
