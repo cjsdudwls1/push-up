@@ -221,9 +221,6 @@ fun ResultScreen(
             )
         }
 
-        Spacer(Modifier.height(20.dp))
-        RankCard(rankProgress = rank)
-
         // Where the run stopped, as a fact: the monster and what it still owed, in the fight's own
         // unit. It used to promise the next try would break it faster, and nothing carries over —
         // the next try asks exactly what the entry screen quotes. A monster that fell as the run
@@ -243,7 +240,7 @@ fun ResultScreen(
             )
         }
 
-        Spacer(Modifier.height(28.dp))
+        Spacer(Modifier.height(20.dp))
         if (restLeftSeconds != null) {
             // The phone is across the room during a rest, so the countdown is the largest thing on
             // the screen, and the screen stays on for it.
@@ -298,6 +295,12 @@ fun ResultScreen(
                 modifier = Modifier.weight(1f),
             )
         }
+
+        // The lifetime's rank, not the run's, and on the hub as well: below what to do next. Above
+        // it, a first clear — stars, the 깊게 tile, a level up — pushed the next action off a
+        // 360×780dp screen, on the one run where the next step matters most.
+        Spacer(Modifier.height(20.dp))
+        RankCard(rankProgress = rank)
     }
 }
 
