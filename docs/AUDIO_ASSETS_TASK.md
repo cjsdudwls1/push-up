@@ -100,8 +100,8 @@ python3 tools/voice_lines.py --check
 - 폴더 전체가 3 MB 안팎이면 충분합니다.
 
 **확인:**
-- `python3 tools/voice_lines.py --check`가 `clips: 101 of 102 present`를 출력하고 `stale`이 없어야
-  합니다. 빠진 하나(`796f104f1460`)는 일부러 뺀 것입니다(AUDIO_CREDITS.md 참고).
+- `python3 tools/voice_lines.py --check`에서 `missing`이 `796f104f1460` 하나뿐이고 `stale`이 없어야
+  합니다. 그 하나는 일부러 뺀 것입니다(AUDIO_CREDITS.md 참고).
 - style별로 몇 개씩 직접 들어 봅니다. 특히 숫자("세 번", "두 번 더!", "30초")와 "냥"의 발음.
 
 **기록:** `docs/AUDIO_CREDITS.md`의 "음성" 표에 도구·모델·화자 이름·라이선스를 적습니다.

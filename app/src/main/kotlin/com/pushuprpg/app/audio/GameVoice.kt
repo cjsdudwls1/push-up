@@ -243,7 +243,9 @@ class GameVoice(context: Context, private val music: MusicPlayer) {
             AlertKey.ULTIMATE_HIT -> res.getString(R.string.voice_ultimate_hit)
             AlertKey.BOSS_LOW_HP -> res.getString(R.string.voice_boss_low)
             AlertKey.COMBO_MILESTONE -> res.getString(R.string.voice_combo, a.arg)
-            AlertKey.SHALLOW_TWICE, AlertKey.SHALLOW_PULL -> res.getString(R.string.voice_shallow)
+            AlertKey.SHALLOW_TWICE -> res.getString(R.string.voice_shallow)
+            // Up, not deeper: a pull-up short of the line, as its toast on screen says it.
+            AlertKey.SHALLOW_PULL -> res.getString(R.string.voice_shallow_pull)
             AlertKey.NOT_SPLIT -> res.getString(R.string.battle_not_split)
             AlertKey.STYLE_TOO_QUICK -> res.getString(R.string.voice_style_too_quick)
             AlertKey.STYLE_NOT_FULL -> res.getString(R.string.voice_style_not_full)

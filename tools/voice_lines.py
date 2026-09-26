@@ -87,9 +87,9 @@ def lines(s):
     add("voice_ultimate_hit", "URGENT")
 
     # Coaching in battle.
-    for name in ("voice_boss_low", "voice_shallow", "battle_not_split", "voice_style_too_quick",
-                 "voice_style_not_full", "voice_style_lagging", "voice_ready", "voice_rest_ten",
-                 "voice_rest_go"):
+    for name in ("voice_boss_low", "voice_shallow", "voice_shallow_pull", "battle_not_split",
+                 "voice_style_too_quick", "voice_style_not_full", "voice_style_lagging", "voice_ready",
+                 "voice_rest_ten", "voice_rest_go"):
         add(name, "COACH")
     for n in COMBOS:
         add("voice_combo", "COACH", n, key=f"voice_combo:{n}")

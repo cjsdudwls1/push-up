@@ -54,6 +54,12 @@
   "key": "voice_shallow"
  },
  {
+  "file": "11a67a4f301c.ogg",
+  "text": "조금만 더 올라가요!",
+  "style": "COACH",
+  "key": "voice_shallow_pull"
+ },
+ {
   "file": "fdfd63f7d59c.ogg",
   "text": "다리를 앞뒤로 벌려야 런지로 세요",
   "style": "COACH",
