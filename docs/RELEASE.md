@@ -16,17 +16,6 @@ in the repository secrets, every push to the install branch is signed and upload
   `.github/workflows/release.yml` reconstructs `keystore.properties` from them and deletes it after.
 - Enrol in Play App Signing. Back the upload key up somewhere that is not this repository.
 
-### Play Console products
-`app/src/main/kotlin/com/pushuprpg/app/billing/BillingProducts.kt` names one subscription product
-with two base plans and a 7-day trial offer on each. Those ids must be created in the Play Console
-exactly as written, or `queryProductDetails` returns nothing and the paywall has no plan to sell:
-it says it cannot load the subscription and offers 다시 시도, which cannot help until the products
-exist.
-
-Pricing is read from `ProductDetails` and never hardcoded, so set KRW prices in the Console. Set the
-Korean price by hand rather than letting Play convert from USD — converted prices land on values
-that read as foreign.
-
 ### Privacy policy and Data Safety
 The policy is written and hosted from `site/privacy.html`, and the app's settings rows open
 `R.string.privacy_policy_url` and `R.string.terms_url`. The contact address in section 11 of the
@@ -62,17 +51,12 @@ Generate it in the Firebase console with the application id `io.github.cjsdudwls
 file is gitignored.
 
 ### Content rating and category
-A fitness app with combat and a subscription. Complete the IARC questionnaire honestly; the game
-framing means it is likely to be rated for a general audience but the questionnaire decides.
+A fitness app with combat. Complete the IARC questionnaire honestly; the game framing means it is
+likely to be rated for a general audience but the questionnaire decides.
 
 Korean distribution of anything rated as a game involves 게임물관리위원회 classification. Confirm
 which category this falls into before submitting — the answer differs depending on whether the
 store listing presents it as a game or as a fitness app, and getting it wrong delays the release.
-
-### Korean subscription disclosure
-전자상거래법 and Play's own policy both require the renewal period, the price and how to cancel to
-be visible *before* purchase. `PaywallScreen` renders all three (`renewalSummary` plus the
-`paywall_manage` string). Keep them there and keep them legible; do not move them behind a link.
 
 ### Health disclaimer
 Done: the first onboarding screen says it is not a medical device, to stop if something hurts and to
@@ -82,9 +66,12 @@ carry the full notice; and the store listing ends with it. Keep the three saying
 ## Already handled
 
 - `targetSdk 36`, which is Play's requirement for new apps from 2026-08-31.
-- Play Billing 9.1.0, above the v8 floor that took effect 2026-08-31.
+- No in-app products and no subscription disclosure: this version sells nothing. The app is free for
+  the whole test period by the owner's decision (`DECISIONS.md`), and Play Billing is not in the app.
+  A paid model brings both back — Console products and the renewal period, price and how to cancel
+  shown before purchase (`MONETIZATION.md`).
 - R8 rules for MediaPipe, Room and kotlinx.serialization (`app/proguard-rules.pro`).
-- Backup rules that name the real DataStore paths and exclude the entitlement cache.
+- Backup rules that name the real DataStore paths.
 - CI builds a debug APK on every push, and the minified release bundle (unsigned) so a missing R8
   keep rule fails on the push that caused it. The release workflow signs a bundle from a tag or a
   push to the install branch, and uploads it to the internal track when `PLAY_SERVICE_ACCOUNT_JSON`

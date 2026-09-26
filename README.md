@@ -86,7 +86,7 @@ exactly as prominently as a won one.
 ```
 core/     Pure Kotlin/JVM. Rep detection, calibration, combat, progression, dungeon content,
           survival mode, and the run orchestration. No Android imports anywhere.
-app/      Android. CameraX, MediaPipe, Compose UI, Room, DataStore, Play Billing.
+app/      Android. CameraX, MediaPipe, Compose UI, Room, DataStore.
 ```
 
 Everything that can be a rule rather than a screen lives in `:core`, which is why 88 unit tests can
@@ -109,9 +109,9 @@ CI runs both. See `.github/workflows/ci.yml`.
 
 ## Before shipping
 
-`docs/RELEASE.md` has the checklist. The short version: a signing keystore, the Play Console
-subscription products from `BillingProducts.kt`, GitHub Pages switched on so the privacy policy URL
-resolves, a Data Safety declaration, store screenshots taken on a real device, and a content rating.
+`docs/RELEASE.md` has the checklist. The short version: a signing keystore, GitHub Pages switched on
+so the privacy policy URL resolves, a Data Safety declaration, store screenshots taken on a real
+device, and a content rating. There is nothing to sell: the app is free for the whole test period.
 
 Three more documents cover the half of this that is not code:
 
