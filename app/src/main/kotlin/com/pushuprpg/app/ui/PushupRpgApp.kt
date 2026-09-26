@@ -580,6 +580,7 @@ fun PushupRpgApp(
                                     ExerciseType.PUSHUP,
                                     progress.playerClass,
                                 ),
+                                playerClass = progress.playerClass,
                                 onSkip = {
                                     if (navController.isOnTop(entry)) {
                                         vm.skipTutorial()

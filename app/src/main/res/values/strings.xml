@@ -252,6 +252,9 @@
     <string name="settings_audio_only_sub">던전에서 화면을 어둡게 하고 소리로만 진행해요. 배터리가 오래가요.</string>
     <string name="pick_exercise_title">뭐로 싸울까요?</string>
     <string name="pick_exercise_sub">시작할 운동을 골라요. 싸우는 중에도 오른쪽 위에서 바꿀 수 있어요.</string>
+    <!-- Under it on a dungeon's picker: the counts on the rows are the class's way of doing each rep. -->
+    <string name="pick_exercise_class_knight">개수는 천천히 깊게 했을 때예요. 아니면 반 개로 쳐요.</string>
+    <string name="pick_exercise_class_archer">개수는 쉬지 않고 이어 갔을 때예요. 아니면 반 개로 쳐요.</string>
     <string name="pick_exercise_start">이걸로 시작</string>
     <string name="pick_exercise_last">지난번</string>
     <string name="pick_exercise_hold">시간으로 세요</string>
@@ -313,8 +316,10 @@
     <string name="tutorial_done_shallow">조금만 더 내려가면 세져요. 힘들면 무릎 대고 해도 괜찮아요.</string>
     <!-- The camera's miss, followed by the pushup placement hint. -->
     <string name="tutorial_done_zero">카메라가 아직 한 개도 못 셌어요.</string>
-    <!-- %1$d is what the first dungeon asks, from the same count the picker and the HUD quote. -->
-    <string name="tutorial_first_dungeon">첫 던전은 푸쉬업 %1$d개면 깨요.</string>
+    <!-- %1$d is what the first dungeon asks, from the same count the picker and the HUD quote. It is
+         that count only when every rep is done the class's way, so the line says which way. -->
+    <string name="tutorial_first_dungeon_knight">첫 던전은 천천히 깊게 하면 푸쉬업 %1$d개예요.</string>
+    <string name="tutorial_first_dungeon_archer">첫 던전은 쉬지 않고 이어 가면 푸쉬업 %1$d개예요.</string>
     <string name="tutorial_continue">던전으로 가기</string>
     <string name="survival_share">자랑하기</string>
     <string name="survival_share_text">푸쉬업 RPG에서 고냥이를 %1$,d점만큼 지켰어요! 🐱💪</string>

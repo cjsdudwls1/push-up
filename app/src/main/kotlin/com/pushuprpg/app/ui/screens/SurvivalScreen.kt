@@ -69,6 +69,7 @@ import com.pushuprpg.core.detect.ExerciseType
 import com.pushuprpg.core.detect.Exercises
 import com.pushuprpg.core.detect.Placement
 import com.pushuprpg.core.detect.RenderSkeleton
+import com.pushuprpg.core.game.PlayerClass
 import com.pushuprpg.core.survival.CatLine
 import com.pushuprpg.core.survival.CatName
 import com.pushuprpg.core.survival.CatSpeech
@@ -104,6 +105,8 @@ fun SurvivalScreen(
     modelFailed: Boolean = false,
     /** What the first dungeon asks in pushups, as every screen that quotes it computes it. */
     firstDungeonReps: Int = 0,
+    /** The class [firstDungeonReps] is priced for, whose way of doing a rep the ending names. */
+    playerClass: PlayerClass = PlayerClass.KNIGHT,
     /** Reps the detector refused as not deep enough, for the tutorial's ending. */
     nearMisses: Int = 0,
     cat: CatView = CatView(),
@@ -314,6 +317,7 @@ fun SurvivalScreen(
                     reps = state.reps,
                     nearMisses = nearMisses,
                     firstDungeonReps = firstDungeonReps,
+                    playerClass = playerClass,
                     onContinue = onHome,
                     modifier = Modifier.align(Alignment.Center),
                 )
@@ -552,12 +556,17 @@ private fun TutorialIntro(modifier: Modifier = Modifier) {
  * the depth is what to find. Blaming the phone sent the user off to move it, and into the first
  * dungeon with the same reps. With none of those either, the phone's place is where to look, and
  * the card says where it goes before the first dungeon asks for a count.
+ *
+ * That count is the class's price, and it holds only for reps done the class's way: a 기사 who
+ * pushes up at the tutorial's pace earns half a rep each and watches the goal grow. So the line
+ * says which way it is, where the number is.
  */
 @Composable
 private fun TutorialDoneCard(
     reps: Int,
     nearMisses: Int,
     firstDungeonReps: Int,
+    playerClass: PlayerClass,
     onContinue: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -603,7 +612,13 @@ private fun TutorialDoneCard(
         }
         Spacer(Modifier.height(8.dp))
         Text(
-            text = stringResource(R.string.tutorial_first_dungeon, firstDungeonReps),
+            text = stringResource(
+                when (playerClass) {
+                    PlayerClass.KNIGHT -> R.string.tutorial_first_dungeon_knight
+                    PlayerClass.ARCHER -> R.string.tutorial_first_dungeon_archer
+                },
+                firstDungeonReps,
+            ),
             style = Type.bodyL,
             color = Palette.TextSecondary,
             textAlign = TextAlign.Center,

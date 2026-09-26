@@ -115,6 +115,21 @@ fun ExercisePickScreen(
                 style = Type.bodyM,
                 color = Palette.TextSecondary,
             )
+            // The rows' counts are the class's price, which holds only for reps done its way. A 기사
+            // who went in at the tutorial's pace was quoted 10개 and did about twenty.
+            if (dungeon != null) {
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    text = stringResource(
+                        when (playerClass) {
+                            PlayerClass.KNIGHT -> R.string.pick_exercise_class_knight
+                            PlayerClass.ARCHER -> R.string.pick_exercise_class_archer
+                        }
+                    ),
+                    style = Type.bodyM,
+                    color = Palette.TextPrimary,
+                )
+            }
             Spacer(Modifier.height(10.dp))
         }
 
