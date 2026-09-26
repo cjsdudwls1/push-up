@@ -193,7 +193,7 @@ private fun ActivityGrid(totals: List<DailyTotal>) {
  *
  * The movement leads the line, since a run that switched banks a row per movement and those rows
  * share a dungeon name. A hold is told in seconds, which is what it counts. The table keeps no hold
- * time, so the seconds are the row's length, which for a hold is the time spent holding it.
+ * time, so the seconds are the row's length, which for a hold is written as the time it was held.
  */
 @Composable
 private fun SessionRow(session: SessionRecord) {

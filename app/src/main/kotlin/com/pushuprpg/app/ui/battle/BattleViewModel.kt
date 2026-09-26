@@ -360,7 +360,15 @@ class BattleViewModel(
                 sessionRepository.insert(
                     SessionRecord(
                         startedAtMs = startedAt,
-                        durationMs = if (single) outcome.durationMs else seg.durationMs,
+                        // A hold's row is as long as it was held. The table keeps no hold time, and
+                        // the records screen and the next run's streak bar both read a hold's
+                        // seconds off its row: written as the run's length, the setting up and the
+                        // rests between holds were counted as held.
+                        durationMs = when {
+                            Exercises.of(seg.exercise).kind == MovementKind.HOLD -> seg.holdMs
+                            single -> outcome.durationMs
+                            else -> seg.durationMs
+                        },
                         exercise = seg.exercise,
                         reps = seg.reps,
                         maxCombo = if (single) outcome.maxCombo else seg.maxCombo,

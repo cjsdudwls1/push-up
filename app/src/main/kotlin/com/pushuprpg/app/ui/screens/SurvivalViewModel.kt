@@ -20,6 +20,8 @@ import com.pushuprpg.core.detect.DetectorFactory
 import com.pushuprpg.app.domain.capacityOf
 import com.pushuprpg.app.domain.withCapacity
 import com.pushuprpg.core.detect.ExerciseType
+import com.pushuprpg.core.detect.Exercises
+import com.pushuprpg.core.detect.MovementKind
 import com.pushuprpg.core.detect.Placement
 import com.pushuprpg.core.detect.PlacementAdvice
 import com.pushuprpg.core.detect.PlacementCoach
@@ -300,7 +302,9 @@ class SurvivalViewModel(
             sessionRepository.insert(
                 SessionRecord(
                     startedAtMs = startedAt,
-                    durationMs = survivedMs,
+                    // As a dungeon's: a hold's row is as long as it was held, which is what the
+                    // records screen and the day's streak bar read off it.
+                    durationMs = if (Exercises.of(exercise).kind == MovementKind.HOLD) summary.holdMs else survivedMs,
                     exercise = exercise,
                     reps = repsDone,
                     maxCombo = combo,
