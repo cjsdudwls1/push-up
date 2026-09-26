@@ -121,10 +121,12 @@ fun HomeScreen(
             ThemeToggle(mode = themeMode, onToggle = onToggleTheme)
         }
 
-        // A nudge only when there is something to nudge about. Saying it every day would make the
+        // A broken streak is said until a day meets the bar again, whatever else today holds: a run
+        // short of the bar leaves it broken, and the line hid behind the first minute of it. The
+        // nudge only when there is something to nudge about. Saying it every day would make the
         // encouragement worthless, and saying it after a plank tells someone who held one for
         // minutes that they have not started.
-        if (state.todayReps == 0 && state.todayActiveMs == 0L) {
+        if (state.streakJustBroke || (state.todayReps == 0 && state.todayActiveMs == 0L)) {
             // The bar quoted is the real one, for the movement the user reaches for.
             val bar = Exercises.of(lastExercise)
             val name = stringResource(exerciseLabelRes(lastExercise))
