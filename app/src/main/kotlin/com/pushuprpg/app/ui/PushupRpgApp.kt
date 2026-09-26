@@ -266,20 +266,22 @@ fun PushupRpgApp(
                         themeMode = settings.themeMode,
                         onToggleTheme = toggleTheme,
                         onChangeClass = changeClass,
-                        onStartDungeon = { navController.navigate(Routes.exercisePick(it)) },
+                        onStartDungeon = { navController.navigateFrom(entry, Routes.exercisePick(it)) },
                         onRequestPaywall = {
-                            container.telemetry.log(Event.PaywallShown("home"))
-                            navController.navigate(Routes.PAYWALL)
+                            if (navController.isOnTop(entry)) {
+                                container.telemetry.log(Event.PaywallShown("home"))
+                                navController.navigate(Routes.PAYWALL)
+                            }
                         },
-                        onDungeonSelect = { navController.navigate(Routes.DUNGEON_SELECT) },
-                        onSurvival = { navController.navigate(Routes.SURVIVAL_PICK) },
-                        onRecords = { navController.navigate(Routes.RECORDS) },
-                        onSettings = { navController.navigate(Routes.SETTINGS) },
+                        onDungeonSelect = { navController.navigateFrom(entry, Routes.DUNGEON_SELECT) },
+                        onSurvival = { navController.navigateFrom(entry, Routes.SURVIVAL_PICK) },
+                        onRecords = { navController.navigateFrom(entry, Routes.RECORDS) },
+                        onSettings = { navController.navigateFrom(entry, Routes.SETTINGS) },
                         lastExercise = settings.exercise,
                     )
                 }
 
-                composable(Routes.DUNGEON_SELECT) {
+                composable(Routes.DUNGEON_SELECT) { entry ->
                     DungeonSelectScreen(
                         highestCleared = progress.highestDungeonCleared,
                         exercise = settings.exercise,
@@ -292,10 +294,12 @@ fun PushupRpgApp(
                                 container.settingsRepository.update { it.copy(difficulty = difficulty) }
                             }
                         },
-                        onStart = { navController.navigate(Routes.exercisePick(it)) },
+                        onStart = { navController.navigateFrom(entry, Routes.exercisePick(it)) },
                         onRequestPaywall = {
-                            container.telemetry.log(Event.PaywallShown("dungeon_select"))
-                            navController.navigate(Routes.PAYWALL)
+                            if (navController.isOnTop(entry)) {
+                                container.telemetry.log(Event.PaywallShown("dungeon_select"))
+                                navController.navigate(Routes.PAYWALL)
+                            }
                         },
                     )
                 }
@@ -504,7 +508,7 @@ fun PushupRpgApp(
                                         )
                                     )
                                 },
-                                onRecords = { navController.navigate(Routes.RECORDS) },
+                                onRecords = { navController.navigateFrom(entry, Routes.RECORDS) },
                                 onHome = {
                                     navController.navigate(Routes.HOME) {
                                         popUpTo(Routes.HOME) { inclusive = true }
@@ -851,6 +855,17 @@ private val DARK_NAV_SCRIM = android.graphics.Color.argb(0x80, 0x1B, 0x1B, 0x1B)
  */
 private fun NavController.isOnTop(entry: NavBackStackEntry): Boolean =
     currentBackStackEntry?.id == entry.id
+
+/**
+ * Opens [route] over [entry], unless [entry] has already been left.
+ *
+ * For a screen that stays under the one it opens. A second tap during the transition, on the same
+ * button or another, stacked a second screen over the first: closing the paywall showed the same
+ * paywall, and back from a result went to a movement picker left over from the hub.
+ */
+private fun NavController.navigateFrom(entry: NavBackStackEntry, route: String) {
+    if (isOnTop(entry)) navigate(route)
+}
 
 private fun toast(context: Context, message: Int) {
     Toast.makeText(context, context.getString(message), Toast.LENGTH_SHORT).show()
