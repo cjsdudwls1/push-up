@@ -297,6 +297,29 @@ class ProgressionTest {
     }
 
     @Test
+    fun `clearing the free dungeon keeps the day for every class, movement and difficulty`() {
+        val start = StreakState(days = 3, lastActiveDay = day - 1)
+        var shortOfTheBar = 0
+        for (playerClass in PlayerClass.entries) for (exercise in ExerciseType.entries) for (difficulty in Difficulty.entries) {
+            // What the clear asked for, and nothing else that day.
+            val work = mapOf(exercise to Dungeons.FREE_DUNGEON.repCost(difficulty, exercise, playerClass))
+            if (!Streak.maintained(work)) shortOfTheBar++
+            assertEquals(
+                StreakState(4, day), Streak.advance(start, day, work, cleared = true),
+                "$playerClass cleared it on $exercise at $difficulty",
+            )
+        }
+        // Why a clear has to count on its own: priced by class and movement, many clears fall short.
+        assertTrue(shortOfTheBar > 0)
+        val squats = mapOf(ExerciseType.SQUAT to Dungeons.FREE_DUNGEON.repCost(Difficulty.STANDARD, ExerciseType.SQUAT, PlayerClass.KNIGHT))
+        assertEquals(start, Streak.advance(start, day, squats), "the same squats without the clear are short of the bar")
+        // A clear the same day after the bar was met changes nothing, and a break still halves.
+        val kept = Streak.advance(start, day, squats, cleared = true)
+        assertEquals(kept, Streak.advance(kept, day, squats, cleared = true))
+        assertEquals(StreakState(6, day), Streak.advance(StreakState(10, day - 3), day, squats, cleared = true))
+    }
+
+    @Test
     fun `a streak left for a whole day reads as broken, at what it goes on from`() {
         val streak = StreakState(10, day - 1)
         // Yesterday's streak is alive all of today.

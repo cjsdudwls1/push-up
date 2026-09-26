@@ -123,6 +123,11 @@ data class StreakState(val days: Int, val lastActiveDay: Long)
  *
  * It is a day's, not a run's: the bar is met by everything done that day, in any mode. Judged one
  * run at a time, two sets of five never kept it, and neither did the tutorial or 고냥이 지켜줘.
+ *
+ * A dungeon cleared meets it on its own, whatever it asked for. A dungeon is priced by class,
+ * movement and difficulty and the bar is not: the free dungeon cleared on squats by a 기사 asked for
+ * eight of the fifteen, and on a plank for thirty-six seconds of the sixty, so the screen said 던전
+ * 클리어 and the streak did not move.
  */
 object Streak {
     const val MIN_REPS_TO_MAINTAIN = 10
@@ -178,9 +183,17 @@ object Streak {
      * set that runs past midnight counts for the evening it began in. A day that has already met the
      * bar changes nothing, and neither does a day before the last one that did (a clock moved back):
      * it never rewinds the streak and never counts a day twice.
+     *
+     * [cleared] is whether the run being banked cleared its dungeon, which meets the day's bar
+     * whatever [dayWork] comes to.
      */
-    fun advance(current: StreakState, day: Long, dayWork: Map<ExerciseType, Int>): StreakState {
-        if (!maintained(dayWork)) return current
+    fun advance(
+        current: StreakState,
+        day: Long,
+        dayWork: Map<ExerciseType, Int>,
+        cleared: Boolean = false,
+    ): StreakState {
+        if (!cleared && !maintained(dayWork)) return current
         val gap = day - current.lastActiveDay
         return when {
             gap <= 0L -> current.copy(days = current.days.coerceAtLeast(1))

@@ -305,8 +305,8 @@ class BattleViewModel(
      *
      * Everything here happens whether the run was won or lost. The app tells the user their reps
      * survive a defeat, and this is the code that has to be true for that to be true — so the only
-     * thing `cleared` changes is the dungeon-unlock line and the completion bonus that was already
-     * folded into [Outcome.xpEarned].
+     * things `cleared` changes are the dungeon-unlock line, the completion bonus that was already
+     * folded into [Outcome.xpEarned], and the day's streak bar, which a clear meets on its own.
      */
     private fun finish(outcome: Outcome) {
         if (!saved.compareAndSet(false, true)) return
@@ -400,7 +400,9 @@ class BattleViewModel(
             saveCalibration()
 
             // The streak's new length when this run is the one that met the day's bar; a later run
-            // the same day keeps the streak without maintaining it again. Logged once written.
+            // the same day keeps the streak without maintaining it again. Logged once written. A
+            // clear meets the bar whatever it cost: priced by class and movement, the free dungeon
+            // cleared on squats by a 기사 was eight of the fifteen, and the streak did not move.
             var maintained: Int? = null
             progressRepository.update { current ->
                 val levelled = Levels.apply(current.level, current.xpIntoLevel, outcome.xpEarned)
@@ -408,6 +410,7 @@ class BattleViewModel(
                     StreakState(current.streakDays, current.lastActiveEpochDay),
                     epochDay,
                     Streak.sum(doneEarlier, runWork(segments)),
+                    cleared = outcome.cleared,
                 )
                 maintained = streak.days.takeIf { streak.lastActiveDay != current.lastActiveEpochDay }
                 // Capacity is measured in each movement's own unit: reps for a counted exercise,
