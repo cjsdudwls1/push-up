@@ -545,6 +545,7 @@ fun PushupRpgApp(
                     val cat by vm.catView.collectAsState()
                     val placement by vm.placement.collectAsState()
                     val setupSkeleton by vm.setupSkeleton.collectAsState()
+                    val nearMisses by vm.nearMisses.collectAsState()
 
                     DisposableEffect(vm) {
                         val consumer: (com.pushuprpg.core.pose.PoseFrame) -> Unit = vm::onPoseFrame
@@ -573,6 +574,7 @@ fun PushupRpgApp(
                                 onRetry = vm::restart,
                                 onShare = onShare,
                                 modelFailed = poseError != null,
+                                nearMisses = nearMisses,
                                 firstDungeonReps = Dungeons.FREE_DUNGEON.repCost(
                                     settings.difficulty,
                                     ExerciseType.PUSHUP,

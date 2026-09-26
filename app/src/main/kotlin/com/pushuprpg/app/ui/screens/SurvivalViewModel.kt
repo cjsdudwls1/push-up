@@ -77,6 +77,11 @@ class SurvivalViewModel(
     private val _bestScore = MutableStateFlow(0)
     val bestScore: StateFlow<Int> = _bestScore.asStateFlow()
 
+    // Reps the detector saw and refused as not deep enough, for the tutorial's ending: a run with
+    // none counted and some of these was a depth to find, not a phone to move.
+    private val _nearMisses = MutableStateFlow(0)
+    val nearMisses: StateFlow<Int> = _nearMisses.asStateFlow()
+
     // Talks the user into a placement that counts, before the first rep and whenever it is lost.
     private val coach = PlacementCoach(exercise, detector.config)
     private val _placement = MutableStateFlow(Placement(PlacementAdvice.STEP_INTO_VIEW))
@@ -140,6 +145,10 @@ class SurvivalViewModel(
             if (event is RepEvent.Strike) {
                 reps++
                 maxCombo = maxOf(maxCombo, event.combo)
+            } else if (event is RepEvent.Shallow && _state.value.alive) {
+                // Not after the ceiling came down: the ending on screen is the run's, and a rep
+                // tried in front of it must not change what it says.
+                _nearMisses.value = _nearMisses.value + 1
             }
         }
         // Reps, near misses and holds, then the clock, which never stops once the run has started:
@@ -183,6 +192,7 @@ class SurvivalViewModel(
         announcer.reset()
         reps = 0
         maxCombo = 0
+        _nearMisses.value = 0
         startedAtMs = 0L
         saved.set(false)
         _state.value = game.state()

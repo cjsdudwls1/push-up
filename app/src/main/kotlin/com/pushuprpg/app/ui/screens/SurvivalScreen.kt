@@ -104,6 +104,8 @@ fun SurvivalScreen(
     modelFailed: Boolean = false,
     /** What the first dungeon asks in pushups, as every screen that quotes it computes it. */
     firstDungeonReps: Int = 0,
+    /** Reps the detector refused as not deep enough, for the tutorial's ending. */
+    nearMisses: Int = 0,
     cat: CatView = CatView(),
     placement: Placement = Placement(),
     /** The skeleton while setting up, for lining up with the framing guide; null once started. */
@@ -310,6 +312,7 @@ fun SurvivalScreen(
             if (isTutorial) {
                 TutorialDoneCard(
                     reps = state.reps,
+                    nearMisses = nearMisses,
                     firstDungeonReps = firstDungeonReps,
                     onContinue = onHome,
                     modifier = Modifier.align(Alignment.Center),
@@ -543,10 +546,17 @@ private fun TutorialIntro(modifier: Modifier = Modifier) {
  * know what a good one is invites the wrong comparison — and what the first dungeon will ask, which
  * is the number that matters next. It used to promise to set the dungeons by the reps, and nothing
  * did: a dungeon's size is its rep cost, the same after three pushups as after forty.
+ *
+ * Nothing counted is one of two runs, and only the card for a counted one says 준비 끝. Reps the
+ * detector refused as not deep enough ([nearMisses]) were seen by the camera: the phone was fine and
+ * the depth is what to find. Blaming the phone sent the user off to move it, and into the first
+ * dungeon with the same reps. With none of those either, the phone's place is where to look, and
+ * the card says where it goes before the first dungeon asks for a count.
  */
 @Composable
 private fun TutorialDoneCard(
     reps: Int,
+    nearMisses: Int,
     firstDungeonReps: Int,
     onContinue: () -> Unit,
     modifier: Modifier = Modifier,
@@ -560,24 +570,29 @@ private fun TutorialDoneCard(
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(
-            text = stringResource(R.string.tutorial_done_title),
+            text = stringResource(
+                when {
+                    reps > 0 -> R.string.tutorial_done_title
+                    nearMisses > 0 -> R.string.tutorial_done_title_shallow
+                    else -> R.string.tutorial_done_title_zero
+                }
+            ),
             style = Type.titleL,
             color = Palette.TextPrimary,
+            textAlign = TextAlign.Center,
         )
         Spacer(Modifier.height(10.dp))
         Text(
-            text = if (reps > 0) {
-                stringResource(R.string.tutorial_done_body, reps, firstDungeonReps)
-            } else {
-                stringResource(R.string.tutorial_done_body_zero, firstDungeonReps)
+            text = when {
+                reps > 0 -> stringResource(R.string.tutorial_done_reps, reps)
+                nearMisses > 0 -> stringResource(R.string.tutorial_done_shallow)
+                else -> stringResource(R.string.tutorial_done_zero)
             },
             style = Type.bodyL,
             color = Palette.TextSecondary,
             textAlign = TextAlign.Center,
         )
-        // Nothing counted is nearly always the phone's place, so the card says where it goes before
-        // the first dungeon asks for a count.
-        if (reps == 0) {
+        if (reps == 0 && nearMisses == 0) {
             Spacer(Modifier.height(8.dp))
             Text(
                 text = stringResource(exerciseHintRes(ExerciseType.PUSHUP)),
@@ -586,6 +601,13 @@ private fun TutorialDoneCard(
                 textAlign = TextAlign.Center,
             )
         }
+        Spacer(Modifier.height(8.dp))
+        Text(
+            text = stringResource(R.string.tutorial_first_dungeon, firstDungeonReps),
+            style = Type.bodyL,
+            color = Palette.TextSecondary,
+            textAlign = TextAlign.Center,
+        )
         Spacer(Modifier.height(20.dp))
         PrimaryButton(text = stringResource(R.string.tutorial_continue), onClick = onContinue)
     }

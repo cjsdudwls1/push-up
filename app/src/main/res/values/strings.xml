@@ -303,11 +303,18 @@
     <string name="pick_survival_sub">한 번 할 때마다 천장이 올라가요. 힘든 운동일수록 더 많이 올라가요.</string>
     <!-- Under the pushup placement hint, before the tutorial's ceiling starts. -->
     <string name="tutorial_intro_body">푸쉬업 자세를 잡으면 천장이 내려와요. 밀어 올려서 고냥이를 지켜 주세요.</string>
+    <!-- The tutorial's ending, by what it counted: reps; none, but reps refused as not deep enough;
+         none at all. Only the first is 준비 끝. -->
     <string name="tutorial_done_title">준비 끝!</string>
-    <!-- %2$d is what the first dungeon asks, from the same count the picker and the HUD quote. -->
-    <string name="tutorial_done_body">%1$d개 했어요! 첫 던전은 푸쉬업 %2$d개면 깨요.</string>
-    <!-- The tutorial ended with nothing counted: the camera's miss, followed by the pushup placement hint. -->
-    <string name="tutorial_done_body_zero">카메라가 아직 한 개도 못 셌어요. 첫 던전은 푸쉬업 %1$d개면 깨요.</string>
+    <string name="tutorial_done_title_shallow">거의 다 왔어요!</string>
+    <string name="tutorial_done_title_zero">폰 자리만 맞추면 돼요</string>
+    <string name="tutorial_done_reps">%1$d개 했어요!</string>
+    <!-- The camera saw the reps and they were short of the line, so nothing here is about the phone. -->
+    <string name="tutorial_done_shallow">조금만 더 내려가면 세져요. 힘들면 무릎 대고 해도 괜찮아요.</string>
+    <!-- The camera's miss, followed by the pushup placement hint. -->
+    <string name="tutorial_done_zero">카메라가 아직 한 개도 못 셌어요.</string>
+    <!-- %1$d is what the first dungeon asks, from the same count the picker and the HUD quote. -->
+    <string name="tutorial_first_dungeon">첫 던전은 푸쉬업 %1$d개면 깨요.</string>
     <string name="tutorial_continue">던전으로 가기</string>
     <string name="survival_share">자랑하기</string>
     <string name="survival_share_text">푸쉬업 RPG에서 고냥이를 %1$,d점만큼 지켰어요! 🐱💪</string>
