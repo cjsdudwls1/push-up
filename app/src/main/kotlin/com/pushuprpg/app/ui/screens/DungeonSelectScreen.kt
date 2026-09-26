@@ -14,8 +14,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.pushuprpg.app.R
-import com.pushuprpg.app.domain.Entitlement
-import com.pushuprpg.app.domain.FreeTier
 import com.pushuprpg.app.ui.components.Pill
 import com.pushuprpg.app.ui.components.SectionHeader
 import com.pushuprpg.app.ui.components.cardSurface
@@ -51,11 +49,8 @@ fun DungeonSelectScreen(
     difficulty: Difficulty,
     /** The class the count is quoted for: a 기사's fight is fewer reps than a 궁수's. */
     playerClass: PlayerClass,
-    entitlement: Entitlement,
     onDifficultyChange: (Difficulty) -> Unit,
     onStart: (Int) -> Unit,
-    /** A locked dungeon was tapped; the paywall names it. */
-    onRequestPaywall: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val exerciseName = stringResource(exerciseLabelRes(exercise))
@@ -87,8 +82,7 @@ fun DungeonSelectScreen(
         }
 
         items(Dungeons.ALL, key = { it.index }) { dungeon ->
-            val unlocked = dungeon.index <= highestCleared + 1
-            val paid = FreeTier.canPlayDungeon(dungeon.index, entitlement)
+            val unlocked = Dungeons.isUnlocked(dungeon.index, highestCleared)
             val cost = dungeon.repCost(difficulty, exercise, playerClass)
             DungeonCard(
                 dungeon = dungeon,
@@ -100,14 +94,7 @@ fun DungeonSelectScreen(
                 },
                 cleared = dungeon.index <= highestCleared,
                 unlocked = unlocked,
-                paid = paid,
-                onClick = {
-                    when {
-                        !unlocked -> Unit
-                        !paid -> onRequestPaywall(dungeon.index)
-                        else -> onStart(dungeon.index)
-                    }
-                },
+                onClick = { if (unlocked) onStart(dungeon.index) },
             )
         }
     }
@@ -168,7 +155,6 @@ private fun DungeonCard(
     estimate: String,
     cleared: Boolean,
     unlocked: Boolean,
-    paid: Boolean,
     onClick: () -> Unit,
 ) {
     val colors = LocalGameColors.current
@@ -192,9 +178,6 @@ private fun DungeonCard(
             when {
                 cleared -> Pill(text = stringResource(R.string.dungeon_cleared_badge), tint = colors.accept)
                 !unlocked -> Pill(text = stringResource(R.string.dungeon_locked_badge), tint = Palette.TextTertiary)
-                !paid -> Pill(text = stringResource(R.string.dungeon_locked_subscription), tint = Palette.Brand400)
-                dungeon.index == FreeTier.FREE_DUNGEON_INDEX ->
-                    Pill(text = stringResource(R.string.dungeon_free_badge), tint = colors.accept)
                 else -> Unit
             }
         }

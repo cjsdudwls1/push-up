@@ -428,8 +428,8 @@
     <!-- Home hub -->
     <!-- The hub's big button before any dungeon has been cleared: there is nothing yet to continue. -->
     <string name="home_start_first">첫 던전 도전하기</string>
+    <!-- The same button once every dungeon is cleared: %1$s is the last dungeon, played again. -->
     <string name="home_replay">%1$s 다시 도전</string>
-    <string name="home_continue_locked">구독하면 이어서 갈 수 있어요</string>
     <string name="home_xp_to_next">다음 레벨까지 경험치 %1$,d</string>
     <string name="home_max_level">최고 레벨에 닿았어요</string>
 
@@ -441,9 +441,7 @@
     <!-- Dungeon select -->
     <string name="dungeon_meta">%1$s · %2$s</string>
     <string name="dungeon_locked_badge">잠김</string>
-    <string name="dungeon_locked_subscription">구독하면 열려요</string>
     <string name="dungeon_cleared_badge">클리어</string>
-    <string name="dungeon_free_badge">무료</string>
     <string name="difficulty_section">난이도</string>
 
     <!-- Records detail (heat calendar, session list) -->

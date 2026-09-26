@@ -12,7 +12,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.pushuprpg.app.R
 import com.pushuprpg.app.domain.Entitlement
-import com.pushuprpg.app.domain.FreeTier
 import com.pushuprpg.app.domain.PlayerProgress
 import com.pushuprpg.app.domain.ThemeMode
 import com.pushuprpg.app.ui.components.*
@@ -67,10 +66,6 @@ data class HomeUiState(
  * Built around one question — "am I doing this today?" — so today's count and the streak come
  * first, and the single loud button below them resumes exactly where the player left off. Anything
  * that makes a user navigate before they can start exercising is a tax on the habit.
- *
- * Where the player left off may be a dungeon that is not free. The loud button is then the one a
- * free player can press, the free dungeon again, and the way on sits under it saying what it opens
- * — it used to be the loud button, and led to the paywall without a word.
  */
 @Composable
 fun HomeScreen(
@@ -79,7 +74,6 @@ fun HomeScreen(
     onToggleTheme: () -> Unit,
     onChangeClass: () -> Unit,
     onStartDungeon: (Int) -> Unit,
-    onRequestPaywall: () -> Unit,
     onDungeonSelect: () -> Unit,
     onSurvival: () -> Unit,
     onRecords: () -> Unit,
@@ -178,29 +172,20 @@ fun HomeScreen(
         )
 
         Spacer(Modifier.height(24.dp))
+        // The dungeon after the furthest clear, which that clear opened. With every one cleared it
+        // is the last again, and the button says so rather than offering a way on there is not.
         val dungeon = Dungeons.byIndex(state.nextDungeon)
-        val playable = FreeTier.canPlayDungeon(state.nextDungeon, state.entitlement)
-        if (playable) {
-            PrimaryButton(
-                text = stringResource(
-                    if (state.progress.highestDungeonCleared == 0) R.string.home_start_first
-                    else R.string.action_continue
-                ),
-                supportingText = dungeon?.korean,
-                onClick = { onStartDungeon(state.nextDungeon) },
-            )
-        } else {
-            PrimaryButton(
-                text = stringResource(R.string.home_replay, Dungeons.FREE_DUNGEON.korean),
-                onClick = { onStartDungeon(FreeTier.FREE_DUNGEON_INDEX) },
-            )
-            Spacer(Modifier.height(10.dp))
-            SecondaryButton(
-                text = dungeon?.korean.orEmpty(),
-                supportingText = stringResource(R.string.home_continue_locked),
-                onClick = onRequestPaywall,
-            )
-        }
+        val cleared = state.progress.highestDungeonCleared
+        val allCleared = cleared >= Dungeons.ALL.size
+        PrimaryButton(
+            text = when {
+                allCleared -> stringResource(R.string.home_replay, dungeon?.korean.orEmpty())
+                cleared == 0 -> stringResource(R.string.home_start_first)
+                else -> stringResource(R.string.action_continue)
+            },
+            supportingText = dungeon?.korean?.takeUnless { allCleared },
+            onClick = { onStartDungeon(state.nextDungeon) },
+        )
 
         Spacer(Modifier.height(10.dp))
         SecondaryButton(

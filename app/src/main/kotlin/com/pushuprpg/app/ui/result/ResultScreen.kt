@@ -59,11 +59,6 @@ fun ResultScreen(
     level: Int,
     levelsGained: Int,
     hasNextDungeon: Boolean,
-    /**
-     * The next dungeon is not free to this player. 다음 던전 then leads to the paywall, so it is not
-     * the loud button and it says so; see [com.pushuprpg.app.domain.FreeTier].
-     */
-    nextLocked: Boolean,
     onNextDungeon: () -> Unit,
     onRetry: () -> Unit,
     onShare: () -> Unit,
@@ -278,7 +273,7 @@ fun ResultScreen(
                 onCancel = onCancelAutoNext,
             )
             Spacer(Modifier.height(10.dp))
-        } else if (outcome.cleared && hasNextDungeon && !nextLocked) {
+        } else if (outcome.cleared && hasNextDungeon) {
             PrimaryButton(
                 text = stringResource(R.string.action_next_dungeon),
                 onClick = onNextDungeon,
@@ -290,15 +285,6 @@ fun ResultScreen(
                 onClick = onRetry,
                 modifier = Modifier.fillMaxWidth(),
             )
-            if (outcome.cleared && hasNextDungeon) {
-                Spacer(Modifier.height(10.dp))
-                SecondaryButton(
-                    text = stringResource(R.string.action_next_dungeon),
-                    supportingText = stringResource(R.string.dungeon_locked_subscription),
-                    onClick = onNextDungeon,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
         }
         // A run with nothing counted banked nothing: there is no card worth posting and no row to
         // look up, so it offers only the way home.

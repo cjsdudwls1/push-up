@@ -272,12 +272,6 @@ fun PushupRpgApp(
                         onToggleTheme = toggleTheme,
                         onChangeClass = changeClass,
                         onStartDungeon = { navController.navigateFrom(entry, Routes.exercisePick(it)) },
-                        onRequestPaywall = {
-                            if (navController.isOnTop(entry)) {
-                                container.telemetry.log(Event.PaywallShown("home"))
-                                navController.navigate(Routes.paywall(state.nextDungeon))
-                            }
-                        },
                         onDungeonSelect = { navController.navigateFrom(entry, Routes.DUNGEON_SELECT) },
                         onSurvival = { navController.navigateFrom(entry, Routes.SURVIVAL_PICK) },
                         onRecords = { navController.navigateFrom(entry, Routes.RECORDS) },
@@ -293,19 +287,12 @@ fun PushupRpgApp(
                         capacity = progress.capacityOf(settings.exercise),
                         difficulty = settings.difficulty,
                         playerClass = progress.playerClass,
-                        entitlement = entitlement,
                         onDifficultyChange = { difficulty ->
                             scope.launch {
                                 container.settingsRepository.update { it.copy(difficulty = difficulty) }
                             }
                         },
                         onStart = { navController.navigateFrom(entry, Routes.exercisePick(it)) },
-                        onRequestPaywall = { index ->
-                            if (navController.isOnTop(entry)) {
-                                container.telemetry.log(Event.PaywallShown("dungeon_select"))
-                                navController.navigate(Routes.paywall(index))
-                            }
-                        },
                     )
                 }
 
@@ -422,11 +409,11 @@ fun PushupRpgApp(
                         }
                     } else {
                         // Auto-advance: after a clear, rest, then the next dungeon with the same
-                        // movement. Only where the next one can be played at all — the same gate as
-                        // the button — and never after a loss, which gets a retry, not a harder floor.
+                        // movement. Only where there is a next one — the clear is what opened it —
+                        // and never after a loss, which gets a retry, not a harder floor.
                         val next = dungeonIndex + 1
                         val canAutoNext = settings.autoNextRestSeconds > 0 && outcome.cleared &&
-                            dungeonIndex < Dungeons.ALL.size && FreeTier.canPlayDungeon(next, entitlement)
+                            dungeonIndex < Dungeons.ALL.size
                         var autoNextCancelled by rememberSaveable { mutableStateOf(false) }
                         var restLeft by rememberSaveable { mutableIntStateOf(settings.autoNextRestSeconds) }
                         val startNextNow: () -> Unit = {
@@ -477,20 +464,10 @@ fun PushupRpgApp(
                                 level = lastLevelReached,
                                 levelsGained = lastLevelsGained,
                                 hasNextDungeon = dungeonIndex < Dungeons.ALL.size,
-                                // The same gate the dungeon list applies; without it the clear
-                                // screen was a way past the paywall.
-                                nextLocked = !FreeTier.canPlayDungeon(next, entitlement),
                                 onNextDungeon = {
                                     if (navController.isOnTop(entry)) {
-                                        if (FreeTier.canPlayDungeon(next, entitlement)) {
-                                            navController.navigate(Routes.exercisePick(next)) {
-                                                popUpTo(Routes.RESULT) { inclusive = true }
-                                            }
-                                        } else {
-                                            // Over the result rather than in place of it, so closing
-                                            // the paywall comes back to the run just finished.
-                                            container.telemetry.log(Event.PaywallShown("result"))
-                                            navController.navigate(Routes.paywall(next))
+                                        navController.navigate(Routes.exercisePick(next)) {
+                                            popUpTo(Routes.RESULT) { inclusive = true }
                                         }
                                     }
                                 },
@@ -629,7 +606,7 @@ fun PushupRpgApp(
                                             // Where the button says it goes — 던전으로 가기 — with the hub
                                             // under it for back. It used to stop at the hub, where
                                             // someone who had never started still had to find the way in.
-                                            navController.navigate(Routes.exercisePick(FreeTier.FREE_DUNGEON_INDEX))
+                                            navController.navigate(Routes.exercisePick(Dungeons.FREE_DUNGEON.index))
                                         }
                                     } else {
                                         // Mid-run too, from the close button or the back gesture: what
