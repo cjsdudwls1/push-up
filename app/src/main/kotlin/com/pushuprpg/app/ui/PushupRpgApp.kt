@@ -18,6 +18,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavBackStackEntry
@@ -252,9 +253,14 @@ fun PushupRpgApp(
                     )
                 }
 
-                composable(Routes.HOME) {
+                composable(Routes.HOME) { entry ->
                     val vm: HomeViewModel = viewModel(factory = HomeViewModel.factory(container))
-                    val state by vm.state.collectAsState()
+                    // Not collected in the background, so the totals are subscribed again on the way
+                    // back, and the day read again with them: see HomeViewModel.followToday.
+                    val state by vm.state.collectAsStateWithLifecycle()
+                    LaunchedEffect(vm) {
+                        entry.repeatOnLifecycle(Lifecycle.State.STARTED) { vm.followToday() }
+                    }
                     HomeScreen(
                         state = state,
                         themeMode = settings.themeMode,

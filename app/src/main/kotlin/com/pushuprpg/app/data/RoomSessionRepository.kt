@@ -31,8 +31,9 @@ class RoomSessionRepository(
             .flowOn(Dispatchers.IO)
 
     /**
-     * The window is resolved per collection rather than once at construction, so a screen left open
-     * across midnight starts reporting the new day's window on its next emission.
+     * The window is resolved per collection rather than once at construction, and only then: a
+     * screen left open across midnight gets the new day's window by collecting again, as the hub
+     * does when the day turns.
      */
     override fun dailyTotals(days: Int): Flow<List<DailyTotal>> = flow {
         val span = days.coerceAtLeast(1)
