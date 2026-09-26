@@ -55,6 +55,11 @@ data class ExerciseDescriptor(
     /** How much of the core the quality gate insists on seeing. See [CoreConfidence]. */
     val coreConfidence: CoreConfidence = CoreConfidence.BOTH_SHOULDERS,
     /**
+     * How this movement is read when the camera sees it side on, where the shoulder line it is
+     * otherwise read across collapses; null when it has no side view. See [SideView].
+     */
+    val sideView: SideView? = null,
+    /**
      * Fix n̂'s sign once per set instead of re-deciding it every frame.
      *
      * Re-deciding is right when the far pair is far: for a pushup the wrists are most of a
@@ -129,6 +134,9 @@ data class ExerciseDescriptor(
             MovementKind.HOLD -> require(signal == null) {
                 "$type is a hold; a depth ratio would never be read"
             }
+        }
+        require(sideView == null || (kind == MovementKind.REP && axisSource == AxisSource.SHOULDER_PAIR)) {
+            "$type has a side view, which only a movement read across the shoulder line needs"
         }
         require(damageCoefficient > 0f) { "$type must deal damage" }
         require(sessionVolumeScale > 0f) { "$type needs a session volume scale or a tier costs nothing" }
@@ -261,7 +269,8 @@ enum class CrossCheckPolicy {
  * almost onto itself — separation falls to roughly 0.02-0.05 of the frame — so `instantScale` sits
  * under [DetectorConfig.minScale], `BodyFrameTracker.update` returns null on every frame, and the
  * user gets a frozen gauge and no explanation. Taking the near side's shoulder-to-hip instead keeps
- * both hallucinated far landmarks out of the coordinate frame and out of the divisor.
+ * both hallucinated far landmarks out of the coordinate frame and out of the divisor. Scaled to
+ * shoulder-width units like [TORSO]. No descriptor declares it; a [SideView] is read in it.
  */
 enum class AxisSource {
     SHOULDER_PAIR,
@@ -307,6 +316,42 @@ enum class SideCombiner { CONFIDENCE_WEIGHTED, DEEPER_SIDE }
  * direction. [NEAR_SIDE] takes the better of the two instead.
  */
 enum class CoreConfidence { BOTH_SHOULDERS, NEAR_SIDE }
+
+/**
+ * The second way to read a movement that is read across the shoulder line: side on, where that line
+ * projects onto itself and the frame it defines has no scale.
+ *
+ * `BodyFrameTracker` switches to it when the shoulders are narrow against the torso, and back when
+ * they open again, each only once the new view has held for a second — like a subject switch, and
+ * for the same reason: filmed from the head, the lite model collapses the shoulder line for single
+ * frames. A switch starts the range over and makes the rep arm again, because `h` side on is not
+ * `h` from the head. The first view is taken as it is seen.
+ *
+ * Side on, three things change, all measured on the rig:
+ *  - **The frame** is the torso of the side the camera sees better ([AxisSource.NEAR_SIDE_TORSO]):
+ *    side on it lies in the picture at its full length, as the shoulder line does from the head.
+ *  - **The reading** is how far apart [RepSignal.proximal] and [RepSignal.distal] are in the picture,
+ *    not their separation along the normal. The movement is in the picture's own plane, and the
+ *    normal to a torso that tilts through the rep tilts with it: along it, a knee pushup from the
+ *    floor 70 degrees off the head read 22% of its range 40% of the way down. The distance reads
+ *    35-42% there and from every other side-on placement.
+ *  - **The witness** is the shoulders themselves. The head rides in line with the body, so the nose
+ *    never moves across the torso, and the head-on witness would refuse every rep. What does move is
+ *    the whole body against the floor — the shoulders come down to hands that stay put — and the
+ *    phone, standing still, sees that directly. Arms waved at the lens move the hands and leave the
+ *    shoulders where they were.
+ *
+ * The range is anchored wherever the body rests in this view, even close to the prior: the prior is
+ * the head-on one. See [RangeCalibrator.observeRest].
+ */
+data class SideView(
+    /**
+     * How far the shoulders must have come down in the picture since the top, toward the hands, as
+     * a fraction of the calibrated range, before a rep counts. By the count line they have come
+     * 0.64-0.86 of it from every side-on placement on the rig, and none under a wave or a hang.
+     */
+    val minShoulderTravel: Float = 0.30f,
+)
 
 /**
  * The feet one in front of the other, measured in the model's 3-D skeleton: the ankles' distance
@@ -409,10 +454,15 @@ object Exercises {
      *
      * Body travel: the head drops toward the floor *relative to the shoulders* as the chest goes
      * down, and stays put when someone waves an arm at the phone. Genuinely independent.
+     *
+     * Filmed from the side the shoulder line collapses, and the pushup is read in its [SideView]
+     * instead: the shoulder-to-wrist distance along the torso's own frame, witnessed by the
+     * shoulders coming down in the picture.
      */
     val PUSHUP = ExerciseDescriptor(
         type = ExerciseType.PUSHUP,
         kind = MovementKind.REP,
+        sideView = SideView(),
         normalToward = WRISTS,
         signal = RepSignal(
             proximal = SHOULDERS,

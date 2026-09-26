@@ -130,8 +130,13 @@ class RangeCalibrator(
      * stray frame — a landmark misplaced for a thirtieth of a second — set the top of the range
      * somewhere the body never went, and since the anchor only grows, nothing brought it back.
      * People pause at the top before they start; a glitch does not.
+     *
+     * [exact] anchors the top at the rest even when the prior already puts it inside the top band.
+     * For a reading the prior was not written for — a [SideView] — close is chance, not agreement:
+     * side on from the floor a pushup rested inside the head-on prior's top band, and 40% of the way
+     * down it read 32, on the line of being called short at all. Anchored where it rested, 46.
      */
-    fun observeRest(h: Float, tMs: Long) {
+    fun observeRest(h: Float, tMs: Long, exact: Boolean = false) {
         if (completedReps > 0 || h.isNaN()) return
         // A gap breaks the stretch: stillness has to be seen, not assumed across frames not seen.
         if (restWindowT.isNotEmpty() && tMs - restWindowT.last() > REST_MAX_GAP_MS) {
@@ -151,21 +156,21 @@ class RangeCalibrator(
 
         if (rest <= restAnchor) return
         restAnchor = rest
-        anchorTopAt(rest)
+        anchorTopAt(rest, exact)
     }
 
     /**
      * Puts the top of the range at [hTop], scaling the bottom with it. Shared by [observeRest] and
      * [reanchorTop]; see the former for why scaling rather than shifting.
      */
-    private fun anchorTopAt(hTop: Float) {
+    private fun anchorTopAt(hTop: Float, exact: Boolean = false) {
         val h = hTop
 
         // Only when the rest position genuinely maps somewhere other than the top of the gauge.
         // mapRaw rather than map, because the clamped version cannot see the opposite failure: a
         // longer-limbed user reads *below* zero, arms perfectly well, and then never reaches the
         // count line because their whole travel is compressed into the top of someone else's range.
-        if (abs(mapRaw(h)) <= config.topEnter) return
+        if (!exact && abs(mapRaw(h)) <= config.topEnter) return
 
         if (config.anchorByShift) {
             // The range is the body's; where it sits is the camera's. Keep one, move the other.

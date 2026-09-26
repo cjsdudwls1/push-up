@@ -1,6 +1,7 @@
 package com.pushuprpg.core.detect
 
 import com.pushuprpg.core.filter.OneEuroFilter
+import com.pushuprpg.core.math.Geometry
 import com.pushuprpg.core.pose.PoseFrame
 import com.pushuprpg.core.pose.PoseLandmarks as Lm
 import kotlin.math.abs
@@ -120,6 +121,16 @@ class RepDetectorImpl(
             calibrator.revalidate()
             signalFilter.reset()
             abandonRep(tMs, AbandonReason.QUALITY_LOST, events)
+            if (body.viewChanged) {
+                // Side on and from the head are two readings of the same body, not one: `h` in one
+                // means nothing in the other. The range starts over from the stored profile and is
+                // anchored at the rest this view shows, and the rep has to arm again in it.
+                calibrator = RangeCalibrator(config, seedProfile)
+                phase = RepPhase.IDLE
+                tQualityOkSince = Long.MIN_VALUE
+                resetWatchdog()
+                shallowBottoms.clear()
+            }
         }
 
         val newQuality = evaluateQuality(frame, body, sample, tMs)
@@ -146,7 +157,7 @@ class RepDetectorImpl(
             // top band entirely, and because the calibrator only learns from completed reps, that
             // lockout can never resolve itself. Filtered h, not raw, so a single bad frame cannot
             // drag the anchor.
-            calibrator.observeRest(h, tMs)
+            calibrator.observeRest(h, tMs, exact = body.sideOn)
 
             prevDepth = if (tLastTracked == Long.MIN_VALUE) Float.NaN else depth
             prevDepthMs = tLastTracked
@@ -159,7 +170,7 @@ class RepDetectorImpl(
             confidenceSamples++
             depthSum += depth
 
-            advance(tMs, h, sample, events)
+            advance(tMs, h, sample, body, events)
             watchArming(h, sample)
         } else {
             // Never punish the user for a tracking failure: the gauge freezes rather than falling,
@@ -207,7 +218,7 @@ class RepDetectorImpl(
         )
     }
 
-    private fun advance(tMs: Long, h: Float, sample: DepthSample, events: MutableList<RepEvent>) {
+    private fun advance(tMs: Long, h: Float, sample: DepthSample, body: BodyFrameState, events: MutableList<RepEvent>) {
         when (phase) {
             RepPhase.IDLE, RepPhase.LOST -> {
                 val settled = tQualityOkSince != Long.MIN_VALUE && tMs - tQualityOkSince >= ARM_SETTLE_MS
@@ -227,6 +238,12 @@ class RepDetectorImpl(
                 // The witness's rest position: the LEAST it has travelled while the rep was armed,
                 // not its value on the last frame before the descent. See [bodyDropAtTop].
                 if (!sample.bodyDrop.isNaN()) bodyDropAtTop = minOf(bodyDropAtTop, sample.bodyDrop)
+                // Side on, where the shoulders were in the picture at the top: the least deep armed frame.
+                if (body.sideOn && !(depth > shouldersAtTopDepth)) {
+                    shouldersAtTopDepth = depth
+                    shouldersAtTopU = body.shoulderU
+                    shouldersAtTopV = body.shoulderV
+                }
                 if (depth > config.topExit) {
                     phase = RepPhase.DESCENDING
                     tTopExit = crossedAt(config.topExit, tMs)
@@ -248,7 +265,7 @@ class RepDetectorImpl(
 
                 when {
                     depth >= calibrator.countEnter() -> {
-                        val reason = strikeBlockedReason(tMs, sample)
+                        val reason = strikeBlockedReason(tMs, sample, body)
                         phase = RepPhase.BOTTOM
                         tBottom = tMs
                         if (reason == null) {
@@ -352,7 +369,7 @@ class RepDetectorImpl(
     }
 
     /** Returns null when the strike is allowed, or the reason it is not. */
-    private fun strikeBlockedReason(tMs: Long, sample: DepthSample): AbandonReason? {
+    private fun strikeBlockedReason(tMs: Long, sample: DepthSample, body: BodyFrameState): AbandonReason? {
         // Both ends of the band are placed where the signal crossed them, not on the frame that
         // first saw it across. Frame to frame, a brisk rep crosses the whole band in one or two
         // frames, and the frame times then undercount the descent by up to a frame: at 20-30 fps
@@ -419,6 +436,16 @@ class RepDetectorImpl(
             if (descended < minTravel * calibrator.range) {
                 return AbandonReason.INCONSISTENT
             }
+        }
+
+        // Side on, the shoulders themselves, in the picture: a pushup brings them down to the hands,
+        // a wave brings the hands up to them. The phone is still, so the picture is the floor.
+        val sideView = config.descriptor.sideView
+        if (sideView != null && body.sideOn && shouldersAtTopDepth != Float.POSITIVE_INFINITY) {
+            val came = Geometry.dot(
+                body.shoulderU - shouldersAtTopU, body.shoulderV - shouldersAtTopV, body.nU, body.nV,
+            ) / body.scale
+            if (came < sideView.minShoulderTravel * calibrator.range) return AbandonReason.INCONSISTENT
         }
 
         // A split stance, for a movement that is one. The depth signal reads a squat exactly as a
@@ -664,9 +691,15 @@ class RepDetectorImpl(
      */
     private var bodyDropAtTop = Float.POSITIVE_INFINITY
 
+    /** Side on: where the shoulders were in the picture at the top of this rep, and at what depth. */
+    private var shouldersAtTopDepth = Float.POSITIVE_INFINITY
+    private var shouldersAtTopU = 0f
+    private var shouldersAtTopV = 0f
+
     private fun arm(h: Float) {
         phase = RepPhase.READY_TOP
         bodyDropAtTop = Float.POSITIVE_INFINITY
+        shouldersAtTopDepth = Float.POSITIVE_INFINITY
         hTopThisRep = h
         hBotThisRep = Float.POSITIVE_INFINITY
         maxDepthThisRep = 0f
@@ -714,7 +747,7 @@ class RepDetectorImpl(
         // From the side the far shoulder is regressed rather than seen, and its confidence never
         // clears the bar — a `min` across the pair would report LOW_CONFIDENCE for every frame of
         // a perfectly tracked set. Which rule applies is declared by the exercise.
-        val core = when (config.descriptor.coreConfidence) {
+        val core = when (if (body.sideOn) CoreConfidence.NEAR_SIDE else config.descriptor.coreConfidence) {
             CoreConfidence.BOTH_SHOULDERS ->
                 minOf(confidence[Lm.LEFT_SHOULDER], confidence[Lm.RIGHT_SHOULDER])
             CoreConfidence.NEAR_SIDE ->
@@ -762,6 +795,7 @@ class RepDetectorImpl(
         refusedFastThisRep = false
         topReachedThisAscent = false
         bodyDropAtTop = Float.POSITIVE_INFINITY
+        shouldersAtTopDepth = Float.POSITIVE_INFINITY
         repCount = 0
         combo = 0
         maxCombo = 0

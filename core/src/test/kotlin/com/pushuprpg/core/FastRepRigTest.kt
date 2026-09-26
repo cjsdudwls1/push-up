@@ -25,11 +25,13 @@ class FastRepRigTest {
         val cycleMs: Int,
         val camera: Camera,
         val pose: (Float) -> Body3d.Skeleton,
+        val name: String = type.toString(),
     )
 
     /** Each movement at the briskest cadence it must still count at, in ms per rep. */
     private val brisk = listOf(
         Brisk(ExerciseType.PUSHUP, 800, Camera.onFloor(1.3f, 12f), { d: Float -> Body3d.pushup(d, front, Body3d.V3(0f, 0f, 0f)) }),
+        Brisk(ExerciseType.PUSHUP, 800, Camera.onFloor(2.0f, 8f), { d: Float -> Body3d.pushup(d, Body3d.V3(-1f, 0f, 0f), Body3d.V3(0f, 0f, 0f)) }, "PUSHUP side on"),
         Brisk(ExerciseType.SQUAT, 1000, Camera.onFloor(2.2f, 30f), { d: Float -> Body3d.squat(d) }),
         Brisk(ExerciseType.LUNGE, 1000, Camera.onFloor(2.2f, 30f), { d: Float -> Body3d.lunge(d, true) }),
         Brisk(ExerciseType.PULL_UP, 1000, Camera.onFloor(3f, 25f), { d: Float -> Body3d.pullUp(d, front) }),
@@ -49,7 +51,7 @@ class FastRepRigTest {
             ).forEach { events += detector.onFrame(it).events }
             assertEquals(
                 10, detector.sessionSummary().repCount,
-                "$type at $cycleMs ms a rep, $fps fps: refused as " +
+                "${b.name} at $cycleMs ms a rep, $fps fps: refused as " +
                     events.filterIsInstance<RepEvent.Abandoned>().map { it.reason }.distinct(),
             )
         }

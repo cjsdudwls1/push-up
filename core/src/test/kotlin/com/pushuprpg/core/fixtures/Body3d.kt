@@ -384,6 +384,25 @@ object Body3d {
         return s
     }
 
+    /**
+     * Standing, the upper arms held out in front at shoulder height and the elbows bending by
+     * [depth]: 0 the arms straight out, 1 the hands back at the shoulders with the elbow at 55
+     * degrees, as at the bottom of a pushup. The hands come to the shoulders the way the shoulders
+     * come to the hands in a pushup, and nothing else moves: arms waved at the lens. Facing [facing].
+     */
+    fun armWave(depth: Float, facing: V3 = V3(0f, 0f, 1f)): Skeleton {
+        val s = Skeleton()
+        standingLegs(s)
+        uprightTorso(s, V3(0f, STANDING_HIP_Y, 0f))
+        // The forearm folds up and back from pointing straight ahead as the elbow closes.
+        val fold = PI.toFloat() - deg(172f - depth * (172f - 55f))
+        for ((_, shoulder, elbow, wrist) in SIDES_ARM) {
+            s[elbow] = s[shoulder] + V3(0f, 0f, UPPER_ARM)
+            s[wrist] = s[elbow] + V3(0f, sin(fold), cos(fold)) * FOREARM
+        }
+        return rotated(s, facing)
+    }
+
     /** Standing tall, arms by the sides. The thing a plank or a lunge must not be mistaken for. */
     fun standing(): Skeleton {
         val s = Skeleton()

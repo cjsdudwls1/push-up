@@ -53,11 +53,18 @@ class PlacementCoachTest {
     }
 
     @Test
-    fun `a pushup filmed from the side is told to face the phone, not to come closer`() {
-        // The side view the old placement line asked for: shoulders 0.04 apart, never counts.
-        val heard = listen(ExerciseType.PUSHUP, Body3d.trace(floorBody(90f), Camera.onFloor(2.0f, 10f), 4))
-        assertEquals(0, heard.reps)
-        assertEquals(PlacementAdvice.FACE_CAMERA, heard.last)
+    fun `a pushup filmed from the side counts, and the coach never asks it to turn`() {
+        // It used to: side on, the shoulder line collapsed and the pushup never counted. It is read
+        // in its side view now, and the coach says what it says from the head.
+        val cameras = listOf(Camera.onFloor(2.0f, 10f), Camera.onFloor(1.3f, 12f), Camera.level(2.2f, 0.9f), Camera.level(2.5f, 1.3f))
+        for (camera in cameras) for (yaw in listOf(90f, -90f, 75f)) {
+            val heard = listen(ExerciseType.PUSHUP, Body3d.trace(floorBody(yaw), camera, 4))
+            assertEquals(4, heard.reps, "side on at ${yaw.toInt()} degrees from ${camera.position}")
+            val objections = heard.said.filterNotNull().filter {
+                it != PlacementAdvice.READY && it != PlacementAdvice.GET_IN_POSITION
+            }
+            assertTrue(objections.isEmpty(), "objected to a side-on set that counted: ${objections.distinct()}")
+        }
     }
 
     @Test

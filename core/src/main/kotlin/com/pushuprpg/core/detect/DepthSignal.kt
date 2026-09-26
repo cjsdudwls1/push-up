@@ -107,7 +107,9 @@ object DepthSignal {
         }
 
         val joint = signal.jointCheck?.let { jointDepth(frame, confidence, config, it) } ?: Float.NaN
-        val travel = signal.bodyTravel?.let { bodyTravel(frame, body, confidence, it) } ?: Float.NaN
+        // Side on, the declared witness is not asked: the side view brings its own. See [SideView].
+        val travel = if (body.sideOn) Float.NaN
+        else signal.bodyTravel?.let { bodyTravel(frame, body, confidence, it) } ?: Float.NaN
 
         val source = when {
             maxOf(wL, wR) >= config.minSideWeight -> DepthSource.PRIMARY
@@ -130,11 +132,15 @@ object DepthSignal {
      * The normaliser is what makes this worth using: shoulder width is close to perpendicular to
      * the optical axis and physically constant, so `f` and `Z` cancel and the reading survives the
      * user drifting nearer to or further from the phone mid-set.
+     *
+     * Side on it is the segment's length in the picture instead, over the torso's: the movement is
+     * in the picture's own plane there, and the torso's normal tilts with the body through the rep.
      */
     private fun sideRatio(frame: PoseFrame, body: BodyFrameState, proximal: Int, distal: Int): Float {
         val du = frame.u(distal) - frame.u(proximal)
         val dv = frame.v(distal) - frame.v(proximal)
         if (body.scale < Geometry.EPSILON) return Float.NaN
+        if (body.sideOn) return Geometry.norm(du, dv) / body.scale
         return Geometry.dot(du, dv, body.nU, body.nV) / body.scale
     }
 

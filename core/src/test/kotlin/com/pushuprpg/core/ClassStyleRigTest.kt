@@ -21,10 +21,20 @@ class ClassStyleRigTest {
 
     private val front = Body3d.V3(0f, 0f, 1f)
 
-    private class Move(val type: ExerciseType, val camera: Camera, val peak: Float, val pose: (Float) -> Body3d.Skeleton)
+    private class Move(
+        val type: ExerciseType,
+        val camera: Camera,
+        val peak: Float,
+        val name: String = type.toString(),
+        val pose: (Float) -> Body3d.Skeleton,
+    )
 
     private val moves = listOf(
         Move(ExerciseType.PUSHUP, Camera.onFloor(1.3f, 12f), 0.95f) { d -> Body3d.pushup(d, front, Body3d.V3(0f, 0f, 0f)) },
+        // Side on, read in the pushup's side view: the timings are the detector's own either way.
+        Move(ExerciseType.PUSHUP, Camera.onFloor(2.0f, 8f), 0.95f, "PUSHUP side on") { d ->
+            Body3d.pushup(d, Body3d.V3(-1f, 0f, 0f), Body3d.V3(0f, 0f, 0f))
+        },
         Move(ExerciseType.SQUAT, Camera.onFloor(2.2f, 30f), 0.95f) { d -> Body3d.squat(d) },
         Move(ExerciseType.LUNGE, Camera.onFloor(2.2f, 30f), 0.95f) { d -> Body3d.lunge(d, true) },
         // A pull-up's full range is the chin over the bar; short of it, it never reaches 깊게.
@@ -45,8 +55,8 @@ class ClassStyleRigTest {
     fun `a two-second lowering is a whole rep for a 기사, from the first rep, at any frame rate`() {
         for (m in moves) for (fps in listOf(15, 30)) {
             val l = lowerings(m, descentMs = 2000, fps = fps)
-            assertEquals(6, l.size, "${m.type} at $fps fps reached 깊게 on ${l.size} of 6")
-            assertTrue(l.all { ClassStyle.knightSlowEnough(it) }, "${m.type} at $fps fps: a 2 s lowering read $l")
+            assertEquals(6, l.size, "${m.name} at $fps fps reached 깊게 on ${l.size} of 6")
+            assertTrue(l.all { ClassStyle.knightSlowEnough(it) }, "${m.name} at $fps fps: a 2 s lowering read $l")
         }
     }
 
@@ -54,7 +64,7 @@ class ClassStyleRigTest {
     fun `an ordinary one-second lowering is half for a 기사`() {
         for (m in moves) for (fps in listOf(15, 30)) {
             val l = lowerings(m, descentMs = 1000, fps = fps)
-            assertTrue(l.isNotEmpty() && l.none { ClassStyle.knightSlowEnough(it) }, "${m.type} at $fps fps: a 1 s lowering read $l")
+            assertTrue(l.isNotEmpty() && l.none { ClassStyle.knightSlowEnough(it) }, "${m.name} at $fps fps: a 1 s lowering read $l")
         }
     }
 
@@ -73,7 +83,7 @@ class ClassStyleRigTest {
             ).forEach { events += detector.onFrame(it).events }
             assertEquals(
                 10, detector.sessionSummary().repCount,
-                "${m.type} at $cycle ms a rep, $fps fps: refused as " +
+                "${m.name} at $cycle ms a rep, $fps fps: refused as " +
                     events.filterIsInstance<RepEvent.Abandoned>().map { it.reason }.distinct(),
             )
         }

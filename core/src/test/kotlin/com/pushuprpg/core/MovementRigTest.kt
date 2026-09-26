@@ -177,9 +177,8 @@ class MovementRigTest {
             "chest height" to chest,
         )
         for ((where, camera) in cameras) for (yaw in listOf(0f, 30f, 60f)) {
-            // From above, 60 degrees off the head is side on enough to lose the shoulder line and be
-            // told to face the phone — on the toes too. That is the pushup's, not the knees'.
-            if (yaw == 60f && camera.position.y > 0.5f) continue
+            // From above, 60 degrees off the head the shoulder line is too short to measure, and the
+            // pushup is read in its side view — on the toes too.
             val r = run(ExerciseType.PUSHUP, pushupAt(yaw, onKnees = true), camera)
             val what = "a knee pushup from $where, ${yaw.toInt()} degrees off the head"
             assertEquals(8, r.reps, "$what counted ${r.reps} of 8; refused as ${r.refusals.distinct()}, shallow ${r.shallow}")
@@ -194,7 +193,8 @@ class MovementRigTest {
      * floor — never counts: from every placement here, on the toes or the knees, at 30 fps or 15, and
      * thirty in a row do not train the range down to meet them. From the head and 30 degrees off it
      * every one is also reported shallow, which is what the game answers with 조금만 더 내려가 볼까요?;
-     * 60 degrees off, nearly side on, not reliably.
+     * 60 degrees off from the floor, still read across the shoulder line, not reliably. (From waist
+     * and chest height 60 degrees off is read in the side view, where it is: see below.)
      *
      * That is the claim, and no more. A pushup to 60% counts today from most of these placements, and
      * one to 50% from waist and chest height, and nothing here pins either way. These pins used to
@@ -220,20 +220,140 @@ class MovementRigTest {
         }
     }
 
+    // ---------------------------------------------------------------- the pushup, side on
+
+    /** Where a side-on pushup is filmed from: the floor near and far, waist and chest height. */
+    private val sideCameras = listOf(
+        "the floor 1.3m away" to Camera.onFloor(1.3f, 12f),
+        "the floor 2.0m away" to Camera.onFloor(2.0f, 8f),
+        "waist height" to waist,
+        "chest height" to chest,
+    )
+
     /**
-     * Side on, the shoulder pair projects onto itself, the pushup's frame has no scale, and it
-     * never arms. The placement line used to send people exactly there. This pins why it no longer
-     * does: if the pushup is ever given a side-view frame, this fails, and the line in strings.xml
-     * can say "옆모습" again.
+     * The views the side view reads: side on from the left and the right, 70-75 degrees off the
+     * head, and 60 from above — where the shoulder line is too short to measure at all. 60 degrees
+     * off from the floor is still read across the shoulder line, as it was, and pinned with the
+     * head-on placements above.
+     */
+    private fun sideViews(camera: Camera): List<Float> =
+        listOf(90f, -90f, 75f, -75f, 70f) + if (camera.position.y > 0.5f) listOf(60f) else emptyList()
+
+    /**
+     * The owner's ask: 푸시업은 옆에서 찍어도 인식되도록. Side on, the shoulder pair projects onto itself
+     * and the frame it defines has no scale, so the pushup is read in its [com.pushuprpg.core.detect.SideView]:
+     * along the torso, from the shoulder-to-wrist distance, witnessed by the shoulders coming down in
+     * the picture. From either side, from every placement, on the toes and the knees, at 30 fps and 15,
+     * every rep counts and every rep goes 깊게.
      */
     @Test
-    fun `side on, the pushup cannot find its frame and says so`() {
-        val detector = RepDetectorImpl(Exercises.PUSHUP.config)
-        val qualities = Body3d.trace(pushupAt(90f), Camera.onFloor(2.0f, 8f), 4).map { detector.onFrame(it).quality }
-        assertEquals(0, detector.sessionSummary().repCount)
-        assertTrue(
-            qualities.count { it == PoseQuality.LOW_CONFIDENCE } > qualities.size * 9 / 10,
-            "side on now tracks — the placement line can offer the side view again",
-        )
+    fun `side on, a pushup counts from either side and goes 깊게, near and far, on the toes and the knees`() {
+        for ((where, camera) in sideCameras) for (yaw in sideViews(camera)) for (onKnees in listOf(false, true)) {
+            for (fps in listOf(30, 15)) {
+                val r = run(ExerciseType.PUSHUP, pushupAt(yaw, onKnees), camera, fps = fps)
+                val what = (if (onKnees) "a knee pushup" else "a pushup") +
+                    " from $where, ${yaw.toInt()} degrees off the head, at $fps fps"
+                assertEquals(8, r.reps, "$what counted ${r.reps} of 8; refused as ${r.refusals.distinct()}, shallow ${r.shallow}")
+                val deep = r.events.count { it is RepEvent.DeepUpgrade }
+                assertEquals(8, deep, "$what went 깊게 on $deep of 8")
+            }
+        }
+    }
+
+    /**
+     * The half rep, side on: 40% of the way down reads 44-52 on the gauge from every side-on
+     * placement, is called short every time and never counts, thirty in a row. A pushup to 60% counts
+     * side on from every placement here, as it does from the head at most; nothing pins that either way.
+     */
+    @Test
+    fun `side on, a pushup 40 percent of the way down never counts, and is called short`() {
+        for ((where, camera) in sideCameras) for (yaw in sideViews(camera)) for (onKnees in listOf(false, true)) {
+            for (fps in listOf(30, 15)) {
+                val r = run(ExerciseType.PUSHUP, pushupAt(yaw, onKnees), camera, count = 30, peakDepth = 0.4f, fps = fps)
+                val what = (if (onKnees) "a knee pushup" else "a pushup") +
+                    " 40% down from $where, ${yaw.toInt()} degrees off the head, at $fps fps"
+                assertEquals(0, r.reps, "$what counted ${r.reps} of 30")
+                assertEquals(30, r.shallow, "$what was called short on ${r.shallow} of 30")
+            }
+        }
+    }
+
+    /**
+     * What the side view's witness is for. Standing side on with the arms held out and bending, the
+     * shoulder-to-wrist distance closes exactly as in a pushup and so does the elbow; only the
+     * shoulders, which stay where they were in the picture, tell it from one. A hang from a bar
+     * filmed from the side is the same. Held still, nothing counts: standing, all fours, a plank on
+     * the forearms or the hands.
+     */
+    @Test
+    fun `side on, arms waved at the lens and a hang from a bar do not count, and holding still does not`() {
+        val cameras = sideCameras + ("the floor 3m away, tilted 25°" to Camera.onFloor(3f, 25f))
+        val side = Body3d.V3(-1f, 0f, 0f)
+        for ((where, camera) in cameras) for (fps in listOf(30, 15)) {
+            for (facing in listOf(Body3d.V3(1f, 0f, 0f), side)) {
+                val wave = run(ExerciseType.PUSHUP, { d -> Body3d.armWave(d, facing) }, camera, fps = fps)
+                assertEquals(0, wave.reps, "arms waved side on from $where at $fps fps counted ${wave.reps}")
+                if (camera.position.y > 0.5f) {
+                    assertTrue(AbandonReason.INCONSISTENT in wave.refusals, "the wave from $where was never refused out loud: ${wave.refusals.distinct()}")
+                }
+                val hang = run(ExerciseType.PUSHUP, { d -> Body3d.pullUp(d, facing) }, camera, fps = fps)
+                assertEquals(0, hang.reps, "a pull-up side on from $where at $fps fps counted ${hang.reps} pushups")
+            }
+            val held = listOf(
+                "standing" to Body3d.rotated(Body3d.standing(), Body3d.V3(1f, 0f, 0f)),
+                "all fours" to Body3d.allFours(side),
+                "a forearm plank" to Body3d.forearmPlank(side),
+                "a plank on the hands" to Body3d.pushup(0f, side, Body3d.V3(0f, 0f, 0f)),
+            )
+            for ((what, pose) in held) {
+                val r = run(ExerciseType.PUSHUP, { pose }, camera, fps = fps)
+                assertEquals(0, r.reps, "$what held still side on from $where at $fps fps counted ${r.reps}")
+            }
+        }
+    }
+
+    /**
+     * Turning mid-set is a new reading of the same body: side on is not `h` from the head. The
+     * view changes only once the new one has held for a second, the range starts over from where the
+     * body rests in it, and the rep has to arm again — so the set goes on counting, and the turn
+     * itself counts nothing.
+     */
+    @Test
+    fun `turning between the head and the side mid-set counts every rep done and none that was not`() {
+        for ((where, camera) in sideCameras.take(3)) for (fps in listOf(30, 15)) {
+            for ((from, to) in listOf(0f to 90f, 90f to 0f, 0f to -90f)) {
+                val step = 1000L / fps
+                val before = Body3d.trace(pushupAt(from), camera, 4, fps = fps)
+                var t = before.last().timestampMs + step
+                val turn = (0..(1000 / step).toInt()).map { i ->
+                    Body3d.frame(t + i * step, pushupAt(from + (to - from) * i * step / 1000f)(0f), camera)
+                }
+                t = turn.last().timestampMs + step
+                val after = Body3d.trace(pushupAt(to), camera, 4, startMs = t, settleMs = 2000, fps = fps)
+                val detector = RepDetectorImpl(Exercises.PUSHUP.config)
+                val events = (before + turn + after).flatMap { detector.onFrame(it).events }
+                assertEquals(
+                    8, detector.sessionSummary().repCount,
+                    "4 reps ${from.toInt()} degrees off the head, a turn, 4 at ${to.toInt()}, from $where at $fps fps: " +
+                        "refused as ${events.filterIsInstance<RepEvent.Abandoned>().map { it.reason }.distinct()}",
+                )
+            }
+        }
+    }
+
+    /** One frame is never a new view: the lite model collapses the shoulder line for single frames from the head. */
+    @Test
+    fun `a single side-on frame in a set from the head moves nothing`() {
+        val camera = Camera.onFloor(1.3f, 12f)
+        for (fps in listOf(30, 15)) {
+            val frames = Body3d.trace(pushupAt(0f), camera, 8, fps = fps).mapIndexed { i, f ->
+                // Every twentieth frame the model reads the body side on, for that frame only.
+                if (i % 20 == 10) Body3d.frame(f.timestampMs, pushupAt(90f)(0f), camera) else f
+            }
+            val detector = RepDetectorImpl(Exercises.PUSHUP.config)
+            val qualities = frames.map { detector.onFrame(it).quality }
+            assertEquals(8, detector.sessionSummary().repCount, "at $fps fps")
+            assertTrue(PoseQuality.SUBJECT_SWITCH !in qualities, "at $fps fps a stray frame changed the view")
+        }
     }
 }
