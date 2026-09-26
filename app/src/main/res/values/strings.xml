@@ -395,6 +395,10 @@
 
     <!-- Errors -->
     <string name="error_model_load">준비 중 문제가 생겼어요. 앱을 다시 열어볼까요?</string>
+    <!-- A camera screen whose model has been given frames and answered none, on the CPU as well. The
+         button sets the model up again. -->
+    <string name="error_model_stalled">동작 인식이 아직 시작되지 않았어요. 다시 켜 볼까요?</string>
+    <string name="error_model_retry">동작 인식 다시 켜기</string>
     <string name="error_camera">카메라를 열 수 없어요. 다른 앱이 쓰고 있는지 확인해 주세요.</string>
     <string name="error_camera_retry">카메라 다시 열기</string>
 

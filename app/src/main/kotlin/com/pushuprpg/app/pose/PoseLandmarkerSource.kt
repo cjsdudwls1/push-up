@@ -42,11 +42,18 @@ class PoseLandmarkerSource(
 
     private var lastTimestampMs: Long = -1L
 
+    /** Frame time handed over with no result back; see [watchForStall]. Under [markerLock]. */
+    private var unansweredMs = 0L
+
     /** True when the GPU delegate failed and we fell back; surfaced so quality can be dialled back. */
+    @Volatile
     var usingCpu: Boolean = false
         private set
 
-    /** Set by the GPU delegate's first error on a frame; every setup after it goes to the CPU. */
+    /**
+     * Set by the GPU delegate's first error on a frame, or its first long silence; every setup
+     * after it goes to the CPU.
+     */
     private val gpuFailedOnFrame = AtomicBoolean(false)
 
     /** The fallback sets up from its own thread, and two setups at once would leak a landmarker. */
@@ -55,11 +62,21 @@ class PoseLandmarkerSource(
     private val _ready = MutableStateFlow(false)
 
     /**
-     * Whether the landmarker has returned a result since it was set up: the model has loaded and
-     * frames are reaching it. Loading takes a second or three, and until now that stretch read as
-     * 화면 안으로 들어와 주세요, said to someone already standing in the picture.
+     * Whether the landmarker has returned a result since it was set up and the camera last bound
+     * ([cameraStarting]): the model has loaded and frames are reaching it. Loading takes a second
+     * or three, and until now that stretch read as 화면 안으로 들어와 주세요, said to someone
+     * already standing in the picture.
      */
     val ready: StateFlow<Boolean> = _ready.asStateFlow()
+
+    private val _stalled = MutableStateFlow(false)
+
+    /**
+     * The model on the CPU has been handed frames for [STALL_MS] and returned nothing. A GPU that
+     * does the same is moved to the CPU first, so this is said only once there is nowhere left to
+     * move; [retry] sets it up again.
+     */
+    val stalled: StateFlow<Boolean> = _stalled.asStateFlow()
 
     fun setup(preferGpu: Boolean = true): Unit = synchronized(setupLock) {
         close()
@@ -91,8 +108,10 @@ class PoseLandmarkerSource(
             .setErrorListener { e -> onRunError(delegate, e) }
             .build()
 
-        landmarker = PoseLandmarker.createFromOptions(context, options)
+        val created = PoseLandmarker.createFromOptions(context, options)
+        // Before the landmarker is published: the stall watch reads it from the camera's thread.
         usingCpu = delegate == Delegate.CPU
+        landmarker = created
         true
     } catch (e: RuntimeException) {
         Log.w(TAG, "pose landmarker failed on $delegate", e)
@@ -116,10 +135,59 @@ class PoseLandmarkerSource(
             onError(e.message ?: "pose error")
             return
         }
+        fallBackToCpu()
+    }
+
+    private fun fallBackToCpu() {
         if (gpuFailedOnFrame.compareAndSet(false, true)) {
-            // Not on this thread, which is the landmarker's own: it cannot close itself from
-            // inside its own callback.
+            // Not on this thread, which is the landmarker's own or the camera's: a landmarker
+            // cannot close itself from inside its own callback, and the camera's would analyse
+            // nothing for as long as the model takes to load.
             thread(name = "pose-cpu-fallback") { setup(preferGpu = false) }
+        }
+    }
+
+    /**
+     * Sets the landmarker up again on the CPU, off the calling thread: the stall banner's retry.
+     * Loading the model takes long enough to freeze the screen it is pressed on.
+     */
+    fun retry() {
+        thread(name = "pose-retry") { setup(preferGpu = false) }
+    }
+
+    /**
+     * A camera screen is binding the camera. Until the landmarker answers one of its frames the
+     * screen says 카메라를 준비하고 있어요: ready stayed true from the first camera screen's first
+     * result, and every camera screen after it gave placement advice for its first second about a
+     * picture the model had not seen.
+     */
+    fun cameraStarting() {
+        synchronized(markerLock) {
+            _ready.value = false
+            _stalled.value = false
+            unansweredMs = 0L
+        }
+    }
+
+    /**
+     * Counts frame time handed to the landmarker before its first result.
+     *
+     * A GPU delegate that builds and then never answers reports no error, so the fallback on an
+     * error never came and it stayed on the GPU counting nothing, in the tutorial and in every
+     * dungeon, while the screen said to open the app again — which tried the GPU again. After
+     * [STALL_MS] of silence it goes to the CPU as an error would take it; the CPU silent as well
+     * is [stalled]. Each frame's gap is capped, so time with the camera stopped — the app in the
+     * background — is not taken for the model's silence.
+     */
+    private fun watchForStall(previousMs: Long, timestampMs: Long) {
+        if (_ready.value || previousMs < 0) return
+        unansweredMs += (timestampMs - previousMs).coerceAtMost(MAX_FRAME_GAP_MS)
+        if (unansweredMs < STALL_MS) return
+        if (usingCpu) {
+            _stalled.value = true
+        } else {
+            Log.w(TAG, "pose landmarker gave no result on GPU")
+            fallBackToCpu()
         }
     }
 
@@ -151,6 +219,7 @@ class PoseLandmarkerSource(
             image.close()
             return
         }
+        val previousMs = lastTimestampMs
         lastTimestampMs = timestampMs
 
         try {
@@ -165,10 +234,12 @@ class PoseLandmarkerSource(
         } finally {
             image.close()
         }
+        watchForStall(previousMs, timestampMs)
     }
 
     private fun publish(result: PoseLandmarkerResult, input: MPImage) {
         _ready.value = true
+        _stalled.value = false
         val timestampMs = result.timestampMs()
         val poses = result.landmarks()
 
@@ -218,7 +289,9 @@ class PoseLandmarkerSource(
             }
             landmarker = null
             lastTimestampMs = -1L
+            unansweredMs = 0L
             _ready.value = false
+            _stalled.value = false
         }
     }
 
@@ -235,5 +308,14 @@ class PoseLandmarkerSource(
         const val MIN_DETECTION_CONFIDENCE = 0.5f
         const val MIN_PRESENCE_CONFIDENCE = 0.5f
         const val MIN_TRACKING_CONFIDENCE = 0.5f
+
+        /**
+         * Frame time without a result after which a landmarker is taken to have stalled. The first
+         * result normally comes within a second or two, a GPU compiling its kernels included.
+         */
+        private const val STALL_MS = 6_000L
+
+        /** The most one frame's gap counts toward [STALL_MS]. */
+        private const val MAX_FRAME_GAP_MS = 500L
     }
 }

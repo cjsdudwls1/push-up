@@ -143,9 +143,10 @@ fun BattleScreen(
             onCameraBound = { front -> mirrored = front },
             onCameraError = { failed -> cameraFailed = failed },
         )
-        // A model that never answers reports no error. After long enough it is taken for one that
-        // did not load, and said the same way.
-        val modelStalled = rememberModelStalled(ready = poseReady, cameraFailed = cameraFailed)
+        // A model that never answers reports no error. The source moves a silent GPU to the CPU by
+        // itself; silent there as well, it is taken for one that did not load, and said the same
+        // way, with a retry.
+        val modelStalled = rememberModelStalled(source = poseSource, cameraFailed = cameraFailed)
         val noModel = modelFailed || modelStalled
 
         if (!audioOnly) {
@@ -322,7 +323,7 @@ fun BattleScreen(
         }
 
         if (modelStalled && !modelFailed) {
-            ModelErrorBanner(Modifier.align(Alignment.BottomCenter))
+            ModelErrorBanner(Modifier.align(Alignment.BottomCenter), onRetry = poseSource::retry)
         }
 
         if (cameraFailed) {

@@ -145,9 +145,10 @@ fun SurvivalScreen(
     var cameraFailed by remember { mutableStateOf(false) }
     var cameraAttempt by remember { mutableIntStateOf(0) }
     val poseReady by poseSource.ready.collectAsState()
-    // A model that never answers reports no error. After long enough it is taken for one that did
-    // not load, said the same way, and the tutorial offers its skip for it.
-    val modelStalled = rememberModelStalled(ready = poseReady, cameraFailed = cameraFailed)
+    // A model that never answers reports no error. The source moves a silent GPU to the CPU by
+    // itself; silent there as well, it is taken for one that did not load, said the same way with a
+    // retry, and the tutorial offers its skip for it.
+    val modelStalled = rememberModelStalled(source = poseSource, cameraFailed = cameraFailed)
     val noModel = modelFailed || modelStalled
 
     BoxWithConstraints(modifier.fillMaxSize().background(Color(0xFF1A1208))) {
@@ -320,7 +321,7 @@ fun SurvivalScreen(
         }
 
         if (modelStalled && !modelFailed) {
-            ModelErrorBanner(Modifier.align(Alignment.BottomCenter))
+            ModelErrorBanner(Modifier.align(Alignment.BottomCenter), onRetry = poseSource::retry)
         }
 
         // Only while the run is on. After it, its own card has the floor, and the next run brings

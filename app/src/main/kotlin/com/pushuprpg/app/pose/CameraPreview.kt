@@ -141,6 +141,8 @@ fun CameraPreview(
                 CameraSelector.DEFAULT_BACK_CAMERA
             }
 
+            // The landmarker outlives the screens; whether it has answered is asked of this camera.
+            source.cameraStarting()
             val camera = try {
                 cameraProvider.unbindAll()
                 cameraProvider.bindToLifecycle(lifecycleOwner, selector, preview, analysis)
