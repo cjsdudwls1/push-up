@@ -215,6 +215,7 @@ class RepDetectorImpl(
             missing = config.descriptor.watchedLandmarks
                 .filter { confidence[it] < config.minCoreConfidence }
                 .sorted(),
+            changingView = bodyTracker.changingView,
         )
     }
 

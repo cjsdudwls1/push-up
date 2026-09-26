@@ -91,6 +91,12 @@ class BodyFrameTracker(private val config: DetectorConfig) {
     val scale: Float get() = scaleEma
 
     /**
+     * A movement with a [SideView] has been seen in its other view and is being confirmed there:
+     * the body is turning between the two, and the frames on the way are refused, not misread.
+     */
+    val changingView: Boolean get() = viewFrames > 0
+
+    /**
      * Returns null when the shoulders are not reliable enough to define a frame at all, which is
      * the honest answer — every downstream quantity divides by [BodyFrameState.scale].
      */

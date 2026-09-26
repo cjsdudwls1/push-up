@@ -28,7 +28,10 @@ enum class PlacementAdvice {
     /** Everything is in the picture and the right size, and the tracker still cannot see it well. */
     CLEARER,
     HOLD_PHONE_STILL,
-    /** The detector is re-reading the user after a big change; nothing to do but wait. */
+    /**
+     * The detector is re-reading the user after a big change — another subject, or a pushup turned
+     * between the head and the side; nothing to do but wait.
+     */
     SETTLING,
     SLOW_DOWN,
     /** Seen well, but not in the starting position yet. */
@@ -181,6 +184,11 @@ class PlacementCoach(
             above.isNotEmpty() -> PlacementAdvice.SHOW_ABOVE
             side.isNotEmpty() -> PlacementAdvice.CENTER
             sideOnMatters && !counting && torso > 0f && shoulderWidth < SIDE_ON_RATIO * torso -> PlacementAdvice.FACE_CAMERA
+            // Turning between the two views a movement with a side view is read in: the shoulder
+            // line narrows or opens on the way, and the detector refuses those frames while it
+            // confirms the new view. Nothing to fix — and not the light, which is what it was told.
+            !counting && (tick.changingView || (hasSideView && tick.quality == PoseQuality.TORSO_ROTATED)) ->
+                PlacementAdvice.SETTLING
             !counting && size < config.minScale * SMALL_MARGIN -> PlacementAdvice.COME_CLOSER
             sideOnMatters && tick.quality == PoseQuality.TORSO_ROTATED -> PlacementAdvice.FACE_CAMERA
             !counting -> PlacementAdvice.CLEARER

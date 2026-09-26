@@ -29,6 +29,11 @@ data class PoseTick(
      * everything needed is visible.
      */
     val missing: List<Int> = emptyList(),
+    /**
+     * The body is turning between the two views its movement is read in, and the detector is
+     * confirming the new one (see [SideView]). Nothing for the user to fix: it settles by itself.
+     */
+    val changingView: Boolean = false,
 )
 
 /**

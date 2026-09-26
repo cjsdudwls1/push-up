@@ -67,6 +67,34 @@ class PlacementCoachTest {
         }
     }
 
+    /**
+     * Turning between the head and the side, the detector refuses the frames on the way while it
+     * confirms the new view — a second, as it must. The coach used to read that as a body it could
+     * not see, and showed and said 몸이 잘 안 보여요. 더 밝은 곳에서 해 볼까요? on every turn. It is
+     * a moment to wait, and the coach says so or nothing.
+     */
+    @Test
+    fun `a pushup turning between the head and the side is told to wait, never that it is too dark`() {
+        val cameras = listOf(Camera.onFloor(1.3f, 12f), Camera.onFloor(2.0f, 8f), Camera.level(2.2f, 0.9f), Camera.level(2.5f, 1.3f))
+        val turns = listOf(0f to 90f, 90f to 0f, 0f to -90f, -90f to 0f, 30f to 75f, 75f to 30f)
+        for (camera in cameras) for (fps in listOf(30, 15)) for ((from, to) in turns) {
+            val step = 1000L / fps
+            val before = Body3d.trace(floorBody(from), camera, 4, fps = fps)
+            val turnStart = before.last().timestampMs + step
+            val turn = (0..(1000 / step).toInt()).map { i ->
+                Body3d.frame(turnStart + i * step, floorBody(from + (to - from) * i * step / 1000f)(0f), camera)
+            }
+            val after = Body3d.trace(floorBody(to), camera, 4, startMs = turn.last().timestampMs + step, settleMs = 2000, fps = fps)
+            val heard = listen(ExerciseType.PUSHUP, before + turn + after)
+            val what = "turning from ${from.toInt()} to ${to.toInt()} degrees off the head, from ${camera.position} at $fps fps"
+            assertEquals(8, heard.reps, what)
+            val objections = heard.said.filterNotNull().filter {
+                it != PlacementAdvice.READY && it != PlacementAdvice.GET_IN_POSITION && it != PlacementAdvice.SETTLING
+            }
+            assertTrue(objections.isEmpty(), "$what: the coach said ${objections.distinct()}")
+        }
+    }
+
     @Test
     fun `side on with the hips out of the picture, a pushup is told it is cut off, not to turn`() {
         // The side view reads along the torso, so the hips have to be in the picture: shoulders at
