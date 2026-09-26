@@ -121,29 +121,36 @@ fun ResultScreen(
             .padding(top = 40.dp, bottom = 32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
+        // Reps that all fell short are not a lost fight: nothing was banked and the monster was
+        // never touched, so the headline is how close they came rather than 다음엔 잡아요.
         Text(
             text = stringResource(
-                if (outcome.cleared) R.string.result_cleared else R.string.result_defeat
+                when {
+                    outcome.cleared -> R.string.result_cleared
+                    nearMiss -> R.string.tutorial_done_title_shallow
+                    else -> R.string.result_defeat
+                }
             ),
             style = Type.headline,
             color = if (outcome.cleared) colors.deep else Palette.TextPrimary,
             textAlign = TextAlign.Center,
         )
-        Spacer(Modifier.height(4.dp))
-        Text(
-            text = when {
-                outcome.cleared -> stringResource(R.string.result_cleared_sub, dungeonName)
-                nearMiss -> stringResource(R.string.tutorial_done_title_shallow)
-                nothingCounted -> stringResource(
-                    if (Exercises.of(lastExercise).kind == MovementKind.HOLD) R.string.result_nothing_counted_hold
-                    else R.string.result_nothing_counted
-                )
-                else -> stringResource(R.string.result_defeat_sub)
-            },
-            style = Type.bodyL,
-            color = Palette.TextSecondary,
-            textAlign = TextAlign.Center,
-        )
+        if (!nearMiss) {
+            Spacer(Modifier.height(4.dp))
+            Text(
+                text = when {
+                    outcome.cleared -> stringResource(R.string.result_cleared_sub, dungeonName)
+                    nothingCounted -> stringResource(
+                        if (Exercises.of(lastExercise).kind == MovementKind.HOLD) R.string.result_nothing_counted_hold
+                        else R.string.result_nothing_counted
+                    )
+                    else -> stringResource(R.string.result_defeat_sub)
+                },
+                style = Type.bodyL,
+                color = Palette.TextSecondary,
+                textAlign = TextAlign.Center,
+            )
+        }
 
         if (nothingCounted) {
             Spacer(Modifier.height(18.dp))
@@ -293,21 +300,27 @@ fun ResultScreen(
                 )
             }
         }
-        Spacer(Modifier.height(10.dp))
-        // Sharing sits directly under the primary action rather than beside 기록/홈, because a loss
-        // is worth posting here too and burying it next to navigation says otherwise.
-        SecondaryButton(
-            text = stringResource(R.string.result_share),
-            onClick = onShare,
-            modifier = Modifier.fillMaxWidth(),
-        )
+        // A run with nothing counted banked nothing: there is no card worth posting and no row to
+        // look up, so it offers only the way home.
+        if (!nothingCounted) {
+            Spacer(Modifier.height(10.dp))
+            // Sharing sits directly under the primary action rather than beside 기록/홈, because a
+            // loss is worth posting here too and burying it next to navigation says otherwise.
+            SecondaryButton(
+                text = stringResource(R.string.result_share),
+                onClick = onShare,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
         Spacer(Modifier.height(10.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            SecondaryButton(
-                text = stringResource(R.string.action_view_records),
-                onClick = onRecords,
-                modifier = Modifier.weight(1f),
-            )
+            if (!nothingCounted) {
+                SecondaryButton(
+                    text = stringResource(R.string.action_view_records),
+                    onClick = onRecords,
+                    modifier = Modifier.weight(1f),
+                )
+            }
             SecondaryButton(
                 text = stringResource(R.string.action_home),
                 onClick = onHome,

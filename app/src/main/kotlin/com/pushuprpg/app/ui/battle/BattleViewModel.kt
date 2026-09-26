@@ -278,8 +278,10 @@ class BattleViewModel(
     }
 
     /**
-     * Returns the banked outcome so the caller can hand it to the result screen, or null when there
-     * is no result to show: the run had not begun, or had nothing in it and banked nothing.
+     * Returns the outcome so the caller can hand it to the result screen, or null when there is no
+     * result to show: the run had not begun, or had nothing in it at all and banked nothing. A run
+     * whose only reps fell short of the line banks nothing either, but it has something to say —
+     * how to make the next one count — so it still goes to the result.
      */
     fun quit(): Outcome? {
         val e = engine ?: return null
@@ -287,7 +289,7 @@ class BattleViewModel(
         finish(outcome)
         // What was queued is about a run that is over.
         voice.stop()
-        return outcome.takeUnless { bankedNothing }
+        return outcome.takeUnless { bankedNothing && outcome.shallowReps == 0 }
     }
 
     /**

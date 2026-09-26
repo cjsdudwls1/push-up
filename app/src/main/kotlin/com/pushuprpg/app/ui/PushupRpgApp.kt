@@ -389,7 +389,9 @@ fun PushupRpgApp(
                                         if (outcome == null) {
                                             // Left with nothing done, which banks nothing: back to
                                             // the movement picker it came in by. It used to open a
-                                            // result — 다음엔 잡아요 over a fight never started.
+                                            // result — 다음엔 잡아요 over a fight never started. Reps
+                                            // that all fell short still get their result, which says
+                                            // how to make the next one count.
                                             navController.navigate(Routes.exercisePick(dungeonIndex)) {
                                                 popUpTo(Routes.BATTLE) { inclusive = true }
                                             }
