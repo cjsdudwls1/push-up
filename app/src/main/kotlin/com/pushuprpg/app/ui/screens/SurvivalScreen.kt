@@ -32,6 +32,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -171,6 +172,14 @@ fun SurvivalScreen(
                 )
         )
 
+        // Until the run starts the lower part of the picture is the framing guide's: the ghost's head
+        // and arms for a pushup sit where the cat and its bubble do, and the frame's foot below the
+        // floor. So the cat and the floor are drawn faint underneath it, and the cat's waiting line
+        // is said at the top instead of in a bubble over the ghost.
+        val settingUp = !state.started && state.alive
+
+        CeilingAndCat(state = state, cat = cat, coat = catCoat, faded = settingUp, modifier = Modifier.fillMaxSize())
+
         // Setting up: the skeleton and a ghost of the starting pose, so framing the phone is
         // matching lines rather than guessing. Gone the moment the run starts.
         if (setupSkeleton != null && state.alive) {
@@ -186,13 +195,11 @@ fun SurvivalScreen(
             FramingGuide(exercise = exercise)
         }
 
-        CeilingAndCat(state = state, cat = cat, coat = catCoat, modifier = Modifier.fillMaxSize())
-
         // Above the cat's head, where a speech bubble belongs. The canvas places the cat by the same
         // proportions, so this lands on it at any screen size.
         val bubbleBottom = catHeadTop(baseY = maxHeight.value * FLOOR_AT, scale = maxWidth.value / CAT_SCALE_WIDTH, mood = cat.mood)
         CatBubbleSlot(
-            speech = cat.speech,
+            speech = cat.speech.takeUnless { settingUp },
             name = name,
             modifier = Modifier
                 .align(Alignment.BottomCenter)
@@ -225,10 +232,12 @@ fun SurvivalScreen(
             }
             // The ceiling waits for the user to be in position, and says so — a still ceiling with
             // no explanation reads as a broken one. The tutorial says it in its intro.
-            if (!state.started && state.alive) {
+            if (settingUp) {
                 Spacer(Modifier.height(10.dp))
+                // The cat's words are its own, as in the bubble; only where they are shown moves.
+                val catSays = cat.speech?.let { stringResource(R.string.cat_says, name, catLineText(it)) }
                 if (isTutorial) {
-                    TutorialIntro(modifier = Modifier.padding(horizontal = 20.dp))
+                    TutorialIntro(catSays = catSays, modifier = Modifier.padding(horizontal = 20.dp))
                 } else {
                     CameraText(
                         text = stringResource(R.string.survival_waiting_with, stringResource(exerciseLabelRes(exercise))),
@@ -236,6 +245,15 @@ fun SurvivalScreen(
                         color = Palette.TextPrimary,
                         modifier = Modifier.padding(horizontal = 20.dp),
                     )
+                    if (catSays != null) {
+                        Spacer(Modifier.height(4.dp))
+                        CameraText(
+                            text = catSays,
+                            style = Type.bodyM.copy(textAlign = TextAlign.Center),
+                            color = Palette.TextSecondary,
+                            modifier = Modifier.padding(horizontal = 20.dp),
+                        )
+                    }
                 }
             }
             // Where the phone and the user are, live: before the first rep, and again whenever the
@@ -396,7 +414,14 @@ private fun BoxScope.SkipConfirm(onSkip: () -> Unit, onStay: () -> Unit) {
  * information on screen, which is exactly the point.
  */
 @Composable
-private fun CeilingAndCat(state: SurvivalState, cat: CatView, coat: CatCoat, modifier: Modifier = Modifier) {
+private fun CeilingAndCat(
+    state: SurvivalState,
+    cat: CatView,
+    coat: CatCoat,
+    modifier: Modifier = Modifier,
+    /** Setting up: the cat and the floor are drawn faint, so the framing guide reads through them. */
+    faded: Boolean = false,
+) {
     // The cat's own clock, for the tail's sway and a frightened tremble. Read only inside the draw
     // lambda, so it redraws the canvas without recomposing the screen. Still under reduced motion.
     val reduceMotion = LocalReduceMotion.current
@@ -408,69 +433,79 @@ private fun CeilingAndCat(state: SurvivalState, cat: CatView, coat: CatCoat, mod
         label = "cat-phase",
     )
 
-    Canvas(modifier) {
-        val floorY = size.height * FLOOR_AT
-        val topY = size.height * 0.10f
-        val travel = floorY - topY
-        val ceilingBottom = topY + travel * (1f - state.height.coerceIn(0f, 1f))
+    // Tension is carried by colour as well as by position, so the danger reads peripherally.
+    val danger = state.intensity
 
-        // Tension is carried by colour as well as by position, so the danger reads peripherally.
-        val danger = state.intensity
-        val slab = Color(
-            red = 0.42f + 0.5f * danger,
-            green = 0.34f - 0.18f * danger,
-            blue = 0.28f - 0.16f * danger,
-            alpha = 1f,
-        )
+    Box(modifier) {
+        Canvas(Modifier.fillMaxSize()) {
+            val floorY = size.height * FLOOR_AT
+            val topY = size.height * 0.10f
+            val travel = floorY - topY
+            val ceilingBottom = topY + travel * (1f - state.height.coerceIn(0f, 1f))
 
-        drawRect(
-            color = slab,
-            topLeft = Offset(0f, 0f),
-            size = Size(size.width, ceilingBottom),
-        )
-        // Teeth along the underside: menace without needing a texture.
-        val toothWidth = size.width / 14f
-        for (i in 0 until 14) {
-            drawPath(
-                path = Path().apply {
-                    moveTo(i * toothWidth, ceilingBottom)
-                    lineTo((i + 0.5f) * toothWidth, ceilingBottom + toothWidth * 0.55f)
-                    lineTo((i + 1f) * toothWidth, ceilingBottom)
-                    close()
-                },
-                color = slab,
+            val slab = Color(
+                red = 0.42f + 0.5f * danger,
+                green = 0.34f - 0.18f * danger,
+                blue = 0.28f - 0.16f * danger,
+                alpha = 1f,
             )
+
+            drawRect(
+                color = slab,
+                topLeft = Offset(0f, 0f),
+                size = Size(size.width, ceilingBottom),
+            )
+            // Teeth along the underside: menace without needing a texture.
+            val toothWidth = size.width / 14f
+            for (i in 0 until 14) {
+                drawPath(
+                    path = Path().apply {
+                        moveTo(i * toothWidth, ceilingBottom)
+                        lineTo((i + 0.5f) * toothWidth, ceilingBottom + toothWidth * 0.55f)
+                        lineTo((i + 1f) * toothWidth, ceilingBottom)
+                        close()
+                    },
+                    color = slab,
+                )
+            }
         }
 
-        val scale = size.width / CAT_SCALE_WIDTH
-        drawCat(
-            centerX = size.width / 2f,
-            baseY = floorY,
-            scale = scale,
-            coat = coat,
-            mood = cat.mood,
-            alarm = danger,
-            cheer = cat.cheer,
-            phase = if (reduceMotion) 0f else phase,
-        )
-        drawHearts(
-            centerX = size.width / 2f,
-            headTopY = catHeadTop(floorY, scale, cat.mood),
-            scale = scale,
-            count = cat.hearts,
-            cheer = cat.cheer,
-        )
+        // A layer of its own, so faint is one alpha over the whole cat rather than each shape of it.
+        Canvas(Modifier.fillMaxSize().alpha(if (faded) SETUP_ALPHA else 1f)) {
+            val floorY = size.height * FLOOR_AT
+            val scale = size.width / CAT_SCALE_WIDTH
+            drawCat(
+                centerX = size.width / 2f,
+                baseY = floorY,
+                scale = scale,
+                coat = coat,
+                mood = cat.mood,
+                alarm = danger,
+                cheer = cat.cheer,
+                phase = if (reduceMotion) 0f else phase,
+            )
+            drawHearts(
+                centerX = size.width / 2f,
+                headTopY = catHeadTop(floorY, scale, cat.mood),
+                scale = scale,
+                count = cat.hearts,
+                cheer = cat.cheer,
+            )
 
-        drawRect(
-            color = Color(0xFF3A2A18),
-            topLeft = Offset(0f, floorY),
-            size = Size(size.width, size.height - floorY),
-        )
+            drawRect(
+                color = Color(0xFF3A2A18),
+                topLeft = Offset(0f, floorY),
+                size = Size(size.width, size.height - floorY),
+            )
+        }
     }
 }
 
 /** Where the floor is, as a fraction of the screen's height. The bubble is placed by it too. */
 private const val FLOOR_AT = 0.82f
+
+/** How strongly the cat and the floor are drawn while setting up, under the framing guide. */
+private const val SETUP_ALPHA = 0.4f
 
 /** The screen width, in the cat's own units, that draws it at scale 1. */
 private const val CAT_SCALE_WIDTH = 420f
@@ -562,7 +597,11 @@ private fun catLineText(speech: CatSpeech): String {
  * on, where people tend to put it, is the one angle a pushup is not counted from.
  */
 @Composable
-private fun TutorialIntro(modifier: Modifier = Modifier) {
+private fun TutorialIntro(
+    /** The cat's waiting line with its name, here rather than in a bubble over the framing ghost. */
+    catSays: String?,
+    modifier: Modifier = Modifier,
+) {
     Column(
         modifier = modifier
             .clip(RoundedCornerShape(18.dp))
@@ -583,6 +622,15 @@ private fun TutorialIntro(modifier: Modifier = Modifier) {
             color = Palette.TextSecondary,
             textAlign = TextAlign.Center,
         )
+        if (catSays != null) {
+            Spacer(Modifier.height(6.dp))
+            Text(
+                text = catSays,
+                style = Type.bodyM,
+                color = Palette.TextPrimary,
+                textAlign = TextAlign.Center,
+            )
+        }
     }
 }
 

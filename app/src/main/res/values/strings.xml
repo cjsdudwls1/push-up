@@ -362,6 +362,9 @@
     <string name="cat_line_saved_1">살았다냥!</string>
     <string name="cat_line_saved_2">고마워요, 냥! 살았어요!</string>
     <string name="cat_line_saved_3">휴… 살았다냥!</string>
+    <!-- A line of the cat's out of its bubble, while setting up: the bubble would sit over the
+         framing guide. %1$s is the cat's name, %2$s the line. -->
+    <string name="cat_says">%1$s: %2$s</string>
 
     <!-- Paywall -->
     <string name="paywall_title">모든 던전을 열어요</string>
