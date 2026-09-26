@@ -21,14 +21,22 @@ import com.pushuprpg.app.billing.BillingEvent
 import com.pushuprpg.app.billing.PlanPeriod
 import com.pushuprpg.app.billing.RestoreOutcome
 import com.pushuprpg.app.billing.SubscriptionPlan
+import com.pushuprpg.app.domain.FreeTier
 import com.pushuprpg.app.ui.components.Pill
 import com.pushuprpg.app.ui.components.PrimaryButton
 import com.pushuprpg.app.ui.components.SecondaryButton
 import com.pushuprpg.app.ui.components.StatTile
 import com.pushuprpg.app.ui.components.cardSurface
+import com.pushuprpg.app.ui.components.exerciseLabelRes
 import com.pushuprpg.app.ui.theme.LocalGameColors
 import com.pushuprpg.app.ui.theme.Palette
 import com.pushuprpg.app.ui.theme.Type
+import com.pushuprpg.core.detect.ExerciseType
+import com.pushuprpg.core.detect.Exercises
+import com.pushuprpg.core.detect.MovementKind
+import com.pushuprpg.core.game.Difficulty
+import com.pushuprpg.core.game.Dungeon
+import com.pushuprpg.core.game.PlayerClass
 
 /**
  * The paywall.
@@ -36,6 +44,11 @@ import com.pushuprpg.app.ui.theme.Type
  * It opens with what the user has already built rather than with what they are missing, because by
  * the time anyone sees this they have done real reps and the honest offer is to keep going, not to
  * begin.
+ *
+ * Under its title it says what is being bought: the dungeons and bosses a subscription opens,
+ * counted from the content table, and — opened on the way into a locked dungeon — that dungeon and
+ * what it asks, in the count every other screen quotes. It used to name neither, so someone who had
+ * just tapped 다음 던전 was offered a subscription without being told to what.
  *
  * It also states plainly that the first dungeon and the survival mode stay free forever. Hiding
  * that would be both a lie and a worse pitch: a fitness app that appears to lock exercise behind a
@@ -53,6 +66,12 @@ fun PaywallScreen(
     lifetimeReps: Int,
     streakDays: Int,
     level: Int,
+    /** The locked dungeon the user was on their way into, or null when there was none. */
+    dungeon: Dungeon?,
+    /** What [dungeon]'s count is quoted in, as the dungeon list quotes it: the movement picked last. */
+    exercise: ExerciseType,
+    difficulty: Difficulty,
+    playerClass: PlayerClass,
     onPurchase: (SubscriptionPlan) -> Unit,
     onRestore: () -> Unit,
     onRetry: () -> Unit,
@@ -79,6 +98,41 @@ fun PaywallScreen(
             style = Type.headline,
             color = Palette.TextPrimary,
         )
+        // Counted, not written down: a dungeon added to the table is in the offer without an edit here.
+        val opened = FreeTier.subscriptionDungeons()
+        if (opened.isNotEmpty()) {
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = stringResource(
+                    R.string.paywall_unlocks,
+                    opened.first().korean,
+                    opened.last().korean,
+                    opened.size,
+                    opened.sumOf { d -> d.floors.count { it.isBoss } },
+                ),
+                style = Type.bodyL,
+                color = Palette.TextSecondary,
+            )
+        }
+        // The same count the dungeon list and the entry picker quote for it, for this class.
+        dungeon?.let { d ->
+            val movement = stringResource(exerciseLabelRes(exercise))
+            val cost = d.repCost(difficulty, exercise, playerClass)
+            Spacer(Modifier.height(12.dp))
+            Text(
+                text = if (Exercises.of(exercise).kind == MovementKind.HOLD) {
+                    stringResource(R.string.paywall_dungeon_hold, d.korean, movement, cost)
+                } else {
+                    stringResource(R.string.paywall_dungeon, d.korean, movement, cost)
+                },
+                style = Type.bodyM,
+                color = Palette.TextPrimary,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .cardSurface(shape = RoundedCornerShape(14.dp))
+                    .padding(14.dp),
+            )
+        }
 
         Spacer(Modifier.height(18.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {

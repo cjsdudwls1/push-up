@@ -5,6 +5,8 @@ import com.pushuprpg.core.detect.Exercises
 import com.pushuprpg.core.detect.SkeletonMode
 import com.pushuprpg.core.detect.UserProfile
 import com.pushuprpg.core.game.Difficulty
+import com.pushuprpg.core.game.Dungeon
+import com.pushuprpg.core.game.Dungeons
 import com.pushuprpg.core.game.PlayerClass
 import kotlinx.coroutines.flow.Flow
 
@@ -217,6 +219,10 @@ object FreeTier {
 
     fun canPlayDungeon(index: Int, entitlement: Entitlement): Boolean =
         index <= FREE_DUNGEON_INDEX || entitlement.hasFullAccess
+
+    /** What a subscription opens, in order: every dungeon the free tier cannot reach. */
+    fun subscriptionDungeons(): List<Dungeon> =
+        Dungeons.ALL.filterNot { canPlayDungeon(it.index, Entitlement()) }
 
     /** Survival mode is free forever: it is the on-ramp, not the product. */
     fun canPlaySurvival(): Boolean = true

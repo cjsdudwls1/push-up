@@ -377,6 +377,13 @@
 
     <!-- Paywall -->
     <string name="paywall_title">모든 던전을 열어요</string>
+    <!-- Counted from the content table: %1$s is the first dungeon a subscription opens, %2$s the last,
+         %3$d how many there are and %4$d their bosses. -->
+    <string name="paywall_unlocks">%1$s부터 %2$s까지, 던전 %3$d개와 보스 %4$d마리가 열려요</string>
+    <!-- The locked dungeon the user was on the way into, and what it asks: %2$s is the movement picked
+         last and %3$d the count the dungeon list quotes for it, for this class and difficulty. -->
+    <string name="paywall_dungeon">가려던 던전: %1$s · %2$s %3$,d개</string>
+    <string name="paywall_dungeon_hold">가려던 던전: %1$s · %2$s %3$,d초</string>
     <string name="paywall_trial_days">%1$d일 무료로 써보기</string>
     <string name="paywall_subscribe">구독 시작하기</string>
     <string name="paywall_restore">구매 복원</string>

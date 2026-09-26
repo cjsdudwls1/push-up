@@ -275,7 +275,7 @@ fun PushupRpgApp(
                         onRequestPaywall = {
                             if (navController.isOnTop(entry)) {
                                 container.telemetry.log(Event.PaywallShown("home"))
-                                navController.navigate(Routes.PAYWALL)
+                                navController.navigate(Routes.paywall(state.nextDungeon))
                             }
                         },
                         onDungeonSelect = { navController.navigateFrom(entry, Routes.DUNGEON_SELECT) },
@@ -300,10 +300,10 @@ fun PushupRpgApp(
                             }
                         },
                         onStart = { navController.navigateFrom(entry, Routes.exercisePick(it)) },
-                        onRequestPaywall = {
+                        onRequestPaywall = { index ->
                             if (navController.isOnTop(entry)) {
                                 container.telemetry.log(Event.PaywallShown("dungeon_select"))
-                                navController.navigate(Routes.PAYWALL)
+                                navController.navigate(Routes.paywall(index))
                             }
                         },
                     )
@@ -488,7 +488,7 @@ fun PushupRpgApp(
                                             // Over the result rather than in place of it, so closing
                                             // the paywall comes back to the run just finished.
                                             container.telemetry.log(Event.PaywallShown("result"))
-                                            navController.navigate(Routes.PAYWALL)
+                                            navController.navigate(Routes.paywall(next))
                                         }
                                     }
                                 },
@@ -704,7 +704,15 @@ fun PushupRpgApp(
                     )
                 }
 
-                composable(Routes.PAYWALL) {
+                composable(
+                    route = Routes.PAYWALL,
+                    arguments = listOf(
+                        navArgument(Routes.ARG_DUNGEON_INDEX) {
+                            type = NavType.IntType
+                            defaultValue = 0
+                        }
+                    ),
+                ) { entry ->
                     val plans by container.billing.plans.collectAsState()
                     val plansUnavailable by container.billing.plansUnavailable.collectAsState()
                     val activity = context as? android.app.Activity
@@ -737,6 +745,12 @@ fun PushupRpgApp(
                             java.time.LocalDate.now().toEpochDay(),
                         ),
                         level = progress.level,
+                        // Named only while it is locked; FreeTier is what says so.
+                        dungeon = Dungeons.byIndex(entry.arguments?.getInt(Routes.ARG_DUNGEON_INDEX) ?: 0)
+                            ?.takeUnless { FreeTier.canPlayDungeon(it.index, entitlement) },
+                        exercise = settings.exercise,
+                        difficulty = settings.difficulty,
+                        playerClass = progress.playerClass,
                         onPurchase = { plan ->
                             if (activity != null && container.billing.launchPurchaseFlow(activity, plan)) {
                                 buying = plan.period.name

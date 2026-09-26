@@ -54,7 +54,8 @@ fun DungeonSelectScreen(
     entitlement: Entitlement,
     onDifficultyChange: (Difficulty) -> Unit,
     onStart: (Int) -> Unit,
-    onRequestPaywall: () -> Unit,
+    /** A locked dungeon was tapped; the paywall names it. */
+    onRequestPaywall: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val exerciseName = stringResource(exerciseLabelRes(exercise))
@@ -103,7 +104,7 @@ fun DungeonSelectScreen(
                 onClick = {
                     when {
                         !unlocked -> Unit
-                        !paid -> onRequestPaywall()
+                        !paid -> onRequestPaywall(dungeon.index)
                         else -> onStart(dungeon.index)
                     }
                 },
