@@ -5,13 +5,11 @@ import android.os.Build
 import com.pushuprpg.app.audio.GameAudio
 import com.pushuprpg.app.audio.GameVoice
 import com.pushuprpg.app.audio.MusicPlayer
-import com.pushuprpg.app.billing.PlayEntitlementRepository
 import com.pushuprpg.app.telemetry.Telemetry
 import com.pushuprpg.app.data.AppDatabase
 import com.pushuprpg.app.data.DataStoreProgressRepository
 import com.pushuprpg.app.data.DataStoreSettingsRepository
 import com.pushuprpg.app.data.RoomSessionRepository
-import com.pushuprpg.app.domain.EntitlementRepository
 import com.pushuprpg.app.domain.ProgressRepository
 import com.pushuprpg.app.domain.SessionRepository
 import com.pushuprpg.app.domain.SettingsRepository
@@ -33,11 +31,9 @@ class AppContainer(context: Context) {
     private val appContext = context.applicationContext
 
     /**
-     * Outlives any screen. Billing has to keep listening for purchases that complete while the
-     * user is somewhere else entirely — including in the Play Store app.
-     *
-     * A finished run is written here too. The screen that ended it is popped straight away, and a
-     * write in that screen's own scope could be cancelled between the record row and the XP.
+     * Outlives any screen. A finished run is written here: the screen that ended it is popped
+     * straight away, and a write in that screen's own scope could be cancelled between the record
+     * row and the XP.
      */
     internal val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
@@ -51,10 +47,6 @@ class AppContainer(context: Context) {
 
     val settingsRepository: SettingsRepository by lazy {
         DataStoreSettingsRepository(appContext)
-    }
-
-    val entitlementRepository: EntitlementRepository by lazy {
-        PlayEntitlementRepository(appContext, appScope)
     }
 
     /**
@@ -86,17 +78,6 @@ class AppContainer(context: Context) {
                 appScope.launch { settingsRepository.settings.collect { recorder.enabled = it.recordTraces } }
             }
         }
-    }
-
-    /** The billing client, for the paywall's purchase flow. */
-    val billing get() = (entitlementRepository as PlayEntitlementRepository).billing
-
-    fun onAppStart() {
-        billing.start()
-    }
-
-    fun onAppResume() {
-        billing.onAppResume()
     }
 
     /**

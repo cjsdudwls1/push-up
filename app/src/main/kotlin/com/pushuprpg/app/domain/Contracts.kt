@@ -5,8 +5,6 @@ import com.pushuprpg.core.detect.Exercises
 import com.pushuprpg.core.detect.SkeletonMode
 import com.pushuprpg.core.detect.UserProfile
 import com.pushuprpg.core.game.Difficulty
-import com.pushuprpg.core.game.Dungeon
-import com.pushuprpg.core.game.Dungeons
 import com.pushuprpg.core.game.PlayerClass
 import kotlinx.coroutines.flow.Flow
 
@@ -185,45 +183,4 @@ enum class ThemeMode {
 interface SettingsRepository {
     val settings: Flow<AppSettings>
     suspend fun update(transform: (AppSettings) -> AppSettings)
-}
-
-/**
- * Subscription state.
- *
- * Exercise itself is never gated. The free tier always includes a full daily workout — the first
- * dungeon and the survival mode — because paywalling the exercise would be both wrong and, for a
- * habit product, commercially self-defeating. What a subscription buys is more *game*.
- */
-data class Entitlement(
-    val isSubscriber: Boolean = false,
-    val inTrial: Boolean = false,
-    val trialDaysRemaining: Int = 0,
-    val expiresAtMs: Long? = null,
-    /** True when Play said so recently; false means we are running on a cached answer. */
-    val verified: Boolean = false,
-) {
-    val hasFullAccess: Boolean get() = isSubscriber || inTrial
-}
-
-interface EntitlementRepository {
-    val entitlement: Flow<Entitlement>
-    suspend fun refresh()
-}
-
-/** What the free tier can reach. Centralised so the boundary is one decision, not many. */
-object FreeTier {
-    /** 부서진 문 — always playable, forever, subscription or not. */
-    const val FREE_DUNGEON_INDEX = 1
-
-    const val TRIAL_DAYS = 7
-
-    fun canPlayDungeon(index: Int, entitlement: Entitlement): Boolean =
-        index <= FREE_DUNGEON_INDEX || entitlement.hasFullAccess
-
-    /** What a subscription opens, in order: every dungeon the free tier cannot reach. */
-    fun subscriptionDungeons(): List<Dungeon> =
-        Dungeons.ALL.filterNot { canPlayDungeon(it.index, Entitlement()) }
-
-    /** Survival mode is free forever: it is the on-ramp, not the product. */
-    fun canPlaySurvival(): Boolean = true
 }

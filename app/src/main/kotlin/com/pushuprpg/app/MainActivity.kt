@@ -76,7 +76,6 @@ class MainActivity : ComponentActivity() {
         cameraGranted.value = ContextCompat.checkSelfPermission(
             this, Manifest.permission.CAMERA
         ) == PackageManager.PERMISSION_GRANTED
-        (application as PushupApp).container.onAppResume()
     }
 
     override fun onStop() {

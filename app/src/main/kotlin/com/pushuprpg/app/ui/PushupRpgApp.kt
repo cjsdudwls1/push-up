@@ -41,7 +41,6 @@ import com.pushuprpg.app.AppContainer
 import com.pushuprpg.app.BuildConfig
 import com.pushuprpg.app.trace.TraceFiles
 import com.pushuprpg.app.domain.AppSettings
-import com.pushuprpg.app.domain.FreeTier
 import com.pushuprpg.app.domain.ThemeMode
 import com.pushuprpg.app.domain.capacityOf
 import com.pushuprpg.core.detect.ExerciseType
@@ -62,8 +61,6 @@ import com.pushuprpg.app.ui.theme.PushupRpgTheme
 import com.pushuprpg.core.game.Dungeons
 import com.pushuprpg.core.game.PlayerClass
 import com.pushuprpg.core.progression.Rank
-import com.pushuprpg.core.progression.Streak
-import com.pushuprpg.core.progression.StreakState
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -98,9 +95,6 @@ fun PushupRpgApp(
     val settings = settingsState ?: AppSettings()
     val progressState by container.progressRepository.progress.collectAsState(initial = null)
     val progress = progressState ?: com.pushuprpg.app.domain.PlayerProgress()
-    val entitlement by container.entitlementRepository.entitlement.collectAsState(
-        initial = com.pushuprpg.app.domain.Entitlement()
-    )
     val granted by cameraGranted.collectAsState()
     val permanentlyDenied by permissionPermanentlyDenied.collectAsState()
 
@@ -682,72 +676,6 @@ fun PushupRpgApp(
                         },
                     )
                 }
-
-                composable(
-                    route = Routes.PAYWALL,
-                    arguments = listOf(
-                        navArgument(Routes.ARG_DUNGEON_INDEX) {
-                            type = NavType.IntType
-                            defaultValue = 0
-                        }
-                    ),
-                ) { entry ->
-                    val plans by container.billing.plans.collectAsState()
-                    val plansUnavailable by container.billing.plansUnavailable.collectAsState()
-                    val activity = context as? android.app.Activity
-                    // The plan whose sheet is open, for the purchase event: Play's callback does
-                    // not say which it was.
-                    var buying by remember { mutableStateOf<String?>(null) }
-                    // However the entitlement opened — this purchase, a restore, a purchase made on
-                    // another device — the offer is over: say so, and go back to what it opened over.
-                    LaunchedEffect(entitlement.hasFullAccess) {
-                        if (entitlement.hasFullAccess) {
-                            toast(context, R.string.paywall_unlocked)
-                            navController.popBackStack(Routes.PAYWALL, inclusive = true)
-                        }
-                    }
-                    LaunchedEffect(Unit) {
-                        container.billing.events.collect { event ->
-                            if (event == com.pushuprpg.app.billing.BillingEvent.PurchaseCompleted) {
-                                container.telemetry.log(Event.PurchaseCompleted(buying ?: "unknown"))
-                            }
-                            paywallMessage(event)?.let { toast(context, it) }
-                        }
-                    }
-                    PaywallScreen(
-                        plans = plans,
-                        plansUnavailable = plansUnavailable,
-                        lifetimeReps = progress.lifetimeReps,
-                        // As the hub shows it: a missed day has already broken the stored one.
-                        streakDays = Streak.shown(
-                            StreakState(progress.streakDays, progress.lastActiveEpochDay),
-                            java.time.LocalDate.now().toEpochDay(),
-                        ),
-                        level = progress.level,
-                        // Named only while it is locked; FreeTier is what says so.
-                        dungeon = Dungeons.byIndex(entry.arguments?.getInt(Routes.ARG_DUNGEON_INDEX) ?: 0)
-                            ?.takeUnless { FreeTier.canPlayDungeon(it.index, entitlement) },
-                        exercise = settings.exercise,
-                        difficulty = settings.difficulty,
-                        playerClass = progress.playerClass,
-                        onPurchase = { plan ->
-                            if (activity != null && container.billing.launchPurchaseFlow(activity, plan)) {
-                                buying = plan.period.name
-                                container.telemetry.log(Event.PurchaseStarted(plan.period.name))
-                            } else {
-                                toast(context, R.string.paywall_purchase_error)
-                            }
-                        },
-                        onRestore = {
-                            scope.launch {
-                                paywallMessage(container.billing.restore())?.let { toast(context, it) }
-                            }
-                        },
-                        onRetry = { scope.launch { container.billing.refresh() } },
-                        // By route, so a second tap cannot pop what opened it along with it.
-                        onDismiss = { navController.popBackStack(Routes.PAYWALL, inclusive = true) },
-                    )
-                }
             }
 
             // Both delegates failing leaves a live preview with a counter frozen at zero. Saying
@@ -858,8 +786,8 @@ private fun NavController.isOnTop(entry: NavBackStackEntry): Boolean =
  * Opens [route] over [entry], unless [entry] has already been left.
  *
  * For a screen that stays under the one it opens. A second tap during the transition, on the same
- * button or another, stacked a second screen over the first: closing the paywall showed the same
- * paywall, and back from a result went to a movement picker left over from the hub.
+ * button or another, stacked a second screen over the first: back from a result went to a movement
+ * picker left over from the hub.
  */
 private fun NavController.navigateFrom(entry: NavBackStackEntry, route: String) {
     if (isOnTop(entry)) navigate(route)

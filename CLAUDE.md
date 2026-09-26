@@ -5,7 +5,7 @@
 - `core/` — pure Kotlin/JVM. Rep detection, calibration, combat, progression, dungeon content,
   survival mode, run orchestration. **No Android imports, ever.** If something can be expressed as
   a rule rather than a screen, it belongs here.
-- `app/` — Android. CameraX, MediaPipe, Compose, Room, DataStore, Play Billing.
+- `app/` — Android. CameraX, MediaPipe, Compose, Room, DataStore.
 
 ## Running the tests
 

@@ -60,7 +60,7 @@ class Telemetry(context: Context) {
      * A caught problem worth knowing about.
      *
      * Used for the things that are recoverable but should not be common — a pose model that failed
-     * to load, a billing client that never connected. Uncaught crashes need no help from here.
+     * to load, say. Uncaught crashes need no help from here.
      */
     fun recordNonFatal(throwable: Throwable, context: String) {
         crashlytics?.apply {
@@ -75,11 +75,6 @@ class Telemetry(context: Context) {
         crashlytics?.setCustomKey("exercise", exercise.name)
     }
 
-    fun setSubscriber(isSubscriber: Boolean) {
-        crashlytics?.setCustomKey("subscriber", isSubscriber)
-        analytics?.setUserProperty("subscriber", isSubscriber.toString())
-    }
-
     private object BuildConfigBridge {
         val debug: Boolean get() = com.pushuprpg.app.BuildConfig.DEBUG
     }
@@ -92,8 +87,8 @@ class Telemetry(context: Context) {
 /**
  * The events worth having from day one.
  *
- * Deliberately short. The two questions that actually need answering are where the trial-to-paid
- * funnel leaks, which the onboarding and paywall events cover, and whether rep detection works on
+ * Deliberately short. The two questions that actually need answering are where a first session
+ * loses people, which the onboarding and tutorial events cover, and whether rep detection works on
  * hardware nobody here has ever held — which is what [RunFinished]'s tracking numbers and
  * plausibility, and [QualityLost]'s reasons, are for. Every detection constant in this app is
  * reasoned rather than measured, and without a signal from real phones there is no way to tune them.
@@ -194,15 +189,6 @@ sealed class Event(val name: String, val params: Map<String, Any> = emptyMap()) 
      */
     data class QualityLost(val quality: PoseQuality, val atRep: Int, val armed: Boolean) :
         Event("quality_lost", mapOf("reason" to quality.name, "at_rep" to atRep, "armed" to armed))
-
-    data class PaywallShown(val source: String) :
-        Event("paywall_shown", mapOf("source" to source))
-
-    data class PurchaseStarted(val plan: String) :
-        Event("purchase_started", mapOf("plan" to plan))
-
-    data class PurchaseCompleted(val plan: String) :
-        Event("purchase_completed", mapOf("plan" to plan))
 
     /**
      * A run met the day's streak bar, and the streak is now [days] long. Sent once for each day

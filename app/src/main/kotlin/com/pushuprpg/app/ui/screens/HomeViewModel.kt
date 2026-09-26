@@ -7,7 +7,6 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.pushuprpg.app.AppContainer
 import com.pushuprpg.app.domain.DailyTotal
-import com.pushuprpg.app.domain.EntitlementRepository
 import com.pushuprpg.app.domain.ProgressRepository
 import com.pushuprpg.app.domain.SessionRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -28,7 +27,6 @@ import java.time.ZonedDateTime
 class HomeViewModel(
     progressRepository: ProgressRepository,
     sessionRepository: SessionRepository,
-    entitlementRepository: EntitlementRepository,
 ) : ViewModel() {
 
     private fun today(): Long =
@@ -55,14 +53,12 @@ class HomeViewModel(
                 total to sessionRepository.workOn(epochDay)
             }
         },
-        entitlementRepository.entitlement,
-    ) { progress, (todayTotal, todayWork), entitlement ->
+    ) { progress, (todayTotal, todayWork) ->
         HomeUiState(
             progress = progress,
             todayReps = todayTotal.reps,
             todayActiveMs = todayTotal.activeMs,
             todayWork = todayWork,
-            entitlement = entitlement,
             loading = false,
             today = todayTotal.epochDay,
         )
@@ -87,7 +83,6 @@ class HomeViewModel(
                 HomeViewModel(
                     container.progressRepository,
                     container.sessionRepository,
-                    container.entitlementRepository,
                 )
             }
         }

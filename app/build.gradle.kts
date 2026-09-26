@@ -186,7 +186,6 @@ dependencies {
     ksp(libs.androidx.room.compiler)
 
     implementation(libs.androidx.datastore.preferences)
-    implementation(libs.billing.ktx)
 
     // Always on the classpath so the telemetry code compiles either way; it no-ops at runtime when
     // Firebase has not been initialised.

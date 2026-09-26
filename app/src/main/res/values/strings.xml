@@ -382,40 +382,6 @@
          framing guide. %1$s is the cat's name, %2$s the line. -->
     <string name="cat_says">%1$s: %2$s</string>
 
-    <!-- Paywall -->
-    <string name="paywall_title">모든 던전을 열어요</string>
-    <!-- Counted from the content table: %1$s is the first dungeon a subscription opens, %2$s the last,
-         %3$d how many there are and %4$d their bosses. -->
-    <string name="paywall_unlocks">%1$s부터 %2$s까지, 던전 %3$d개와 보스 %4$d마리가 열려요</string>
-    <!-- The locked dungeon the user was on the way into, and what it asks: %2$s is the movement picked
-         last and %3$d the count the dungeon list quotes for it, for this class and difficulty. -->
-    <string name="paywall_dungeon">가려던 던전: %1$s · %2$s %3$,d개</string>
-    <string name="paywall_dungeon_hold">가려던 던전: %1$s · %2$s %3$,d초</string>
-    <string name="paywall_trial_days">%1$d일 무료로 써보기</string>
-    <string name="paywall_subscribe">구독 시작하기</string>
-    <string name="paywall_restore">구매 복원</string>
-    <string name="paywall_free_forever">첫 던전과 고냥이 모드는 계속 무료예요</string>
-    <string name="paywall_manage">구독은 Play 스토어에서 언제든 해지할 수 있어요</string>
-    <string name="paywall_plan_annual">연간</string>
-    <string name="paywall_plan_monthly">월간</string>
-    <string name="paywall_best_value">최대 절약</string>
-    <!-- %1$s is the amount with Play's own currency symbol, e.g. ₩3,250. -->
-    <string name="paywall_per_month">월 %1$s 꼴</string>
-    <!-- The renewal terms, which Korean subscription rules require to be readable before purchase.
-         %1$d is the trial's days and %2$s Play's formatted price; 씩 fits after any price. -->
-    <string name="paywall_renewal_trial_annual">%1$d일 무료 체험 뒤 1년마다 %2$s씩 자동으로 결제돼요. 체험이 끝나기 전에 해지하면 결제되지 않아요.</string>
-    <string name="paywall_renewal_trial_monthly">%1$d일 무료 체험 뒤 1개월마다 %2$s씩 자동으로 결제돼요. 체험이 끝나기 전에 해지하면 결제되지 않아요.</string>
-    <string name="paywall_renewal_annual">1년마다 %1$s씩 자동으로 결제돼요.</string>
-    <string name="paywall_renewal_monthly">1개월마다 %1$s씩 자동으로 결제돼요.</string>
-    <string name="paywall_loading">구독 정보를 불러오고 있어요…</string>
-    <string name="paywall_unavailable">지금은 구독 정보를 불러올 수 없어요. 인터넷 연결과 Play 스토어 로그인을 확인하고 다시 시도해 주세요.</string>
-    <string name="paywall_retry">다시 시도</string>
-    <string name="paywall_unlocked">모든 던전이 열렸어요. 가 봐요!</string>
-    <string name="paywall_pending">결제가 확인되면 바로 열려요</string>
-    <string name="paywall_purchase_error">결제를 마치지 못했어요. 잠시 후 다시 시도해 주세요</string>
-    <string name="paywall_restore_none">이 Google 계정에서 찾은 구독이 없어요</string>
-    <string name="paywall_restore_unreachable">Play 스토어에 연결할 수 없어요. 잠시 후 다시 시도해 주세요</string>
-
     <!-- Errors -->
     <string name="error_model_load">준비 중 문제가 생겼어요. 앱을 다시 열어볼까요?</string>
     <!-- A camera screen whose model has been given frames and answered none, on the CPU as well. The
@@ -436,7 +402,6 @@
     <!-- Rank card -->
     <string name="rank_lifetime">누적 %1$,d개</string>
     <string name="rank_max">최고 등급에 올랐어요</string>
-    <string name="level_section">레벨</string>
 
     <!-- Dungeon select -->
     <string name="dungeon_meta">%1$s · %2$s</string>

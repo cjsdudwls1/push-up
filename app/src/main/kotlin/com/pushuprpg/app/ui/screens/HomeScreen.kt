@@ -11,7 +11,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.pushuprpg.app.R
-import com.pushuprpg.app.domain.Entitlement
 import com.pushuprpg.app.domain.PlayerProgress
 import com.pushuprpg.app.domain.ThemeMode
 import com.pushuprpg.app.ui.components.*
@@ -35,7 +34,6 @@ data class HomeUiState(
     val todayActiveMs: Long = 0,
     /** Today's work per movement, in the unit of each one's streak bar. */
     val todayWork: Map<ExerciseType, Int> = emptyMap(),
-    val entitlement: Entitlement = Entitlement(),
     val loading: Boolean = true,
     /** Today, as an epoch day: what the streak is read against. */
     val today: Long = 0,

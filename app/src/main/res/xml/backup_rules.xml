@@ -1,14 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Progress is worth restoring; the entitlement cache is not, because Play is the source of truth
-  for what the user has paid for and a restored cache would only ever be stale or wrong.
+  Progress is worth restoring: the run history, progress, settings and calibration.
 
   Note the datastore paths: DataStore Preferences writes to files/datastore/<name>.preferences_pb,
   not to SharedPreferences, so naming a settings.xml here would silently back up nothing.
 
-  The entitlement cache (datastore/billing_cache.preferences_pb) is left out by not being listed:
-  with explicit includes, anything unnamed is not backed up. An <exclude> for it was redundant, and
-  release lint rejects an exclude outside every include as invalid, which failed the Play build.
+  With explicit includes, anything unnamed is not backed up, so a file is left out by not being
+  listed. Release lint rejects an <exclude> outside every include as invalid, which once failed the
+  Play build.
 -->
 <full-backup-content>
     <include domain="database" path="pushup.db" />

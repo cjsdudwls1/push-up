@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Same set as backup_rules.xml. The entitlement cache is left out by not being listed; see there.
+  Same set as backup_rules.xml; anything not listed is left out, see there.
 -->
 <data-extraction-rules>
     <cloud-backup>

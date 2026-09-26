@@ -21,16 +21,6 @@ object Routes {
     const val RECORDS = "records"
     const val SETTINGS = "settings"
 
-    /**
-     * The subscription offer, optionally naming the locked dungeon the user was on their way into
-     * — the result's 다음 던전, the hub's way on, a card on the dungeon list — so the offer can say
-     * what it opens. Without one, or with 0, it names none.
-     */
-    private const val PAYWALL_BASE = "paywall"
-    const val PAYWALL = "$PAYWALL_BASE?dungeonIndex={dungeonIndex}"
-
-    fun paywall(dungeonIndex: Int = 0) = "$PAYWALL_BASE?dungeonIndex=$dungeonIndex"
-
     private const val SURVIVAL_BASE = "survival"
     const val SURVIVAL = "$SURVIVAL_BASE/{tutorial}/{exercise}"
     const val ARG_TUTORIAL = "tutorial"
