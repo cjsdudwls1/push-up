@@ -184,6 +184,15 @@ class CombatTest {
     }
 
     @Test
+    fun `three tiers are on offer and the recommendation is one of them`() {
+        // 정예 was removed by the owner's decision; the athlete who used to be pointed at it now sees 표준.
+        assertEquals(listOf("입문", "표준", "지옥"), Difficulty.entries.map { it.korean })
+        assertEquals(Difficulty.STANDARD, Difficulty.recommendedFor(10f))
+        assertEquals(Difficulty.STANDARD, Difficulty.recommendedFor(79f))
+        assertEquals(Difficulty.HELL, Difficulty.recommendedFor(80f))
+    }
+
+    @Test
     fun `a movement's tier cost is its own session, not a pushup's`() {
         // Authored in pushups, converted by session volume. A pull-up session is about 45 reps
         // where a pushup session is 150, so the same tier cannot ask both for the same number.

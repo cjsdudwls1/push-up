@@ -75,6 +75,9 @@ enum class PlayerClass(
  * deliberately compressive, so the athlete ends up working at a lower multiple of their own
  * capacity. This is the lever that lets them close it themselves, out in the open rather than
  * through hidden tuning.
+ *
+ * Three tiers, by the owner's decision. 정예 sat between 표준 and 지옥 and was removed; a stored
+ * `ELITE` reads back as the default, 표준.
  */
 enum class Difficulty(
     val korean: String,
@@ -84,7 +87,6 @@ enum class Difficulty(
 ) {
     NOVICE("입문", 0.75f, 0.75f, 0.80f),
     STANDARD("표준", 1.00f, 1.00f, 1.00f),
-    ELITE("정예", 1.45f, 1.20f, 1.45f),
     HELL("지옥", 2.10f, 1.45f, 2.20f);
 
     companion object {
@@ -95,7 +97,6 @@ enum class Difficulty(
          */
         fun recommendedFor(capacity: Float): Difficulty = when {
             capacity >= 80f -> HELL
-            capacity >= 40f -> ELITE
             else -> STANDARD
         }
     }
