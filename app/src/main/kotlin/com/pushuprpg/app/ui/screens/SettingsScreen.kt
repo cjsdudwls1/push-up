@@ -246,8 +246,9 @@ fun SettingsScreen(
                 color = Palette.TextSecondary,
             )
             Spacer(Modifier.height(8.dp))
-            // Stated separately from the camera line on purpose: crash logs really are sent, and
-            // letting that sentence blur into "nothing leaves the device" would make both wrong.
+            // Stated separately from the camera line on purpose: crash logs and usage statistics
+            // really are sent, and letting that sentence blur into "nothing leaves the device" would
+            // make both wrong. It names both, as the privacy policy's section 4 does.
             Text(
                 text = stringResource(R.string.privacy_telemetry),
                 style = Type.bodyM,

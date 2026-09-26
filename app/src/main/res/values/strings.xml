@@ -26,7 +26,7 @@
     <string name="onboarding_health">의료기기가 아니에요. 운동 중에 아프면 바로 멈추고,\n지병이나 부상이 있다면 먼저 의사와 상의해 주세요.</string>
     <string name="permission_headline">카메라 권한이 필요해요</string>
     <string name="permission_privacy">카메라는 동작만 인식해요. 영상은 저장되지도, 어디로도 전송되지 않아요.</string>
-    <string name="privacy_telemetry">앱이 멈추거나 오류가 나면 원인을 찾기 위한 기록이 전송돼요. 여기에 영상이나 사진은 들어가지 않아요.</string>
+    <string name="privacy_telemetry">앱이 멈추거나 오류가 나면 원인을 찾기 위한 기록이, 평소에는 운동 시작·끝 같은 이용 통계(개수, 시간, 기기 모델 등)가 전송돼요. 여기에 영상이나 사진, 관절 좌표는 들어가지 않아요.</string>
     <string name="permission_grant">카메라 권한 허용</string>
     <string name="permission_open_settings">설정에서 권한 켜기</string>
     <string name="permission_denied_body">권한이 없으면 동작을 읽을 수 없어요. 설정에서 언제든 켤 수 있어요.</string>
