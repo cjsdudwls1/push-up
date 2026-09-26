@@ -111,11 +111,14 @@ The model's spine is longer against the limbs than the rig's (people stand at 0.
 Side on the shoulder line projects onto itself and has no scale, so once the shoulders have been
 narrow against the torso for a second — never on one frame; from the head the lite model collapses
 the shoulder line for single frames — the tracker reads the torso of the better-seen side instead,
-and goes back once they open again. A switch starts the range over and the rep arms again. Side on,
-the reading is the shoulder-to-wrist distance over the torso, not the separation along the torso's
-normal, which tilts with the body and read a 40% knee pushup as 22%; the witness is the shoulders
-coming down in the picture, because with the head in line the nose never moves and a wave moves only
-the hands; and the range is anchored where the body rests even inside the head-on prior's top band.
+and goes back once they open again. A switch starts the range over and the rep arms again. Side on
+the range starts from the prior, never the stored profile, and a side-on set does not write the
+profile: it is `h` from the head, and seeded from it a side-on set went 깊게 on as few as one rep in
+eight and wrote its range over the head's. Side on, the reading is the shoulder-to-wrist distance
+over the torso, not the separation along the torso's normal, which tilts with the body and read a
+40% knee pushup as 22%; the witness is the shoulders coming down in the picture, because with the
+head in line the nose never moves and a wave moves only the hands; and the range is anchored where
+the body rests even inside the head-on prior's top band.
 `MovementRigTest` pins it from the floor, waist and chest height, from either side and 60-75 degrees
 off, on the toes and the knees, at 30 and 15 fps, with waves, holds and a turn mid-set; 60 degrees
 off from the floor is still read across the shoulder line. It is validated on the rig only: until a

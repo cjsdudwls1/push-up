@@ -41,6 +41,18 @@ class RepDetectorImpl(
     private var calibrator = RangeCalibrator(config, profile)
     private val seedProfile = profile
 
+    /**
+     * The range read from the head, which is what the stored profile is and learns from. Side on,
+     * [calibrator] is another one, started from the movement's prior as a first set is: `h` side on
+     * is a different number, and seeded from the profile a side-on set went 깊게 two reps in eight
+     * and wrote its range back over the one from the head. See [SideView].
+     */
+    private var headOnCalibrator = calibrator
+
+    /** A fresh range for the view the body is now read in. */
+    private fun rangeFor(sideOn: Boolean): RangeCalibrator =
+        if (sideOn) RangeCalibrator(config) else RangeCalibrator(config, seedProfile).also { headOnCalibrator = it }
+
     private val signalFilter = OneEuroFilter(
         minCutoff = config.signalMinCutoff.toDouble(),
         beta = config.signalBeta.toDouble(),
@@ -123,15 +135,19 @@ class RepDetectorImpl(
             abandonRep(tMs, AbandonReason.QUALITY_LOST, events)
             if (body.viewChanged) {
                 // Side on and from the head are two readings of the same body, not one: `h` in one
-                // means nothing in the other. The range starts over from the stored profile and is
-                // anchored at the rest this view shows, and the rep has to arm again in it.
-                calibrator = RangeCalibrator(config, seedProfile)
+                // means nothing in the other. The range starts over — from the stored profile from
+                // the head, from the prior side on — and is anchored at the rest this view shows,
+                // and the rep has to arm again in it.
+                calibrator = rangeFor(body.sideOn)
                 phase = RepPhase.IDLE
                 tQualityOkSince = Long.MIN_VALUE
                 resetWatchdog()
                 shallowBottoms.clear()
             }
         }
+        // The first view is taken as seen, with no change to report: side on from the start, the
+        // range is the side view's from the start.
+        if (body != null && body.sideOn && calibrator === headOnCalibrator) calibrator = rangeFor(true)
 
         val newQuality = evaluateQuality(frame, body, sample, tMs)
         if (newQuality != quality) {
@@ -777,7 +793,7 @@ class RepDetectorImpl(
         confidenceEstimator.reset()
         bodyTracker.reset()
         signalFilter.reset()
-        calibrator = RangeCalibrator(config, seedProfile)
+        calibrator = rangeFor(sideOn = false)
         phase = RepPhase.IDLE
         quality = null
         depth = 0f
@@ -814,7 +830,8 @@ class RepDetectorImpl(
 
     override fun restoreCalibration(snapshot: CalibrationSnapshot) = calibrator.restore(snapshot)
 
-    override fun updatedProfile(previous: UserProfile): UserProfile = calibrator.toProfile(previous)
+    /** From the head only: a set side on leaves the profile as it was. See [headOnCalibrator]. */
+    override fun updatedProfile(previous: UserProfile): UserProfile = headOnCalibrator.toProfile(previous)
 
     override fun sessionSummary(): SessionSummary {
         val flagged = records.count { it.qualityFlags.isNotEmpty() }

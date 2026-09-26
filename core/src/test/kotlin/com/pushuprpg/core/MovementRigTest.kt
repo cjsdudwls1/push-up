@@ -9,6 +9,7 @@ import com.pushuprpg.core.detect.Exercises
 import com.pushuprpg.core.detect.PoseQuality
 import com.pushuprpg.core.detect.RepDetectorImpl
 import com.pushuprpg.core.detect.RepEvent
+import com.pushuprpg.core.detect.UserProfile
 import com.pushuprpg.core.fixtures.Body3d
 import com.pushuprpg.core.fixtures.Body3d.Camera
 import com.pushuprpg.core.pose.PoseLandmarks as Lm
@@ -275,6 +276,65 @@ class MovementRigTest {
                 assertEquals(0, r.reps, "$what counted ${r.reps} of 30")
                 assertEquals(30, r.shallow, "$what was called short on ${r.shallow} of 30")
             }
+        }
+    }
+
+    /**
+     * The stored profile is `h` from the head. Seeded from it, a side-on set counted every rep but
+     * went 깊게 on one to seven of eight — a 기사's slow reps priced half — and wrote its side-on
+     * range back into it. Side on the range starts from the prior, as a first set does, whatever
+     * the head left: from a long-armed profile, a short one, a deep one and the one the rig's own
+     * head-on set learns, every rep goes 깊게 and every half rep is called short, and the profile
+     * comes out as it went in, so the next set from the head counts exactly as it would have.
+     */
+    @Test
+    fun `side on, a pushup goes 깊게 whatever profile the head left, and leaves that profile as it was`() {
+        val learned = RepDetectorImpl(Exercises.PUSHUP.config).let { d ->
+            Body3d.trace(pushupAt(0f), Camera.onFloor(1.3f, 12f), 8).forEach { d.onFrame(it) }
+            d.updatedProfile(UserProfile.empty())
+        }
+        assertTrue(!learned.isEmpty, "the rig's head-on set learned no profile")
+        val profiles = listOf(UserProfile(1.6f, 0.5f, 5), UserProfile(1.8f, 0.6f, 5), UserProfile(1.3f, 0.4f, 5), learned)
+        for (profile in profiles) for ((where, camera) in sideCameras) for (yaw in listOf(90f, -90f, 75f)) {
+            for (onKnees in listOf(false, true)) for (fps in listOf(30, 15)) {
+                val what = (if (onKnees) "a knee pushup" else "a pushup") +
+                    " from $where, ${yaw.toInt()} degrees off the head, at $fps fps, from ${profile.topEwma}/${profile.botEwma}"
+                val full = RepDetectorImpl(Exercises.PUSHUP.config, profile)
+                val events = Body3d.trace(pushupAt(yaw, onKnees), camera, 8, fps = fps).flatMap { full.onFrame(it).events }
+                assertEquals(8, full.sessionSummary().repCount, "$what counted ${full.sessionSummary().repCount} of 8")
+                val deep = events.count { it is RepEvent.DeepUpgrade }
+                assertEquals(8, deep, "$what went 깊게 on $deep of 8")
+                assertEquals(profile, full.updatedProfile(profile), "$what changed the profile")
+
+                val half = RepDetectorImpl(Exercises.PUSHUP.config, profile)
+                val halfEvents = Body3d.trace(pushupAt(yaw, onKnees), camera, 30, peakDepth = 0.4f, fps = fps).flatMap { half.onFrame(it).events }
+                assertEquals(0, half.sessionSummary().repCount, "$what 40% down counted ${half.sessionSummary().repCount} of 30")
+                assertEquals(30, halfEvents.count { it is RepEvent.Shallow }, "$what 40% down was not called short every time")
+            }
+        }
+    }
+
+    /** Turned to the side mid-set, the profile learns from the reps done from the head and no others. */
+    @Test
+    fun `a set turned to the side mid-set teaches the profile only what was done from the head`() {
+        val profile = UserProfile(1.6f, 0.5f, 5)
+        for ((where, camera) in sideCameras.take(3)) for (fps in listOf(30, 15)) {
+            val step = 1000L / fps
+            val head = Body3d.trace(pushupAt(0f), camera, 6, fps = fps)
+            var t = head.last().timestampMs + step
+            val turn = (0..(1000 / step).toInt()).map { i -> Body3d.frame(t + i * step, pushupAt(90f * i * step / 1000f)(0f), camera) }
+            t = turn.last().timestampMs + step
+            val side = Body3d.trace(pushupAt(90f), camera, 6, startMs = t, settleMs = 2000, fps = fps)
+
+            val turned = RepDetectorImpl(Exercises.PUSHUP.config, profile)
+            val events = (head + turn + side).flatMap { turned.onFrame(it).events }
+            val headOnly = RepDetectorImpl(Exercises.PUSHUP.config, profile)
+            head.forEach { headOnly.onFrame(it) }
+
+            val what = "6 reps from the head, a turn, 6 side on, from $where at $fps fps"
+            assertEquals(12, turned.sessionSummary().repCount, what)
+            assertEquals(12, events.count { it is RepEvent.DeepUpgrade }, "$what: 깊게 on fewer than all")
+            assertEquals(headOnly.updatedProfile(profile), turned.updatedProfile(profile), "$what: the side-on reps reached the profile")
         }
     }
 

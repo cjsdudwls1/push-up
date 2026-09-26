@@ -342,7 +342,9 @@ enum class CoreConfidence { BOTH_SHOULDERS, NEAR_SIDE }
  *    shoulders where they were.
  *
  * The range is anchored wherever the body rests in this view, even close to the prior: the prior is
- * the head-on one. See [RangeCalibrator.observeRest].
+ * the head-on one. See [RangeCalibrator.observeRest]. It starts from that prior every time, never
+ * from the stored profile, and a side-on set leaves the profile as it was: the profile is `h` from
+ * the head, and seeded from it a side-on set went 깊게 late or not at all.
  */
 data class SideView(
     /**
