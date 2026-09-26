@@ -156,6 +156,9 @@
          the streak, what was already done today counted. -->
     <string name="home_left">%1$s %2$d개 더 하면 오늘 연속이 이어져요.</string>
     <string name="home_left_hold">%1$s %2$d초 더 버티면 오늘 연속이 이어져요.</string>
+    <!-- The same, with no streak yet: there is nothing to continue, so it starts. -->
+    <string name="home_left_first">%1$s %2$d개 더 하면 연속이 시작돼요.</string>
+    <string name="home_left_first_hold">%1$s %2$d초 더 버티면 연속이 시작돼요.</string>
     <string name="home_streak_broken">연속이 끊겼지만 기록은 그대로예요. 오늘부터 다시!</string>
     <!-- A break halves a streak rather than zeroing it; %1$d is the half it goes on from. -->
     <string name="home_streak_broken_kept">연속이 끊겼지만 %1$d일은 남았어요. 오늘 하면 다시 이어져요!</string>

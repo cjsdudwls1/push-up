@@ -147,6 +147,9 @@ fun HomeScreen(
                     state.streakJustBroke -> stringResource(R.string.home_streak_broken)
                     notStarted && bar.kind == MovementKind.HOLD -> stringResource(R.string.home_nudge_hold, name, bar.streakBar)
                     notStarted -> stringResource(R.string.home_nudge, name, bar.streakBar)
+                    state.streakShown == 0 && bar.kind == MovementKind.HOLD ->
+                        stringResource(R.string.home_left_first_hold, name, left)
+                    state.streakShown == 0 -> stringResource(R.string.home_left_first, name, left)
                     bar.kind == MovementKind.HOLD -> stringResource(R.string.home_left_hold, name, left)
                     else -> stringResource(R.string.home_left, name, left)
                 },
