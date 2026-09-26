@@ -67,7 +67,6 @@ with the objection that kills installs for a camera app.
 ▶ 고냥이 지켜줘
 천장이 내려와요. 한 번 밀 때마다 다시 올라가요. 설명이 필요 없는 모드예요.
 팔굽혀펴기를 한 번도 안 해본 사람도 30초면 무슨 게임인지 알아요.
-이 모드는 계속 무료예요.
 
 ▶ 팔굽혀펴기만 있는 게 아니에요
 스쿼트·플랭크 같은 다른 맨몸운동으로도 싸울 수 있어요. 플랭크는 개수 대신 버틴
@@ -87,15 +86,12 @@ with the objection that kills installs for a camera app.
 · 헬스장에 갈 시간이 안 나는 분
 · 운동 습관을 만들고 싶은데 동기가 부족한 분
 
-무료로 할 수 있는 것
-· 고냥이 지켜줘 모드 — 기간 제한 없이
-· 첫 번째 던전 — 기간 제한 없이
+전부 무료예요
+· 모든 던전과 보스 — 앞 던전을 깨면 다음 던전이 열려요
 · 모든 운동, 난이도 선택
+· 고냥이 지켜줘 모드
 · 운동 기록, 연속 일수, 등급 전부
-
-구독하면
-· 두 번째 던전부터 모든 던전과 보스
-· 7일 무료 체험 후 결제, 체험 기간이 끝나기 전에 해지하면 요금이 청구되지 않아요
+· 광고 없음
 
 ※ 이 앱은 의료기기가 아니며 의학적 조언을 제공하지 않아요.
 통증이 있으면 바로 멈추고, 지병이 있다면 시작 전에 의사와 상의해 주세요.
@@ -103,7 +99,7 @@ with the objection that kills installs for a camera app.
 개인정보처리방침: https://cjsdudwls1.github.io/push-up/privacy.html
 ```
 
-About 1,290 characters — well inside the limit, and every remaining character would be worse than
+About 1,200 characters — well inside the limit, and every remaining character would be worse than
 white space. Play does not reward length.
 
 ### Keyword coverage
@@ -157,7 +153,7 @@ Shoot all eight in one session on the real device once `:app` builds. Do not moc
   (This choice also affects 게임물관리위원회 classification; see RELEASE.md.)
 - **Tags:** 운동, 피트니스, 홈트레이닝
 - **Contains ads:** No
-- **In-app purchases:** Yes — subscription
+- **In-app purchases:** No — the app is free for the whole test period (`DECISIONS.md`)
 - **Content rating:** complete the IARC questionnaire; cartoon combat, no realistic violence
 - **Target audience:** 18+ (the app collects no age, and a lower bracket triggers Families policy
   requirements this app is not built for)
@@ -169,7 +165,7 @@ Shoot all eight in one session on the real device once `:app` builds. Do not moc
 첫 출시예요.
 
 · 팔굽혀펴기와 스쿼트·플랭크 같은 맨몸운동으로 몬스터와 싸워요
-· 고냥이 지켜줘 모드는 계속 무료예요
+· 모든 던전이 무료예요. 앞 던전을 깨면 다음 던전이 열려요
 · 카메라 영상은 저장되지 않아요
 
 이상한 점이 있으면 알려주세요. 어떤 폰에서 인식이 잘 안 되는지가 특히 궁금해요.
