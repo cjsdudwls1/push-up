@@ -250,6 +250,8 @@ class BattleEngine(
     private val animator = FighterAnimator(initialPlayer.playerClass)
     private var enemyHurtAtMs = Long.MIN_VALUE
     private var enemyDiedAtMs = Long.MIN_VALUE
+    /** Whether the tracker has had the user yet: before it has, finding them is not a recovery. */
+    private var trackedOnce = false
     private var plankHolding = false
     private var lastHoldTickMs = 0L
     private var repsTotal = 0
@@ -565,13 +567,15 @@ class BattleEngine(
                     val other = alert?.takeUnless { it.textKey == AlertKey.QUALITY_LOST || it.textKey == AlertKey.QUALITY_RECOVERED }
                     if (other == null) {
                         alert = when {
-                            event.quality == PoseQuality.OK -> if (state.quality != PoseQuality.OK) {
+                            // The first sighting of a run is not 다시 보여요: nothing was lost yet.
+                            event.quality == PoseQuality.OK -> if (state.quality != PoseQuality.OK && trackedOnce) {
                                 Toast(AlertKey.QUALITY_RECOVERED, 0, event.tMs)
                             } else alert
                             state.quality == PoseQuality.OK -> Toast(AlertKey.QUALITY_LOST, 0, event.tMs)
                             else -> alert
                         }
                     }
+                    if (event.quality == PoseQuality.OK) trackedOnce = true
                 }
 
                 // Said out loud rather than dropped: a rep refused in silence reads as the game not

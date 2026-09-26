@@ -156,6 +156,11 @@ class RealTraceTest {
             val lost = states.mapNotNull { it.second.alert }.filter { it.textKey == AlertKey.QUALITY_LOST }.distinct().size
             val drops = states.zipWithNext().count { (a, b) -> a.second.quality == PoseQuality.OK && b.second.quality != PoseQuality.OK }
             assertTrue(lost <= drops, "every $stride: $lost tracking-lost toasts for $drops times tracking was lost")
+            // Found for the first time is not found again: 다시 보여요 before any loss said the
+            // tracker had dropped the user when it had only just seen them.
+            val firstOk = states.indexOfFirst { it.second.quality == PoseQuality.OK }
+            val recoveredBeforeAnyDrop = states.take(firstOk + 1).any { it.second.alert?.textKey == AlertKey.QUALITY_RECOVERED }
+            assertTrue(!recoveredBeforeAnyDrop, "every $stride: 다시 보여요 on the run's first sighting")
         }
     }
 
