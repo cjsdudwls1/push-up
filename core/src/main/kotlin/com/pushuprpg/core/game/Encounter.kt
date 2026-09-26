@@ -233,6 +233,15 @@ class Encounter(
         }
     }
 
+    /**
+     * The detector has ended the set: the user rested past its combo timeout, and the toast has told
+     * them the chain is broken. It ends here as well, so the HUD does not keep showing it. The
+     * timeout is longer than either class's window, so the next rep starts a set as it would have.
+     */
+    fun breakCombo() {
+        player = player.copy(combo = 0, tempoStreak = 0)
+    }
+
     fun onRep(rep: RepInput, atMs: Long): List<CombatEvent> {
         if (finished) return emptyList()
         val events = mutableListOf<CombatEvent>()

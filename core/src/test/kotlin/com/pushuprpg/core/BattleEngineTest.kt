@@ -397,6 +397,39 @@ class BattleEngineTest {
         assertEquals(1, state.ultimateRepsLeft, "the lost rep used up the last chance")
     }
 
+    /**
+     * A rest is one broken chain, said once. The detector ends its combo after eight seconds and the
+     * encounter ended its own at the next rep, once the class's window had passed; each said so, one
+     * rest was two toasts, and between them the HUD kept showing the chain it had just called gone.
+     */
+    @Test
+    fun `a rest breaks the combo once, and the HUD shows it broken`() {
+        for (cls in PlayerClass.entries) {
+            // One floor that outlasts the test, so no floor change resets the chain on its own.
+            val dungeon = Dungeon(99, "시험", listOf(EnemyTemplate("test", "시험용", 20)), 1..1)
+            val e = engine(playerClass = cls, dungeon = dungeon)
+            val set = PoseFixtures.trace(count = 4, peakDepth = 0.95f, restMs = 250)
+            val restFrom = set.last().timestampMs + 33
+            // Ten seconds at the top: past the detector's timeout and either class's window.
+            val rest = (0 until 300).map { PoseFixtures.frame(restFrom + it * 33L, 0f) }
+            val again = PoseFixtures.trace(count = 2, startMs = rest.last().timestampMs + 33, peakDepth = 0.95f, restMs = 250, settleMs = 0)
+
+            val beforeRest = set.map { e.onPoseFrame(it) }.last()
+            assertEquals(4, beforeRest.reps, "$cls: the set did not count")
+            assertEquals(4, beforeRest.combo, "$cls: the set did not build a chain")
+            val resting = rest.map { e.onPoseFrame(it) }
+            val after = again.map { e.onPoseFrame(it) }
+
+            val toasts = (resting + after).mapNotNull { it.alert }.filter { it.textKey == AlertKey.COMBO_BROKEN }.distinct()
+            assertEquals(1, toasts.size, "$cls: one rest said the chain was broken ${toasts.size} times")
+            val told = resting.indexOfFirst { it.alert?.textKey == AlertKey.COMBO_BROKEN }
+            assertTrue(told >= 0, "$cls: ten seconds of rest never broke the chain")
+            assertTrue(resting.drop(told).all { it.combo == 0 }, "$cls: the HUD kept a chain it had just called broken")
+            assertEquals(6, after.last().reps, "$cls: the reps after the rest did not count")
+            assertEquals(2, after.last().combo, "$cls: the reps after the rest did not start a new chain")
+        }
+    }
+
     @Test
     fun `every class can clear the first dungeon`() {
         for (cls in PlayerClass.entries) {

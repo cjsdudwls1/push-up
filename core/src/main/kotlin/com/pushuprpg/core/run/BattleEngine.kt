@@ -476,7 +476,9 @@ class BattleEngine(
                             is CombatEvent.Telegraph, is CombatEvent.Ultimate, is CombatEvent.Exhausted ->
                                 onUltimate(ce)
                             is CombatEvent.Style -> onStyle(ce)
-                            else -> alert = alertFor(ce) ?: alert
+                            // A chain the class's window let lapse is said when the detector ends
+                            // it, at the rest itself: said here as well, one rest was two toasts.
+                            else -> Unit
                         }
                     }
                 }
@@ -540,9 +542,12 @@ class BattleEngine(
                     }
                 }
 
+                // The one place a broken chain is said, and where it ends on the HUD: after the
+                // toast, a combo still showing was a chain the user had been told was gone.
                 is RepEvent.ComboBroken -> {
                     alert = Toast(AlertKey.COMBO_BROKEN, event.finalCombo, event.tMs)
                     sounds += SoundRequest(SoundCue.COMBO_BREAK)
+                    encounter.breakCombo()
                 }
 
                 is RepEvent.QualityChanged -> {
@@ -835,11 +840,6 @@ class BattleEngine(
             deepReps++
             segDeep++
         }
-    }
-
-    private fun alertFor(event: CombatEvent): Toast? = when (event) {
-        is CombatEvent.ComboBroken -> Toast(AlertKey.COMBO_BROKEN, event.finalCombo, event.atMs)
-        else -> null
     }
 
     companion object {
