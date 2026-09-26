@@ -17,6 +17,7 @@ import com.pushuprpg.core.game.PlayerState
 import com.pushuprpg.core.run.AlertKey
 import com.pushuprpg.core.run.BattleEngine
 import com.pushuprpg.core.run.Stars
+import com.pushuprpg.core.run.TrackingDrops
 import kotlin.test.assertEquals
 import com.pushuprpg.core.trace.PoseTrace
 import com.pushuprpg.core.trace.TraceReplay
@@ -161,6 +162,35 @@ class RealTraceTest {
             val firstOk = states.indexOfFirst { it.second.quality == PoseQuality.OK }
             val recoveredBeforeAnyDrop = states.take(firstOk + 1).any { it.second.alert?.textKey == AlertKey.QUALITY_RECOVERED }
             assertTrue(!recoveredBeforeAnyDrop, "every $stride: 다시 보여요 on the run's first sighting")
+        }
+    }
+
+    /**
+     * The same blinks are what run_finished reports for H2: each a drop after arming that the tracker
+     * recovered from within a frame or a few, and the last one — the recording ends on it — not
+     * recovered. The set is shorter than the tail a real run's end is left out by, so the tail is off.
+     */
+    @Test
+    fun `the tracker's blinks from the head are reported as short recovered drops`() {
+        for (stride in listOf(1, 2, 3)) {
+            val engine = BattleEngine(
+                dungeon = Dungeons.byIndex(3)!!,
+                difficulty = Difficulty.STANDARD,
+                capacity = 8f,
+                initialPlayer = PlayerState.create(PlayerClass.KNIGHT, level = 1),
+                detector = DetectorFactory.create(ExerciseType.PUSHUP),
+                resolver = CombatResolver(),
+            )
+            val tally = TrackingDrops(tailMs = 0)
+            for (frame in TraceReplay.frames(pushups.every(stride))) {
+                val state = engine.onPoseFrame(frame)
+                tally.onFrame(frame.timestampMs, state.quality, state.phase)
+            }
+            val s = tally.summary()
+            assertTrue(s.armed, "every $stride: the set never armed")
+            assertTrue(s.drops >= 8, "every $stride: ${s.drops} drops for a set that blinks about once a second")
+            assertEquals(s.drops - 1, s.recovered, "every $stride: $s")
+            assertTrue(s.lostMs < s.recovered * 250L, "every $stride: the blinks lasted ${s.lostMs} ms in all, $s")
         }
     }
 

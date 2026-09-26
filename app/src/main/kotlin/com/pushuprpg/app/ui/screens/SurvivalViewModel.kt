@@ -13,6 +13,7 @@ import com.pushuprpg.app.domain.SettingsRepository
 import com.pushuprpg.app.domain.ProgressRepository
 import com.pushuprpg.app.telemetry.Event
 import com.pushuprpg.app.telemetry.Telemetry
+import com.pushuprpg.app.telemetry.TutorialEnd
 import com.pushuprpg.app.trace.RunTraces
 import com.pushuprpg.app.domain.SessionRecord
 import com.pushuprpg.app.domain.SessionRepository
@@ -220,13 +221,14 @@ class SurvivalViewModel(
      * would keep falling while the question was on screen.
      *
      * The tutorial, left once its run has started, is finished rather than only banked: see
-     * [finishTutorial]. Left before, it is not skipped here — only [skipTutorial] skips it.
+     * [finishTutorial]. Left before, it is not skipped here — only [skipTutorial] skips it. Its card
+     * and back finish it directly, so in the tutorial only the screen going gets here.
      */
     fun leave() {
         stopPlaying()
         val now = _state.value
         if (!now.started) return
-        if (tutorial) finishTutorial() else save(score = now.score, survivedMs = now.elapsedMs)
+        if (tutorial) finishTutorial(closed = true) else save(score = now.score, survivedMs = now.elapsedMs)
     }
 
     /**
@@ -254,14 +256,21 @@ class SurvivalViewModel(
      * The done card's button ends it, and so does back once the ceiling is moving; a run ended
      * before the ceiling came down is banked first, as a game over banks it. Once, however many
      * ways it is asked for: a double tap on the card applied the capacity twice.
+     *
+     * [closed] is the screen going rather than the user leaving it, for the ending H3 is read by.
      */
-    fun finishTutorial() {
+    fun finishTutorial(closed: Boolean = false) {
         stopPlaying()
         if (!tutorialEnded.compareAndSet(false, true)) return
         val now = _state.value
         if (now.started) save(score = now.score, survivedMs = now.elapsedMs)
         val observed = maxCombo
-        telemetry.log(Event.TutorialCompleted(reps, now.elapsedMs))
+        val ended = when {
+            !now.alive -> TutorialEnd.CRUSHED
+            closed -> TutorialEnd.CLOSED
+            else -> TutorialEnd.BACK
+        }
+        telemetry.log(Event.TutorialCompleted(reps, now.elapsedMs, ended, _nearMisses.value))
         // The tap that calls this also leaves the screen; in its own scope the write could be
         // cancelled, and the tutorial would come back on the next launch.
         appScope.launch {

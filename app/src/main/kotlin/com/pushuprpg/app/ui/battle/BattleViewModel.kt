@@ -41,6 +41,7 @@ import com.pushuprpg.core.run.BattleEngine
 import com.pushuprpg.core.run.BattleState
 import com.pushuprpg.core.run.ExerciseSegment
 import com.pushuprpg.core.run.Outcome
+import com.pushuprpg.core.run.TrackingDrops
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -93,6 +94,8 @@ class BattleViewModel(
     @Volatile private var sessionBestDepth: Float = 0f
     /** Null, not OK, before the first frame: see the quality_lost log in [onPoseFrame]. */
     @Volatile private var lastReportedQuality: PoseQuality? = null
+    /** How often tracking lost the user once in position, for run_finished. Fed on the pose thread. */
+    private val tracking = TrackingDrops()
 
     /** finish() is reachable from both the pose thread and quit(); the run must bank exactly once. */
     private val saved = AtomicBoolean(false)
@@ -225,6 +228,7 @@ class BattleViewModel(
             val retired = e.switchExercise(next)
             detector = next
             exercise = next.config.exercise
+            tracking.onSwitch()
             telemetry.setExercise(exercise)
             traces.mark("switch=${frame.timestampMs}:${exercise.name}:$pendingProfileNote")
             // Banked now rather than at the end: the retired detector is no longer fed frames, so
@@ -236,6 +240,7 @@ class BattleViewModel(
         }
         traces.record(frame)
         val next = e.onPoseFrame(frame)
+        tracking.onFrame(frame.timestampMs, next.quality, next.phase)
         // The whole skeleton while setting up, whatever the overlay setting: the lines are how the
         // user lines themselves up with the framing guide. Back to their choice once armed.
         val settingUp = next.reps == 0 && next.placement.advice.let { it != null && it != PlacementAdvice.READY }
@@ -251,9 +256,10 @@ class BattleViewModel(
         // has held.
         //
         // Only once tracking has been OK: a run starts with nobody in position yet, and counting
-        // that first frame as a drop put nearly every session into H2's quality_lost rate.
+        // that first frame as a drop put nearly every session into H2's quality_lost rate. H2 itself
+        // is read per run from run_finished; this is for the reasons.
         if (next.quality != PoseQuality.OK && lastReportedQuality == PoseQuality.OK) {
-            telemetry.log(Event.QualityLost(next.quality, next.reps))
+            telemetry.log(Event.QualityLost(next.quality, next.reps, armed = tracking.armed))
         }
         lastReportedQuality = next.quality
 
@@ -335,6 +341,7 @@ class BattleViewModel(
                 reps = outcome.reps,
                 durationMs = outcome.durationMs,
                 plausibility = outcome.plausibility,
+                tracking = tracking.summary(),
             )
         )
 
