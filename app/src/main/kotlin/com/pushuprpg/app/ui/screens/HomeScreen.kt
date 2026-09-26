@@ -34,6 +34,8 @@ data class HomeUiState(
     val todayReps: Int = 0,
     /** Time spent in runs today, every mode. A plank counts no reps, so this is what shows it. */
     val todayActiveMs: Long = 0,
+    /** Today's work per movement, in the unit of each one's streak bar. */
+    val todayWork: Map<ExerciseType, Int> = emptyMap(),
     val entitlement: Entitlement = Entitlement(),
     val loading: Boolean = true,
     /** Today, as an epoch day: what the streak is read against. */
@@ -54,6 +56,9 @@ data class HomeUiState(
 
     val streakJustBroke: Boolean
         get() = Streak.broken(streak, today)
+
+    /** How much more of [exercise] keeps the streak today; zero once today has kept it. */
+    fun leftToday(exercise: ExerciseType): Int = Streak.leftOn(streak, today, todayWork, exercise)
 }
 
 /**
@@ -125,8 +130,12 @@ fun HomeScreen(
         // short of the bar leaves it broken, and the line hid behind the first minute of it. The
         // nudge only when there is something to nudge about. Saying it every day would make the
         // encouragement worthless, and saying it after a plank tells someone who held one for
-        // minutes that they have not started.
-        if (state.streakJustBroke || (state.todayReps == 0 && state.todayActiveMs == 0L)) {
+        // minutes that they have not started. A day begun short of the bar says what is left of it:
+        // the nudge used to go with the first run, and eight squats of fifteen left no word of the
+        // seven more.
+        val notStarted = state.todayReps == 0 && state.todayActiveMs == 0L
+        val left = state.leftToday(lastExercise)
+        if (state.streakJustBroke || notStarted || left > 0) {
             // The bar quoted is the real one, for the movement the user reaches for.
             val bar = Exercises.of(lastExercise)
             val name = stringResource(exerciseLabelRes(lastExercise))
@@ -136,8 +145,10 @@ fun HomeScreen(
                     state.streakJustBroke && state.streakShown > 0 ->
                         stringResource(R.string.home_streak_broken_kept, state.streakShown)
                     state.streakJustBroke -> stringResource(R.string.home_streak_broken)
-                    bar.kind == MovementKind.HOLD -> stringResource(R.string.home_nudge_hold, name, bar.streakBar)
-                    else -> stringResource(R.string.home_nudge, name, bar.streakBar)
+                    notStarted && bar.kind == MovementKind.HOLD -> stringResource(R.string.home_nudge_hold, name, bar.streakBar)
+                    notStarted -> stringResource(R.string.home_nudge, name, bar.streakBar)
+                    bar.kind == MovementKind.HOLD -> stringResource(R.string.home_left_hold, name, left)
+                    else -> stringResource(R.string.home_left, name, left)
                 },
                 style = Type.bodyL,
                 color = if (state.streakJustBroke) colors.accept else Palette.TextSecondary,

@@ -2,6 +2,7 @@ package com.pushuprpg.core
 
 import com.pushuprpg.core.detect.DetectorConfig
 import com.pushuprpg.core.detect.ExerciseType
+import com.pushuprpg.core.detect.Exercises
 import com.pushuprpg.core.detect.RepGrade
 import com.pushuprpg.core.game.*
 import com.pushuprpg.core.detect.RepGrade as Grade
@@ -317,6 +318,27 @@ class ProgressionTest {
         val kept = Streak.advance(start, day, squats, cleared = true)
         assertEquals(kept, Streak.advance(kept, day, squats, cleared = true))
         assertEquals(StreakState(6, day), Streak.advance(StreakState(10, day - 3), day, squats, cleared = true))
+    }
+
+    @Test
+    fun `what is left of today's bar counts the day's work and a clear`() {
+        val start = StreakState(days = 3, lastActiveDay = day - 1)
+        assertEquals(15, Streak.leftOn(start, day, emptyMap(), ExerciseType.SQUAT))
+        assertEquals(7, Streak.leftOn(start, day, mapOf(ExerciseType.SQUAT to 8), ExerciseType.SQUAT))
+        assertEquals(24, Streak.leftOn(start, day, mapOf(ExerciseType.PLANK to 36), ExerciseType.PLANK))
+        // Five pushups are half the day: half of fifteen squats, rounded up, is what is left.
+        assertEquals(8, Streak.leftOn(start, day, mapOf(ExerciseType.PUSHUP to 5), ExerciseType.SQUAT))
+        assertEquals(0, Streak.leftOn(start, day, mapOf(ExerciseType.PUSHUP to 10), ExerciseType.SQUAT))
+        // Eight squats and a clear: the day is kept though its work is short.
+        val cleared = Streak.advance(start, day, mapOf(ExerciseType.SQUAT to 8), cleared = true)
+        assertEquals(0, Streak.leftOn(cleared, day, mapOf(ExerciseType.SQUAT to 8), ExerciseType.SQUAT))
+        // Whatever is quoted is exactly enough, and one fewer is not.
+        for (done in ExerciseType.entries) for (next in ExerciseType.entries) {
+            val work = mapOf(done to Exercises.of(done).streakBar / 3)
+            val left = Streak.leftOn(start, day, work, next)
+            assertEquals(StreakState(4, day), Streak.advance(start, day, Streak.sum(work, mapOf(next to left))), "$done then $next")
+            assertEquals(start, Streak.advance(start, day, Streak.sum(work, mapOf(next to left - 1))), "$done then $next")
+        }
     }
 
     @Test

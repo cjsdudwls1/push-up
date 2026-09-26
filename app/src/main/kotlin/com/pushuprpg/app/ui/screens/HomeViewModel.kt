@@ -47,17 +47,21 @@ class HomeViewModel(
     val state: StateFlow<HomeUiState> = combine(
         progressRepository.progress,
         // Subscribed again when the day turns: the totals' window is fixed when it is collected.
+        // The day's work per movement is read again each time they emit, which is each time a run
+        // is banked.
         day.flatMapLatest { epochDay ->
             sessionRepository.dailyTotals(days = 2).map { totals ->
-                totals.firstOrNull { it.epochDay == epochDay } ?: DailyTotal(epochDay, reps = 0, activeMs = 0L)
+                val total = totals.firstOrNull { it.epochDay == epochDay } ?: DailyTotal(epochDay, reps = 0, activeMs = 0L)
+                total to sessionRepository.workOn(epochDay)
             }
         },
         entitlementRepository.entitlement,
-    ) { progress, todayTotal, entitlement ->
+    ) { progress, (todayTotal, todayWork), entitlement ->
         HomeUiState(
             progress = progress,
             todayReps = todayTotal.reps,
             todayActiveMs = todayTotal.activeMs,
+            todayWork = todayWork,
             entitlement = entitlement,
             loading = false,
             today = todayTotal.epochDay,

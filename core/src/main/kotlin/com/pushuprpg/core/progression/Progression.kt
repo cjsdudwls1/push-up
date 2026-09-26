@@ -203,6 +203,17 @@ object Streak {
     }
 
     /**
+     * How much more of [exercise], in its bar's unit, keeps the streak on [today] after [dayWork]:
+     * the least that does, the day's other movements counted at their share of their own bars. Zero
+     * once today has kept it, by its work or by a dungeon cleared, which its work does not show.
+     */
+    fun leftOn(current: StreakState, today: Long, dayWork: Map<ExerciseType, Int>, exercise: ExerciseType): Int {
+        if (current.lastActiveDay >= today || maintained(dayWork)) return 0
+        val bar = Exercises.of(exercise).streakBar
+        return (1..bar).firstOrNull { maintained(sum(dayWork, mapOf(exercise to it))) } ?: bar
+    }
+
+    /**
      * A whole day has gone by without the bar being met. Yesterday's streak is still alive today —
      * there is all of today to keep it.
      */
