@@ -127,6 +127,11 @@
          and followed by the movement's one-line placement hint. -->
     <string name="result_nothing_counted">카메라가 아직 한 개도 못 셌어요</string>
     <string name="result_nothing_counted_hold">카메라가 아직 버틴 시간을 못 셌어요</string>
+    <!-- Nothing counted, but the camera saw reps come back short of the 인정 line, so nothing here is
+         about the phone. Under the tutorial's near-miss title; a pushup gets that card's line, knees
+         and all, and the other movements say it the way they go. -->
+    <string name="result_shallow_down">조금만 더 내려가면 세져요.</string>
+    <string name="result_shallow_pull">조금만 더 끌어올리면 세져요.</string>
     <string name="result_tile_combo">최고 콤보</string>
     <string name="result_tile_time">시간</string>
     <string name="result_tile_deep">깊게</string>
@@ -312,7 +317,9 @@
     <string name="tutorial_done_title_shallow">거의 다 왔어요!</string>
     <string name="tutorial_done_title_zero">폰 자리만 맞추면 돼요</string>
     <string name="tutorial_done_reps">%1$d개 했어요!</string>
-    <!-- The camera saw the reps and they were short of the line, so nothing here is about the phone. -->
+    <!-- The camera saw the reps and they were short of the line, so nothing here is about the phone.
+         A dungeon run that counted nothing but short reps ends on tutorial_done_title_shallow too,
+         and on this line when they were pushups. -->
     <string name="tutorial_done_shallow">조금만 더 내려가면 세져요. 힘들면 무릎 대고 해도 괜찮아요.</string>
     <!-- The camera's miss, followed by the pushup placement hint. -->
     <string name="tutorial_done_zero">카메라가 아직 한 개도 못 셌어요.</string>

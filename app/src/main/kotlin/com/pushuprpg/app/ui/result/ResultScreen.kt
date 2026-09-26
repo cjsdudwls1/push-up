@@ -91,6 +91,11 @@ fun ResultScreen(
     // The camera counted nothing at all. Said plainly, with where the phone goes, instead of a star
     // for depth nobody measured and a banner saying 0개 were kept.
     val nothingCounted = !outcome.cleared && outcome.reps == 0 && heldMs < 1_000L
+    // Unless it saw reps come back short of the 인정 line: then the phone was fine and the depth is
+    // what to find, said as the tutorial's near-miss card says it. The run itself had said
+    // 조금만 더 내려가 볼까요?, and its result then sent the user off to move the phone.
+    val nearMiss = nothingCounted && outcome.shallowReps > 0
+    val nearMissExercise = outcome.segments.lastOrNull { it.shallowReps > 0 }?.exercise ?: lastExercise
     // A run that only held is told in seconds, as its HUD counted it, not as the reps it never made.
     val inSeconds = outcome.reps == 0 && heldMs >= 1_000L
     // The tile is named after what was done: the movement, or 개수 when there was more than one.
@@ -128,6 +133,7 @@ fun ResultScreen(
         Text(
             text = when {
                 outcome.cleared -> stringResource(R.string.result_cleared_sub, dungeonName)
+                nearMiss -> stringResource(R.string.tutorial_done_title_shallow)
                 nothingCounted -> stringResource(
                     if (Exercises.of(lastExercise).kind == MovementKind.HOLD) R.string.result_nothing_counted_hold
                     else R.string.result_nothing_counted
@@ -142,7 +148,13 @@ fun ResultScreen(
         if (nothingCounted) {
             Spacer(Modifier.height(18.dp))
             Text(
-                text = stringResource(exerciseHintRes(lastExercise)),
+                text = when {
+                    !nearMiss -> stringResource(exerciseHintRes(lastExercise))
+                    // The knees are a pushup's alone, and a pull-up's goes up.
+                    nearMissExercise == ExerciseType.PUSHUP -> stringResource(R.string.tutorial_done_shallow)
+                    nearMissExercise == ExerciseType.PULL_UP -> stringResource(R.string.result_shallow_pull)
+                    else -> stringResource(R.string.result_shallow_down)
+                },
                 style = Type.bodyM,
                 color = Palette.TextPrimary,
                 textAlign = TextAlign.Center,
