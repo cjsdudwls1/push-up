@@ -119,17 +119,18 @@ object FeatureGraphic {
         mouth.close()
         canvas.drawPath(mouth, paint)
 
-        // Its health, as the number the feedback asked for.
+        // What it still owes, in the battle HUD's own words. The app shows no hit points — a monster
+        // is a count of reps — so the banner does not either, and the bar is that share of the count.
         val track = RectF(cx - r * 1.15f, cy + r * 1.32f, cx + r * 1.15f, cy + r * 1.48f)
         paint.color = 0xFF2E3542.toInt()
         canvas.drawRoundRect(track, track.height() / 2f, track.height() / 2f, paint)
         paint.color = BOSS
         canvas.drawRoundRect(
-            RectF(track.left, track.top, track.left + track.width() * 0.62f, track.bottom),
+            RectF(track.left, track.top, track.left + track.width() * 8f / 13f, track.bottom),
             track.height() / 2f, track.height() / 2f, paint,
         )
         text(
-            canvas, "1,240 / 2,000", track.centerX(), track.bottom + 34f, 22f, TEXT_2,
+            canvas, "남은 8개", track.centerX(), track.bottom + 34f, 22f, TEXT_2,
             Typeface.SANS_SERIF, align = Paint.Align.CENTER,
         )
     }
