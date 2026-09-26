@@ -834,6 +834,22 @@ class BattleEnginePresentationTest {
         assertEquals(outcome.reps, outcome.segments.sumOf { it.reps }, "a rep went missing between segments")
     }
 
+    /** How many reps fell short of the 인정 line, for the result to say: each movement's its own. */
+    @Test
+    fun `a run banks the reps that fell short, movement by movement`() {
+        val e = engineIn(Dungeons.byIndex(3)!!)
+        val whole = PoseFixtures.trace(count = 3, peakDepth = 0.95f, restMs = 250)
+        val short = PoseFixtures.trace(count = 2, peakDepth = 0.5f, startMs = whole.last().timestampMs + 33, settleMs = 0)
+        feed(e, whole + short)
+        e.switchExercise(RepDetectorImpl(DetectorConfig.squat()))
+        feed(e, PoseFixtures.squatTrace(count = 3, peakDepth = 0.5f, startMs = short.last().timestampMs + 33))
+        val outcome = e.quit()
+
+        assertEquals(3, outcome.reps, "a rep short of the line was counted")
+        assertEquals(listOf(2, 3), outcome.segments.map { it.shallowReps })
+        assertEquals(5, outcome.shallowReps)
+    }
+
     /**
      * Leaving a run asks first once there is something in it, and says what will be kept. A plank
      * counts no reps, so the time held has to be on the state — and be the time the run banks,

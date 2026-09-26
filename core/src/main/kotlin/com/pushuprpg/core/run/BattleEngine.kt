@@ -173,6 +173,11 @@ data class Outcome(
     val stars: Stars = Stars.ONE,
     /** Reps done the class's way — whole reps off the count. The rest were worth half. */
     val styleReps: Int = 0,
+    /**
+     * Reps that went down and came back short of the 인정 line, every movement summed: the detector's
+     * own count of what it refused as shallow. Not in [reps], which is what counted.
+     */
+    val shallowReps: Int = 0,
     /** The run movement by movement, in the order they were done. One entry if it never switched. */
     val segments: List<ExerciseSegment> = emptyList(),
     /** The monster being fought when the run ended. */
@@ -202,6 +207,8 @@ data class ExerciseSegment(
     val holdMs: Long,
     val durationMs: Long,
     val plausibility: Float,
+    /** Reps the detector refused as short of the 인정 line while this movement was being done. */
+    val shallowReps: Int = 0,
 )
 
 /**
@@ -778,6 +785,7 @@ class BattleEngine(
             holdMs = summary.holdMs,
             durationMs = if (segStartMs == Long.MIN_VALUE) 0 else (atMs - segStartMs).coerceAtLeast(0),
             plausibility = summary.plausibility,
+            shallowReps = summary.shallowCount,
         )
     }
 
@@ -826,6 +834,7 @@ class BattleEngine(
             crackFraction = if (cleared) 0f else encounter.crackFraction(),
             meanDepth = if (repsTotal == 0) 0f else depthSum / repsTotal,
             styleReps = styleRepsTotal + encounter.styleReps,
+            shallowReps = all.sumOf { it.shallowReps },
             stars = Stars.of(
                 meanDepth = if (repsTotal == 0) 0f else depthSum / repsTotal,
                 countEnter = detector.config.countEnter,
