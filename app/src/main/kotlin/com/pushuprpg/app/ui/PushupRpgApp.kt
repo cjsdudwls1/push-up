@@ -370,11 +370,21 @@ fun PushupRpgApp(
                                 onSwitchExercise = vm::switchExercise,
                                 onQuit = {
                                     if (navController.isOnTop(entry)) {
-                                        lastOutcome = vm.quit()
-                                        lastLevelsGained = vm.levelsGained.value
-                                        lastLevelReached = vm.levelReached.value
-                                        navController.navigate(Routes.result(dungeonIndex)) {
-                                            popUpTo(Routes.BATTLE) { inclusive = true }
+                                        val outcome = vm.quit()
+                                        if (outcome == null) {
+                                            // Left with nothing done, which banks nothing: back to
+                                            // the movement picker it came in by. It used to open a
+                                            // result — 다음엔 잡아요 over a fight never started.
+                                            navController.navigate(Routes.exercisePick(dungeonIndex)) {
+                                                popUpTo(Routes.BATTLE) { inclusive = true }
+                                            }
+                                        } else {
+                                            lastOutcome = outcome
+                                            lastLevelsGained = vm.levelsGained.value
+                                            lastLevelReached = vm.levelReached.value
+                                            navController.navigate(Routes.result(dungeonIndex)) {
+                                                popUpTo(Routes.BATTLE) { inclusive = true }
+                                            }
                                         }
                                     }
                                 },

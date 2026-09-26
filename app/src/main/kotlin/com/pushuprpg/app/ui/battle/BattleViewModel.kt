@@ -97,6 +97,9 @@ class BattleViewModel(
     /** finish() is reachable from both the pose thread and quit(); the run must bank exactly once. */
     private val saved = AtomicBoolean(false)
 
+    /** The run [finish] took had nothing in it, and so banked nothing. */
+    @Volatile private var bankedNothing = false
+
     /** One run per model: see [start]. Main thread only. */
     private var started = false
 
@@ -263,12 +266,15 @@ class BattleViewModel(
         viewModelScope.launch { settingsRepository.update { it.copy(skeletonMode = mode) } }
     }
 
-    /** Returns the banked outcome so the caller can hand it to the result screen. */
+    /**
+     * Returns the banked outcome so the caller can hand it to the result screen, or null when there
+     * is no result to show: the run had not begun, or had nothing in it and banked nothing.
+     */
     fun quit(): Outcome? {
         val e = engine ?: return null
         val outcome = e.quit()
         finish(outcome)
-        return outcome
+        return outcome.takeUnless { bankedNothing }
     }
 
     /**
@@ -325,6 +331,17 @@ class BattleViewModel(
             )
         )
 
+        // Nothing in it at all — no rep counted and no movement held for a second: the phone was
+        // set up and the run left, or the X pressed to pick another movement. That is not a run, and
+        // it banks nothing. Its 도전 0개 row lit the day on the calendar, hid the hub's nudge and its
+        // broken-streak line, and for a plank was read as seconds held toward the day's bar. What the
+        // detector learned while the user set up is still kept.
+        if (!outcome.cleared && outcome.reps == 0 && segments.all { it.holdMs < 1_000L }) {
+            bankedNothing = true
+            appScope.launch { saveCalibration() }
+            return
+        }
+
         // Not viewModelScope: the result screen pops this one as soon as the outcome lands, and a
         // write cancelled halfway would keep the record row and lose the XP, the streak and the
         // unlock.
@@ -358,11 +375,7 @@ class BattleViewModel(
                 startedAt += seg.durationMs
             }
 
-            // The movement in progress at the end; each earlier one was banked when it was left.
-            detector?.let { det ->
-                val previous = progressRepository.calibrationProfile(exercise)
-                progressRepository.saveCalibrationProfile(exercise, det.updatedProfile(previous))
-            }
+            saveCalibration()
 
             // The streak's new length when this run is the one that met the day's bar; a later run
             // the same day keeps the streak without maintaining it again. Logged once written.
@@ -402,6 +415,14 @@ class BattleViewModel(
                 )
             }
             maintained?.let { telemetry.log(Event.StreakMaintained(it)) }
+        }
+    }
+
+    /** The movement in progress at the end; each earlier one was banked when it was left. */
+    private suspend fun saveCalibration() {
+        detector?.let { det ->
+            val previous = progressRepository.calibrationProfile(exercise)
+            progressRepository.saveCalibrationProfile(exercise, det.updatedProfile(previous))
         }
     }
 
