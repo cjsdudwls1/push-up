@@ -59,7 +59,7 @@
     <string name="battle_ultimate_hit">아야, 체력이 %1$d 줄었어요. 다음엔 막아요!</string>
     <string name="battle_hp_label">체력</string>
     <string name="battle_bootstrap">처음 몇 개로 내 몸에 맞출게요</string>
-    <string name="battle_calibrated">내 몸에 맞췄어요. 이제 제대로 세요</string>
+    <string name="battle_calibrated">내 몸에 맞췄어요. 이제부터 제대로 셀게요</string>
     <string name="battle_shallow_twice">조금만 더 내려가 볼까요?</string>
     <string name="battle_shallow_four">힘들면 무릎 대고 해도 괜찮아요</string>
     <string name="battle_shallow_pull">조금만 더 끌어올려 볼까요?</string>
@@ -114,7 +114,7 @@
     <string name="body_part_hip">엉덩이</string>
     <string name="body_part_knee">무릎</string>
     <string name="body_part_ankle">발목</string>
-    <string name="quality_paused_notice">추적이 끊긴 동안에는 보스도 멈춰 있어요</string>
+    <string name="quality_paused_notice">카메라가 나를 놓친 동안에는 몬스터도 멈춰 있어요</string>
 
     <!-- Result -->
     <string name="result_cleared">던전 클리어</string>
@@ -141,10 +141,10 @@
     <string name="result_level_up">레벨 %1$d 달성!</string>
     <!-- Where a run stopped part way: the monster it was fighting and what that monster still owed,
          the same count the next try starts from. -->
-    <string name="result_left">%1$s에게 %2$,d개 남기고 멈췄어요. 다음엔 잡아요.</string>
-    <string name="result_left_hold">%1$s에게 %2$,d초 남기고 멈췄어요. 다음엔 잡아요.</string>
+    <string name="result_left">%1$s에게 %2$,d개 남기고 멈췄어요.</string>
+    <string name="result_left_hold">%1$s에게 %2$,d초 남기고 멈췄어요.</string>
     <!-- The run stopped just as that monster fell, before the next one came. -->
-    <string name="result_fell">%1$s까지 쓰러뜨리고 멈췄어요. 다음엔 잡아요.</string>
+    <string name="result_fell">%1$s까지 쓰러뜨리고 멈췄어요.</string>
 
     <!-- Home -->
     <string name="home_today_reps">오늘 %1$d개</string>
