@@ -163,10 +163,15 @@ fun PushupRpgApp(
 
             // NavHost memoises its graph on startDestination, and a changed one wipes the whole
             // back stack. It is therefore decided exactly once.
+            //
+            // The permission comes first only on the way through onboarding, whose tutorial needs
+            // the camera. After it, the hub: the camera screens ask for it themselves (CameraGate),
+            // and someone who turned the camera off could otherwise not reach their records, the
+            // settings or the privacy policy — which says the other screens stay usable.
             val startDestination = remember {
                 when {
                     !progress.classChosen -> Routes.ONBOARDING
-                    !granted -> Routes.PERMISSION
+                    !granted && !progress.onboarded -> Routes.PERMISSION
                     !progress.onboarded -> Routes.survival(tutorial = true)
                     else -> Routes.HOME
                 }
