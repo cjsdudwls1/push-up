@@ -218,6 +218,14 @@ object Dungeons {
 
     fun byIndex(index: Int): Dungeon? = ALL.firstOrNull { it.index == index }
 
-    /** The free-forever dungeon. See the monetization notes: exercise itself is never paywalled. */
+    /**
+     * Whether dungeon [index] is open to a player whose furthest clear is [highestCleared]: the
+     * first from the start, and each after it once the one before has been cleared. Every dungeon
+     * is free; this is the only thing that keeps one shut, and nothing else in the app decides it.
+     */
+    fun isUnlocked(index: Int, highestCleared: Int): Boolean =
+        index in 1..ALL.size && index <= highestCleared + 1
+
+    /** The first dungeon: open from the start, and where the tutorial sends a new player. */
     val FREE_DUNGEON: Dungeon = ALL.first()
 }
