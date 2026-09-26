@@ -132,7 +132,12 @@ class SurvivalViewModel(
     @Volatile
     private var restartRequested = false
 
+    /** The screen is on its way out; see [stopPlaying]. */
+    @Volatile
+    private var left = false
+
     fun onPoseFrame(frame: com.pushuprpg.core.pose.PoseFrame) {
+        if (left) return
         traces.record(frame)
         if (restartRequested) {
             restartRequested = false
@@ -218,9 +223,20 @@ class SurvivalViewModel(
      * [finishTutorial]. Left before, it is not skipped here — only [skipTutorial] skips it.
      */
     fun leave() {
+        stopPlaying()
         val now = _state.value
         if (!now.started) return
         if (tutorial) finishTutorial() else save(score = now.score, survivedMs = now.elapsedMs)
+    }
+
+    /**
+     * Every way out of the screen comes through here. It keeps feeding frames until its transition
+     * is over, and the run played on behind the next screen: the ceiling kept falling and the cat
+     * and the coach kept talking over the hub. Lines already queued go unsaid as well.
+     */
+    private fun stopPlaying() {
+        left = true
+        voice.stop()
     }
 
     override fun onCleared() {
@@ -240,6 +256,7 @@ class SurvivalViewModel(
      * ways it is asked for: a double tap on the card applied the capacity twice.
      */
     fun finishTutorial() {
+        stopPlaying()
         if (!tutorialEnded.compareAndSet(false, true)) return
         val now = _state.value
         if (now.started) save(score = now.score, survivedMs = now.elapsedMs)
@@ -269,6 +286,7 @@ class SurvivalViewModel(
      * capacity keeps what it was, which is what a skipped calibration should mean.
      */
     fun skipTutorial() {
+        stopPlaying()
         if (!tutorialEnded.compareAndSet(false, true)) return
         telemetry.log(Event.TutorialSkipped)
         // In the app's scope, as in finishTutorial: the tap that calls this also leaves the screen.

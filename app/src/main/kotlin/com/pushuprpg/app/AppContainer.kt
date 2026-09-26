@@ -66,8 +66,10 @@ class AppContainer(context: Context) {
     /** One player for the whole app, so leaving one run and entering the next never plays two. */
     val music: MusicPlayer by lazy { MusicPlayer(appContext) }
 
+    private val voiceHolder = lazy { GameVoice(appContext, music) }
+
     /** The spoken lines. One engine for the app: binding the TTS service takes a moment. */
-    val voice: GameVoice by lazy { GameVoice(appContext, music) }
+    val voice: GameVoice by voiceHolder
 
     val telemetry: Telemetry by lazy { Telemetry(appContext) }
 
@@ -95,5 +97,14 @@ class AppContainer(context: Context) {
 
     fun onAppResume() {
         billing.onAppResume()
+    }
+
+    /**
+     * The app went out of sight. Lines still queued from a run are dropped rather than said over
+     * the home screen with the user's own music ducked under them. A voice never made is not made
+     * here just to be silenced.
+     */
+    fun onAppStop() {
+        if (voiceHolder.isInitialized()) voice.stop()
     }
 }

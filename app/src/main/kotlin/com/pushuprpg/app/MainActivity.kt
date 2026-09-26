@@ -79,6 +79,11 @@ class MainActivity : ComponentActivity() {
         (application as PushupApp).container.onAppResume()
     }
 
+    override fun onStop() {
+        super.onStop()
+        (application as PushupApp).container.onAppStop()
+    }
+
     private fun openAppSettings() {
         startActivity(
             Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {

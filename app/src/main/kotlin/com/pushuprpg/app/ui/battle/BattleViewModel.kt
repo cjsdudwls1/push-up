@@ -213,6 +213,11 @@ class BattleViewModel(
 
     /** Called on the pose callback thread. */
     fun onPoseFrame(frame: PoseFrame) {
+        // Nothing once the run is banked. The screen keeps feeding frames on its way out, and quit()
+        // ends the run without the engine knowing: it played on behind the result, and said
+        // 화면 안으로 들어와 주세요 over it to someone who had just walked up to press the X. The frame
+        // that ends a run on its own is past this line already, so its outcome is still published.
+        if (saved.get()) return
         val e = engine ?: return
         pendingSwitch?.let { next ->
             pendingSwitch = null
@@ -274,6 +279,8 @@ class BattleViewModel(
         val e = engine ?: return null
         val outcome = e.quit()
         finish(outcome)
+        // What was queued is about a run that is over.
+        voice.stop()
         return outcome.takeUnless { bankedNothing }
     }
 
