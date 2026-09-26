@@ -12,6 +12,7 @@ import com.pushuprpg.core.run.Stars
 import com.pushuprpg.core.pose.PoseFrame
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 /**
@@ -491,7 +492,7 @@ class BattleEngineTest {
     @Test
     fun `a rest breaks the combo once, and the HUD shows it broken`() {
         for (cls in PlayerClass.entries) {
-            // One floor that outlasts the test, so no floor change resets the chain on its own.
+            // One floor that outlasts the test.
             val dungeon = Dungeon(99, "시험", listOf(EnemyTemplate("test", "시험용", 20)), 1..1)
             val e = engine(playerClass = cls, dungeon = dungeon)
             val set = PoseFixtures.trace(count = 4, peakDepth = 0.95f, restMs = 250)
@@ -514,6 +515,83 @@ class BattleEngineTest {
             assertEquals(6, after.last().reps, "$cls: the reps after the rest did not count")
             assertEquals(2, after.last().combo, "$cls: the reps after the rest did not start a new chain")
         }
+    }
+
+    /**
+     * The combo on the HUD is the detector's chain, the one 콤보 N! counts and a rest breaks. It used
+     * to be the encounter's, which a 궁수's five-second window ended at the next rep without a word:
+     * after a six-second rest the HUD went from 4 to 1 while the toast went on counting from 4.
+     */
+    @Test
+    fun `a rest short of the break keeps the chain on the HUD`() {
+        for (cls in PlayerClass.entries) {
+            val dungeon = Dungeon(99, "시험", listOf(EnemyTemplate("test", "시험용", 20)), 1..1)
+            val e = engine(playerClass = cls, dungeon = dungeon)
+            val set = PoseFixtures.trace(count = 4, peakDepth = 0.95f, restMs = 250)
+            val restFrom = set.last().timestampMs + 33
+            // Four seconds at the top: about six from one strike to the next.
+            val rest = (0 until 120).map { PoseFixtures.frame(restFrom + it * 33L, 0f) }
+            val again = PoseFixtures.trace(count = 1, startMs = rest.last().timestampMs + 33, peakDepth = 0.95f, restMs = 250, settleMs = 0)
+
+            val frames = set + rest + again
+            val states = frames.map { e.onPoseFrame(it) }
+            val struck = states.indices.filter { it > 0 && states[it].reps > states[it - 1].reps }
+            assertEquals(5, struck.size, "$cls: the reps did not all count")
+            val gap = frames[struck[4]].timestampMs - frames[struck[3]].timestampMs
+            assertTrue(
+                gap > PlayerClass.ARCHER.comboWindowMs && gap < DetectorConfig.pushup().comboTimeoutMs,
+                "$cls: the rest should fall between a 궁수's window and the detector's timeout, was ${gap}ms",
+            )
+
+            assertTrue(states.subList(struck[3], struck[4]).all { it.combo == 4 }, "$cls: the HUD dropped the chain during the rest")
+            assertEquals(5, states[struck[4]].combo, "$cls: a rest the detector did not call a break reset the HUD")
+            assertTrue(states.none { it.alert?.textKey == AlertKey.COMBO_BROKEN }, "$cls: a chain that held was called broken")
+        }
+    }
+
+    /**
+     * 콤보 N! says the number on the HUD. The encounter's chain started again on every floor and the
+     * detector's did not, so the toast said 콤보 10! over a HUD reading far less.
+     */
+    @Test
+    fun `the combo toast says the number on the HUD, across a floor`() {
+        for (cls in PlayerClass.entries) {
+            // A first floor that falls inside the set, and a second that outlasts it.
+            val dungeon = Dungeon(99, "시험", listOf(EnemyTemplate("a", "첫째", 3), EnemyTemplate("b", "둘째", 40)), 1..1)
+            val e = engine(playerClass = cls, dungeon = dungeon)
+            val states = PoseFixtures.trace(count = 12, peakDepth = 0.95f, restMs = 250).map { e.onPoseFrame(it) }
+
+            val toast = assertNotNull(
+                states.firstOrNull { it.alert?.textKey == AlertKey.COMBO_MILESTONE },
+                "$cls: twelve reps in a row never said 콤보 10!",
+            )
+            assertTrue(toast.floorIndex > 0, "$cls: the fixture should reach the toast on the second floor")
+            assertEquals(toast.combo, toast.alert!!.arg, "$cls: the toast and the HUD counted different chains")
+            assertEquals(12, states.last().combo, "$cls: the floor broke the chain on the HUD")
+        }
+    }
+
+    /**
+     * The best combo the result, the records and the share card show is the best set the detector
+     * counted: each movement's own, as each segment banks it. The encounter's chain ran on across a
+     * switch of movement, so five pushups and four squats claimed a set of nine.
+     */
+    @Test
+    fun `the run's best combo is its best set`() {
+        val dungeon = Dungeon(99, "시험", listOf(EnemyTemplate("test", "시험용", 20)), 1..1)
+        val e = engine(dungeon = dungeon)
+        val pushups = PoseFixtures.trace(count = 5, peakDepth = 0.95f, restMs = 250)
+        pushups.forEach { e.onPoseFrame(it) }
+        e.switchExercise(RepDetectorImpl(DetectorConfig.squat()))
+        assertEquals(0, e.currentState().combo, "a new movement's chain did not start from nothing")
+        val last = PoseFixtures.squatTrace(count = 4, startMs = pushups.last().timestampMs + 33)
+            .map { e.onPoseFrame(it) }.last()
+        val outcome = e.quit()
+
+        assertEquals(listOf(5, 4), outcome.segments.map { it.maxCombo })
+        assertEquals(4, last.combo)
+        assertEquals(outcome.segments.maxOf { it.maxCombo }, outcome.maxCombo, "the run's best was not a set anyone did")
+        assertEquals(outcome.maxCombo, last.maxCombo, "the HUD's best is not the one the run banks")
     }
 
     @Test

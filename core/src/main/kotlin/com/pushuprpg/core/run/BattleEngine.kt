@@ -73,6 +73,11 @@ data class BattleState(
     val reps: Int = 0,
     /** Time held this run, every hold summed across switches. A plank counts no [reps]. */
     val heldMs: Long = 0,
+    /**
+     * The set in progress as the detector counts it: the one chain the HUD, 콤보 N! and every best
+     * combo read. A rest the detector calls a break ends it, and so does a switch of movement; a floor
+     * or a class's window does not, since those only price reps.
+     */
     val combo: Int = 0,
     val maxCombo: Int = 0,
     val deepReps: Int = 0,
@@ -281,6 +286,8 @@ class BattleEngine(
     private var segDeep = 0
     private var segDepthSum = 0f
     private var segMaxCombo = 0
+    /** The detector's chain as of the last rep that counted; what [BattleState.combo] shows. */
+    private var combo = 0
     /** Time held by the movements already switched away from. */
     private var heldBeforeMs = 0L
     /** How much of the current detector's time held has been taken off monsters, in whole seconds. */
@@ -441,9 +448,11 @@ class BattleEngine(
                                 bookedRep = event.repIndex
                                 bookedDepth = event.depth
                                 bookedDeep = ce.result.deep
-                                // The detector's own combo: it restarts with each movement and at
-                                // each rest, so its peak is this movement's longest set.
-                                segMaxCombo = maxOf(segMaxCombo, event.combo)
+                                // The detector's own combo, the one chain on screen: it restarts
+                                // with each movement and at each rest, so its peak is this
+                                // movement's longest set.
+                                combo = event.combo
+                                segMaxCombo = maxOf(segMaxCombo, combo)
                                 animator.onStrike(event.tMs, ce.result.deep, ce.result.crit)
                                 enemyHurtAtMs = event.tMs
 
@@ -470,8 +479,8 @@ class BattleEngine(
                                 }
                                 shake = (shake + if (ce.result.crit) 1.0f else 0.45f).coerceAtMost(1f)
                                 shallowStreak = 0
-                                if (event.combo > 0 && event.combo % COMBO_MILESTONE == 0) {
-                                    alert = Toast(AlertKey.COMBO_MILESTONE, event.combo, event.tMs)
+                                if (combo > 0 && combo % COMBO_MILESTONE == 0) {
+                                    alert = Toast(AlertKey.COMBO_MILESTONE, combo, event.tMs)
                                     sounds += SoundRequest(SoundCue.COMBO_UP)
                                 }
                             }
@@ -556,6 +565,7 @@ class BattleEngine(
                 is RepEvent.ComboBroken -> {
                     alert = Toast(AlertKey.COMBO_BROKEN, event.finalCombo, event.tMs)
                     sounds += SoundRequest(SoundCue.COMBO_BREAK)
+                    combo = 0
                     encounter.breakCombo()
                 }
 
@@ -658,8 +668,8 @@ class BattleEngine(
             render = tick.render,
             reps = repsTotal,
             heldMs = heldMs(),
-            combo = player.combo,
-            maxCombo = maxOf(state.maxCombo, player.combo),
+            combo = combo,
+            maxCombo = maxOf(state.maxCombo, combo),
             deepReps = deepReps,
             playerHp = player.hp,
             playerMaxHp = player.maxHp,
@@ -724,6 +734,7 @@ class BattleEngine(
         segDeep = 0
         segDepthSum = 0f
         segMaxCombo = 0
+        combo = 0
         // The new detector numbers its reps from one again, and counts its time held from zero.
         bookedRep = -1
         holdCreditedMs = 0L
@@ -744,6 +755,7 @@ class BattleEngine(
         val lines = next.snapshotCalibration()
         state = state.copy(
             exercise = to,
+            combo = combo,
             countEnter = lines.countEnter,
             deepEnter = lines.deepEnter,
             runTotalReps = runTotalReps,
@@ -801,8 +813,9 @@ class BattleEngine(
         xpBanked += encounter.xp
         floorIndex++
         enemyDiedAtMs = Long.MIN_VALUE
-        // Between floors the player is topped up and the chain starts again; a dungeon should be a
-        // sequence of fights, not one unbroken set that only the fittest can finish.
+        // Between floors the player is topped up and the encounter's chain starts again; a dungeon
+        // should be a sequence of fights, not one unbroken set that only the fittest can finish.
+        // The chain on screen is the detector's, and runs on: a floor is not a rest.
         player = player.copy(hp = player.maxHp, combo = 0, tempoStreak = 0)
         encounter = spawnFloor(floorIndex, atMs)
         return null
@@ -831,7 +844,8 @@ class BattleEngine(
         return Outcome(
             cleared = cleared,
             reps = repsTotal,
-            maxCombo = maxOf(state.maxCombo, player.combo),
+            // The best set of any movement, as each segment banks it.
+            maxCombo = all.maxOf { it.maxCombo },
             deepReps = deepReps,
             durationMs = if (startedAtMs == Long.MIN_VALUE) 0 else atMs - startedAtMs,
             xpEarned = (xp + bonus).roundToInt(),
