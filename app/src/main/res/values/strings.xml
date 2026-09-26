@@ -293,10 +293,11 @@
     <string name="exercise_lunge">런지</string>
     <string name="exercise_dip">딥스</string>
 
-    <!-- Camera placement, in one line: the rest is said live by the placement banner. A plank is
+    <!-- Camera placement, in one line: the rest is said live by the placement banner. A pushup is
+         read across the shoulders from the head and along the torso from the side. A plank is
          read from the 3-D skeleton, so from the head and from the side both work, and the legs are
          taken from the skeleton whether the camera sees them or not: the hint does not ask for them. -->
-    <string name="exercise_hint_pushup">폰은 머리 앞쪽 바닥에 세워 두세요</string>
+    <string name="exercise_hint_pushup">폰은 바닥에, 머리 앞쪽이나 옆에 세워 두세요</string>
     <string name="exercise_hint_squat">폰은 정면에, 무릎까지 보이게 두세요</string>
     <string name="exercise_hint_plank">폰은 바닥에 세워 두세요 (머리 쪽·옆 다 돼요)</string>
     <string name="exercise_hint_pull_up">폰은 멀리, 바부터 발까지 보이게 두세요 (앞·옆·뒤 다 돼요)</string>
