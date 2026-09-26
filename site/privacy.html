@@ -110,8 +110,7 @@
   이용자가 기기에서 Google 계정 백업을 켜 두었다면, Android가 위 네 가지 정보를 이용자 본인의
   Google 계정 백업에 함께 저장할 수 있습니다. 새 휴대폰으로 데이터를 옮길 때도 함께 옮겨집니다.
   앱을 다시 설치하거나 휴대폰을 바꿔도 기록이 이어지게 하려는 것입니다. 이 백업은 Google이 이용자의 계정에
-  보관하며, 앱 개발자는 볼 수 없습니다. 구독 확인용 정보는 백업하지 않습니다 — 구독 여부는 언제나
-  Google Play에서 다시 확인합니다.
+  보관하며, 앱 개발자는 볼 수 없습니다.
 </p>
 <p>
   백업을 원하지 않으면 기기 설정의 백업 메뉴(예: 설정 → Google → 백업)에서 끌 수 있습니다.
@@ -148,14 +147,13 @@
   <tr><td>운동 시작</td><td>던전 번호, 난이도, 운동 종류</td></tr>
   <tr><td>운동 종료</td><td>던전 번호, 클리어 여부, 개수, 소요 시간, 동작 신뢰도 점수, 준비 자세가 잡혔는지, 트래킹이 끊긴 횟수와 다시 잡힌 횟수, 끊겨 있던 시간</td></tr>
   <tr><td>트래킹 끊김</td><td>끊긴 원인, 몇 번째 개수에서 끊겼는지, 준비 자세가 잡힌 뒤였는지</td></tr>
-  <tr><td>구독 안내 노출 / 결제 시작 / 결제 완료</td><td>진입 경로, 요금제 종류</td></tr>
   <tr><td>연속 일수 유지</td><td>연속 일수</td></tr>
 </table>
 </div>
 <p>Google Analytics는 앱이 따로 보내지 않아도 다음을 자동으로 기록합니다.</p>
 <ul>
   <li>이벤트: 첫 실행, 사용 세션 시작, 앱을 쓴 시간, 화면 보기, 앱 업데이트·삭제, 운영체제 업데이트,
-      앱 데이터 삭제, 앱 비정상 종료, Google Play를 통한 구독 결제(상품, 가격, 통화)</li>
+      앱 데이터 삭제, 앱 비정상 종료</li>
   <li>모든 이벤트에 붙는 값: 앱 인스턴스 ID(앱을 다시 설치하면 새로 만들어집니다), 기기 모델과 종류,
       운영체제와 앱 버전, 언어, 첫 실행 시각, IP 주소로 추정한 대략적인 위치(국가·도시 수준.
       IP 주소 자체는 저장되지 않습니다)</li>
@@ -166,13 +164,6 @@
 <p>
   트래킹 끊김 이벤트를 수집하는 이유는 분명합니다. 개발 환경에 없는 기기에서 인식이 잘 안 될 때,
   그 사실을 알 수 있는 유일한 방법이기 때문입니다.
-</p>
-
-<h3>4-3. 결제 (Google Play 결제 시스템)</h3>
-<p>
-  구독 결제는 Google Play를 통해 이루어지며, 카드번호 등 결제 수단 정보는 Google이 처리합니다.
-  앱은 결제 수단 정보를 보지 않고, 저장하지도 않습니다. 앱이 받는 것은 구독이 유효한지 여부와
-  Google이 발급한 구매 토큰뿐입니다.
 </p>
 
 <h2>5. 처리위탁</h2>
@@ -186,7 +177,7 @@
   </tr>
   <tr>
     <td>Google LLC (Google Play)</td>
-    <td>앱 배포, 구독 결제 처리</td>
+    <td>앱 배포</td>
     <td><a href="https://policies.google.com/privacy" rel="noopener">Google 개인정보처리방침</a></td>
   </tr>
 </table>
@@ -276,24 +267,22 @@
   are stored in the device's local storage, are not sent anywhere by the app, and are deleted from
   the device when the app is uninstalled. If the user has Android's backup to their Google account
   turned on, Android may include them in that backup, and a transfer to a new phone carries them
-  along (the subscription cache is excluded from both); backup can be turned off in the device's
-  settings.
+  along; backup can be turned off in the device's settings.
 </p>
 <p>
   The app itself sends two things off the device. Firebase Crashlytics receives crash stack traces with device
   model, OS version, app version and the movement being tracked (retained up to 90 days). Firebase Analytics receives the
   specific product events listed in section 4-2 — onboarding, class choice and later class changes, camera permission
-  outcome, tutorial start, completion or skip, run start and finish, tracking loss, paywall and purchase steps,
-  and streak length — together with what Google Analytics records on its own: first open, sessions,
-  engagement time, screen views, app updates and removals, OS updates, data clears, crashes and
-  Play subscription purchases, each with an app instance identifier, device model, OS and app version,
+  outcome, tutorial start, completion or skip, run start and finish, tracking loss and streak length
+  — together with what Google Analytics records on its own: first open, sessions, engagement time,
+  screen views, app updates and removals, OS updates, data clears and crashes, each with an app
+  instance identifier, device model, OS and app version,
   language, first-open time and a coarse location derived from the IP address (retained up to 14
   months). Advertising ID collection is turned off. Neither includes images, video, or pose data.
 </p>
 <p>
-  Subscription payments are processed by Google Play; the app never sees or stores payment
-  instrument details. There is no advertising and no advertising identifier. Data is not sold or
-  shared with third parties.
+  The app is free and has no in-app purchases. There is no advertising and no advertising
+  identifier. Data is not sold or shared with third parties.
 </p>
 <p>
   To exercise your rights, revoke the camera permission in system settings, clear app data, or
