@@ -307,13 +307,17 @@ fun BattleScreen(
             }
         }
 
-        // Top right, opposite the close button: switching is a between-sets act, done standing in
-        // front of the phone, so it can sit where the hands are not.
+        // At the top, between the two combatants: switching is a between-sets act, done standing in
+        // front of the phone, so it can sit where the hands are not. It sat top right, over the
+        // monster's crown, horns and eyes, which turn red as an ultimate winds up so they can be
+        // seen from across the room; between the two it clears the widest boss's head at either
+        // HUD height, and only the peak of a heavy or critical swing brings the player's figure
+        // under it.
         Row(
             Modifier
-                .align(Alignment.TopEnd)
+                .align(Alignment.TopCenter)
                 .windowInsetsPadding(WindowInsets.safeDrawing)
-                .padding(end = 16.dp, top = 8.dp)
+                .padding(top = 8.dp)
                 .height(48.dp)
                 .clip(CircleShape)
                 .background(Palette.ScrimPanelHigh)
