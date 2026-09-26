@@ -1,5 +1,6 @@
 package com.pushuprpg.app.ui.components
 
+import android.view.View
 import androidx.annotation.StringRes
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -53,6 +54,7 @@ import com.pushuprpg.core.detect.ExerciseType
 import com.pushuprpg.core.detect.Exercises
 import com.pushuprpg.core.progression.Rank
 import com.pushuprpg.core.progression.RankProgress
+import java.util.WeakHashMap
 
 /** The one card radius the hub screens use, so nothing drifts by a few dp between screens. */
 val CardShape: Shape = RoundedCornerShape(20.dp)
@@ -377,15 +379,28 @@ fun Pill(text: String, tint: Color, modifier: Modifier = Modifier) {
  *
  * Scoped rather than set on the window: during a set the user's hands are on the floor and nothing
  * will touch the screen, but a phone left open on the hub and put in a pocket should still sleep.
+ *
+ * Counted per view, because every screen shares the one root view: in a transition the screen
+ * coming in holds it before the one going out lets go, and the last to let go used to turn it off.
+ * The rest before the next dungeon and the dungeon it led into ran with the screen free to sleep,
+ * and a phone that slept paused the rest and stopped the camera mid-set.
  */
 @Composable
 fun KeepScreenOn() {
     val view = LocalView.current
     DisposableEffect(view) {
+        screenOnHolds[view] = (screenOnHolds[view] ?: 0) + 1
         view.keepScreenOn = true
-        onDispose { view.keepScreenOn = false }
+        onDispose {
+            val left = (screenOnHolds[view] ?: 1) - 1
+            if (left > 0) screenOnHolds[view] = left else screenOnHolds.remove(view)
+            view.keepScreenOn = left > 0
+        }
     }
 }
+
+/** How many [KeepScreenOn]s each view has in its tree. Main thread only, as composition is. */
+private val screenOnHolds = WeakHashMap<View, Int>()
 
 /**
  * The Korean name of an exercise, as a string resource.
