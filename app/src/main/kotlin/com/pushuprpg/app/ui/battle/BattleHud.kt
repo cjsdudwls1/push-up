@@ -284,6 +284,8 @@ fun UltimateWarning(
     answersNeeded: Int,
     playerClass: PlayerClass,
     exercise: ExerciseType,
+    /** A short screen, where the warning keeps to two lines. */
+    compact: Boolean,
     modifier: Modifier = Modifier,
 ) {
     AnimatedVisibility(
@@ -293,8 +295,11 @@ fun UltimateWarning(
         modifier = modifier,
     ) {
         // What to do, in the player's own style, and how much room is left to do it — a wind-up
-        // with no instruction is only a threat.
+        // with no instruction is only a threat. A short screen keeps the title and the count and
+        // leaves the instruction to the voice, which says it as the wind-up starts: with a third
+        // line the panel stood up over the counter, and the instruction is the line that wraps.
         val how = when {
+            compact -> null
             Exercises.of(exercise).kind == MovementKind.HOLD ->
                 stringResource(R.string.battle_ultimate_how_hold, answersNeeded)
             playerClass == PlayerClass.ARCHER -> stringResource(R.string.battle_ultimate_how_archer, answersNeeded)
@@ -317,13 +322,15 @@ fun UltimateWarning(
                 color = ink,
                 textAlign = TextAlign.Center,
             )
-            Spacer(Modifier.height(2.dp))
-            Text(
-                text = how,
-                style = Type.bodyL,
-                color = ink,
-                textAlign = TextAlign.Center,
-            )
+            if (how != null) {
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    text = how,
+                    style = Type.bodyL,
+                    color = ink,
+                    textAlign = TextAlign.Center,
+                )
+            }
             Spacer(Modifier.height(4.dp))
             Text(
                 text = stringResource(R.string.battle_ultimate_progress, repsLeft, answers, answersNeeded),

@@ -232,10 +232,13 @@ fun BattleScreen(
         val placementSpeaking = placementShown && (!poseReady || state.placement.advice != null)
         // Tracking lost and found are the placement line's to explain while it is up. The wind-up's
         // words are the warning's own title, up for as long as the wind-up lasts: as a toast as well
-        // they were said twice, and after it they would announce one that is over.
+        // they were said twice, and after it they would announce one that is over. While it is up, a
+        // deep strike and a class's reminder give way to it too: its 막기 count, the sound and the
+        // voice already say how each rep went, and stacked under it they pushed it up over the counter.
         val alert = state.alert?.takeUnless {
             it.textKey == AlertKey.ULTIMATE_INCOMING ||
-                (placementSpeaking && (it.textKey == AlertKey.QUALITY_LOST || it.textKey == AlertKey.QUALITY_RECOVERED))
+                (placementSpeaking && (it.textKey == AlertKey.QUALITY_LOST || it.textKey == AlertKey.QUALITY_RECOVERED)) ||
+                (state.ultimateIncoming && it.textKey in GIVE_WAY_TO_WARNING)
         }
         // Everything said along the foot of the screen, in one column and a fixed order. The lines
         // used to be placed apart by hand, and a tracking notice or the combo landed on 아래쪽이
@@ -245,12 +248,21 @@ fun BattleScreen(
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
                 .navigationBarsPadding()
-                .padding(start = 20.dp, end = 20.dp, bottom = BOTTOM_MARGIN),
+                .padding(start = MESSAGE_MARGIN, end = MESSAGE_MARGIN, bottom = BOTTOM_MARGIN),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
+            // The HUD's messages stand beside the gauge, and keep off its side of the screen: centred
+            // on the whole width, the warning and a two-line toast lay over its 깊게 label and its
+            // number. The placement line below them is under the gauge, and keeps the full width.
+            val gaugeSide = GAUGE_REACH - MESSAGE_MARGIN
             Column(
-                modifier = hudLayer,
+                modifier = hudLayer
+                    .fillMaxWidth()
+                    .padding(
+                        start = if (gaugeOnRight) 0.dp else gaugeSide,
+                        end = if (gaugeOnRight) gaugeSide else 0.dp,
+                    ),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
@@ -261,6 +273,7 @@ fun BattleScreen(
                     answersNeeded = com.pushuprpg.core.game.Encounter.ANSWERS_TO_BLOCK,
                     playerClass = playerClass,
                     exercise = state.exercise,
+                    compact = compact,
                 )
                 AlertSlot(alert)
                 ComboPill(combo = state.combo)
@@ -488,6 +501,23 @@ private const val REDUCED_HURT_FLASH = 0.3f
 /** From the navigation bar to the lowest line said along the foot of the screen. */
 private val BOTTOM_MARGIN = 24.dp
 
+/** From either edge of the screen to what is said along its foot. */
+private val MESSAGE_MARGIN = 20.dp
+
+/** Between the depth gauge and the screen's edge, and between it and what is beside it. */
+private val GAUGE_INSET = 6.dp
+
+/** How far in from its edge the depth gauge reaches: its 72dp column and [GAUGE_INSET] either side. */
+private val GAUGE_REACH = 72.dp + GAUGE_INSET * 2
+
+/** Toasts that give way while the ultimate's warning is up; see where the alert is picked. */
+private val GIVE_WAY_TO_WARNING = setOf(
+    AlertKey.DEEP_STRIKE,
+    AlertKey.STYLE_TOO_QUICK,
+    AlertKey.STYLE_NOT_FULL,
+    AlertKey.STYLE_LAGGING,
+)
+
 /**
  * The band the placement line keeps at the foot of the screen, said or silent: one line of advice
  * and the parts it names.
@@ -631,7 +661,7 @@ private fun BoxScope.BattleHudLayout(
             .padding(top = with(density) { hudHeightPx.toDp() })
             .navigationBarsPadding()
             .padding(bottom = BOTTOM_MARGIN + PLACEMENT_BAND)
-            .padding(horizontal = 6.dp)
+            .padding(horizontal = GAUGE_INSET)
             .fillMaxHeight(),
     )
 }
