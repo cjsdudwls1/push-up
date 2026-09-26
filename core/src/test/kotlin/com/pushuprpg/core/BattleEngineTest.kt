@@ -176,6 +176,54 @@ class BattleEngineTest {
     }
 
     /**
+     * Reps survive a loss, and a knockout is the one loss the engine decides by itself: the ultimate
+     * lands at the end of a rep and the run ends there, through Exhausted rather than quit(). A 기사
+     * on 지옥 against a big boss, every rep quick and short of 깊게 so that none answers, is knocked
+     * out by the second ultimate — and banks every rep the detector counted, the one it landed on
+     * included.
+     */
+    @Test
+    fun `a knockout banks every rep, the one it landed on included`() {
+        val dungeon = Dungeon(99, "시험", listOf(Dungeons.byIndex(8)!!.floors.last()), 1..1)
+        val detector = RepDetectorImpl(DetectorConfig.pushup())
+        val e = BattleEngine(
+            dungeon = dungeon,
+            difficulty = Difficulty.HELL,
+            capacity = 8f,
+            initialPlayer = PlayerState.create(PlayerClass.KNIGHT, level = 1),
+            detector = detector,
+            resolver = CombatResolver(),
+        )
+        var t = 3_600_000L
+        var state = e.currentState()
+        val settle = PoseFixtures.trace(count = 0, startMs = t)
+        settle.forEach { state = e.onPoseFrame(it) }
+        t = settle.last().timestampMs + 33
+        var ultimates = 0
+        while (state.outcome == null && state.reps < 300) {
+            val rep = PoseFixtures.rep(t, descentMs = 500, peakDepth = 0.72f, restMs = 400)
+            for (f in rep) {
+                val was = state.playerHp
+                state = e.onPoseFrame(f)
+                if (state.playerHp < was) ultimates++
+                if (state.outcome != null) break
+            }
+            t = rep.last().timestampMs + 33
+        }
+
+        val outcome = state.outcome
+        assertTrue(outcome != null, "no knockout after ${state.reps} reps, at ${state.playerHp} HP")
+        assertTrue(!outcome.cleared)
+        assertEquals(0, state.playerHp, "the run ended without the player being knocked out")
+        assertEquals(2, ultimates, "a knockout from full takes two ultimates")
+        assertEquals(detector.sessionSummary().repCount, outcome.reps, "a rep the detector counted was not banked")
+        assertEquals(state.reps, outcome.reps, "the result banked a different count than the HUD showed")
+        assertEquals(outcome.reps, outcome.segments.sumOf { it.reps })
+        assertTrue(outcome.xpEarned > 0, "a knocked-out run banked no XP")
+        assertTrue(outcome.enemyLeft > 0, "the boss was left with nothing, but the run was a loss")
+    }
+
+    /**
      * The clear comes [BattleEngine.DEATH_MS] after the last monster falls, once it has finished
      * coming apart. A run stopped inside that — the X pressed as the boss fell, the app swiped away
      * — was banked as not cleared: no clear bonus, and the dungeon not marked done.
