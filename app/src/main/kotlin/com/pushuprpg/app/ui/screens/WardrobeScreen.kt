@@ -6,9 +6,11 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -112,7 +114,11 @@ fun WardrobeScreen(
         }
         Spacer(Modifier.height(12.dp))
         Gift.entries.chunked(TILES_PER_ROW).forEach { row ->
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            // As tall as the tallest tile in it, so a worn or new one's pill does not leave the rest short.
+            Row(
+                modifier = Modifier.height(IntrinsicSize.Min),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
                 row.forEach { gift ->
                     val worn = gift.item in wearing
                     GiftTile(
@@ -122,7 +128,9 @@ fun WardrobeScreen(
                         worn = worn,
                         coat = catCoat,
                         onClick = { if (worn) onTakeOff(gift.item.slot) else onWear(gift.item) },
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight(),
                     )
                 }
                 // A short last row keeps its tiles the width of the rest.
@@ -173,7 +181,7 @@ private fun GiftTile(
             style = Type.labelL,
             color = if (found) Palette.TextPrimary else Palette.TextTertiary,
             textAlign = TextAlign.Center,
-            maxLines = 1,
+            maxLines = 2,
         )
         if (found) {
             Text(
@@ -181,7 +189,7 @@ private fun GiftTile(
                 style = Type.labelM,
                 color = Palette.TextSecondary,
                 textAlign = TextAlign.Center,
-                maxLines = 1,
+                maxLines = 2,
             )
         }
         when {
@@ -218,6 +226,7 @@ private fun ItemPicture(item: CatItem, coat: CatCoat, modifier: Modifier = Modif
                 scale = size.minDimension / 105f,
                 coat = coat,
                 wear = setOf(item),
+                tail = false,
             )
         }
     }

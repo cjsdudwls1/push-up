@@ -90,6 +90,8 @@ fun coatColors(coat: CatCoat): CoatColors = when (coat) {
  *   keep the cat still, which is what reduced motion does.
  * - [wear] is what it has on — the gifts it found — drawn with it so they move as it does. A scene
  *   is not worn; see [drawCatScene].
+ * - [tail] false leaves the tail off, for a picture framed from the chest up: all of the tail it
+ *   would show is its tip, poking in from the edge on its own.
  */
 fun DrawScope.drawCat(
     centerX: Float,
@@ -101,6 +103,7 @@ fun DrawScope.drawCat(
     cheer: Float = 0f,
     phase: Float = 0f,
     wear: Set<CatItem> = emptySet(),
+    tail: Boolean = true,
 ) {
     val c = coatColors(coat)
     val tau = 2f * PI.toFloat()
@@ -121,35 +124,37 @@ fun DrawScope.drawCat(
 
     // Tail first: the body edge hides where it joins. It sways while the cat is at ease, and puffs
     // up and stiffens once it is frightened.
-    val sway = if (mood == CatMood.CALM) sin(phase * tau * 2f) * 0.16f else 0f
-    val tailWidth = head * if (frightened) 0.52f else 0.30f
-    val tail = Path().apply {
-        moveTo(cx + body * 0.82f, baseY - body * 0.18f)
-        cubicTo(
-            cx + body * 1.62f, baseY - body * 0.30f,
-            cx + body * (1.55f + sway * 0.5f), baseY - body * 0.74f,
-            cx + body * (1.48f + sway), baseY - body * 0.98f,
-        )
-        cubicTo(
-            cx + body * (1.36f + sway * 1.6f), baseY - body * 1.46f,
-            cx + body * (1.16f + sway * 2f), baseY - body * 1.44f,
-            cx + body * (0.98f + sway * 2f), baseY - body * (if (frightened) 1.62f else 1.40f),
-        )
-    }
     val rimWidth = head * 0.14f
-    c.rim?.let { drawPath(tail, color = it, style = Stroke(width = tailWidth + rimWidth, cap = StrokeCap.Round)) }
-    drawPath(tail, color = c.patchA ?: c.fur, style = Stroke(width = tailWidth, cap = StrokeCap.Round))
-    c.stripe?.let { s ->
-        // A ringed tail reads as a tabby from across the room.
-        drawPath(
-            tail,
-            color = s,
-            style = Stroke(
-                width = tailWidth,
-                cap = StrokeCap.Butt,
-                pathEffect = PathEffect.dashPathEffect(floatArrayOf(head * 0.16f, head * 0.26f), head * 0.3f),
-            ),
-        )
+    if (tail) {
+        val sway = if (mood == CatMood.CALM) sin(phase * tau * 2f) * 0.16f else 0f
+        val tailWidth = head * if (frightened) 0.52f else 0.30f
+        val tailPath = Path().apply {
+            moveTo(cx + body * 0.82f, baseY - body * 0.18f)
+            cubicTo(
+                cx + body * 1.62f, baseY - body * 0.30f,
+                cx + body * (1.55f + sway * 0.5f), baseY - body * 0.74f,
+                cx + body * (1.48f + sway), baseY - body * 0.98f,
+            )
+            cubicTo(
+                cx + body * (1.36f + sway * 1.6f), baseY - body * 1.46f,
+                cx + body * (1.16f + sway * 2f), baseY - body * 1.44f,
+                cx + body * (0.98f + sway * 2f), baseY - body * (if (frightened) 1.62f else 1.40f),
+            )
+        }
+        c.rim?.let { drawPath(tailPath, color = it, style = Stroke(width = tailWidth + rimWidth, cap = StrokeCap.Round)) }
+        drawPath(tailPath, color = c.patchA ?: c.fur, style = Stroke(width = tailWidth, cap = StrokeCap.Round))
+        c.stripe?.let { s ->
+            // A ringed tail reads as a tabby from across the room.
+            drawPath(
+                tailPath,
+                color = s,
+                style = Stroke(
+                    width = tailWidth,
+                    cap = StrokeCap.Butt,
+                    pathEffect = PathEffect.dashPathEffect(floatArrayOf(head * 0.16f, head * 0.26f), head * 0.3f),
+                ),
+            )
+        }
     }
 
     // Body.
