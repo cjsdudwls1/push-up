@@ -14,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.pushuprpg.app.R
@@ -91,7 +92,9 @@ private val EMPTY_WEEK = WeekSummary(start = 0, days = List(7) { false }, reps =
  * The hub, built around the cat.
  *
  * One question leads it — "am I doing this today?" — and one button answers it: 고냥이 지키기, the
- * mode the tutorial already taught. Under it, the answer to the other question a habit needs,
+ * mode the tutorial already taught, which starts the movement it names at once; the picker is the
+ * link under it, since the movement is the same one day after another. Under that, the answer to
+ * the other question a habit needs,
  * "am I getting anywhere": how high every rep so far has climbed, the best set against the first,
  * and the week at a glance. The cat says how long it has been, glad whatever the answer.
  *
@@ -103,7 +106,10 @@ fun HomeScreen(
     state: HomeUiState,
     themeMode: ThemeMode,
     onToggleTheme: () -> Unit,
+    /** Starts 고냥이 지켜줘 with [lastExercise], the movement the button names. */
     onPlayCat: () -> Unit,
+    /** The picker, for another movement. */
+    onChangeExercise: () -> Unit,
     onAdventure: () -> Unit,
     onRecords: () -> Unit,
     onSettings: () -> Unit,
@@ -217,6 +223,19 @@ fun HomeScreen(
             text = stringResource(R.string.home_cat_play),
             supportingText = stringResource(R.string.home_cat_play_sub, exerciseName, CatSession.LIVES),
             onClick = onPlayCat,
+        )
+        Text(
+            text = stringResource(R.string.home_change_exercise),
+            style = Type.labelL,
+            color = Palette.TextSecondary,
+            textAlign = TextAlign.Center,
+            modifier = Modifier
+                .align(Alignment.CenterHorizontally)
+                .clip(CardShape)
+                .clickable(role = Role.Button, onClick = onChangeExercise)
+                .heightIn(min = 48.dp)
+                .wrapContentHeight(Alignment.CenterVertically)
+                .padding(horizontal = 16.dp),
         )
 
         // The start of a week, until its first workout: how the last one went, once, and only if

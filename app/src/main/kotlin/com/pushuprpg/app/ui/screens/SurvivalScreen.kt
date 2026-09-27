@@ -124,8 +124,6 @@ fun SurvivalScreen(
     modelFailed: Boolean = false,
     /** Reps the detector refused as not deep enough, for the tutorial's ending. */
     nearMisses: Int = 0,
-    /** The best one go of this movement before this session: what a life is measured against. */
-    personalBest: Int = 0,
     /** What the banked session changed — a record, places passed — once it is written. */
     growth: RunGrowth? = null,
     cat: CatView = CatView(),
@@ -377,8 +375,6 @@ fun SurvivalScreen(
             // The phone is across the room during a rest, so the countdown is the biggest thing here.
             RestCard(
                 state = state,
-                exercise = exercise,
-                personalBest = personalBest,
                 modifier = Modifier.align(Alignment.Center),
             )
         }
@@ -791,23 +787,18 @@ private val HEART = Color(0xFFFF6F91)
  * The rest between two lives.
  *
  * It is not optional, by the owner's decision: a set to the edge of failure needs the rest before
- * the next one, and a game will not take it unless made to. So it is the largest thing on screen —
- * the phone is across the room — and it says what the life just done was worth: how many, and how
- * that stands against the best before it.
+ * the next one, and a game will not take it unless made to. So the countdown is the largest thing on
+ * screen — the phone is across the room.
+ *
+ * It says no count, by the owner's decision as well: some people would rather not see a number
+ * while they train, so a session's counts are shown once, all together, when it ends.
  */
 @Composable
 private fun RestCard(
     state: CatSessionState,
-    exercise: ExerciseType,
-    /** The best one go before this session. */
-    personalBest: Int,
     modifier: Modifier = Modifier,
 ) {
-    val last = state.ended.lastOrNull()
     val seconds = ((state.restLeftMs + 999L) / 1000L).toInt()
-    val hold = Exercises.of(exercise).kind == MovementKind.HOLD
-    // A second life beating the first is a record too, and a third is measured against both.
-    val before = maxOf(personalBest, state.ended.dropLast(1).maxOfOrNull { it.reps } ?: 0)
     Column(
         modifier = modifier
             .padding(horizontal = 28.dp)
@@ -827,41 +818,14 @@ private fun RestCard(
             style = Type.displayM,
             color = Palette.TextPrimary,
         )
-        if (last != null) {
-            Spacer(Modifier.height(8.dp))
+        if (state.ended.lastOrNull()?.refunded == true) {
+            Spacer(Modifier.height(6.dp))
             Text(
-                text = if (hold) {
-                    stringResource(R.string.rest_last_hold, (last.survivedMs / 1000L).toInt())
-                } else {
-                    stringResource(R.string.rest_last_reps, last.reps)
-                },
-                style = Type.titleM,
-                color = Palette.Deep,
+                text = stringResource(R.string.rest_refunded),
+                style = Type.bodyM,
+                color = Palette.TextSecondary,
                 textAlign = TextAlign.Center,
             )
-            val compare = when {
-                hold || before <= 0 -> null
-                last.reps > before -> stringResource(R.string.rest_record_new, before)
-                else -> stringResource(R.string.rest_record_best, before)
-            }
-            if (compare != null) {
-                Spacer(Modifier.height(2.dp))
-                Text(
-                    text = compare,
-                    style = Type.bodyM,
-                    color = Palette.TextSecondary,
-                    textAlign = TextAlign.Center,
-                )
-            }
-            if (last.refunded) {
-                Spacer(Modifier.height(6.dp))
-                Text(
-                    text = stringResource(R.string.rest_refunded),
-                    style = Type.bodyM,
-                    color = Palette.TextSecondary,
-                    textAlign = TextAlign.Center,
-                )
-            }
         }
         Spacer(Modifier.height(12.dp))
         LivesRow(lives = state.lives, left = state.livesLeft)

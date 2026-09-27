@@ -148,6 +148,8 @@
     <!-- The hub's one big button, and under it the movement it plays and how many lives. -->
     <string name="home_cat_play">고냥이 지키기</string>
     <string name="home_cat_play_sub">%1$s · 목숨 %2$d개</string>
+    <!-- Under it: the picker, for a movement other than the one the button starts. -->
+    <string name="home_change_exercise">운동 바꾸기</string>
     <!-- What the cat says as the hub opens, by how long it has been. Glad, never reproachful. -->
     <string name="home_welcome_first">반가워요! 같이 천장을 밀어 올려 볼까요?</string>
     <string name="home_welcome_today">오늘도 와 줬네요! 고마워요, 냥</string>
@@ -375,12 +377,8 @@
     <!-- The hearts' spoken label: lives not yet lost, the one being played included. -->
     <string name="survival_lives_left">남은 목숨 %1$d개</string>
 
-    <!-- The rest between two lives. It is not optional; the countdown is result_rest_time. -->
-    <string name="rest_last_reps">방금 %1$d개 했어요!</string>
-    <string name="rest_last_hold">방금 %1$d초 지켰어요!</string>
-    <!-- %1$d is the best one go before this life: the record it beat, or the one it is measured against. -->
-    <string name="rest_record_new">신기록이에요! 전에는 한 번에 %1$d개였어요</string>
-    <string name="rest_record_best">내 최고 기록은 한 번에 %1$d개예요</string>
+    <!-- The rest between two lives. It is not optional; the countdown is result_rest_time. It quotes
+         no count, by the owner's decision: a session's counts are shown together when it ends. -->
     <!-- The life ended while the camera had lost the user, so it was given back. Said as the camera's miss. -->
     <string name="rest_refunded">카메라가 잠깐 놓쳐서, 이번 목숨은 깎지 않았어요</string>
     <string name="rest_tip">물 한 모금 마시고 숨을 골라요. 쉬어야 다음 판에 더 많이 해요.</string>

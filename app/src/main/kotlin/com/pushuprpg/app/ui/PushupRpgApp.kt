@@ -262,7 +262,9 @@ fun PushupRpgApp(
                         state = state,
                         themeMode = settings.themeMode,
                         onToggleTheme = toggleTheme,
-                        onPlayCat = { navController.navigateFrom(entry, Routes.SURVIVAL_PICK) },
+                        // Straight in with the movement the button names; changing it is the link under it.
+                        onPlayCat = { navController.navigateFrom(entry, Routes.survival(exercise = settings.exercise)) },
+                        onChangeExercise = { navController.navigateFrom(entry, Routes.SURVIVAL_PICK) },
                         onAdventure = { navController.navigateFrom(entry, Routes.DUNGEON_SELECT) },
                         onRecords = { navController.navigateFrom(entry, Routes.RECORDS) },
                         onSettings = { navController.navigateFrom(entry, Routes.SETTINGS) },
@@ -599,7 +601,6 @@ fun PushupRpgApp(
                     val placement by vm.placement.collectAsState()
                     val setupSkeleton by vm.setupSkeleton.collectAsState()
                     val nearMisses by vm.nearMisses.collectAsState()
-                    val personalBest by vm.personalBest.collectAsState()
                     val growth by vm.growth.collectAsState()
 
                     DisposableEffect(vm) {
@@ -631,7 +632,6 @@ fun PushupRpgApp(
                                 onShare = onShare,
                                 modelFailed = poseError != null,
                                 nearMisses = nearMisses,
-                                personalBest = personalBest,
                                 growth = growth,
                                 onSkip = {
                                     if (navController.isOnTop(entry)) {

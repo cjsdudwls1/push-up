@@ -181,9 +181,15 @@ ten lives that is how most sessions end. The tutorial is one life and no rest. `
 pins all of it.
 
 **The cat is the front door; the dungeons are kept behind it**, by the owner's decision. The hub's
-one big button is 고냥이 지키기, onboarding no longer asks for a class (a class only prices the
-dungeons, and its card lives on the dungeon list), and the dungeons are a quiet link at the bottom
-of the hub until the test period says whether anyone misses them.
+one big button is 고냥이 지키기, and it starts the movement it names at once — the picker is the
+운동 바꾸기 link under it. Onboarding no longer asks for a class (a class only prices the dungeons,
+and its card lives on the dungeon list), and the dungeons are a quiet link at the bottom of the hub
+until the test period says whether anyone misses them.
+
+**A 고냥이 session shows its counts once, when it ends**, by the owner's decision: some people would
+rather not see a number while they train. Nothing on the run's screen or its rest card counts reps;
+the ending shows every set together. And a rep has no judgment sound of its own — the ding a
+counted rep makes is the feedback, and the owner judged it enough.
 
 **Growth is shown as things that only go up.** The climb (`Growth.kt`) turns every rep into the
 height it lifted the body and names the places passed; each movement's record is its best one go

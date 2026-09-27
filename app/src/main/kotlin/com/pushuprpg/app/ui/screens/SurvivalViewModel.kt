@@ -33,7 +33,6 @@ import com.pushuprpg.core.detect.RepEvent
 import com.pushuprpg.core.detect.RenderSkeleton
 import com.pushuprpg.core.detect.SkeletonMode
 import com.pushuprpg.core.progression.Capacity
-import com.pushuprpg.core.progression.Records
 import com.pushuprpg.core.progression.RunGrowth
 import com.pushuprpg.core.progression.SessionFacts
 import com.pushuprpg.core.progression.Streak
@@ -96,13 +95,6 @@ class SurvivalViewModel(
     private val _bestScore = MutableStateFlow(0)
     val bestScore: StateFlow<Int> = _bestScore.asStateFlow()
 
-    /**
-     * The best one go of this movement before this session — the record a life is measured against
-     * on the rest screen. Zero until something has been banked.
-     */
-    private val _personalBest = MutableStateFlow(0)
-    val personalBest: StateFlow<Int> = _personalBest.asStateFlow()
-
     /** What the banked session changed: a record, places passed. Null until it is written. */
     private val _growth = MutableStateFlow<RunGrowth?>(null)
     val growth: StateFlow<RunGrowth?> = _growth.asStateFlow()
@@ -146,7 +138,6 @@ class SurvivalViewModel(
         // time the user returned — in the one place the product is built around a score.
         viewModelScope.launch {
             _bestScore.value = progressRepository.current().bestSurvivalScore
-            _personalBest.value = Records.of(sessionRepository.factsNow())[exercise]?.best ?: 0
         }
     }
 
@@ -446,7 +437,6 @@ class SurvivalViewModel(
                     plausibility = plausibility,
                 )
             )
-            if (!hold) _personalBest.value = maxOf(_personalBest.value, bestSet)
             // As a dungeon run does: only the run that met the day's bar maintains the streak.
             var maintained: Int? = null
             var bestStreakBefore = 0

@@ -64,8 +64,10 @@ import com.pushuprpg.core.survival.CatSession
  * One tap starts the run. The last choice is pre-expanded so the common case — the same movement as
  * yesterday — is that one tap and no reading.
  *
- * With [survival] it picks the movement for 고냥이 지켜줘 instead: no dungeon, so no cost to quote —
- * and it is where the cat is named and coloured, on the way in, which is the moment it matters.
+ * With [survival] it picks the movement for 고냥이 지켜줘 instead: no dungeon, so no cost to quote.
+ * It is reached from the hub's 운동 바꾸기 — the hub's own button starts the movement picked last, by
+ * the owner's decision, since it is the same one day after another — and the cat can be named and
+ * coloured here as well as in 꾸미기.
  */
 @Composable
 fun ExercisePickScreen(
