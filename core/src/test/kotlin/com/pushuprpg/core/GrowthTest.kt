@@ -9,6 +9,7 @@ import com.pushuprpg.core.progression.RunGrowth
 import com.pushuprpg.core.progression.SessionFacts
 import com.pushuprpg.core.progression.Welcome
 import com.pushuprpg.core.progression.Weeks
+import com.pushuprpg.core.progression.recap
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -157,6 +158,27 @@ class GrowthTest {
         assertEquals(monday, Weeks.mondayOf(monday))
         assertEquals(20_724L, Weeks.mondayOf(20_724L)) // 2026-09-28, the next Monday
         assertEquals(-3L, Weeks.mondayOf(0L)) // 1970-01-01 was a Thursday
+    }
+
+    @Test
+    fun `a week's recap is its days, its climb and the records broken in it`() {
+        val monday = 20_710L // 2026-09-14
+        val facts = listOf(
+            run(day = monday - 3, at = 1, reps = 20, bestSet = 10), // the week before: a first go
+            run(day = monday, at = 2, reps = 30, bestSet = 12), // a record, beating 10
+            run(day = monday + 2, at = 3, reps = 10, bestSet = 11), // not one
+            run(day = monday + 4, at = 4, reps = 40, bestSet = 15), // a record again
+            run(ExerciseType.SQUAT, day = monday + 4, at = 5, reps = 20, bestSet = 20), // a first go
+            run(day = monday + 8, at = 6, reps = 50, bestSet = 30), // the next week
+        )
+        val recap = Weeks.recap(facts, monday)
+        assertEquals(listOf(true, false, true, false, true, false, false), recap.summary.days)
+        assertEquals(100, recap.summary.reps)
+        assertEquals(2, recap.records)
+        // 80 pushups and 20 squats.
+        assertEquals(32f, recap.meters, 0.01f)
+        assertFalse(recap.empty)
+        assertTrue(Weeks.recap(facts, monday - 14).empty)
     }
 
     @Test

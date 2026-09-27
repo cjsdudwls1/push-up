@@ -29,7 +29,7 @@ fun main(args: Array<String>) {
             heldSeconds = 0,
             maxCombo = 21,
             seconds = 214,
-            rankKorean = "그랜드마스터",
+            climb = "6,420m",
             lifetimeReps = 21_400,
         ),
         "dungeon-defeat" to ShareCardData.Dungeon(
@@ -39,7 +39,7 @@ fun main(args: Array<String>) {
             heldSeconds = 0,
             maxCombo = 5,
             seconds = 71,
-            rankKorean = "새싹",
+            climb = "12m",
             lifetimeReps = 40,
         ),
         // A plank dungeon: no reps by construction, so the card is told in seconds held.
@@ -50,7 +50,7 @@ fun main(args: Array<String>) {
             heldSeconds = 1_125,
             maxCombo = 0,
             seconds = 1_342,
-            rankKorean = "그랜드마스터",
+            climb = "6,420m",
             lifetimeReps = 21_400,
         ),
         "dungeon-hold-defeat" to ShareCardData.Dungeon(
@@ -60,7 +60,7 @@ fun main(args: Array<String>) {
             heldSeconds = 42,
             maxCombo = 0,
             seconds = 58,
-            rankKorean = "새싹",
+            climb = "12m",
             lifetimeReps = 40,
         ),
     )

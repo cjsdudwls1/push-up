@@ -11,9 +11,8 @@ import com.pushuprpg.core.detect.ExerciseType
 object Routes {
     const val BOOT = "boot"
     const val ONBOARDING = "onboarding"
-    const val CLASS_PICK = "class_pick"
 
-    /** The same picker after onboarding, reached from the hub or settings. Pops back when done. */
+    /** The class picker, reached from the dungeon list or settings. Pops back when done. */
     const val CLASS_CHANGE = "class_change"
     const val PERMISSION = "permission"
     const val HOME = "home"

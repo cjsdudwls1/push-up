@@ -35,6 +35,8 @@ import com.pushuprpg.core.game.PlayerState
 import com.pushuprpg.core.pose.PoseFrame
 import com.pushuprpg.core.progression.Capacity
 import com.pushuprpg.core.progression.Levels
+import com.pushuprpg.core.progression.RunGrowth
+import com.pushuprpg.core.progression.SessionFacts
 import com.pushuprpg.core.progression.Streak
 import com.pushuprpg.core.progression.StreakState
 import com.pushuprpg.core.run.BattleEngine
@@ -123,6 +125,13 @@ class BattleViewModel(
     /** The level the run ends on, for the result screen's 레벨 N 달성; set with [levelsGained]. */
     private val _levelReached = MutableStateFlow(1)
     val levelReached: StateFlow<Int> = _levelReached.asStateFlow()
+
+    /**
+     * What the banked run changed — records broken, places passed — for the result screen. Set once
+     * the rows are written, which is after the result has opened, so the screen watches it.
+     */
+    private val _growth = MutableStateFlow<RunGrowth?>(null)
+    val growth: StateFlow<RunGrowth?> = _growth.asStateFlow()
 
     init {
         viewModelScope.launch {
@@ -367,37 +376,49 @@ class BattleViewModel(
             val runStartedAt = System.currentTimeMillis() - outcome.durationMs
             val epochDay = Instant.ofEpochMilli(runStartedAt).atZone(ZoneId.systemDefault()).toLocalDate().toEpochDay()
             val doneEarlier = sessionRepository.workOn(epochDay)
+            // Everything banked before this run, for the records it breaks and the places it passes.
+            val before = sessionRepository.factsNow()
+            val runFacts = mutableListOf<SessionFacts>()
 
             // Each movement gets its own row, so the records screen says what was actually done.
             // The run's clear and its XP belong to the run, so they ride on the last row only.
             var startedAt = runStartedAt
             worked.forEachIndexed { i, seg ->
                 val last = i == worked.lastIndex
-                sessionRepository.insert(
-                    SessionRecord(
-                        startedAtMs = startedAt,
-                        // A hold's row is as long as it was held. The table keeps no hold time, and
-                        // the records screen and the next run's streak bar both read a hold's
-                        // seconds off its row: written as the run's length, the setting up and the
-                        // rests between holds were counted as held.
-                        durationMs = when {
-                            Exercises.of(seg.exercise).kind == MovementKind.HOLD -> seg.holdMs
-                            single -> outcome.durationMs
-                            else -> seg.durationMs
-                        },
-                        exercise = seg.exercise,
-                        reps = seg.reps,
-                        maxCombo = if (single) outcome.maxCombo else seg.maxCombo,
-                        deepReps = seg.deepReps,
-                        meanDepth = seg.meanDepth,
-                        dungeonIndex = dungeonIndex,
-                        cleared = outcome.cleared && last,
-                        xpEarned = if (last) outcome.xpEarned else 0,
-                        plausibility = seg.plausibility,
-                    )
+                val record = SessionRecord(
+                    startedAtMs = startedAt,
+                    // A hold's row is as long as it was held. The table keeps no hold time, and
+                    // the records screen and the next run's streak bar both read a hold's
+                    // seconds off its row: written as the run's length, the setting up and the
+                    // rests between holds were counted as held.
+                    durationMs = when {
+                        Exercises.of(seg.exercise).kind == MovementKind.HOLD -> seg.holdMs
+                        single -> outcome.durationMs
+                        else -> seg.durationMs
+                    },
+                    exercise = seg.exercise,
+                    reps = seg.reps,
+                    maxCombo = if (single) outcome.maxCombo else seg.maxCombo,
+                    deepReps = seg.deepReps,
+                    meanDepth = seg.meanDepth,
+                    dungeonIndex = dungeonIndex,
+                    cleared = outcome.cleared && last,
+                    xpEarned = if (last) outcome.xpEarned else 0,
+                    plausibility = seg.plausibility,
+                )
+                sessionRepository.insert(record)
+                runFacts += SessionFacts(
+                    exercise = record.exercise,
+                    epochDay = epochDay,
+                    startedAtMs = record.startedAtMs,
+                    reps = record.reps,
+                    bestSet = record.maxCombo,
+                    deepReps = record.deepReps,
+                    durationMs = record.durationMs,
                 )
                 startedAt += seg.durationMs
             }
+            _growth.value = RunGrowth.of(before, runFacts)
 
             saveCalibration()
 

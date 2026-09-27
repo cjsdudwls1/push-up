@@ -84,10 +84,12 @@ data class CatStep(
  * 고냥이 지켜줘 as a workout: [lives] lives, each one a set, with a rest between them.
  *
  * A single run of [CeilingSurvival] is a test — as many as you can, until the ceiling wins — and a
- * test is not a workout. Three of them with a rest between is three sets to the edge of failure,
+ * test is not a workout. Several of them with a rest between is several sets to the edge of failure,
  * which is what builds muscle: several sets do clearly more than one, and a set taken close to its
- * limit is the one that counts. By the owner's decision there are three lives and the rest between
- * them is not optional: the ceiling does not come back until it is over.
+ * limit is the one that counts. By the owner's decision there are ten lives — ten sets, as in the
+ * old ten-by-ten volume programmes — and the rest between them is not optional: the ceiling does
+ * not come back until it is over. The session can be ended after any of them, and keeps what was
+ * done.
  *
  * Each life is a fresh [CeilingSurvival] — a fresh ceiling and a fresh ramp, as a new set starts
  * fresh — and keeps that class's rule that nothing pauses it once it has started. The one exception
@@ -225,8 +227,8 @@ class CatSession(
     )
 
     companion object {
-        /** Three lives, three sets: the owner's number. */
-        const val LIVES = 3
+        /** Ten lives, ten sets: the owner's number. */
+        const val LIVES = 10
 
         /** A minute between sets, by the owner's decision; the settings offer longer. */
         const val REST_MS = 60_000L

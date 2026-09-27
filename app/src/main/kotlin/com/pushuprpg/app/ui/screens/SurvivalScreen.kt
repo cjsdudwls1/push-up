@@ -79,7 +79,9 @@ import com.pushuprpg.core.detect.RenderSkeleton
 import com.pushuprpg.core.progression.RunGrowth
 import com.pushuprpg.core.survival.CatLine
 import com.pushuprpg.core.survival.CatPhase
+import com.pushuprpg.core.survival.CatSession
 import com.pushuprpg.core.survival.CatSessionState
+import com.pushuprpg.core.survival.LifeResult
 import com.pushuprpg.core.survival.CatSpeech
 import com.pushuprpg.core.survival.CatView
 import com.pushuprpg.core.survival.SurvivalState
@@ -92,8 +94,8 @@ import kotlinx.coroutines.delay
  * depth gauge — the descending ceiling *is* the gauge. This is the mode people are shown first and
  * the one they send to a friend, so it must not look like sports science.
  *
- * A session is three lives — three sets — with a rest between them that the screen counts down;
- * the tutorial is one life. See [com.pushuprpg.core.survival.CatSession].
+ * A session is ten lives — ten sets — with a rest between them that the screen counts down; the
+ * tutorial is one life. See [com.pushuprpg.core.survival.CatSession].
  */
 @Composable
 fun SurvivalScreen(
@@ -105,11 +107,16 @@ fun SurvivalScreen(
     onRetry: () -> Unit,
     onShare: (ShareCardData) -> Unit,
     /**
-     * Leaves the run. Outside the tutorial: 홈으로, the close button and back, all banking what was
-     * done. In the tutorial, its ending: the done card's button, and back once the run has started.
+     * Leaves the run, banking what was done: outside the tutorial, the ending's 홈으로; in the
+     * tutorial, the done card's button, and back once the run has started.
      */
     onHome: () -> Unit,
     modifier: Modifier = Modifier,
+    /**
+     * The close button and back while a session is on, outside the tutorial: the session ends where
+     * it is and its ending is shown. Leaving, [onHome], is the ending's own button.
+     */
+    onClose: () -> Unit = onHome,
     /** The tutorial's way out before its run has started: 건너뛰기, and back, asked first, while the ceiling waits. */
     onSkip: () -> Unit = {},
     /** The pose model did not load, so nothing will ever count: the tutorial offers its skip at once. */
@@ -141,8 +148,11 @@ fun SurvivalScreen(
     val playing = state.phase == CatPhase.PLAYING
     val resting = state.phase == CatPhase.RESTING
     val waitingTutorial = isTutorial && !state.started
+    // Outside the tutorial, back ends the session and shows its ending, as the close button does;
+    // from the ending it leaves.
+    val close: () -> Unit = if (isTutorial || state.phase == CatPhase.OVER) onHome else onClose
     BackHandler {
-        if (waitingTutorial) confirmingSkip = !confirmingSkip else onHome()
+        if (waitingTutorial) confirmingSkip = !confirmingSkip else close()
     }
 
     // Long enough to look stuck: the tutorial offers its skip after this much waiting to start.
@@ -307,7 +317,7 @@ fun SurvivalScreen(
                     .size(48.dp)
                     .clip(CircleShape)
                     .background(Palette.ScrimPanelHigh)
-                    .clickable(onClick = onHome),
+                    .clickable(onClick = close),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
@@ -732,7 +742,7 @@ private fun TutorialDoneCard(
         }
         Spacer(Modifier.height(8.dp))
         Text(
-            text = stringResource(R.string.tutorial_done_next),
+            text = stringResource(R.string.tutorial_done_next, CatSession.LIVES),
             style = Type.bodyL,
             color = Palette.TextSecondary,
             textAlign = TextAlign.Center,
@@ -753,7 +763,7 @@ private fun LivesRow(lives: Int, left: Int, modifier: Modifier = Modifier) {
         repeat(lives) { i ->
             CameraText(
                 text = "\u2665",
-                style = Type.titleL,
+                style = Type.titleM,
                 color = if (i < left) HEART else Palette.TextDisabled,
             )
         }
@@ -910,34 +920,23 @@ private fun SessionOverCard(
             color = Palette.TextTertiary,
         )
         Spacer(Modifier.height(14.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            state.ended.forEachIndexed { i, life ->
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(Palette.Bg2)
-                        .padding(vertical = 10.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    Text(
-                        text = if (hold) {
-                            stringResource(R.string.session_life_seconds, (life.survivedMs / 1000L).toInt())
-                        } else {
-                            stringResource(R.string.session_life_reps, life.reps)
-                        },
-                        style = Type.titleM,
-                        color = Palette.TextPrimary,
-                        maxLines = 1,
-                    )
-                    Text(
-                        text = stringResource(R.string.session_life_n, i + 1),
-                        style = Type.labelM,
-                        color = Palette.TextTertiary,
-                        maxLines = 1,
-                    )
-                }
-            }
+        Text(
+            text = stringResource(
+                if (hold) R.string.session_chart_title_hold else R.string.session_chart_title,
+                state.ended.size,
+            ),
+            style = Type.labelL,
+            color = Palette.TextSecondary,
+        )
+        Spacer(Modifier.height(8.dp))
+        LivesChart(lives = state.ended, hold = hold)
+        if (!hold) {
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = stringResource(R.string.session_total_reps, state.totalReps),
+                style = Type.titleM,
+                color = Palette.TextPrimary,
+            )
         }
         Spacer(Modifier.height(12.dp))
         RunGrowthLines(growth = growth, modifier = Modifier.fillMaxWidth())
@@ -958,3 +957,57 @@ private fun SessionOverCard(
         }
     }
 }
+
+/**
+ * What each life made, as bars: ten sets read at a glance, the fade across them included — which is
+ * what sets taken to the edge look like, and nothing to apologise for. A life the camera gave back
+ * is drawn faint.
+ */
+@Composable
+private fun LivesChart(lives: List<LifeResult>, hold: Boolean) {
+    val values = lives.map { if (hold) (it.survivedMs / 1000L).toInt() else it.reps }
+    val top = (values.maxOrNull() ?: 0).coerceAtLeast(1)
+    BoxWithConstraints(Modifier.fillMaxWidth()) {
+        val gap = 4.dp
+        val count = lives.size.coerceAtLeast(1)
+        val barWidth = minOf(36.dp, (maxWidth - gap * (count - 1)) / count)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(gap, Alignment.CenterHorizontally),
+            verticalAlignment = Alignment.Bottom,
+        ) {
+            lives.forEachIndexed { i, life ->
+                val value = values[i]
+                Column(
+                    modifier = Modifier.width(barWidth),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    Text(
+                        text = value.toString(),
+                        style = Type.labelS,
+                        color = Palette.TextSecondary,
+                        maxLines = 1,
+                    )
+                    Spacer(Modifier.height(2.dp))
+                    Box(
+                        Modifier
+                            .fillMaxWidth()
+                            .height((CHART_HEIGHT * value / top).coerceAtLeast(3f).dp)
+                            .clip(RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp))
+                            .background(if (life.refunded) Palette.Bg3 else Palette.Deep),
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        text = (i + 1).toString(),
+                        style = Type.labelS,
+                        color = Palette.TextTertiary,
+                        maxLines = 1,
+                    )
+                }
+            }
+        }
+    }
+}
+
+/** The tallest bar, in dp. */
+private const val CHART_HEIGHT = 64f

@@ -26,7 +26,8 @@ sealed interface ShareCardData {
         val heldSeconds: Int,
         val maxCombo: Int,
         val seconds: Int,
-        val rankKorean: String,
+        /** How high every rep so far has climbed, already worded: 312m. */
+        val climb: String,
         val lifetimeReps: Int,
     ) : ShareCardData {
         /**

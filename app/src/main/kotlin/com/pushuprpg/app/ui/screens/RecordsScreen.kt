@@ -16,7 +16,7 @@ import com.pushuprpg.app.R
 import com.pushuprpg.app.domain.DailyTotal
 import com.pushuprpg.app.domain.PlayerProgress
 import com.pushuprpg.app.domain.SessionRecord
-import com.pushuprpg.app.ui.components.RankCard
+import com.pushuprpg.app.ui.components.ClimbCard
 import com.pushuprpg.app.ui.components.SectionHeader
 import com.pushuprpg.app.ui.components.StatTile
 import com.pushuprpg.app.ui.components.cardSurface
@@ -25,10 +25,15 @@ import com.pushuprpg.app.ui.components.exerciseLabelRes
 import com.pushuprpg.app.ui.theme.LocalGameColors
 import com.pushuprpg.app.ui.theme.Palette
 import com.pushuprpg.app.ui.theme.Type
+import com.pushuprpg.core.detect.ExerciseType
 import com.pushuprpg.core.detect.Exercises
 import com.pushuprpg.core.detect.MovementKind
 import com.pushuprpg.core.game.Dungeons
-import com.pushuprpg.core.progression.RankProgress
+import com.pushuprpg.core.progression.Climb
+import com.pushuprpg.core.progression.MovementRecord
+import com.pushuprpg.core.progression.Records
+import com.pushuprpg.core.progression.SessionFacts
+import androidx.compose.runtime.remember
 import java.text.NumberFormat
 import java.time.LocalDate
 import java.util.Locale
@@ -45,10 +50,18 @@ fun RecordsScreen(
     progress: PlayerProgress,
     sessions: List<SessionRecord>,
     dailyTotals: List<DailyTotal>,
+    /** Every run, for the climb, each movement's records and the days trained. */
+    facts: List<SessionFacts>,
+    /** The movement picked last, whose count to the next place the climb quotes. */
+    exercise: ExerciseType,
     modifier: Modifier = Modifier,
 ) {
     val colors = LocalGameColors.current
     val format = NumberFormat.getIntegerInstance(Locale.KOREA)
+    val climb = remember(facts) { Climb.progress(Climb.meters(facts)) }
+    // Most done first: the movement someone actually trains leads.
+    val records = remember(facts) { Records.of(facts).values.sortedByDescending { it.total } }
+    val daysTrained = remember(facts) { facts.map { it.epochDay }.distinct().size }
 
     LazyColumn(
         modifier = modifier
@@ -74,8 +87,8 @@ fun RecordsScreen(
                     modifier = Modifier.weight(1f),
                 )
                 StatTile(
-                    value = stringResource(R.string.records_combo_value, progress.bestCombo),
-                    label = stringResource(R.string.records_best_combo),
+                    value = stringResource(R.string.records_days_value, daysTrained),
+                    label = stringResource(R.string.records_days_trained),
                     accent = colors.combo,
                     modifier = Modifier.weight(1f),
                 )
@@ -99,7 +112,13 @@ fun RecordsScreen(
             }
         }
 
-        item { RankCard(rankProgress = RankProgress.of(progress.lifetimeReps)) }
+        item { ClimbCard(progress = climb, exercise = exercise) }
+
+        // Each movement's best one go against its first: the number that says the body is changing.
+        if (records.isNotEmpty()) {
+            item { SectionHeader(text = stringResource(R.string.records_movements_title)) }
+            items(records, key = { "record-" + it.exercise.name }) { record -> MovementRecordRow(record) }
+        }
 
         item {
             SectionHeader(text = stringResource(R.string.records_heat_title))
@@ -251,6 +270,55 @@ private fun SessionRow(session: SessionRecord) {
                 style = Type.labelM,
                 color = if (session.cleared) colors.accept else Palette.TextSecondary,
             )
+        }
+    }
+}
+
+/** One movement's records: its best one go, its first, and everything done with it. */
+@Composable
+private fun MovementRecordRow(record: MovementRecord) {
+    val colors = LocalGameColors.current
+    val hold = Exercises.of(record.exercise).kind == MovementKind.HOLD
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .cardSurface(shape = RoundedCornerShape(16.dp))
+            .padding(14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(
+                text = stringResource(exerciseLabelRes(record.exercise)),
+                style = Type.titleM,
+                color = Palette.TextPrimary,
+            )
+            Spacer(Modifier.height(3.dp))
+            Text(
+                text = stringResource(
+                    if (hold) R.string.records_movement_line_hold else R.string.records_movement_line,
+                    record.first,
+                    record.total,
+                ),
+                style = Type.labelM,
+                color = Palette.TextTertiary,
+            )
+        }
+        Column(horizontalAlignment = Alignment.End) {
+            Text(
+                text = stringResource(if (hold) R.string.records_duration_s else R.string.records_reps_value, record.best),
+                style = Type.numeralL,
+                color = Palette.TextPrimary,
+            )
+            if (record.gain > 0) {
+                Text(
+                    text = stringResource(
+                        if (hold) R.string.home_record_gain_hold else R.string.home_record_gain,
+                        record.gain,
+                    ),
+                    style = Type.labelM,
+                    color = colors.accept,
+                )
+            }
         }
     }
 }

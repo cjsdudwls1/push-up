@@ -69,7 +69,7 @@ class SurvivalViewModel(
     private val appScope: CoroutineScope,
 ) : ViewModel() {
 
-    // Three lives with a rest between them — three sets — and the tutorial one life with none: it is
+    // Ten lives with a rest between them — ten sets — and the tutorial one life with none: it is
     // somebody's first minute, and what it measures is one go. Each life is worth what the movement
     // is worth everywhere else: a pull-up moves the ceiling about as far as three pushups. See
     // CeilingSurvival.forExercise and CatSession.
@@ -168,6 +168,13 @@ class SurvivalViewModel(
     @Volatile
     private var left = false
 
+    /**
+     * Ended from the screen with lives still left: [endHere] has published the ending, and frames
+     * are no longer played until a restart. Set on the main thread, read on the pose thread.
+     */
+    @Volatile
+    private var endedHere = false
+
     fun onPoseFrame(frame: com.pushuprpg.core.pose.PoseFrame) {
         if (left) return
         traces.record(frame)
@@ -175,6 +182,7 @@ class SurvivalViewModel(
             restartRequested = false
             applyRestart()
         }
+        if (endedHere) return
         val tick: PoseTick = detector.onFrame(frame)
         _placement.value = coach.update(frame, tick)
         session.restMs = restMs
@@ -210,6 +218,8 @@ class SurvivalViewModel(
             announcer.survival(catView.speech, _placement.value.advice.takeUnless { resting }, tick.tMs),
             exercise = exercise,
         )
+        // Not over an ending published from the screen while this frame was in flight.
+        if (endedHere) return
         _state.value = now
         _cat.value = catView
         val settingUp = now.phase == CatPhase.PLAYING && !now.life.started
@@ -232,6 +242,30 @@ class SurvivalViewModel(
      */
     fun restart() {
         restartRequested = true
+        endedHere = false
+    }
+
+    /**
+     * Ends the session here — the close button, or back — and shows its ending, rather than leaving
+     * the screen: with ten lives most sessions end this way, and the ending is where a session says
+     * what it did. Nothing played at all has nothing to show, so that leaves; see [leave].
+     *
+     * Published from the last state the screen had, without touching the session, which belongs to
+     * the pose thread: the frames after this are not played.
+     *
+     * Returns whether there is an ending to show; false means the caller should leave.
+     */
+    fun endHere(): Boolean {
+        val now = _state.value
+        if (now.phase == CatPhase.OVER) return false
+        if (!now.started) return false
+        endedHere = true
+        voice.stop()
+        val over = now.copy(phase = CatPhase.OVER, ended = now.played, restLeftMs = 0L, lifeDeepReps = 0)
+        if (over.totalScore > _bestScore.value) _bestScore.value = over.totalScore
+        _state.value = over
+        save(over)
+        return true
     }
 
     private fun applyRestart() {
@@ -246,6 +280,7 @@ class SurvivalViewModel(
         _nearMisses.value = 0
         _growth.value = null
         saved.set(false)
+        endedHere = false
         _state.value = session.state()
     }
 
@@ -371,7 +406,9 @@ class SurvivalViewModel(
         // not activity.
         val durationMs = if (hold) summary.holdMs else playedMs
         val startedAt = startedWallMs.takeIf { it > 0L } ?: (System.currentTimeMillis() - playedMs)
-        val completed = snapshot.phase == CatPhase.OVER && snapshot.livesLeft == 0
+        // Every life played out. Never the tutorial's one life: its row must not read as a session
+        // finished, which is what the gifts count.
+        val completed = !tutorial && snapshot.phase == CatPhase.OVER && snapshot.livesLeft == 0
 
         if (!tutorial) {
             telemetry.log(

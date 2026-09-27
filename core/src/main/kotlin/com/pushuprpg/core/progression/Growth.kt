@@ -253,3 +253,31 @@ data class RunGrowth(
         }
     }
 }
+
+/** A finished week, as the hub sums it up at the start of the next one. */
+data class WeekRecap(
+    val summary: WeekSummary,
+    /** Metres climbed that week. */
+    val meters: Float,
+    /** Personal records broken that week: runs that beat the best before them, not first goes. */
+    val records: Int,
+) {
+    val empty: Boolean get() = summary.activeDays == 0
+}
+
+/** The recap of the week starting on [monday], from every run banked. */
+fun Weeks.recap(facts: List<SessionFacts>, monday: Long): WeekRecap {
+    val week = monday until monday + 7
+    val inWeek = facts.filter { it.epochDay in week }
+    val days = inWeek.map { DayTotal(it.epochDay, it.reps, it.durationMs) }
+    // Records as they were broken, in order: each run against the best of everything before it.
+    val best = HashMap<ExerciseType, Int>()
+    var records = 0
+    for (run in facts.sortedBy { it.startedAtMs }) {
+        val previous = best[run.exercise]
+        val now = run.oneGo()
+        if (run.epochDay in week && Records.isNew(previous, now)) records++
+        if (previous == null || now > previous) best[run.exercise] = now
+    }
+    return WeekRecap(summary(days, monday), Climb.meters(inWeek), records)
+}

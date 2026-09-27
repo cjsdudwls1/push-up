@@ -32,7 +32,6 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalView
@@ -52,8 +51,6 @@ import com.pushuprpg.app.ui.theme.Palette
 import com.pushuprpg.app.ui.theme.Type
 import com.pushuprpg.core.detect.ExerciseType
 import com.pushuprpg.core.detect.Exercises
-import com.pushuprpg.core.progression.Rank
-import com.pushuprpg.core.progression.RankProgress
 import java.util.WeakHashMap
 
 /** The one card radius the hub screens use, so nothing drifts by a few dp between screens. */
@@ -149,68 +146,6 @@ fun StatTile(
             textAlign = TextAlign.Center,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
-        )
-    }
-}
-
-/** Rank tiers share the four colours the palette already defines for loot rarity. */
-@Composable
-@ReadOnlyComposable
-fun rankColour(rank: Rank): Color = when (rank) {
-    Rank.SEEDLING, Rank.TRAINEE -> Palette.TierCommon
-    Rank.WARRIOR, Rank.VETERAN -> Palette.TierRare
-    Rank.ELITE, Rank.CHAMPION, Rank.MASTER -> Palette.TierEpic
-    Rank.GRANDMASTER, Rank.LEGEND, Rank.IMMORTAL -> Palette.TierLegend
-}
-
-@Composable
-fun RankCard(rankProgress: RankProgress, modifier: Modifier = Modifier) {
-    val tier = rankColour(rankProgress.rank)
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .cardSurface()
-            .padding(20.dp),
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                Modifier
-                    .size(10.dp)
-                    .clip(CircleShape)
-                    .background(tier),
-            )
-            Spacer(Modifier.width(10.dp))
-            // The rank name takes whatever is left after the lifetime count, rather than the two
-            // sharing the row by weight — a weighted split caps each at half the width, so a longer
-            // rank name like 그랜드마스터 ellipsises while empty space sits beside it.
-            Text(
-                text = rankProgress.rank.korean,
-                style = Type.titleL,
-                color = tier,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f),
-            )
-            Spacer(Modifier.width(12.dp))
-            Text(
-                text = stringResource(R.string.rank_lifetime, rankProgress.lifetimeReps),
-                style = Type.labelL,
-                color = Palette.TextSecondary,
-                maxLines = 1,
-            )
-        }
-        Spacer(Modifier.height(16.dp))
-        ProgressTrack(fraction = rankProgress.fraction, color = tier)
-        Spacer(Modifier.height(10.dp))
-        val next = rankProgress.next
-        Text(
-            text = if (next == null) {
-                stringResource(R.string.rank_max)
-            } else {
-                stringResource(R.string.result_rank_to_next, next.korean, rankProgress.repsToNext)
-            },
-            style = Type.bodyM,
-            color = Palette.TextSecondary,
         )
     }
 }

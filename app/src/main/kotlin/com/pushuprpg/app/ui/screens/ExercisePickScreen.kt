@@ -50,6 +50,7 @@ import com.pushuprpg.core.game.Dungeon
 import com.pushuprpg.core.game.Difficulty
 import com.pushuprpg.core.game.PlayerClass
 import com.pushuprpg.core.survival.CatName
+import com.pushuprpg.core.survival.CatSession
 
 /**
  * Picks the movement for one dungeon run, on the way in.
@@ -111,7 +112,11 @@ fun ExercisePickScreen(
             )
             Spacer(Modifier.height(6.dp))
             Text(
-                text = stringResource(if (survival) R.string.pick_survival_sub else R.string.pick_exercise_sub),
+                text = if (survival) {
+                    stringResource(R.string.pick_survival_sub, CatSession.LIVES)
+                } else {
+                    stringResource(R.string.pick_exercise_sub)
+                },
                 style = Type.bodyM,
                 color = Palette.TextSecondary,
             )

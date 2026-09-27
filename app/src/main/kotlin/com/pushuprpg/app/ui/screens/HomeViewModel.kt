@@ -9,6 +9,12 @@ import com.pushuprpg.app.AppContainer
 import com.pushuprpg.app.domain.DailyTotal
 import com.pushuprpg.app.domain.ProgressRepository
 import com.pushuprpg.app.domain.SessionRepository
+import com.pushuprpg.core.detect.ExerciseType
+import com.pushuprpg.core.progression.Climb
+import com.pushuprpg.core.progression.DayTotal
+import com.pushuprpg.core.progression.Records
+import com.pushuprpg.core.progression.Weeks
+import com.pushuprpg.core.progression.recap
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -42,25 +48,44 @@ class HomeViewModel(
      */
     private val day = MutableStateFlow(today())
 
+    /** Today and the fortnight around it: today's total and work, and this week's and last week's days. */
+    private data class Days(
+        val today: DailyTotal,
+        val work: Map<ExerciseType, Int>,
+        val totals: List<DailyTotal>,
+    )
+
     val state: StateFlow<HomeUiState> = combine(
         progressRepository.progress,
         // Subscribed again when the day turns: the totals' window is fixed when it is collected.
         // The day's work per movement is read again each time they emit, which is each time a run
-        // is banked.
+        // is banked. Two weeks, so last week is whole whatever day this is.
         day.flatMapLatest { epochDay ->
-            sessionRepository.dailyTotals(days = 2).map { totals ->
+            sessionRepository.dailyTotals(days = 14).map { totals ->
                 val total = totals.firstOrNull { it.epochDay == epochDay } ?: DailyTotal(epochDay, reps = 0, activeMs = 0L)
-                total to sessionRepository.workOn(epochDay)
+                Days(total, sessionRepository.workOn(epochDay), totals)
             }
         },
-    ) { progress, (todayTotal, todayWork) ->
+        // Every run, for the climb, the records and the day of the last workout.
+        sessionRepository.facts(),
+    ) { progress, days, facts ->
+        val (thisWeek, lastWeek) = Weeks.thisAndLast(
+            days.totals.map { DayTotal(it.epochDay, it.reps, it.activeMs) },
+            days.today.epochDay,
+        )
         HomeUiState(
             progress = progress,
-            todayReps = todayTotal.reps,
-            todayActiveMs = todayTotal.activeMs,
-            todayWork = todayWork,
+            todayReps = days.today.reps,
+            todayActiveMs = days.today.activeMs,
+            todayWork = days.work,
             loading = false,
-            today = todayTotal.epochDay,
+            today = days.today.epochDay,
+            climb = Climb.progress(Climb.meters(facts)),
+            records = Records.of(facts),
+            thisWeek = thisWeek,
+            lastWeek = lastWeek,
+            lastWeekRecap = Weeks.recap(facts, thisWeek.start - 7),
+            lastWorkoutDay = facts.maxOfOrNull { it.epochDay },
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeUiState())
 

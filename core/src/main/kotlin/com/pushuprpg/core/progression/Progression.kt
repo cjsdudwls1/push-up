@@ -6,63 +6,6 @@ import com.pushuprpg.core.detect.MovementKind
 import kotlin.math.pow
 import kotlin.math.roundToInt
 
-/**
- * Lifetime-rep tiers.
- *
- * Separate from level on purpose, and driven by reps alone. Rank never falls, accrues whether the
- * run was won or lost, and accrues in every mode — it is the part of the game that keeps the
- * promise the clear screen makes: 이기든 지든 사라지지 않아요.
- */
-enum class Rank(val korean: String, val threshold: Int) {
-    SEEDLING("새싹", 0),
-    TRAINEE("수련생", 100),
-    WARRIOR("전사", 500),
-    VETERAN("베테랑", 1_500),
-    ELITE("정예", 3_500),
-    CHAMPION("챔피언", 7_000),
-    MASTER("마스터", 12_000),
-    GRANDMASTER("그랜드마스터", 20_000),
-    LEGEND("전설", 35_000),
-    IMMORTAL("불멸", 60_000);
-
-    companion object {
-        fun forLifetimeReps(reps: Int): Rank =
-            entries.last { reps >= it.threshold }
-
-        fun next(rank: Rank): Rank? =
-            entries.getOrNull(entries.indexOf(rank) + 1)
-    }
-}
-
-/** Where the player sits between two ranks, for the card on the clear screen. */
-data class RankProgress(
-    val rank: Rank,
-    val next: Rank?,
-    val lifetimeReps: Int,
-    val repsToNext: Int,
-    /** 0..1, or 1 at the final rank. */
-    val fraction: Float,
-) {
-    companion object {
-        fun of(lifetimeReps: Int): RankProgress {
-            val rank = Rank.forLifetimeReps(lifetimeReps)
-            val next = Rank.next(rank)
-            if (next == null) {
-                return RankProgress(rank, null, lifetimeReps, 0, 1f)
-            }
-            val span = (next.threshold - rank.threshold).coerceAtLeast(1)
-            val done = (lifetimeReps - rank.threshold).coerceAtLeast(0)
-            return RankProgress(
-                rank = rank,
-                next = next,
-                lifetimeReps = lifetimeReps,
-                repsToNext = (next.threshold - lifetimeReps).coerceAtLeast(0),
-                fraction = (done.toFloat() / span).coerceIn(0f, 1f),
-            )
-        }
-    }
-}
-
 object Levels {
     const val MAX_LEVEL = 50
 

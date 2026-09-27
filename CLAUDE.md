@@ -169,14 +169,29 @@ stops attacking. A user must never lose health because the tracker blinked.
 view all let it keep coming. It is a sprint, and a sprint you can pause by sitting up is not one. Do
 not "fix" it back to pausing.
 
-A session of 고냥이 지켜줘 is **three lives with a rest between them**, by the owner's decision: a
-life is a set, and the rest (a minute by default; the settings offer 90 s and 2 min) is not
-optional — the next life's ceiling does not come back until it is over, and then waits, as the
-first did, for the user to be in position. Each life is a fresh `CeilingSurvival` and keeps the
-sprint rule above. A life that ends while the tracker has lost the user for two seconds is given
-back, once a session (`CatSession.REFUND_LOST_MS`, `REFUNDS`): a tracking failure never costs the
-user, without stepping out of view becoming a way to live forever. The tutorial is one life and no
-rest. `CatSessionTest` pins all of it.
+A session of 고냥이 지켜줘 is **ten lives with a rest between them**, by the owner's decision: a
+life is a set, and the rest (a minute by default; the settings offer 90 s and 2 min) is fully
+forced — no skip, no extend, no button — and the next life's ceiling does not come back until it
+is over, and then waits, as the first did, for the user to be in position. Each life is a fresh
+`CeilingSurvival` and keeps the sprint rule above. A life that ends while the tracker has lost the
+user for two seconds is given back, once a session (`CatSession.REFUND_LOST_MS`, `REFUNDS`): a
+tracking failure never costs the user, without stepping out of view becoming a way to live
+forever. The close button and back end the session where it is and show its ending, since with
+ten lives that is how most sessions end. The tutorial is one life and no rest. `CatSessionTest`
+pins all of it.
+
+**The cat is the front door; the dungeons are kept behind it**, by the owner's decision. The hub's
+one big button is 고냥이 지키기, onboarding no longer asks for a class (a class only prices the
+dungeons, and its card lives on the dungeon list), and the dungeons are a quiet link at the bottom
+of the hub until the test period says whether anyone misses them.
+
+**Growth is shown as things that only go up.** The climb (`Growth.kt`) turns every rep into the
+height it lifted the body and names the places passed; each movement's record is its best one go
+against its first. Neither ever falls, and a lost life or a week away subtracts nothing. The hub's
+cat greets by how long it has been (`Welcome`), glad whatever the answer, and a broken streak is
+never said — by the owner's decision, pointing at what was lost is how a return becomes a goodbye.
+The week is one card, with last week summed up at the start of the next (`Weeks.recap`). There are
+no push notifications, by the owner's decision.
 
 The cat's fear, its lines and its sounds are decided by `CatCompanion` in `:core`, from the run's
 state and events — the rest's lines included; the screen draws the `CatView` it is given and plays

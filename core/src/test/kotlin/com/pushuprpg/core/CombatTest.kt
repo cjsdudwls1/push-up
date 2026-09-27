@@ -208,25 +208,6 @@ class CombatTest {
 
 class ProgressionTest {
 
-    @Test
-    fun `rank thresholds match the demo's champion card`() {
-        // The demo shows 챔피언 with "마스터까지 431개", i.e. 11,569 lifetime reps.
-        val p = RankProgress.of(11_569)
-        assertEquals(Rank.CHAMPION, p.rank)
-        assertEquals(Rank.MASTER, p.next)
-        assertEquals(431, p.repsToNext)
-        assertTrue(p.fraction > 0.9f)
-    }
-
-    @Test
-    fun `rank never falls and tops out gracefully`() {
-        assertEquals(Rank.SEEDLING, Rank.forLifetimeReps(0))
-        assertEquals(Rank.IMMORTAL, Rank.forLifetimeReps(999_999))
-        val top = RankProgress.of(999_999)
-        assertEquals(null, top.next)
-        assertEquals(1f, top.fraction)
-    }
-
     // That the first dungeon clear levels the player up is played through the engine, class by
     // class, in VolumeModelTest: a sum worked out here by hand agreed with nothing the run paid.
 

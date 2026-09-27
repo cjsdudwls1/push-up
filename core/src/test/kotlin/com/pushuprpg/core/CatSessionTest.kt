@@ -47,7 +47,8 @@ class CatSessionTest {
 
     private fun strike(t: Long, index: Int) = RepEvent.Strike(t, index, RepGrade.COUNTED, depth = 75f, combo = index)
 
-    private fun session(lives: Int = CatSession.LIVES, refunds: Int = CatSession.REFUNDS) =
+    /** Three lives unless said otherwise: enough to see every transition, quicker than the real ten. */
+    private fun session(lives: Int = 3, refunds: Int = CatSession.REFUNDS) =
         CatSession(newLife = { CeilingSurvival() }, lives = lives, refunds = refunds)
 
     /** Frames every 33 ms from [from] until [until] holds or [limitMs] passes; returns the last time. */
@@ -63,6 +64,21 @@ class CatSessionTest {
             onTick(frame(t))
         }
         return t
+    }
+
+    @Test
+    fun `a session is ten lives, by the owner's number`() {
+        val s = CatSession(newLife = { CeilingSurvival() })
+        assertEquals(10, s.lives)
+        assertEquals(10, s.state().livesLeft)
+        var t = 0L
+        var lost = 0
+        while (s.state().phase != CatPhase.OVER && t < 3_000_000) {
+            t += 33
+            lost += s.onTick(tick(t)).session.count { it is CatSessionEvent.LifeLost }
+        }
+        assertEquals(10, lost)
+        assertEquals(10, s.state().ended.size)
     }
 
     @Test

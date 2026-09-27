@@ -52,6 +52,8 @@ fun DungeonSelectScreen(
     onDifficultyChange: (Difficulty) -> Unit,
     onStart: (Int) -> Unit,
     modifier: Modifier = Modifier,
+    /** The class decides what a dungeon asks, and matters nowhere else, so its card lives here. */
+    onChangeClass: () -> Unit = {},
 ) {
     val exerciseName = stringResource(exerciseLabelRes(exercise))
     val inSeconds = Exercises.of(exercise).kind == MovementKind.HOLD
@@ -71,6 +73,8 @@ fun DungeonSelectScreen(
                 color = Palette.TextPrimary,
             )
         }
+
+        item { ClassCard(playerClass = playerClass, onClick = onChangeClass) }
 
         item {
             SectionHeader(text = stringResource(R.string.difficulty_section))
@@ -199,6 +203,46 @@ private fun DungeonCard(
             },
             style = Type.bodyM,
             color = Palette.TextSecondary,
+        )
+    }
+}
+
+/**
+ * The current class, and the way to a different one.
+ *
+ * Here rather than on the hub: a class prices the dungeons and nothing else, and the hub is the
+ * cat's. The class-pick screen promises the choice can be changed any time, and that promise is
+ * only kept if the way back is where the dungeons are.
+ */
+@Composable
+private fun ClassCard(playerClass: PlayerClass, onClick: () -> Unit) {
+    val (nameRes, descRes) = classStrings(playerClass)
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .cardSurface()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 20.dp, vertical = 16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(
+                text = stringResource(nameRes),
+                style = Type.titleM,
+                color = Palette.TextPrimary,
+            )
+            Spacer(Modifier.height(4.dp))
+            Text(
+                text = stringResource(descRes),
+                style = Type.bodyM,
+                color = Palette.TextSecondary,
+            )
+        }
+        Spacer(Modifier.width(12.dp))
+        Text(
+            text = stringResource(R.string.home_class_change),
+            style = Type.labelL,
+            color = Palette.Brand400,
         )
     }
 }
