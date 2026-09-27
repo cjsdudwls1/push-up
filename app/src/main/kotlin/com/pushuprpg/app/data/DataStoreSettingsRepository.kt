@@ -10,6 +10,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.pushuprpg.app.domain.AppSettings
 import com.pushuprpg.app.domain.SettingsRepository
@@ -52,6 +53,8 @@ private val KEY_RECORD_TRACES = booleanPreferencesKey("record_traces")
 private val KEY_CAT_NAME = stringPreferencesKey("cat_name")
 private val KEY_CAT_COAT = stringPreferencesKey("cat_coat")
 private val KEY_AUTO_NEXT_REST = intPreferencesKey("auto_next_rest_seconds")
+private val KEY_CAT_REST = intPreferencesKey("cat_rest_seconds")
+private val KEY_CAT_WEAR = stringSetPreferencesKey("cat_wear")
 
 private fun Preferences.toSettings(): AppSettings = AppSettings(
     skeletonMode = enumOrDefault(this[KEY_SKELETON_MODE], SETTINGS_DEFAULT.skeletonMode),
@@ -73,6 +76,8 @@ private fun Preferences.toSettings(): AppSettings = AppSettings(
     catName = this[KEY_CAT_NAME] ?: SETTINGS_DEFAULT.catName,
     catCoat = enumOrDefault(this[KEY_CAT_COAT], SETTINGS_DEFAULT.catCoat),
     autoNextRestSeconds = (this[KEY_AUTO_NEXT_REST] ?: SETTINGS_DEFAULT.autoNextRestSeconds).coerceAtLeast(0),
+    catRestSeconds = (this[KEY_CAT_REST] ?: SETTINGS_DEFAULT.catRestSeconds).coerceIn(10, 600),
+    catWear = this[KEY_CAT_WEAR] ?: SETTINGS_DEFAULT.catWear,
 )
 
 private fun MutablePreferences.writeSettings(s: AppSettings) {
@@ -95,6 +100,8 @@ private fun MutablePreferences.writeSettings(s: AppSettings) {
     this[KEY_CAT_NAME] = s.catName
     this[KEY_CAT_COAT] = s.catCoat.name
     this[KEY_AUTO_NEXT_REST] = s.autoNextRestSeconds
+    this[KEY_CAT_REST] = s.catRestSeconds
+    this[KEY_CAT_WEAR] = s.catWear
 }
 
 /**

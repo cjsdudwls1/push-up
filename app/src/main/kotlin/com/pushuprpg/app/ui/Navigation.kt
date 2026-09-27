@@ -11,15 +11,17 @@ import com.pushuprpg.core.detect.ExerciseType
 object Routes {
     const val BOOT = "boot"
     const val ONBOARDING = "onboarding"
-    const val CLASS_PICK = "class_pick"
 
-    /** The same picker after onboarding, reached from the hub or settings. Pops back when done. */
+    /** The class picker, reached from the dungeon list or settings. Pops back when done. */
     const val CLASS_CHANGE = "class_change"
     const val PERMISSION = "permission"
     const val HOME = "home"
     const val DUNGEON_SELECT = "dungeon_select"
     const val RECORDS = "records"
     const val SETTINGS = "settings"
+
+    /** 고냥이 꾸미기: the cat's name and coat, and what it has found. Reached from the cat on the hub. */
+    const val WARDROBE = "wardrobe"
 
     private const val SURVIVAL_BASE = "survival"
     const val SURVIVAL = "$SURVIVAL_BASE/{tutorial}/{exercise}"

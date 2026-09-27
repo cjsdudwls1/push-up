@@ -169,9 +169,50 @@ stops attacking. A user must never lose health because the tracker blinked.
 view all let it keep coming. It is a sprint, and a sprint you can pause by sitting up is not one. Do
 not "fix" it back to pausing.
 
+A session of 고냥이 지켜줘 is **ten lives with a rest between them**, by the owner's decision: a
+life is a set, and the rest (a minute by default; the settings offer 90 s and 2 min) is fully
+forced — no skip, no extend, no button — and the next life's ceiling does not come back until it
+is over, and then waits, as the first did, for the user to be in position. Each life is a fresh
+`CeilingSurvival` and keeps the sprint rule above. A life that ends while the tracker has lost the
+user for two seconds is given back, once a session (`CatSession.REFUND_LOST_MS`, `REFUNDS`): a
+tracking failure never costs the user, without stepping out of view becoming a way to live
+forever. The close button and back end the session where it is and show its ending, since with
+ten lives that is how most sessions end. The tutorial is one life and no rest. `CatSessionTest`
+pins all of it.
+
+**The cat is the front door; the dungeons are kept behind it**, by the owner's decision. The hub's
+one big button is 고냥이 지키기, and it starts the movement it names at once — the picker is the
+운동 바꾸기 link under it. Onboarding no longer asks for a class (a class only prices the dungeons,
+and its card lives on the dungeon list), and the dungeons are a quiet link at the bottom of the hub
+until the test period says whether anyone misses them.
+
+**A 고냥이 session shows its counts once, when it ends**, by the owner's decision: some people would
+rather not see a number while they train. Nothing on the run's screen or its rest card counts reps;
+the ending shows every set together. And a rep has no judgment sound of its own — the ding a
+counted rep makes is the feedback, and the owner judged it enough.
+
+**Growth is shown as things that only go up.** The climb (`Growth.kt`) turns every rep into the
+height it lifted the body and names the places passed; each movement's record is its best one go
+against its first. Neither ever falls, and a lost life or a week away subtracts nothing. The hub's
+cat greets by how long it has been (`Welcome`), glad whatever the answer, and a broken streak is
+never said — by the owner's decision, pointing at what was lost is how a return becomes a goodbye.
+The week is one card, with last week summed up at the start of the next (`Weeks.recap`). There are
+no push notifications, by the owner's decision.
+
+**The cat's things are gifts it finds, never a shop or a task list**, by the owner's decision: a
+reward promised for doing something is one people do it for and stop when it stops, and one that
+arrives as a surprise adds to why they came. `Gifts.earned` works each gift out from what only
+grows — the runs, the best set of a counted movement, the longest streak, returns after three days
+away, records broken, the height climbed — so nothing is stored but which were seen
+(`PlayerProgress.giftsSeen`) and what is worn (`AppSettings.catWear`), and no gift is ever taken
+back. A run says what it found (`RunGrowth.gifts`, read after the streak is written) and puts it on
+where nothing is worn; something the user chose is never taken off for it. 꾸미기 shows what each
+found gift was for, after the fact, and nothing about the ones still wrapped. `GiftsTest` pins it.
+
 The cat's fear, its lines and its sounds are decided by `CatCompanion` in `:core`, from the run's
-state and events; the screen draws the `CatView` it is given and plays the sounds, and decides
-nothing about how the cat feels. It never changes the game — `CatCompanionTest` pins when it speaks.
+state and events — the rest's lines included; the screen draws the `CatView` it is given and plays
+the sounds, and decides nothing about how the cat feels. It never changes the game —
+`CatCompanionTest` pins when it speaks.
 
 ## Copy
 

@@ -264,6 +264,18 @@
   "key": "placement_start_dip"
  },
  {
+  "file": "d9d8d788d702.ogg",
+  "text": "다시 지켜 줄 거죠, 냥?",
+  "style": "CAT",
+  "key": "cat_line_again_1"
+ },
+ {
+  "file": "421b4aaddb7a.ogg",
+  "text": "준비됐어요? 또 부탁해요, 냥!",
+  "style": "CAT",
+  "key": "cat_line_again_2"
+ },
+ {
   "file": "2d9bfe1d2780.ogg",
   "text": "든든해요, 냥~",
   "style": "CAT",
@@ -556,6 +568,24 @@
   "text": "제발 밀어 줘요!!",
   "style": "CAT",
   "key": "cat_line_panic_2"
+ },
+ {
+  "file": "8d45582137ea.ogg",
+  "text": "괜찮아요, 냥! 잠깐 쉬어요",
+  "style": "CAT",
+  "key": "cat_line_rest_1"
+ },
+ {
+  "file": "26f7f6de055a.ogg",
+  "text": "휴… 잘했어요. 숨 좀 돌려요, 냥",
+  "style": "CAT",
+  "key": "cat_line_rest_2"
+ },
+ {
+  "file": "ce79b55ff6e4.ogg",
+  "text": "십 초 남았어요, 냥!",
+  "style": "CAT",
+  "key": "cat_line_rest_ten"
  },
  {
   "file": "2251119f69ac.ogg",

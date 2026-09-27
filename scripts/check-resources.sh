@@ -35,7 +35,8 @@ fi
 defined="$(mktemp)"; referenced="$(mktemp)"
 trap 'rm -f "$defined" "$referenced"' EXIT
 grep -o 'name="[^"]*"' "$STRINGS" | sed 's/name="//;s/"//' | sort -u > "$defined"
-grep -rho 'R\.string\.[A-Za-z0-9_]*' "$SRC" | sed 's/R\.string\.//' | sort -u > "$referenced"
+# String arrays live in the same file and are read as R.array.x.
+grep -rhoE 'R\.(string|array)\.[A-Za-z0-9_]*' "$SRC" | sed -E 's/R\.(string|array)\.//' | sort -u > "$referenced"
 missing="$(comm -13 "$defined" "$referenced")"
 if [ -n "$missing" ]; then
     echo "REFERENCED but not defined in strings.xml:"

@@ -302,6 +302,9 @@ class GameVoice(context: Context, private val music: MusicPlayer) {
             CatLine.SCARED -> listOf(R.string.cat_line_scared_1, R.string.cat_line_scared_2)
             CatLine.PANIC -> listOf(R.string.cat_line_panic_1, R.string.cat_line_panic_2)
             CatLine.SAVED -> listOf(R.string.cat_line_saved_1, R.string.cat_line_saved_2, R.string.cat_line_saved_3)
+            CatLine.REST -> listOf(R.string.cat_line_rest_1, R.string.cat_line_rest_2)
+            CatLine.REST_TEN -> listOf(R.string.cat_line_rest_ten)
+            CatLine.AGAIN -> listOf(R.string.cat_line_again_1, R.string.cat_line_again_2)
         }
         val id = wordings[serial % wordings.size]
         return if (line == CatLine.MILESTONE || line == CatLine.COMBO) appContext.getString(id, arg)

@@ -6,6 +6,10 @@ import com.pushuprpg.core.detect.SkeletonMode
 import com.pushuprpg.core.detect.UserProfile
 import com.pushuprpg.core.game.Difficulty
 import com.pushuprpg.core.game.PlayerClass
+import com.pushuprpg.core.progression.CatItem
+import com.pushuprpg.core.progression.Gifts
+import com.pushuprpg.core.progression.RunGrowth
+import com.pushuprpg.core.progression.SessionFacts
 import kotlinx.coroutines.flow.Flow
 
 /**
@@ -41,6 +45,12 @@ data class PlayerProgress(
     val classChosen: Boolean = false,
     /** Onboarding is complete, which means the tutorial run has measured a starting capacity. */
     val onboarded: Boolean = false,
+    /**
+     * Gifts the user has already been shown, by name ([com.pushuprpg.core.progression.Gift]). Which
+     * gifts are earned is never stored — it is worked out from the runs — so this only decides what
+     * is still new.
+     */
+    val giftsSeen: Set<String> = emptySet(),
 )
 
 /** This player's capacity for a movement, or the movement's own starting value. */
@@ -95,6 +105,12 @@ interface SessionRepository {
      * reps, or seconds for a hold. No hold time is stored, so a hold's seconds are its rows' length.
      */
     suspend fun workOn(epochDay: Long): Map<ExerciseType, Int>
+
+    /** Every run as the growth screens read it — the climb, the records, the week — oldest first. */
+    fun facts(): Flow<List<SessionFacts>>
+
+    /** [facts], read once: what a run is measured against before it is banked. */
+    suspend fun factsNow(): List<SessionFacts>
 }
 
 /** User-facing settings. Defaults are the shipping defaults, not placeholders. */
@@ -134,11 +150,21 @@ data class AppSettings(
     val catName: String = "",
     val catCoat: CatCoat = CatCoat.CREAM,
     /**
+     * What the cat is wearing, by name ([com.pushuprpg.core.progression.CatItem]): one per slot, and
+     * only what has been earned. A name a later build no longer knows is ignored.
+     */
+    val catWear: Set<String> = emptySet(),
+    /**
      * Seconds to rest after a cleared dungeon before the next one starts by itself, or 0 for off.
      * Without it a session ended at every clear screen: the next dungeon was a tap away, and a rest
      * with no end is not a rest.
      */
     val autoNextRestSeconds: Int = 0,
+    /**
+     * The rest between two lives of 고냥이 지켜줘, in seconds. A minute by the owner's decision;
+     * the settings offer longer, since a set to failure recovers better with more.
+     */
+    val catRestSeconds: Int = 60,
 )
 
 enum class HapticStrength { OFF, LIGHT, MEDIUM, STRONG }
@@ -183,4 +209,20 @@ enum class ThemeMode {
 interface SettingsRepository {
     val settings: Flow<AppSettings>
     suspend fun update(transform: (AppSettings) -> AppSettings)
+}
+
+/** What the cat is wearing, as items: names this build does not know are left out. */
+fun AppSettings.wearing(): Set<CatItem> =
+    catWear.mapNotNullTo(mutableSetOf()) { name -> CatItem.entries.firstOrNull { it.name == name } }
+
+fun AppSettings.withWear(items: Set<CatItem>): AppSettings =
+    copy(catWear = items.mapTo(mutableSetOf()) { it.name })
+
+/**
+ * Puts on what [growth] found, each in its slot if the slot is empty, so the cat comes home wearing
+ * its find. Something the user chose to wear is never taken off for it.
+ */
+suspend fun SettingsRepository.wearFound(growth: RunGrowth) {
+    if (growth.gifts.isEmpty()) return
+    update { it.withWear(Gifts.wearNew(it.wearing(), growth.gifts.map { gift -> gift.item })) }
 }

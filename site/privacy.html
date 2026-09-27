@@ -26,7 +26,7 @@
 <div class="legal wrap">
 
 <h1>개인정보처리방침</h1>
-<p class="updated">시행일: 2026년 9월 14일 · 최종 수정일: 2026년 9월 26일</p>
+<p class="updated">시행일: 2026년 9월 14일 · 최종 수정일: 2026년 9월 27일</p>
 
 <div class="callout">
   <p><strong>가장 중요한 것 하나.</strong> 카메라 영상은 저장되지 않고 어디로도 전송되지 않습니다.
@@ -138,7 +138,6 @@
 <table>
   <tr><th>이벤트</th><th>함께 전송되는 값</th></tr>
   <tr><td>온보딩 시작</td><td>없음</td></tr>
-  <tr><td>직업 선택</td><td>선택한 직업</td></tr>
   <tr><td>직업 변경</td><td>바꾸기 전 직업, 바꾼 직업</td></tr>
   <tr><td>카메라 권한 응답</td><td>허용 여부</td></tr>
   <tr><td>튜토리얼 시작</td><td>없음</td></tr>
@@ -147,6 +146,7 @@
   <tr><td>운동 시작</td><td>던전 번호, 난이도, 운동 종류</td></tr>
   <tr><td>운동 종료</td><td>던전 번호, 클리어 여부, 개수, 소요 시간, 동작 신뢰도 점수, 준비 자세가 잡혔는지, 트래킹이 끊긴 횟수와 다시 잡힌 횟수, 끊겨 있던 시간</td></tr>
   <tr><td>트래킹 끊김</td><td>끊긴 원인, 몇 번째 개수에서 끊겼는지, 준비 자세가 잡힌 뒤였는지</td></tr>
+  <tr><td>고냥이 지켜줘 종료</td><td>운동 종류, 플레이한 목숨 수, 개수, 점수, 플레이한 시간, 카메라가 놓쳐 목숨을 돌려받았는지, 목숨을 다 썼는지</td></tr>
   <tr><td>연속 일수 유지</td><td>연속 일수</td></tr>
 </table>
 </div>
@@ -272,8 +272,9 @@
 <p>
   The app itself sends two things off the device. Firebase Crashlytics receives crash stack traces with device
   model, OS version, app version and the movement being tracked (retained up to 90 days). Firebase Analytics receives the
-  specific product events listed in section 4-2 — onboarding, class choice and later class changes, camera permission
-  outcome, tutorial start, completion or skip, run start and finish, tracking loss and streak length
+  specific product events listed in section 4-2 — onboarding, class changes, camera permission
+  outcome, tutorial start, completion or skip, run start and finish, the end of a 고냥이 지켜줘
+  session, tracking loss and streak length
   — together with what Google Analytics records on its own: first open, sessions, engagement time,
   screen views, app updates and removals, OS updates, data clears and crashes, each with an app
   instance identifier, device model, OS and app version,

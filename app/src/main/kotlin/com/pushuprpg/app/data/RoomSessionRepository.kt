@@ -4,6 +4,7 @@ import com.pushuprpg.core.detect.ExerciseType
 import com.pushuprpg.app.domain.DailyTotal
 import com.pushuprpg.app.domain.SessionRecord
 import com.pushuprpg.app.domain.SessionRepository
+import com.pushuprpg.core.progression.SessionFacts
 import com.pushuprpg.core.progression.Streak
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -61,6 +62,13 @@ class RoomSessionRepository(
         }.toMap()
     }
 
+    override fun facts(): Flow<List<SessionFacts>> =
+        dao.factsFlow().map { rows -> rows.mapNotNull(FactsRow::toFacts) }.flowOn(Dispatchers.IO)
+
+    override suspend fun factsNow(): List<SessionFacts> = withContext(Dispatchers.IO) {
+        dao.facts().mapNotNull(FactsRow::toFacts)
+    }
+
     /** Reps logged today in local time — what the streak bar is measured against. */
     suspend fun repsToday(): Int = repsOn(CalendarDays.today(zone))
 
@@ -71,4 +79,20 @@ class RoomSessionRepository(
     fun lifetimeRepsFlow(): Flow<Int> = dao.lifetimeRepsFlow().flowOn(Dispatchers.IO)
 
     suspend fun sessionCount(): Int = withContext(Dispatchers.IO) { dao.sessionCount() }
+}
+
+/** A row naming a movement since taken out has no lift or record to add up, and is left out. */
+private fun FactsRow.toFacts(): SessionFacts? {
+    val type = ExerciseType.entries.firstOrNull { it.name == exercise } ?: return null
+    return SessionFacts(
+        exercise = type,
+        epochDay = epochDay,
+        startedAtMs = startedAtMs,
+        reps = reps,
+        bestSet = maxCombo,
+        deepReps = deepReps,
+        durationMs = durationMs,
+        // A 고냥이 session is the row with no dungeon, and its clear is every life played out.
+        fullSession = dungeonIndex == null && cleared,
+    )
 }

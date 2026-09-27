@@ -19,6 +19,7 @@ import com.pushuprpg.app.domain.SessionRecord
 import com.pushuprpg.app.domain.SessionRepository
 import com.pushuprpg.app.domain.SettingsRepository
 import com.pushuprpg.app.domain.capacityOf
+import com.pushuprpg.app.domain.wearFound
 import com.pushuprpg.app.domain.withCapacity
 import com.pushuprpg.core.detect.DetectorConfig
 import com.pushuprpg.core.detect.ExerciseType
@@ -35,6 +36,8 @@ import com.pushuprpg.core.game.PlayerState
 import com.pushuprpg.core.pose.PoseFrame
 import com.pushuprpg.core.progression.Capacity
 import com.pushuprpg.core.progression.Levels
+import com.pushuprpg.core.progression.RunGrowth
+import com.pushuprpg.core.progression.SessionFacts
 import com.pushuprpg.core.progression.Streak
 import com.pushuprpg.core.progression.StreakState
 import com.pushuprpg.core.run.BattleEngine
@@ -123,6 +126,13 @@ class BattleViewModel(
     /** The level the run ends on, for the result screen's 레벨 N 달성; set with [levelsGained]. */
     private val _levelReached = MutableStateFlow(1)
     val levelReached: StateFlow<Int> = _levelReached.asStateFlow()
+
+    /**
+     * What the banked run changed — records broken, places passed — for the result screen. Set once
+     * the rows are written, which is after the result has opened, so the screen watches it.
+     */
+    private val _growth = MutableStateFlow<RunGrowth?>(null)
+    val growth: StateFlow<RunGrowth?> = _growth.asStateFlow()
 
     init {
         viewModelScope.launch {
@@ -367,34 +377,45 @@ class BattleViewModel(
             val runStartedAt = System.currentTimeMillis() - outcome.durationMs
             val epochDay = Instant.ofEpochMilli(runStartedAt).atZone(ZoneId.systemDefault()).toLocalDate().toEpochDay()
             val doneEarlier = sessionRepository.workOn(epochDay)
+            // Everything banked before this run, for the records it breaks and the places it passes.
+            val before = sessionRepository.factsNow()
+            val runFacts = mutableListOf<SessionFacts>()
 
             // Each movement gets its own row, so the records screen says what was actually done.
             // The run's clear and its XP belong to the run, so they ride on the last row only.
             var startedAt = runStartedAt
             worked.forEachIndexed { i, seg ->
                 val last = i == worked.lastIndex
-                sessionRepository.insert(
-                    SessionRecord(
-                        startedAtMs = startedAt,
-                        // A hold's row is as long as it was held. The table keeps no hold time, and
-                        // the records screen and the next run's streak bar both read a hold's
-                        // seconds off its row: written as the run's length, the setting up and the
-                        // rests between holds were counted as held.
-                        durationMs = when {
-                            Exercises.of(seg.exercise).kind == MovementKind.HOLD -> seg.holdMs
-                            single -> outcome.durationMs
-                            else -> seg.durationMs
-                        },
-                        exercise = seg.exercise,
-                        reps = seg.reps,
-                        maxCombo = if (single) outcome.maxCombo else seg.maxCombo,
-                        deepReps = seg.deepReps,
-                        meanDepth = seg.meanDepth,
-                        dungeonIndex = dungeonIndex,
-                        cleared = outcome.cleared && last,
-                        xpEarned = if (last) outcome.xpEarned else 0,
-                        plausibility = seg.plausibility,
-                    )
+                val record = SessionRecord(
+                    startedAtMs = startedAt,
+                    // A hold's row is as long as it was held. The table keeps no hold time, and
+                    // the records screen and the next run's streak bar both read a hold's
+                    // seconds off its row: written as the run's length, the setting up and the
+                    // rests between holds were counted as held.
+                    durationMs = when {
+                        Exercises.of(seg.exercise).kind == MovementKind.HOLD -> seg.holdMs
+                        single -> outcome.durationMs
+                        else -> seg.durationMs
+                    },
+                    exercise = seg.exercise,
+                    reps = seg.reps,
+                    maxCombo = if (single) outcome.maxCombo else seg.maxCombo,
+                    deepReps = seg.deepReps,
+                    meanDepth = seg.meanDepth,
+                    dungeonIndex = dungeonIndex,
+                    cleared = outcome.cleared && last,
+                    xpEarned = if (last) outcome.xpEarned else 0,
+                    plausibility = seg.plausibility,
+                )
+                sessionRepository.insert(record)
+                runFacts += SessionFacts(
+                    exercise = record.exercise,
+                    epochDay = epochDay,
+                    startedAtMs = record.startedAtMs,
+                    reps = record.reps,
+                    bestSet = record.maxCombo,
+                    deepReps = record.deepReps,
+                    durationMs = record.durationMs,
                 )
                 startedAt += seg.durationMs
             }
@@ -406,6 +427,8 @@ class BattleViewModel(
             // clear meets the bar whatever it cost: priced by class and movement, the free dungeon
             // cleared on squats by a 기사 was eight of the fifteen, and the streak did not move.
             var maintained: Int? = null
+            var bestStreakBefore = 0
+            var bestStreakAfter = 0
             progressRepository.update { current ->
                 val levelled = Levels.apply(current.level, current.xpIntoLevel, outcome.xpEarned)
                 val streak = Streak.advance(
@@ -415,6 +438,8 @@ class BattleViewModel(
                     cleared = outcome.cleared,
                 )
                 maintained = streak.days.takeIf { streak.lastActiveDay != current.lastActiveEpochDay }
+                bestStreakBefore = current.bestStreakDays
+                bestStreakAfter = maxOf(current.bestStreakDays, streak.days)
                 // Capacity is measured in each movement's own unit: reps for a counted exercise,
                 // seconds for a hold, and a hold's best is its longest, not an average. A movement
                 // done twice in one run is judged by its better stretch.
@@ -434,7 +459,7 @@ class BattleViewModel(
                     bestCombo = maxOf(current.bestCombo, outcome.maxCombo),
                     totalActiveMs = current.totalActiveMs + outcome.durationMs,
                     streakDays = streak.days,
-                    bestStreakDays = maxOf(current.bestStreakDays, streak.days),
+                    bestStreakDays = bestStreakAfter,
                     lastActiveEpochDay = streak.lastActiveDay,
                     highestDungeonCleared = if (outcome.cleared) {
                         maxOf(current.highestDungeonCleared, dungeonIndex)
@@ -442,6 +467,11 @@ class BattleViewModel(
                 )
             }
             maintained?.let { telemetry.log(Event.StreakMaintained(it)) }
+            // Once the streak is written, so a gift the streak brings comes with the run that earned
+            // it; and put on, so the cat comes home wearing it.
+            val growth = RunGrowth.of(before, runFacts, bestStreakBefore, bestStreakAfter)
+            _growth.value = growth
+            settingsRepository.wearFound(growth)
         }
     }
 

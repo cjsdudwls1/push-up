@@ -289,7 +289,7 @@ object ShareCardRenderer {
         // The run's length is plain 시간, as the result screen names it. 버틴 시간 is what a hold is
         // counted in and what the cat's card counts, and on a pushup's card it read as a plank.
         val time = Stat(duration(res, data.seconds), res.getString(R.string.result_tile_time), INFO)
-        val rank = Stat(data.rankKorean, res.getString(R.string.share_card_stat_rank), ACCEPT)
+        val rank = Stat(data.climb, res.getString(R.string.share_card_stat_climb), ACCEPT)
         if (data.inSeconds) {
             // A hold builds no combo, so there is no ×0 tile.
             stats(canvas, time, rank)

@@ -43,6 +43,8 @@ import com.pushuprpg.app.trace.TraceFiles
 import com.pushuprpg.app.domain.AppSettings
 import com.pushuprpg.app.domain.ThemeMode
 import com.pushuprpg.app.domain.capacityOf
+import com.pushuprpg.app.domain.wearing
+import com.pushuprpg.app.domain.withWear
 import com.pushuprpg.core.detect.ExerciseType
 import com.pushuprpg.app.pose.PoseFrameSink
 import com.pushuprpg.app.share.ShareCardData
@@ -60,7 +62,12 @@ import com.pushuprpg.app.ui.theme.Palette
 import com.pushuprpg.app.ui.theme.PushupRpgTheme
 import com.pushuprpg.core.game.Dungeons
 import com.pushuprpg.core.game.PlayerClass
-import com.pushuprpg.core.progression.Rank
+import com.pushuprpg.core.progression.Climb
+import com.pushuprpg.core.progression.Gift
+import com.pushuprpg.core.progression.Gifts
+import com.pushuprpg.core.progression.RunGrowth
+import com.pushuprpg.app.ui.components.metersText
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -175,30 +182,21 @@ fun PushupRpgApp(
                 navController = navController,
                 startDestination = startDestination,
             ) {
-                composable(Routes.ONBOARDING) {
+                composable(Routes.ONBOARDING) { entry ->
                     OnboardingScreen(
                         themeMode = settings.themeMode,
                         onToggleTheme = toggleTheme,
-                        onContinue = { navController.navigate(Routes.CLASS_PICK) },
-                    )
-                }
-
-                composable(Routes.CLASS_PICK) { entry ->
-                    ClassPickScreen(
-                        capacity = progress.capacityOf(ExerciseType.PUSHUP),
-                        difficulty = settings.difficulty,
-                        onPick = { playerClass: PlayerClass ->
-                            // A second tap during the transition would write a second class and
-                            // push a second tutorial behind the first.
+                        onContinue = {
+                            // No class to pick on the way in: the cat is the front door, and a class
+                            // only prices the dungeons, where it can be changed. The default class
+                            // stands until then. A second tap during the transition would push a
+                            // second tutorial behind the first.
                             if (navController.isOnTop(entry)) {
                                 scope.launch {
-                                    container.progressRepository.update {
-                                        it.copy(playerClass = playerClass, classChosen = true)
-                                    }
-                                    container.telemetry.log(Event.ClassPicked(playerClass.name))
+                                    container.progressRepository.update { it.copy(classChosen = true) }
                                 }
-                                // Onboarding is not finished here: the tutorial finishes it, run
-                                // or skipped, because its run is also the first measurement of the
+                                // Onboarding is not finished here: the tutorial finishes it, run or
+                                // skipped, because its run is also the first measurement of the
                                 // player's capacity.
                                 navController.navigate(
                                     if (granted) Routes.survival(tutorial = true) else Routes.PERMISSION
@@ -264,13 +262,61 @@ fun PushupRpgApp(
                         state = state,
                         themeMode = settings.themeMode,
                         onToggleTheme = toggleTheme,
-                        onChangeClass = changeClass,
-                        onStartDungeon = { navController.navigateFrom(entry, Routes.exercisePick(it)) },
-                        onDungeonSelect = { navController.navigateFrom(entry, Routes.DUNGEON_SELECT) },
-                        onSurvival = { navController.navigateFrom(entry, Routes.SURVIVAL_PICK) },
+                        // Straight in with the movement the button names; changing it is the link under it.
+                        onPlayCat = { navController.navigateFrom(entry, Routes.survival(exercise = settings.exercise)) },
+                        onChangeExercise = { navController.navigateFrom(entry, Routes.SURVIVAL_PICK) },
+                        onAdventure = { navController.navigateFrom(entry, Routes.DUNGEON_SELECT) },
                         onRecords = { navController.navigateFrom(entry, Routes.RECORDS) },
                         onSettings = { navController.navigateFrom(entry, Routes.SETTINGS) },
+                        onWardrobe = { navController.navigateFrom(entry, Routes.WARDROBE) },
                         lastExercise = settings.exercise,
+                        catName = settings.catName,
+                        catCoat = settings.catCoat,
+                        catWear = settings.wearing(),
+                    )
+                }
+
+                composable(Routes.WARDROBE) {
+                    val factsFlow = remember { container.sessionRepository.facts() }
+                    val facts by factsFlow.collectAsState(initial = null)
+                    // Worked out from the runs and the longest streak, as the hub does, once both are in.
+                    val found = remember(facts, progressState) {
+                        val runs = facts
+                        val stored = progressState
+                        if (runs == null || stored == null) null else Gifts.earned(runs, stored.bestStreakDays)
+                    }
+                    // What was new as the screen opened stays marked for this visit; from now on it
+                    // has been seen, and the hub stops counting it.
+                    var fresh by remember { mutableStateOf<Set<Gift>?>(null) }
+                    LaunchedEffect(found) {
+                        val now = found ?: return@LaunchedEffect
+                        val seen = container.progressRepository.current().giftsSeen
+                        if (fresh == null) fresh = now.filterTo(mutableSetOf()) { it.name !in seen }
+                        if (now.any { it.name !in seen }) {
+                            container.progressRepository.update { p -> p.copy(giftsSeen = p.giftsSeen + now.map { it.name }) }
+                        }
+                    }
+                    WardrobeScreen(
+                        catName = settings.catName,
+                        catCoat = settings.catCoat,
+                        onCatChange = { name, coat ->
+                            scope.launch {
+                                container.settingsRepository.update { it.copy(catName = name, catCoat = coat) }
+                            }
+                        },
+                        wearing = settings.wearing(),
+                        found = found.orEmpty(),
+                        fresh = fresh.orEmpty(),
+                        onWear = { item ->
+                            scope.launch {
+                                container.settingsRepository.update { it.withWear(Gifts.wear(it.wearing(), item)) }
+                            }
+                        },
+                        onTakeOff = { slot ->
+                            scope.launch {
+                                container.settingsRepository.update { it.withWear(Gifts.takeOff(it.wearing(), slot)) }
+                            }
+                        },
                     )
                 }
 
@@ -281,6 +327,7 @@ fun PushupRpgApp(
                         capacity = progress.capacityOf(settings.exercise),
                         difficulty = settings.difficulty,
                         playerClass = progress.playerClass,
+                        onChangeClass = changeClass,
                         onDifficultyChange = { difficulty ->
                             scope.launch {
                                 container.settingsRepository.update { it.copy(difficulty = difficulty) }
@@ -341,6 +388,7 @@ fun PushupRpgApp(
                             lastOutcome = outcome
                             lastLevelsGained = vm.levelsGained.value
                             lastLevelReached = vm.levelReached.value
+                            lastGrowth = vm.growth
                             navController.navigate(Routes.result(dungeonIndex)) {
                                 popUpTo(Routes.BATTLE) { inclusive = true }
                             }
@@ -380,6 +428,7 @@ fun PushupRpgApp(
                                             lastOutcome = outcome
                                             lastLevelsGained = vm.levelsGained.value
                                             lastLevelReached = vm.levelReached.value
+                                            lastGrowth = vm.growth
                                             navController.navigate(Routes.result(dungeonIndex)) {
                                                 popUpTo(Routes.BATTLE) { inclusive = true }
                                             }
@@ -444,8 +493,16 @@ fun PushupRpgApp(
                                 }
                             }
                         }
+                        // The climb as it stands with this run banked, and what the run itself did to it.
+                        val factsFlow = remember { container.sessionRepository.facts() }
+                        val facts by factsFlow.collectAsState(initial = emptyList())
+                        val climb = remember(facts) { Climb.progress(Climb.meters(facts)) }
+                        val growth by lastGrowth.collectAsState()
+                        val climbText = metersText(climb.meters)
                         AlwaysDark {
                             ResultScreen(
+                                climb = climb,
+                                growth = growth,
                                 restLeftSeconds = restLeft.takeIf { canAutoNext && !autoNextCancelled },
                                 nextDungeonName = Dungeons.byIndex(next)?.korean.orEmpty(),
                                 onStartNextNow = startNextNow,
@@ -453,7 +510,6 @@ fun PushupRpgApp(
                                 outcome = outcome,
                                 playerClass = progress.playerClass,
                                 dungeonName = Dungeons.byIndex(dungeonIndex)?.korean.orEmpty(),
-                                lifetimeReps = progress.lifetimeReps,
                                 // The run's own, not the stored level: that lands after this opens.
                                 level = lastLevelReached,
                                 levelsGained = lastLevelsGained,
@@ -481,7 +537,7 @@ fun PushupRpgApp(
                                             heldSeconds = (outcome.segments.sumOf { it.holdMs } / 1000).toInt(),
                                             maxCombo = outcome.maxCombo,
                                             seconds = (outcome.durationMs / 1000).toInt(),
-                                            rankKorean = Rank.forLifetimeReps(progress.lifetimeReps).korean,
+                                            climb = climbText,
                                             lifetimeReps = progress.lifetimeReps,
                                         )
                                     )
@@ -503,6 +559,7 @@ fun PushupRpgApp(
                         survival = true,
                         catName = settings.catName,
                         catCoat = settings.catCoat,
+                        catWear = settings.wearing(),
                         onCatChange = { name, coat ->
                             scope.launch {
                                 container.settingsRepository.update { it.copy(catName = name, catCoat = coat) }
@@ -544,6 +601,7 @@ fun PushupRpgApp(
                     val placement by vm.placement.collectAsState()
                     val setupSkeleton by vm.setupSkeleton.collectAsState()
                     val nearMisses by vm.nearMisses.collectAsState()
+                    val growth by vm.growth.collectAsState()
 
                     DisposableEffect(vm) {
                         val consumer: (com.pushuprpg.core.pose.PoseFrame) -> Unit = vm::onPoseFrame
@@ -566,6 +624,7 @@ fun PushupRpgApp(
                                 setupSkeleton = setupSkeleton,
                                 catName = settings.catName,
                                 catCoat = settings.catCoat,
+                                catWear = settings.wearing(),
                                 poseSource = poseSource,
                                 exercise = exercise,
                                 isTutorial = isTutorial,
@@ -573,18 +632,21 @@ fun PushupRpgApp(
                                 onShare = onShare,
                                 modelFailed = poseError != null,
                                 nearMisses = nearMisses,
-                                firstDungeonReps = Dungeons.FREE_DUNGEON.repCost(
-                                    settings.difficulty,
-                                    ExerciseType.PUSHUP,
-                                    progress.playerClass,
-                                ),
-                                playerClass = progress.playerClass,
+                                growth = growth,
                                 onSkip = {
                                     if (navController.isOnTop(entry)) {
                                         vm.skipTutorial()
                                         navController.navigate(Routes.HOME) {
                                             popUpTo(Routes.SURVIVAL) { inclusive = true }
                                         }
+                                    }
+                                },
+                                onClose = {
+                                    // Ends the session where it is and shows its ending; with nothing
+                                    // played there is none, and it leaves as 홈으로 does.
+                                    if (navController.isOnTop(entry) && !vm.endHere()) {
+                                        vm.leave()
+                                        navController.popBackStack(Routes.SURVIVAL, inclusive = true)
                                     }
                                 },
                                 onHome = {
@@ -594,18 +656,15 @@ fun PushupRpgApp(
                                         // hub.
                                         if (navController.isOnTop(entry)) {
                                             vm.finishTutorial()
+                                            // To the hub, whose biggest button is the cat again: the
+                                            // tutorial was the mode itself, with one life.
                                             navController.navigate(Routes.HOME) {
                                                 popUpTo(Routes.SURVIVAL) { inclusive = true }
                                             }
-                                            // Where the button says it goes — 던전으로 가기 — with the hub
-                                            // under it for back. It used to stop at the hub, where
-                                            // someone who had never started still had to find the way in.
-                                            navController.navigate(Routes.exercisePick(Dungeons.FREE_DUNGEON.index))
                                         }
                                     } else {
-                                        // Mid-run too, from the close button or the back gesture: what
-                                        // was done is banked on the way out. After a game over it
-                                        // already is.
+                                        // The ending's 홈으로, where the session is banked already;
+                                        // the screen going any other way banks it on the way out.
                                         vm.leave()
                                         // By route, so a second tap cannot pop the hub along with it.
                                         navController.popBackStack(Routes.SURVIVAL, inclusive = true)
@@ -622,12 +681,16 @@ fun PushupRpgApp(
                     // time a run is banked.
                     val recentFlow = remember { container.sessionRepository.recent(50) }
                     val totalsFlow = remember { container.sessionRepository.dailyTotals(91) }
+                    val factsFlow = remember { container.sessionRepository.facts() }
                     val sessions by recentFlow.collectAsState(initial = emptyList())
                     val totals by totalsFlow.collectAsState(initial = emptyList())
+                    val facts by factsFlow.collectAsState(initial = emptyList())
                     RecordsScreen(
                         progress = progress,
                         sessions = sessions,
                         dailyTotals = totals,
+                        facts = facts,
+                        exercise = settings.exercise,
                     )
                 }
 
@@ -711,6 +774,12 @@ internal var lastLevelsGained: Int = 0
 
 /** The level [lastOutcome] ended on; travels with it for the same reason. */
 internal var lastLevelReached: Int = 1
+
+/**
+ * What [lastOutcome]'s run did for the climb and the records, from the battle's model. A flow, not a
+ * value: it is set once the rows are written, which is after the result screen has opened.
+ */
+internal var lastGrowth: StateFlow<RunGrowth?> = MutableStateFlow(null)
 
 /**
  * The permission screen in place of a camera screen that has no camera to show.

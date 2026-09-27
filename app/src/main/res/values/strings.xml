@@ -10,7 +10,6 @@
 
     <!-- Navigation / common -->
     <string name="action_start">시작하기</string>
-    <string name="action_continue">이어서 하기</string>
     <string name="action_close">닫기</string>
     <string name="action_skip">건너뛰기</string>
     <string name="action_home">홈으로</string>
@@ -20,8 +19,8 @@
     <string name="action_settings">설정</string>
 
     <!-- Onboarding & permission -->
-    <string name="onboarding_title">몸으로 하는 RPG</string>
-    <string name="onboarding_body">푸쉬업 한 개가 공격 한 번이에요.\n카메라가 동작을 읽고, 몬스터가 쓰러져요.</string>
+    <string name="onboarding_title">고냥이를 지켜 주세요</string>
+    <string name="onboarding_body">천장이 내려와요. 푸쉬업 한 번에 천장이 올라가요.\n고냥이를 지키는 사이에 운동이 쌓여요.</string>
     <!-- The health notice, where everyone sees it once before the first workout. Same words as the store listing and terms. -->
     <string name="onboarding_health">의료기기가 아니에요. 운동 중에 아프면 바로 멈추고, 지병이나 부상이 있다면 먼저 의사와 상의해 주세요.</string>
     <string name="permission_headline">카메라 권한이 필요해요</string>
@@ -136,7 +135,6 @@
     <string name="result_tile_deep">깊게</string>
     <string name="result_combo_value">×%1$d</string>
     <string name="result_time_value">%1$d초</string>
-    <string name="result_rank_to_next">%1$s까지 %2$,d개</string>
     <string name="result_level_up">레벨 %1$d 달성!</string>
     <!-- Where a run stopped part way: the monster it was fighting and what that monster still owed,
          the same count the next try starts from. -->
@@ -147,6 +145,43 @@
 
     <!-- Home -->
     <string name="home_today_reps">오늘 %1$d개</string>
+    <!-- The hub's one big button, and under it the movement it plays and how many lives. -->
+    <string name="home_cat_play">고냥이 지키기</string>
+    <string name="home_cat_play_sub">%1$s · 목숨 %2$d개</string>
+    <!-- Under it: the picker, for a movement other than the one the button starts. -->
+    <string name="home_change_exercise">운동 바꾸기</string>
+    <!-- What the cat says as the hub opens, by how long it has been. Glad, never reproachful. -->
+    <string name="home_welcome_first">반가워요! 같이 천장을 밀어 올려 볼까요?</string>
+    <string name="home_welcome_today">오늘도 와 줬네요! 고마워요, 냥</string>
+    <string name="home_welcome_yesterday">또 왔네요! 오늘도 지켜 줄 거죠, 냥?</string>
+    <string name="home_welcome_monday">새로운 한 주예요! 이번 주도 같이 해요, 냥</string>
+    <string name="home_welcome_back">%1$d일 만이에요! 기다리고 있었어요, 냥</string>
+    <string name="home_welcome_back_week">%1$d일 만이에요! 보고 싶었어요. 천천히 다시 시작해요, 냥</string>
+    <!-- After a workout today, while something the cat found has not been looked at yet. -->
+    <string name="home_welcome_gift">선물을 찾아 왔어요! 저를 눌러 보세요, 냥</string>
+    <string name="home_welcome_back_month">정말 오랜만이에요! %1$d일 만이네요. 오늘은 가볍게 한 판만 해요, 냥</string>
+    <!-- The best one go of the movement picked last, and how far it has come from the first. -->
+    <string name="home_record_title">내 최고 기록</string>
+    <string name="home_record_value">%1$s 한 번에 %2$d개</string>
+    <string name="home_record_value_hold">%1$s %2$d초</string>
+    <string name="home_record_gain">처음보다 +%1$d개</string>
+    <string name="home_record_gain_hold">처음보다 +%1$d초</string>
+    <!-- The week at a glance. %1$d days with work, %2$d reps. -->
+    <string name="week_title">이번 주</string>
+    <string name="week_totals">%1$d일 · %2$,d개</string>
+    <string name="week_ahead">벌써 지난주보다 %1$,d개 더 했어요!</string>
+    <string name="week_last">지난주에는 %1$d일, %2$,d개 했어요</string>
+    <string name="week_empty">이번 주 첫 운동을 해 볼까요?</string>
+    <string name="week_first">좋아요, 이번 주를 시작했어요!</string>
+    <!-- Last week summed up, at the start of this one until its first workout. -->
+    <string name="recap_title">지난주 결과</string>
+    <string name="recap_totals">%1$d일 동안 %2$,d개 했어요</string>
+    <string name="recap_climbed">%1$s 더 올라갔어요</string>
+    <string name="recap_records">신기록을 %1$d번 세웠어요!</string>
+    <string name="recap_next">이번 주도 같이 해요!</string>
+    <!-- The way to the dungeons, kept at the bottom of the hub. -->
+    <string name="home_adventure">던전 모험</string>
+    <string name="home_adventure_sub">몬스터를 쓰러뜨리며 하는 운동</string>
     <string name="home_streak">연속 %1$d일</string>
     <!-- %1$s is the movement picked last, %2$d that movement's streak bar: the real one. -->
     <string name="home_nudge">오늘은 아직이에요. %1$s %2$d개만 해볼까요?</string>
@@ -158,10 +193,6 @@
     <!-- The same, with no streak yet: there is nothing to continue, so it starts. -->
     <string name="home_left_first">%1$s %2$d개 더 하면 연속이 시작돼요.</string>
     <string name="home_left_first_hold">%1$s %2$d초 더 버티면 연속이 시작돼요.</string>
-    <string name="home_streak_broken">연속이 끊겼지만 기록은 그대로예요. 오늘부터 다시!</string>
-    <!-- A break halves a streak rather than zeroing it; %1$d is the half it goes on from. -->
-    <string name="home_streak_broken_kept">연속이 끊겼지만 %1$d일은 남았어요. 오늘 하면 다시 이어져요!</string>
-    <string name="home_survival">고냥이 지켜줘</string>
     <string name="home_dungeons">던전</string>
 
     <!-- Dungeon select -->
@@ -176,9 +207,13 @@
     <string name="records_title">기록</string>
     <string name="records_empty">아직 기록이 없어요. 첫 던전부터 시작해요!</string>
     <string name="records_lifetime_reps">누적 개수</string>
-    <string name="records_best_combo">최고 콤보</string>
     <string name="records_total_time">총 운동 시간</string>
     <string name="records_best_streak">최고 연속</string>
+    <string name="records_days_trained">운동한 날</string>
+    <string name="records_movements_title">종목별 최고 기록</string>
+    <!-- Under a movement's name: where its best one go started, and everything done with it. -->
+    <string name="records_movement_line">처음 %1$d개 · 모두 %2$,d개</string>
+    <string name="records_movement_line_hold">처음 %1$d초 · 모두 %2$,d초</string>
 
     <!-- Settings -->
     <string name="settings_overlay">뼈대 선 표시</string>
@@ -194,6 +229,9 @@
     <string name="settings_auto_next_sub">던전을 깨고 다음 던전이 열려 있으면, 쉬는 시간이 지난 뒤 같은 운동으로 바로 시작돼요.</string>
     <string name="settings_auto_next_off">끄기</string>
     <string name="settings_auto_next_minutes">%1$d분</string>
+    <string name="settings_rest_minutes_seconds">%1$d분 %2$d초</string>
+    <string name="settings_cat_rest">고냥이 쉬는 시간</string>
+    <string name="settings_cat_rest_sub">목숨이 하나 줄면 이만큼 쉬고 다음 목숨을 시작해요. 쉬어야 다음 판에 더 많이 해요.</string>
     <string name="result_rest_title">쉬는 시간</string>
     <string name="result_rest_time">%1$d:%2$02d</string>
     <string name="result_rest_body">끝나면 %1$s에서 바로 이어서 해요</string>
@@ -309,15 +347,13 @@
 
     <!-- Survival mode -->
     <string name="survival_title">고냥이 지켜줘</string>
-    <string name="survival_body">천장이 내려와요. 밀어 올려서 고냥이를 지켜주세요!</string>
     <string name="survival_score">%1$,d점</string>
     <string name="survival_best">최고 %1$,d점</string>
-    <!-- %1$s is the cat's name with its particle already attached: 치즈가, 호박이. -->
-    <string name="survival_gameover">%1$s 놀랐어요</string>
     <!-- Before the first armed frame. The ceiling does not move until the user is in position. -->
     <string name="survival_waiting_with">%1$s 자세를 잡으면 천장이 내려오기 시작해요</string>
     <string name="pick_survival_title">뭐로 밀어 올릴까요?</string>
-    <string name="pick_survival_sub">한 번 할 때마다 천장이 올라가요. 힘든 운동일수록 더 많이 올라가요.</string>
+    <!-- %1$d is how many lives a session has. -->
+    <string name="pick_survival_sub">한 번 할 때마다 천장이 올라가요. 목숨은 %1$d개, 하나 줄면 잠깐 쉬었다 이어 가요.</string>
     <!-- Under the pushup placement hint, before the tutorial's ceiling starts. -->
     <string name="tutorial_intro_body">푸쉬업 자세를 잡으면 천장이 내려와요. 밀어 올려서 고냥이를 지켜 주세요.</string>
     <!-- The tutorial's ending, by what it counted: reps; none, but reps refused as not deep enough;
@@ -332,17 +368,33 @@
     <string name="tutorial_done_shallow">조금만 더 내려가면 세져요. 힘들면 무릎 대고 해도 괜찮아요.</string>
     <!-- The camera's miss, followed by the pushup placement hint. -->
     <string name="tutorial_done_zero">카메라가 아직 한 개도 못 셌어요.</string>
-    <!-- %1$d is what the first dungeon asks, from the same count the picker and the HUD quote. It is
-         that count only when every rep is done the class's way, so the line says which way. -->
-    <string name="tutorial_first_dungeon_knight">첫 던전은 천천히 깊게 하면 푸쉬업 %1$d개예요.</string>
-    <string name="tutorial_first_dungeon_archer">첫 던전은 쉬지 않고 이어 가면 푸쉬업 %1$d개예요.</string>
-    <string name="tutorial_continue">던전으로 가기</string>
+    <!-- What comes after the tutorial's one life: a session is %1$d lives, with a rest between them. -->
+    <string name="tutorial_done_next">이제부터는 목숨 %1$d개로 지켜요. 목숨이 하나 줄면 1분 쉬고 이어 가요.</string>
+    <string name="tutorial_continue">홈으로 가기</string>
     <!-- Back while the tutorial's ceiling waits. Answered with 계속하기 or 건너뛰기; skipped, it does not come back. -->
     <string name="tutorial_skip_confirm">튜토리얼을 건너뛸까요?</string>
     <string name="survival_share">자랑하기</string>
+    <!-- The hearts' spoken label: lives not yet lost, the one being played included. -->
+    <string name="survival_lives_left">남은 목숨 %1$d개</string>
+
+    <!-- The rest between two lives. It is not optional; the countdown is result_rest_time. It quotes
+         no count, by the owner's decision: a session's counts are shown together when it ends. -->
+    <!-- The life ended while the camera had lost the user, so it was given back. Said as the camera's miss. -->
+    <string name="rest_refunded">카메라가 잠깐 놓쳐서, 이번 목숨은 깎지 않았어요</string>
+    <string name="rest_tip">물 한 모금 마시고 숨을 골라요. 쉬어야 다음 판에 더 많이 해요.</string>
+    <string name="rest_after">쉬는 시간이 끝나면, 자세를 잡을 때 다음 목숨이 시작돼요</string>
+
+    <!-- Every life spent. The cat's line goes through cat_says with its name. -->
+    <string name="session_over_title">오늘의 고냥이 지키기 끝!</string>
+    <string name="session_over_cat">지켜 줘서 고마워요, 냥!</string>
+    <!-- Over the bars: one per life, %1$d of them. -->
+    <string name="session_chart_title">세트별 개수 (%1$d세트)</string>
+    <string name="session_chart_title_hold">세트별 지킨 시간(초) (%1$d세트)</string>
+    <string name="session_total_reps">모두 %1$,d개 했어요</string>
+    <string name="session_again">한 판 더</string>
     <string name="survival_share_text">푸쉬업 RPG에서 고냥이를 %1$,d점만큼 지켰어요! 🐱💪</string>
 
-    <!-- The cat. Its default name is the mode's; the user can rename it on the survival picker. -->
+    <!-- The cat. Its default name is the mode's; the user can rename it on the survival picker and in 꾸미기. -->
     <string name="cat_default_name">고냥이</string>
     <string name="cat_card_title">우리 고양이</string>
     <string name="cat_card_sub">이름과 털 색을 정해 주세요. 천장 아래에서 이 아이가 기다려요.</string>
@@ -378,6 +430,13 @@
     <string name="cat_line_saved_1">살았다냥!</string>
     <string name="cat_line_saved_2">고마워요, 냥! 살았어요!</string>
     <string name="cat_line_saved_3">휴… 살았다냥!</string>
+    <!-- A life is over and the rest begins: the cat is fine, and never disappointed. -->
+    <string name="cat_line_rest_1">괜찮아요, 냥! 잠깐 쉬어요</string>
+    <string name="cat_line_rest_2">휴… 잘했어요. 숨 좀 돌려요, 냥</string>
+    <string name="cat_line_rest_ten">십 초 남았어요, 냥!</string>
+    <!-- The rest is over; the next life waits for the user to be in position. -->
+    <string name="cat_line_again_1">다시 지켜 줄 거죠, 냥?</string>
+    <string name="cat_line_again_2">준비됐어요? 또 부탁해요, 냥!</string>
     <!-- A line of the cat's out of its bubble, while setting up: the bubble would sit over the
          framing guide. %1$s is the cat's name, %2$s the line. -->
     <string name="cat_says">%1$s: %2$s</string>
@@ -391,17 +450,82 @@
     <string name="error_camera">카메라를 열 수 없어요. 다른 앱이 쓰고 있는지 확인해 주세요.</string>
     <string name="error_camera_retry">카메라 다시 열기</string>
 
-    <!-- Home hub -->
-    <!-- The hub's big button before any dungeon has been cleared: there is nothing yet to continue. -->
-    <string name="home_start_first">첫 던전 도전하기</string>
-    <!-- The same button once every dungeon is cleared: %1$s is the last dungeon, played again. -->
-    <string name="home_replay">%1$s 다시 도전</string>
-    <string name="home_xp_to_next">다음 레벨까지 경험치 %1$,d</string>
-    <string name="home_max_level">최고 레벨에 닿았어요</string>
 
-    <!-- Rank card -->
-    <string name="rank_lifetime">누적 %1$,d개</string>
-    <string name="rank_max">최고 등급에 올랐어요</string>
+    <!-- The climb: every rep's lift added up, as the height of a place people know. -->
+    <string name="climb_title">지금까지 오른 높이</string>
+    <string name="climb_m">%1$sm</string>
+    <string name="climb_km">%1$skm</string>
+    <string name="climb_ground">이제 막 출발했어요</string>
+    <!-- %1$s is the last place passed. -->
+    <string name="climb_reached">%1$s 통과</string>
+    <!-- %1$s is the next place, %2$s the height still to go, with its unit. -->
+    <string name="climb_next">다음은 %1$s, %2$s 남았어요</string>
+    <!-- %1$s is the movement picked last, %2$d how many of it reach the next place. -->
+    <string name="climb_next_reps">%1$s 약 %2$,d개면 도착해요</string>
+    <string name="climb_next_seconds">%1$s 약 %2$,d초면 도착해요</string>
+    <string name="climb_top">우주까지 왔어요. 이제 더 갈 곳이 없어요!</string>
+    <string name="landmark_cat_tower">캣타워</string>
+    <string name="landmark_apartment_5f">아파트 5층</string>
+    <string name="landmark_apartment_15f">아파트 15층</string>
+    <string name="landmark_liberty">자유의 여신상</string>
+    <string name="landmark_sixty_three">63빌딩</string>
+    <string name="landmark_lotte_tower">롯데월드타워</string>
+    <string name="landmark_bukhansan">북한산</string>
+    <string name="landmark_hallasan">한라산</string>
+    <string name="landmark_baekdusan">백두산</string>
+    <string name="landmark_fuji">후지산</string>
+    <string name="landmark_kilimanjaro">킬리만자로</string>
+    <string name="landmark_everest">에베레스트</string>
+    <string name="landmark_space">우주</string>
+    <!-- What one run did, where it ends. %1$s the movement, %2$d the new best, %3$d the one it beat. -->
+    <string name="growth_record">신기록! %1$s 한 번에 %2$d개 (전에는 %3$d개)</string>
+    <string name="growth_record_hold">신기록! %1$s %2$d초 (전에는 %3$d초)</string>
+    <string name="growth_climbed">이번에 %1$s 더 올라갔어요</string>
+    <string name="growth_passed">%1$s 통과!</string>
+    <!-- What the cat found on this run, %1$s the things by name. Said as its find, never as a task done. -->
+    <string name="growth_gift">🎁 선물을 찾아 왔어요: %1$s</string>
+
+    <!-- The cat's things: what it wears, and the places it can sit. -->
+    <string name="item_bell">방울</string>
+    <string name="item_ribbon">리본</string>
+    <string name="item_flower">꽃핀</string>
+    <string name="item_city">도시의 밤</string>
+    <string name="item_beanie">털모자</string>
+    <string name="item_straw_hat">밀짚모자</string>
+    <string name="item_scarf">목도리</string>
+    <string name="item_bow_tie">나비넥타이</string>
+    <string name="item_glasses">동그란 안경</string>
+    <string name="item_sunglasses">선글라스</string>
+    <string name="item_mountain">푸른 산</string>
+    <string name="item_party_hat">고깔모자</string>
+    <string name="item_crown">왕관</string>
+    <string name="item_snow">눈 덮인 산</string>
+    <string name="item_space">우주</string>
+    <!-- Under a found gift in 꾸미기: what it was found for, said after the fact. Gifts not yet found
+         say nothing about what they wait for: they are surprises, by the owner's decision. -->
+    <string name="gift_why_first_run">첫 운동</string>
+    <string name="gift_why_set">한 번에 %1$d개</string>
+    <string name="gift_why_streak">%1$d일 연속</string>
+    <string name="gift_why_comeback">다시 와 준 날</string>
+    <string name="gift_why_full_session">%1$d세트 끝까지</string>
+    <string name="gift_why_records">신기록 %1$d번</string>
+    <!-- %1$s is a place on the climb. -->
+    <string name="gift_why_climb">%1$s 도착</string>
+
+    <!-- 꾸미기: the cat's name and coat, and what it has found. -->
+    <string name="wardrobe_title">고냥이 꾸미기</string>
+    <string name="wardrobe_found">찾은 선물 %1$d개</string>
+    <string name="wardrobe_hint">누르면 입고, 한 번 더 누르면 벗어요.</string>
+    <string name="wardrobe_secret">아직 비밀</string>
+    <!-- %1$d is how many gifts are still to be found. -->
+    <string name="wardrobe_secret_note">비밀 선물 %1$d개가 남았어요. 운동하다 보면 고냥이가 찾아 와요.</string>
+    <string name="wardrobe_new">새로</string>
+    <string name="wardrobe_wearing">입는 중</string>
+    <!-- The way in, over the cat on the hub; with the count of gifts not yet looked at. -->
+    <string name="home_wardrobe">꾸미기</string>
+    <string name="home_wardrobe_new">새 선물 %1$d</string>
+    <string name="home_wardrobe_open">고냥이 꾸미기 열기</string>
+
 
     <!-- Dungeon select -->
     <string name="dungeon_meta">%1$s · %2$s</string>
@@ -414,6 +538,15 @@
     <string name="records_weekday_mon">월</string>
     <string name="records_weekday_wed">수</string>
     <string name="records_weekday_fri">금</string>
+    <string-array name="weekday_short">
+        <item>월</item>
+        <item>화</item>
+        <item>수</item>
+        <item>목</item>
+        <item>금</item>
+        <item>토</item>
+        <item>일</item>
+    </string-array>
     <string name="records_recent_title">최근 운동</string>
     <string name="records_session_cleared">완료</string>
     <string name="records_session_attempted">도전</string>
@@ -455,7 +588,7 @@
     <string name="share_card_stat_best">최고 기록</string>
     <string name="share_card_new_record">신기록</string>
     <string name="share_card_new_record_label">축하해요</string>
-    <string name="share_card_stat_rank">등급</string>
+    <string name="share_card_stat_climb">오른 높이</string>
     <string name="share_card_seconds">%1$d초</string>
     <string name="share_card_minutes">%1$d분 %2$d초</string>
     <string name="share_card_footer">카메라로 하는 운동 RPG · 안드로이드</string>

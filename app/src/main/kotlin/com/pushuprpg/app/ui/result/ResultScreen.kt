@@ -25,9 +25,10 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.pushuprpg.app.R
+import com.pushuprpg.app.ui.components.ClimbCard
 import com.pushuprpg.app.ui.components.KeepScreenOn
 import com.pushuprpg.app.ui.components.PrimaryButton
-import com.pushuprpg.app.ui.components.RankCard
+import com.pushuprpg.app.ui.components.RunGrowthLines
 import com.pushuprpg.app.ui.components.SecondaryButton
 import com.pushuprpg.app.ui.components.durationText
 import com.pushuprpg.app.ui.components.exerciseHintRes
@@ -39,7 +40,8 @@ import com.pushuprpg.core.detect.ExerciseType
 import com.pushuprpg.core.detect.Exercises
 import com.pushuprpg.core.detect.MovementKind
 import com.pushuprpg.core.game.PlayerClass
-import com.pushuprpg.core.progression.RankProgress
+import com.pushuprpg.core.progression.ClimbProgress
+import com.pushuprpg.core.progression.RunGrowth
 import com.pushuprpg.core.run.Outcome
 import com.pushuprpg.core.run.Stars
 
@@ -55,7 +57,10 @@ import com.pushuprpg.core.run.Stars
 fun ResultScreen(
     outcome: Outcome,
     dungeonName: String,
-    lifetimeReps: Int,
+    /** Every rep so far as height climbed, this run's included. */
+    climb: ClimbProgress,
+    /** What this run did for the climb and the records, once it is written. */
+    growth: RunGrowth?,
     level: Int,
     levelsGained: Int,
     hasNextDungeon: Boolean,
@@ -77,7 +82,6 @@ fun ResultScreen(
     playerClass: PlayerClass = PlayerClass.KNIGHT,
 ) {
     val colors = LocalGameColors.current
-    val rank = RankProgress.of(lifetimeReps)
     // What the run did, in each movement's own unit: the reps counted, and the seconds held.
     val heldMs = outcome.segments
         .filter { Exercises.of(it.exercise).kind == MovementKind.HOLD }
@@ -242,6 +246,12 @@ fun ResultScreen(
             )
         }
 
+        // A record broken and the height this run added: the part that says the work is going somewhere.
+        if (!nothingCounted) {
+            Spacer(Modifier.height(14.dp))
+            RunGrowthLines(growth = growth, modifier = Modifier.fillMaxWidth())
+        }
+
         // Where the run stopped, as a fact: the monster and what it still owed, in the fight's own
         // unit. It used to promise the next try would break it faster, and nothing carries over —
         // the next try asks exactly what the entry screen quotes. A monster that fell as the run
@@ -314,11 +324,11 @@ fun ResultScreen(
             )
         }
 
-        // The lifetime's rank, not the run's, and on the hub as well: below what to do next. Above
+        // The lifetime's climb, not the run's, and on the hub as well: below what to do next. Above
         // it, a first clear — stars, the 깊게 tile, a level up — pushed the next action off a
         // 360×780dp screen, on the one run where the next step matters most.
         Spacer(Modifier.height(20.dp))
-        RankCard(rankProgress = rank)
+        ClimbCard(progress = climb, exercise = lastExercise)
     }
 }
 

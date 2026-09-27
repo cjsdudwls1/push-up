@@ -10,7 +10,10 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
+import androidx.compose.ui.graphics.Brush
 import com.pushuprpg.app.domain.CatCoat
+import com.pushuprpg.core.progression.CatItem
+import com.pushuprpg.core.progression.WearSlot
 import com.pushuprpg.core.survival.CatMood
 import kotlin.math.PI
 import kotlin.math.sin
@@ -85,6 +88,10 @@ fun coatColors(coat: CatCoat): CoatColors = when (coat) {
  * - [cheer] is the moment after a push: eyes close into a smile and the cheeks flush.
  * - [phase] is a free-running 0..1 animation clock for the sway and the tremble; hold it at 0 to
  *   keep the cat still, which is what reduced motion does.
+ * - [wear] is what it has on — the gifts it found — drawn with it so they move as it does. A scene
+ *   is not worn; see [drawCatScene].
+ * - [tail] false leaves the tail off, for a picture framed from the chest up: all of the tail it
+ *   would show is its tip, poking in from the edge on its own.
  */
 fun DrawScope.drawCat(
     centerX: Float,
@@ -95,6 +102,8 @@ fun DrawScope.drawCat(
     alarm: Float = 0f,
     cheer: Float = 0f,
     phase: Float = 0f,
+    wear: Set<CatItem> = emptySet(),
+    tail: Boolean = true,
 ) {
     val c = coatColors(coat)
     val tau = 2f * PI.toFloat()
@@ -115,35 +124,37 @@ fun DrawScope.drawCat(
 
     // Tail first: the body edge hides where it joins. It sways while the cat is at ease, and puffs
     // up and stiffens once it is frightened.
-    val sway = if (mood == CatMood.CALM) sin(phase * tau * 2f) * 0.16f else 0f
-    val tailWidth = head * if (frightened) 0.52f else 0.30f
-    val tail = Path().apply {
-        moveTo(cx + body * 0.82f, baseY - body * 0.18f)
-        cubicTo(
-            cx + body * 1.62f, baseY - body * 0.30f,
-            cx + body * (1.55f + sway * 0.5f), baseY - body * 0.74f,
-            cx + body * (1.48f + sway), baseY - body * 0.98f,
-        )
-        cubicTo(
-            cx + body * (1.36f + sway * 1.6f), baseY - body * 1.46f,
-            cx + body * (1.16f + sway * 2f), baseY - body * 1.44f,
-            cx + body * (0.98f + sway * 2f), baseY - body * (if (frightened) 1.62f else 1.40f),
-        )
-    }
     val rimWidth = head * 0.14f
-    c.rim?.let { drawPath(tail, color = it, style = Stroke(width = tailWidth + rimWidth, cap = StrokeCap.Round)) }
-    drawPath(tail, color = c.patchA ?: c.fur, style = Stroke(width = tailWidth, cap = StrokeCap.Round))
-    c.stripe?.let { s ->
-        // A ringed tail reads as a tabby from across the room.
-        drawPath(
-            tail,
-            color = s,
-            style = Stroke(
-                width = tailWidth,
-                cap = StrokeCap.Butt,
-                pathEffect = PathEffect.dashPathEffect(floatArrayOf(head * 0.16f, head * 0.26f), head * 0.3f),
-            ),
-        )
+    if (tail) {
+        val sway = if (mood == CatMood.CALM) sin(phase * tau * 2f) * 0.16f else 0f
+        val tailWidth = head * if (frightened) 0.52f else 0.30f
+        val tailPath = Path().apply {
+            moveTo(cx + body * 0.82f, baseY - body * 0.18f)
+            cubicTo(
+                cx + body * 1.62f, baseY - body * 0.30f,
+                cx + body * (1.55f + sway * 0.5f), baseY - body * 0.74f,
+                cx + body * (1.48f + sway), baseY - body * 0.98f,
+            )
+            cubicTo(
+                cx + body * (1.36f + sway * 1.6f), baseY - body * 1.46f,
+                cx + body * (1.16f + sway * 2f), baseY - body * 1.44f,
+                cx + body * (0.98f + sway * 2f), baseY - body * (if (frightened) 1.62f else 1.40f),
+            )
+        }
+        c.rim?.let { drawPath(tailPath, color = it, style = Stroke(width = tailWidth + rimWidth, cap = StrokeCap.Round)) }
+        drawPath(tailPath, color = c.patchA ?: c.fur, style = Stroke(width = tailWidth, cap = StrokeCap.Round))
+        c.stripe?.let { s ->
+            // A ringed tail reads as a tabby from across the room.
+            drawPath(
+                tailPath,
+                color = s,
+                style = Stroke(
+                    width = tailWidth,
+                    cap = StrokeCap.Butt,
+                    pathEffect = PathEffect.dashPathEffect(floatArrayOf(head * 0.16f, head * 0.26f), head * 0.3f),
+                ),
+            )
+        }
     }
 
     // Body.
@@ -396,7 +407,304 @@ fun DrawScope.drawCat(
             )
         }
     }
+
+    // What it has on, over everything, in the order a cat would put things on.
+    wear.firstOrNull { it.slot == WearSlot.NECK }?.let { drawNeckItem(it, cx, headY + head * 0.98f, head) }
+    wear.firstOrNull { it.slot == WearSlot.FACE }?.let { drawFaceItem(it, cx, eyeY, head) }
+    wear.firstOrNull { it.slot == WearSlot.HEAD }?.let { drawHeadItem(it, cx, headY, head) }
 }
+
+private val KNIT_RED = Color(0xFFD9534F)
+private val KNIT_RED_DARK = Color(0xFFB94340)
+private val GOLD = Color(0xFFFFC53D)
+private val GOLD_DARK = Color(0xFFC8932B)
+private val PINK = Color(0xFFFF6F91)
+private val PINK_DARK = Color(0xFFE0527A)
+private val BRAND = Color(0xFF7C6BFF)
+private val CREAM_WHITE = Color(0xFFF5F0E8)
+private val FRAME = Color(0xFF6B4A2B)
+
+/** A collar's worth, just under the chin at [chinY]. */
+private fun DrawScope.drawNeckItem(item: CatItem, cx: Float, chinY: Float, head: Float) {
+    when (item) {
+        CatItem.BELL -> {
+            drawRoundRect(
+                KNIT_RED,
+                topLeft = Offset(cx - head * 0.62f, chinY - head * 0.07f),
+                size = Size(head * 1.24f, head * 0.14f),
+                cornerRadius = CornerRadius(head * 0.07f),
+            )
+            drawCircle(GOLD, radius = head * 0.17f, center = Offset(cx, chinY + head * 0.15f))
+            drawCircle(GOLD_DARK, radius = head * 0.17f, center = Offset(cx, chinY + head * 0.15f), style = Stroke(width = head * 0.035f))
+            drawLine(GOLD_DARK, Offset(cx, chinY + head * 0.17f), Offset(cx, chinY + head * 0.30f), strokeWidth = head * 0.04f, cap = StrokeCap.Round)
+            drawCircle(GOLD_DARK, radius = head * 0.04f, center = Offset(cx, chinY + head * 0.15f))
+        }
+        CatItem.BOW_TIE -> {
+            val y = chinY + head * 0.08f
+            listOf(-1f, 1f).forEach { side ->
+                drawPath(
+                    Path().apply {
+                        moveTo(cx, y)
+                        lineTo(cx + side * head * 0.36f, y - head * 0.19f)
+                        lineTo(cx + side * head * 0.36f, y + head * 0.19f)
+                        close()
+                    },
+                    color = BRAND,
+                )
+            }
+            drawCircle(Color(0xFF5A4BD6), radius = head * 0.09f, center = Offset(cx, y))
+        }
+        CatItem.SCARF -> {
+            val blue = Color(0xFF35A0E8)
+            // The tail first, so the loop around the neck covers where it starts.
+            drawRoundRect(
+                blue,
+                topLeft = Offset(cx + head * 0.16f, chinY),
+                size = Size(head * 0.28f, head * 0.72f),
+                cornerRadius = CornerRadius(head * 0.08f),
+            )
+            drawLine(Color.White, Offset(cx + head * 0.16f, chinY + head * 0.62f), Offset(cx + head * 0.44f, chinY + head * 0.62f), strokeWidth = head * 0.06f)
+            drawRoundRect(
+                blue,
+                topLeft = Offset(cx - head * 0.72f, chinY - head * 0.13f),
+                size = Size(head * 1.44f, head * 0.28f),
+                cornerRadius = CornerRadius(head * 0.14f),
+            )
+            listOf(-0.4f, 0f, 0.4f).forEach { x ->
+                drawLine(
+                    Color.White,
+                    Offset(cx + head * x - head * 0.05f, chinY - head * 0.12f),
+                    Offset(cx + head * x + head * 0.05f, chinY + head * 0.14f),
+                    strokeWidth = head * 0.06f,
+                )
+            }
+        }
+        else -> Unit
+    }
+}
+
+/** Over the eyes, which sit at [eyeY], ±0.36 of a head apart. */
+private fun DrawScope.drawFaceItem(item: CatItem, cx: Float, eyeY: Float, head: Float) {
+    when (item) {
+        CatItem.GLASSES -> {
+            listOf(-1f, 1f).forEach { side ->
+                drawCircle(
+                    FRAME,
+                    radius = head * 0.24f,
+                    center = Offset(cx + side * head * 0.36f, eyeY),
+                    style = Stroke(width = head * 0.06f),
+                )
+            }
+            drawLine(FRAME, Offset(cx - head * 0.12f, eyeY - head * 0.03f), Offset(cx + head * 0.12f, eyeY - head * 0.03f), strokeWidth = head * 0.05f)
+        }
+        CatItem.SUNGLASSES -> {
+            listOf(-1f, 1f).forEach { side ->
+                // Tall enough to cover an eye fear has opened wide.
+                val lens = Offset(cx + side * head * 0.36f - head * 0.28f, eyeY - head * 0.21f)
+                drawRoundRect(
+                    Color(0xF0202028),
+                    topLeft = lens,
+                    size = Size(head * 0.56f, head * 0.42f),
+                    cornerRadius = CornerRadius(head * 0.15f),
+                )
+                drawLine(
+                    Color(0x80FFFFFF),
+                    Offset(lens.x + head * 0.10f, lens.y + head * 0.08f),
+                    Offset(lens.x + head * 0.22f, lens.y + head * 0.08f),
+                    strokeWidth = head * 0.04f,
+                    cap = StrokeCap.Round,
+                )
+            }
+            drawLine(Color(0xF0202028), Offset(cx - head * 0.12f, eyeY - head * 0.06f), Offset(cx + head * 0.12f, eyeY - head * 0.06f), strokeWidth = head * 0.06f)
+        }
+        else -> Unit
+    }
+}
+
+/** On the head, whose centre is at [headY]: the ears stand from 0.62 of a head above it. */
+private fun DrawScope.drawHeadItem(item: CatItem, cx: Float, headY: Float, head: Float) {
+    when (item) {
+        CatItem.RIBBON -> {
+            val c = Offset(cx - head * 0.52f, headY - head * 0.80f)
+            drawOval(PINK, topLeft = Offset(c.x - head * 0.44f, c.y - head * 0.15f), size = Size(head * 0.42f, head * 0.30f))
+            drawOval(PINK, topLeft = Offset(c.x + head * 0.02f, c.y - head * 0.15f), size = Size(head * 0.42f, head * 0.30f))
+            drawCircle(PINK_DARK, radius = head * 0.10f, center = c)
+        }
+        CatItem.FLOWER -> {
+            val c = Offset(cx + head * 0.58f, headY - head * 0.74f)
+            repeat(5) { i ->
+                val a = (i * 72f - 90f) * (PI.toFloat() / 180f)
+                drawCircle(
+                    Color(0xFFFFB3C7),
+                    radius = head * 0.13f,
+                    center = Offset(c.x + head * 0.15f * kotlin.math.cos(a), c.y + head * 0.15f * sin(a)),
+                )
+            }
+            drawCircle(GOLD, radius = head * 0.09f, center = c)
+        }
+        CatItem.BEANIE -> {
+            drawArc(
+                KNIT_RED,
+                startAngle = 180f, sweepAngle = 180f, useCenter = true,
+                topLeft = Offset(cx - head * 1.0f, headY - head * 1.34f),
+                size = Size(head * 2.0f, head * 1.80f),
+            )
+            // The brim stops above the eyes even when fear has opened them wide (0.34 of a head up).
+            drawRoundRect(
+                KNIT_RED_DARK,
+                topLeft = Offset(cx - head * 1.02f, headY - head * 0.58f),
+                size = Size(head * 2.04f, head * 0.22f),
+                cornerRadius = CornerRadius(head * 0.10f),
+            )
+            drawCircle(CREAM_WHITE, radius = head * 0.20f, center = Offset(cx, headY - head * 1.36f))
+        }
+        CatItem.STRAW_HAT -> {
+            val straw = Color(0xFFE8C170)
+            drawArc(
+                straw,
+                startAngle = 180f, sweepAngle = 180f, useCenter = true,
+                topLeft = Offset(cx - head * 0.62f, headY - head * 1.34f),
+                size = Size(head * 1.24f, head * 1.24f),
+            )
+            drawRect(KNIT_RED, topLeft = Offset(cx - head * 0.62f, headY - head * 0.86f), size = Size(head * 1.24f, head * 0.14f))
+            drawOval(straw, topLeft = Offset(cx - head * 1.30f, headY - head * 0.92f), size = Size(head * 2.60f, head * 0.44f))
+            drawOval(Color(0xFFCFA553), topLeft = Offset(cx - head * 1.30f, headY - head * 0.92f), size = Size(head * 2.60f, head * 0.44f), style = Stroke(width = head * 0.04f))
+        }
+        CatItem.PARTY_HAT -> {
+            val base = headY - head * 0.86f
+            val apex = Offset(cx + head * 0.10f, headY - head * 1.74f)
+            val cone = Path().apply {
+                moveTo(cx - head * 0.34f, base)
+                lineTo(cx + head * 0.34f, base)
+                lineTo(apex.x, apex.y)
+                close()
+            }
+            drawPath(cone, color = BRAND)
+            clipPath(cone) {
+                listOf(0.25f, 0.55f).forEach { t ->
+                    val y = base + (apex.y - base) * t
+                    drawLine(GOLD, Offset(cx - head * 0.5f, y + head * 0.08f), Offset(cx + head * 0.5f, y - head * 0.08f), strokeWidth = head * 0.10f)
+                }
+            }
+            drawCircle(PINK, radius = head * 0.13f, center = apex)
+        }
+        CatItem.CROWN -> {
+            val base = headY - head * 0.84f
+            val crown = Path().apply {
+                moveTo(cx - head * 0.50f, base)
+                lineTo(cx - head * 0.50f, base - head * 0.34f)
+                lineTo(cx - head * 0.25f, base - head * 0.14f)
+                lineTo(cx, base - head * 0.44f)
+                lineTo(cx + head * 0.25f, base - head * 0.14f)
+                lineTo(cx + head * 0.50f, base - head * 0.34f)
+                lineTo(cx + head * 0.50f, base)
+                close()
+            }
+            drawPath(crown, color = GOLD)
+            drawPath(crown, color = GOLD_DARK, style = Stroke(width = head * 0.04f))
+            drawCircle(PINK_DARK, radius = head * 0.07f, center = Offset(cx, base - head * 0.14f))
+            drawCircle(Color(0xFF35A0E8), radius = head * 0.05f, center = Offset(cx - head * 0.30f, base - head * 0.07f))
+            drawCircle(Color(0xFF35A0E8), radius = head * 0.05f, center = Offset(cx + head * 0.30f, base - head * 0.07f))
+        }
+        else -> Unit
+    }
+}
+
+/**
+ * A place for the cat to sit, drawn over the whole canvas behind it: one of the scenes the climb's
+ * places bring. [floorY] is where the cat's paws are.
+ */
+fun DrawScope.drawCatScene(scene: CatItem, floorY: Float) {
+    val w = size.width
+    val h = size.height
+    when (scene) {
+        CatItem.CITY -> {
+            drawRect(Brush.verticalGradient(listOf(Color(0xFF1E2A4A), Color(0xFF3B3F6B))))
+            drawCircle(Color(0xFFFFF3C4), radius = h * 0.08f, center = Offset(w * 0.82f, h * 0.2f))
+            val towers = listOf(0.02f to 0.42f, 0.14f to 0.58f, 0.27f to 0.36f, 0.62f to 0.50f, 0.75f to 0.66f, 0.88f to 0.40f)
+            towers.forEach { (x, tall) ->
+                val top = floorY - h * tall
+                drawRect(Color(0xFF141B30), topLeft = Offset(w * x, top), size = Size(w * 0.11f, floorY - top))
+                var y = top + h * 0.05f
+                while (y < floorY - h * 0.06f) {
+                    drawRect(Color(0xFFFFD66B), topLeft = Offset(w * x + w * 0.025f, y), size = Size(w * 0.02f, h * 0.025f))
+                    drawRect(Color(0xFFFFD66B), topLeft = Offset(w * x + w * 0.065f, y), size = Size(w * 0.02f, h * 0.025f))
+                    y += h * 0.07f
+                }
+            }
+        }
+        CatItem.MOUNTAIN -> {
+            drawRect(Brush.verticalGradient(listOf(Color(0xFF9ED8F5), Color(0xFFE8F6FF))))
+            drawCircle(Color(0xFFFFE07A), radius = h * 0.07f, center = Offset(w * 0.18f, h * 0.2f))
+            drawPath(
+                Path().apply {
+                    moveTo(0f, floorY)
+                    lineTo(w * 0.5f, floorY - h * 0.55f)
+                    lineTo(w, floorY)
+                    close()
+                },
+                color = Color(0xFF7FB7A0),
+            )
+            drawPath(
+                Path().apply {
+                    moveTo(0f, floorY)
+                    quadraticBezierTo(w * 0.25f, floorY - h * 0.28f, w * 0.55f, floorY - h * 0.12f)
+                    quadraticBezierTo(w * 0.8f, floorY - h * 0.02f, w, floorY - h * 0.16f)
+                    lineTo(w, floorY)
+                    close()
+                },
+                color = Color(0xFF5E9E7A),
+            )
+        }
+        CatItem.SNOW -> {
+            drawRect(Brush.verticalGradient(listOf(Color(0xFFBFE3FF), Color(0xFFF2FAFF))))
+            listOf(0.28f to 0.62f, 0.70f to 0.78f).forEach { (x, tall) ->
+                val peak = Offset(w * x, floorY - h * tall)
+                val halfBase = w * 0.36f
+                drawPath(
+                    Path().apply {
+                        moveTo(peak.x - halfBase, floorY)
+                        lineTo(peak.x, peak.y)
+                        lineTo(peak.x + halfBase, floorY)
+                        close()
+                    },
+                    color = Color(0xFF8A9BB5),
+                )
+                drawPath(
+                    Path().apply {
+                        moveTo(peak.x - halfBase * 0.3f, peak.y + h * tall * 0.3f)
+                        lineTo(peak.x, peak.y)
+                        lineTo(peak.x + halfBase * 0.3f, peak.y + h * tall * 0.3f)
+                        lineTo(peak.x + halfBase * 0.1f, peak.y + h * tall * 0.22f)
+                        lineTo(peak.x - halfBase * 0.1f, peak.y + h * tall * 0.3f)
+                        close()
+                    },
+                    color = Color.White,
+                )
+            }
+        }
+        CatItem.SPACE -> {
+            drawRect(Brush.verticalGradient(listOf(Color(0xFF0B0E24), Color(0xFF1B1F4B))))
+            STARS.forEach { (x, y) -> drawCircle(Color(0xCCFFFFFF), radius = h * 0.008f, center = Offset(w * x, h * y)) }
+            val planet = Offset(w * 0.78f, h * 0.26f)
+            drawCircle(Color(0xFFE8A06B), radius = h * 0.09f, center = planet)
+            drawOval(
+                Color(0xFFF3D9A8),
+                topLeft = Offset(planet.x - h * 0.16f, planet.y - h * 0.035f),
+                size = Size(h * 0.32f, h * 0.07f),
+                style = Stroke(width = h * 0.012f),
+            )
+        }
+        else -> Unit
+    }
+}
+
+/** Where the stars are, as fractions of the canvas: fixed, so the sky does not twinkle between frames. */
+private val STARS = listOf(
+    0.08f to 0.12f, 0.22f to 0.30f, 0.35f to 0.08f, 0.48f to 0.22f, 0.12f to 0.48f,
+    0.58f to 0.40f, 0.66f to 0.10f, 0.92f to 0.14f, 0.88f to 0.46f, 0.30f to 0.55f,
+    0.52f to 0.60f, 0.04f to 0.70f, 0.95f to 0.64f, 0.42f to 0.36f, 0.74f to 0.52f,
+)
 
 /**
  * Hearts after a push: [count] of them, drifting up and out from beside the ears and fading as
