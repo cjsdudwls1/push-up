@@ -15,6 +15,8 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -40,6 +42,8 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.pushuprpg.app.R
@@ -51,6 +55,7 @@ import com.pushuprpg.app.ui.components.CameraErrorCard
 import com.pushuprpg.app.ui.components.KeepScreenOn
 import com.pushuprpg.app.ui.components.ModelErrorBanner
 import com.pushuprpg.app.ui.components.PrimaryButton
+import com.pushuprpg.app.ui.components.RunGrowthLines
 import com.pushuprpg.app.ui.components.SecondaryButton
 import com.pushuprpg.app.ui.components.cardSurface
 import com.pushuprpg.app.ui.components.catHeadTop
@@ -68,11 +73,13 @@ import com.pushuprpg.app.ui.components.exerciseHintRes
 import com.pushuprpg.app.ui.components.exerciseLabelRes
 import com.pushuprpg.core.detect.ExerciseType
 import com.pushuprpg.core.detect.Exercises
+import com.pushuprpg.core.detect.MovementKind
 import com.pushuprpg.core.detect.Placement
 import com.pushuprpg.core.detect.RenderSkeleton
-import com.pushuprpg.core.game.PlayerClass
+import com.pushuprpg.core.progression.RunGrowth
 import com.pushuprpg.core.survival.CatLine
-import com.pushuprpg.core.survival.CatName
+import com.pushuprpg.core.survival.CatPhase
+import com.pushuprpg.core.survival.CatSessionState
 import com.pushuprpg.core.survival.CatSpeech
 import com.pushuprpg.core.survival.CatView
 import com.pushuprpg.core.survival.SurvivalState
@@ -84,10 +91,13 @@ import kotlinx.coroutines.delay
  * A deliberately different register from the dungeon: warm, round, no skeleton, no HP numbers, no
  * depth gauge — the descending ceiling *is* the gauge. This is the mode people are shown first and
  * the one they send to a friend, so it must not look like sports science.
+ *
+ * A session is three lives — three sets — with a rest between them that the screen counts down;
+ * the tutorial is one life. See [com.pushuprpg.core.survival.CatSession].
  */
 @Composable
 fun SurvivalScreen(
-    state: SurvivalState,
+    state: CatSessionState,
     bestScore: Int,
     poseSource: PoseLandmarkerSource,
     exercise: ExerciseType,
@@ -104,12 +114,12 @@ fun SurvivalScreen(
     onSkip: () -> Unit = {},
     /** The pose model did not load, so nothing will ever count: the tutorial offers its skip at once. */
     modelFailed: Boolean = false,
-    /** What the first dungeon asks in pushups, as every screen that quotes it computes it. */
-    firstDungeonReps: Int = 0,
-    /** The class [firstDungeonReps] is priced for, whose way of doing a rep the ending names. */
-    playerClass: PlayerClass = PlayerClass.KNIGHT,
     /** Reps the detector refused as not deep enough, for the tutorial's ending. */
     nearMisses: Int = 0,
+    /** The best one go of this movement before this session: what a life is measured against. */
+    personalBest: Int = 0,
+    /** What the banked session changed — a record, places passed — once it is written. */
+    growth: RunGrowth? = null,
     cat: CatView = CatView(),
     placement: Placement = Placement(),
     /** The skeleton while setting up, for lining up with the framing guide; null once started. */
@@ -127,6 +137,9 @@ fun SurvivalScreen(
     // skipping, which is for good: an edge swipe made while standing the phone up skipped the
     // tutorial with no way back to it. Nothing moves while the question is up. 건너뛰기 does not ask.
     var confirmingSkip by remember { mutableStateOf(false) }
+    val life = state.life
+    val playing = state.phase == CatPhase.PLAYING
+    val resting = state.phase == CatPhase.RESTING
     val waitingTutorial = isTutorial && !state.started
     BackHandler {
         if (waitingTutorial) confirmingSkip = !confirmingSkip else onHome()
@@ -177,13 +190,20 @@ fun SurvivalScreen(
         // and arms for a pushup sit where the cat and its bubble do, and the frame's foot below the
         // floor. So the cat and the floor are drawn faint underneath it, and the cat's waiting line
         // is said at the top instead of in a bubble over the ghost.
-        val settingUp = !state.started && state.alive
+        val settingUp = playing && !life.started && life.alive
 
-        CeilingAndCat(state = state, cat = cat, coat = catCoat, faded = settingUp, modifier = Modifier.fillMaxSize())
+        // Resting, the ceiling is back up: a crushed cat is not what a minute of rest looks at.
+        CeilingAndCat(
+            state = if (resting) life.copy(height = 1f, intensity = 0f) else life,
+            cat = cat,
+            coat = catCoat,
+            faded = settingUp,
+            modifier = Modifier.fillMaxSize(),
+        )
 
         // Setting up: the skeleton and a ghost of the starting pose, so framing the phone is
         // matching lines rather than guessing. Gone the moment the run starts.
-        if (setupSkeleton != null && state.alive) {
+        if (setupSkeleton != null && playing && life.alive) {
             val lines = Exercises.of(exercise).config
             SkeletonOverlay(
                 skeleton = setupSkeleton,
@@ -218,11 +238,12 @@ fun SurvivalScreen(
             // Outlined, as all text over the camera is, and none of it under bodyM: the warm wash
             // does not darken a bright room enough to read plain grey type off it.
             CameraText(
-                text = stringResource(R.string.survival_score, state.score),
+                text = stringResource(R.string.survival_score, state.totalScore),
                 style = Type.numeralL,
                 color = Palette.TextPrimary,
             )
-            // Not in the tutorial: a best of 0 says nothing to someone who has never played.
+            // Not in the tutorial: a best of 0 says nothing to someone who has never played, and it
+            // has one life, which hearts would only count down.
             if (!isTutorial) {
                 Spacer(Modifier.height(2.dp))
                 CameraText(
@@ -230,6 +251,8 @@ fun SurvivalScreen(
                     style = Type.bodyM,
                     color = Palette.TextSecondary,
                 )
+                Spacer(Modifier.height(4.dp))
+                LivesRow(lives = state.lives, left = state.livesLeft)
             }
             // The ceiling waits for the user to be in position, and says so — a still ceiling with
             // no explanation reads as a broken one. The tutorial says it in its intro.
@@ -263,7 +286,7 @@ fun SurvivalScreen(
             // placement advice, and a phone put where the movement cannot be seen counts nothing.
             // Not while the camera will not open, where the card says why, nor with no model, whose
             // error says it; until the model's first frame it says the camera is getting ready.
-            if (state.alive && !cameraFailed && !noModel) {
+            if (playing && life.alive && !cameraFailed && !noModel) {
                 Spacer(Modifier.height(10.dp))
                 PlacementBanner(
                     placement = placement,
@@ -326,7 +349,7 @@ fun SurvivalScreen(
 
         // Only while the run is on. After it, its own card has the floor, and the next run brings
         // this back if the camera is still out.
-        if (cameraFailed && state.alive) {
+        if (cameraFailed && state.phase != CatPhase.OVER) {
             CameraErrorCard(
                 onRetry = {
                     cameraFailed = false
@@ -336,29 +359,39 @@ fun SurvivalScreen(
             )
         }
 
-        if (!state.alive) {
+        if (resting) {
+            // The phone is across the room during a rest, so the countdown is the biggest thing here.
+            RestCard(
+                state = state,
+                exercise = exercise,
+                personalBest = personalBest,
+                modifier = Modifier.align(Alignment.Center),
+            )
+        }
+
+        if (state.phase == CatPhase.OVER) {
             if (isTutorial) {
                 TutorialDoneCard(
-                    reps = state.reps,
+                    reps = state.totalReps,
                     nearMisses = nearMisses,
-                    firstDungeonReps = firstDungeonReps,
-                    playerClass = playerClass,
                     onContinue = onHome,
                     modifier = Modifier.align(Alignment.Center),
                 )
             } else {
-                GameOverCard(
+                SessionOverCard(
                     catName = name,
-                    score = state.score,
+                    state = state,
                     bestScore = bestScore,
+                    exercise = exercise,
+                    growth = growth,
                     onRetry = onRetry,
                     onShare = {
                         onShare(
                             ShareCardData.Survival(
-                                score = state.score,
-                                best = maxOf(bestScore, state.score),
-                                reps = state.reps,
-                                seconds = (state.elapsedMs / 1000).toInt(),
+                                score = state.totalScore,
+                                best = maxOf(bestScore, state.totalScore),
+                                reps = state.totalReps,
+                                seconds = (state.ended.sumOf { it.survivedMs } / 1000).toInt(),
                             )
                         )
                     },
@@ -579,6 +612,9 @@ private fun catLineText(speech: CatSpeech): String {
         CatLine.SCARED -> listOf(R.string.cat_line_scared_1, R.string.cat_line_scared_2)
         CatLine.PANIC -> listOf(R.string.cat_line_panic_1, R.string.cat_line_panic_2)
         CatLine.SAVED -> listOf(R.string.cat_line_saved_1, R.string.cat_line_saved_2, R.string.cat_line_saved_3)
+        CatLine.REST -> listOf(R.string.cat_line_rest_1, R.string.cat_line_rest_2)
+        CatLine.REST_TEN -> listOf(R.string.cat_line_rest_ten)
+        CatLine.AGAIN -> listOf(R.string.cat_line_again_1, R.string.cat_line_again_2)
     }
     val id = wordings[speech.serial % wordings.size]
     return when (speech.line) {
@@ -639,26 +675,18 @@ private fun TutorialIntro(
  * The tutorial's ending.
  *
  * It reports the reps rather than the score, because telling a beginner their score before they
- * know what a good one is invites the wrong comparison — and what the first dungeon will ask, which
- * is the number that matters next. It used to promise to set the dungeons by the reps, and nothing
- * did: a dungeon's size is its rep cost, the same after three pushups as after forty.
+ * know what a good one is invites the wrong comparison — and then what comes next: three lives,
+ * with a rest between them.
  *
  * Nothing counted is one of two runs, and only the card for a counted one says 준비 끝. Reps the
  * detector refused as not deep enough ([nearMisses]) were seen by the camera: the phone was fine and
- * the depth is what to find. Blaming the phone sent the user off to move it, and into the first
- * dungeon with the same reps. With none of those either, the phone's place is where to look, and
- * the card says where it goes before the first dungeon asks for a count.
- *
- * That count is the class's price, and it holds only for reps done the class's way: a 기사 who
- * pushes up at the tutorial's pace earns half a rep each and watches the goal grow. So the line
- * says which way it is, where the number is.
+ * the depth is what to find. Blaming the phone sent the user off to move it. With none of those
+ * either, the phone's place is where to look, and the card says where it goes.
  */
 @Composable
 private fun TutorialDoneCard(
     reps: Int,
     nearMisses: Int,
-    firstDungeonReps: Int,
-    playerClass: PlayerClass,
     onContinue: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -704,13 +732,7 @@ private fun TutorialDoneCard(
         }
         Spacer(Modifier.height(8.dp))
         Text(
-            text = stringResource(
-                when (playerClass) {
-                    PlayerClass.KNIGHT -> R.string.tutorial_first_dungeon_knight
-                    PlayerClass.ARCHER -> R.string.tutorial_first_dungeon_archer
-                },
-                firstDungeonReps,
-            ),
+            text = stringResource(R.string.tutorial_done_next),
             style = Type.bodyL,
             color = Palette.TextSecondary,
             textAlign = TextAlign.Center,
@@ -720,44 +742,207 @@ private fun TutorialDoneCard(
     }
 }
 
+/** The session's lives as hearts: full for the ones left, faint for the ones spent. */
 @Composable
-private fun GameOverCard(
-    catName: String,
-    score: Int,
-    bestScore: Int,
-    onRetry: () -> Unit,
-    onShare: () -> Unit,
-    onHome: () -> Unit,
+private fun LivesRow(lives: Int, left: Int, modifier: Modifier = Modifier) {
+    val description = stringResource(R.string.survival_lives_left, left)
+    Row(
+        modifier = modifier.semantics { contentDescription = description },
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        repeat(lives) { i ->
+            CameraText(
+                text = "\u2665",
+                style = Type.titleL,
+                color = if (i < left) HEART else Palette.TextDisabled,
+            )
+        }
+    }
+}
+
+private val HEART = Color(0xFFFF6F91)
+
+/**
+ * The rest between two lives.
+ *
+ * It is not optional, by the owner's decision: a set to the edge of failure needs the rest before
+ * the next one, and a game will not take it unless made to. So it is the largest thing on screen —
+ * the phone is across the room — and it says what the life just done was worth: how many, and how
+ * that stands against the best before it.
+ */
+@Composable
+private fun RestCard(
+    state: CatSessionState,
+    exercise: ExerciseType,
+    /** The best one go before this session. */
+    personalBest: Int,
     modifier: Modifier = Modifier,
 ) {
+    val last = state.ended.lastOrNull()
+    val seconds = ((state.restLeftMs + 999L) / 1000L).toInt()
+    val hold = Exercises.of(exercise).kind == MovementKind.HOLD
+    // A second life beating the first is a record too, and a third is measured against both.
+    val before = maxOf(personalBest, state.ended.dropLast(1).maxOfOrNull { it.reps } ?: 0)
     Column(
         modifier = modifier
             .padding(horizontal = 28.dp)
             .fillMaxWidth()
             .cardSurface(shape = RoundedCornerShape(22.dp), color = Palette.Bg1)
+            .verticalScroll(rememberScrollState())
             .padding(22.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(
-            text = stringResource(R.string.survival_gameover, catName + CatName.subjectParticle(catName)),
+            text = stringResource(R.string.result_rest_title),
+            style = Type.labelL,
+            color = Palette.TextSecondary,
+        )
+        Text(
+            text = stringResource(R.string.result_rest_time, seconds / 60, seconds % 60),
+            style = Type.displayM,
+            color = Palette.TextPrimary,
+        )
+        if (last != null) {
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = if (hold) {
+                    stringResource(R.string.rest_last_hold, (last.survivedMs / 1000L).toInt())
+                } else {
+                    stringResource(R.string.rest_last_reps, last.reps)
+                },
+                style = Type.titleM,
+                color = Palette.Deep,
+                textAlign = TextAlign.Center,
+            )
+            val compare = when {
+                hold || before <= 0 -> null
+                last.reps > before -> stringResource(R.string.rest_record_new, before)
+                else -> stringResource(R.string.rest_record_best, before)
+            }
+            if (compare != null) {
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    text = compare,
+                    style = Type.bodyM,
+                    color = Palette.TextSecondary,
+                    textAlign = TextAlign.Center,
+                )
+            }
+            if (last.refunded) {
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    text = stringResource(R.string.rest_refunded),
+                    style = Type.bodyM,
+                    color = Palette.TextSecondary,
+                    textAlign = TextAlign.Center,
+                )
+            }
+        }
+        Spacer(Modifier.height(12.dp))
+        LivesRow(lives = state.lives, left = state.livesLeft)
+        Spacer(Modifier.height(12.dp))
+        Text(
+            text = stringResource(R.string.rest_tip),
+            style = Type.bodyM,
+            color = Palette.TextSecondary,
+            textAlign = TextAlign.Center,
+        )
+        Spacer(Modifier.height(4.dp))
+        Text(
+            text = stringResource(R.string.rest_after),
+            style = Type.bodyM,
+            color = Palette.TextTertiary,
+            textAlign = TextAlign.Center,
+        )
+    }
+}
+
+/**
+ * Every life spent: the session's score, what each life made, and what the session did for the
+ * climb and the records, which is the part that says the work is going somewhere.
+ */
+@Composable
+private fun SessionOverCard(
+    catName: String,
+    state: CatSessionState,
+    bestScore: Int,
+    exercise: ExerciseType,
+    growth: RunGrowth?,
+    onRetry: () -> Unit,
+    onShare: () -> Unit,
+    onHome: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val hold = Exercises.of(exercise).kind == MovementKind.HOLD
+    Column(
+        modifier = modifier
+            .windowInsetsPadding(WindowInsets.safeDrawing)
+            .padding(horizontal = 24.dp)
+            .fillMaxWidth()
+            .cardSurface(shape = RoundedCornerShape(22.dp), color = Palette.Bg1)
+            .verticalScroll(rememberScrollState())
+            .padding(22.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(
+            text = stringResource(R.string.session_over_title),
             style = Type.titleL,
             color = Palette.TextPrimary,
             textAlign = TextAlign.Center,
         )
+        Spacer(Modifier.height(4.dp))
+        Text(
+            text = stringResource(R.string.cat_says, catName, stringResource(R.string.session_over_cat)),
+            style = Type.bodyM,
+            color = Palette.TextSecondary,
+            textAlign = TextAlign.Center,
+        )
         Spacer(Modifier.height(12.dp))
         Text(
-            text = stringResource(R.string.survival_score, score),
+            text = stringResource(R.string.survival_score, state.totalScore),
             style = Type.displayM,
             color = Palette.Deep,
         )
         Spacer(Modifier.height(4.dp))
         Text(
-            text = stringResource(R.string.survival_best, bestScore),
+            text = stringResource(R.string.survival_best, maxOf(bestScore, state.totalScore)),
             style = Type.labelM,
             color = Palette.TextTertiary,
         )
-        Spacer(Modifier.height(20.dp))
-        PrimaryButton(text = stringResource(R.string.action_retry), onClick = onRetry)
+        Spacer(Modifier.height(14.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            state.ended.forEachIndexed { i, life ->
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(Palette.Bg2)
+                        .padding(vertical = 10.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    Text(
+                        text = if (hold) {
+                            stringResource(R.string.session_life_seconds, (life.survivedMs / 1000L).toInt())
+                        } else {
+                            stringResource(R.string.session_life_reps, life.reps)
+                        },
+                        style = Type.titleM,
+                        color = Palette.TextPrimary,
+                        maxLines = 1,
+                    )
+                    Text(
+                        text = stringResource(R.string.session_life_n, i + 1),
+                        style = Type.labelM,
+                        color = Palette.TextTertiary,
+                        maxLines = 1,
+                    )
+                }
+            }
+        }
+        Spacer(Modifier.height(12.dp))
+        RunGrowthLines(growth = growth, modifier = Modifier.fillMaxWidth())
+        Spacer(Modifier.height(18.dp))
+        PrimaryButton(text = stringResource(R.string.session_again), onClick = onRetry)
         Spacer(Modifier.height(10.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             SecondaryButton(

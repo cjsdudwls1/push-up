@@ -544,6 +544,8 @@ fun PushupRpgApp(
                     val placement by vm.placement.collectAsState()
                     val setupSkeleton by vm.setupSkeleton.collectAsState()
                     val nearMisses by vm.nearMisses.collectAsState()
+                    val personalBest by vm.personalBest.collectAsState()
+                    val growth by vm.growth.collectAsState()
 
                     DisposableEffect(vm) {
                         val consumer: (com.pushuprpg.core.pose.PoseFrame) -> Unit = vm::onPoseFrame
@@ -573,12 +575,8 @@ fun PushupRpgApp(
                                 onShare = onShare,
                                 modelFailed = poseError != null,
                                 nearMisses = nearMisses,
-                                firstDungeonReps = Dungeons.FREE_DUNGEON.repCost(
-                                    settings.difficulty,
-                                    ExerciseType.PUSHUP,
-                                    progress.playerClass,
-                                ),
-                                playerClass = progress.playerClass,
+                                personalBest = personalBest,
+                                growth = growth,
                                 onSkip = {
                                     if (navController.isOnTop(entry)) {
                                         vm.skipTutorial()
@@ -594,13 +592,11 @@ fun PushupRpgApp(
                                         // hub.
                                         if (navController.isOnTop(entry)) {
                                             vm.finishTutorial()
+                                            // To the hub, whose biggest button is the cat again: the
+                                            // tutorial was the mode itself, with one life.
                                             navController.navigate(Routes.HOME) {
                                                 popUpTo(Routes.SURVIVAL) { inclusive = true }
                                             }
-                                            // Where the button says it goes — 던전으로 가기 — with the hub
-                                            // under it for back. It used to stop at the hub, where
-                                            // someone who had never started still had to find the way in.
-                                            navController.navigate(Routes.exercisePick(Dungeons.FREE_DUNGEON.index))
                                         }
                                     } else {
                                         // Mid-run too, from the close button or the back gesture: what

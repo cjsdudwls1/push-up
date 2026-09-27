@@ -169,9 +169,19 @@ stops attacking. A user must never lose health because the tracker blinked.
 view all let it keep coming. It is a sprint, and a sprint you can pause by sitting up is not one. Do
 not "fix" it back to pausing.
 
+A session of 고냥이 지켜줘 is **three lives with a rest between them**, by the owner's decision: a
+life is a set, and the rest (a minute by default; the settings offer 90 s and 2 min) is not
+optional — the next life's ceiling does not come back until it is over, and then waits, as the
+first did, for the user to be in position. Each life is a fresh `CeilingSurvival` and keeps the
+sprint rule above. A life that ends while the tracker has lost the user for two seconds is given
+back, once a session (`CatSession.REFUND_LOST_MS`, `REFUNDS`): a tracking failure never costs the
+user, without stepping out of view becoming a way to live forever. The tutorial is one life and no
+rest. `CatSessionTest` pins all of it.
+
 The cat's fear, its lines and its sounds are decided by `CatCompanion` in `:core`, from the run's
-state and events; the screen draws the `CatView` it is given and plays the sounds, and decides
-nothing about how the cat feels. It never changes the game — `CatCompanionTest` pins when it speaks.
+state and events — the rest's lines included; the screen draws the `CatView` it is given and plays
+the sounds, and decides nothing about how the cat feels. It never changes the game —
+`CatCompanionTest` pins when it speaks.
 
 ## Copy
 

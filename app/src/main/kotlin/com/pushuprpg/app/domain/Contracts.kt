@@ -6,6 +6,7 @@ import com.pushuprpg.core.detect.SkeletonMode
 import com.pushuprpg.core.detect.UserProfile
 import com.pushuprpg.core.game.Difficulty
 import com.pushuprpg.core.game.PlayerClass
+import com.pushuprpg.core.progression.SessionFacts
 import kotlinx.coroutines.flow.Flow
 
 /**
@@ -95,6 +96,12 @@ interface SessionRepository {
      * reps, or seconds for a hold. No hold time is stored, so a hold's seconds are its rows' length.
      */
     suspend fun workOn(epochDay: Long): Map<ExerciseType, Int>
+
+    /** Every run as the growth screens read it — the climb, the records, the week — oldest first. */
+    fun facts(): Flow<List<SessionFacts>>
+
+    /** [facts], read once: what a run is measured against before it is banked. */
+    suspend fun factsNow(): List<SessionFacts>
 }
 
 /** User-facing settings. Defaults are the shipping defaults, not placeholders. */
@@ -139,6 +146,11 @@ data class AppSettings(
      * with no end is not a rest.
      */
     val autoNextRestSeconds: Int = 0,
+    /**
+     * The rest between two lives of 고냥이 지켜줘, in seconds. A minute by the owner's decision;
+     * the settings offer longer, since a set to failure recovers better with more.
+     */
+    val catRestSeconds: Int = 60,
 )
 
 enum class HapticStrength { OFF, LIGHT, MEDIUM, STRONG }

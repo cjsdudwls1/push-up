@@ -191,6 +191,36 @@ sealed class Event(val name: String, val params: Map<String, Any> = emptyMap()) 
         Event("quality_lost", mapOf("reason" to quality.name, "at_rep" to atRep, "armed" to armed))
 
     /**
+     * A session of 고냥이 지켜줘 ended, every life lost or left part way; the tutorial's is
+     * [TutorialCompleted]. Now that the cat is the front door, this and [RunFinished] are how the two
+     * modes are compared, and [lives] and [completed] say whether people play all three sets.
+     */
+    data class CatSessionFinished(
+        val exercise: ExerciseType,
+        /** Lives played, the one left part way included. */
+        val lives: Int,
+        val reps: Int,
+        val score: Int,
+        /** Time the lives were played, rests left out. */
+        val durationMs: Long,
+        /** A life was given back because the camera had lost the user. */
+        val refunded: Boolean,
+        /** Every life was played out, rather than the session left part way. */
+        val completed: Boolean,
+    ) : Event(
+        "cat_session_finished",
+        mapOf(
+            "exercise" to exercise.name,
+            "lives" to lives,
+            "reps" to reps,
+            "score" to score,
+            "duration_ms" to durationMs,
+            "refunded" to refunded,
+            "completed" to completed,
+        ),
+    )
+
+    /**
      * A run met the day's streak bar, and the streak is now [days] long. Sent once for each day
      * that counts, so a second run on a day already kept sends nothing.
      */

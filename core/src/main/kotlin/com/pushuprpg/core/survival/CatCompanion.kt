@@ -29,6 +29,15 @@ enum class CatLine(val priority: Int, val repeatAfterMs: Long) {
     PANIC(6, 5_000),
     /** A push that lifted the ceiling out of the frightening part. The line the mode is built for. */
     SAVED(7, 4_000),
+
+    /** A life is over and a rest begins: the cat is fine, and says so. See [CatSession]. */
+    REST(5, 0),
+
+    /** Ten seconds of the rest left. */
+    REST_TEN(4, 0),
+
+    /** The rest is over: the next life waits for the user, and the cat asks again. */
+    AGAIN(4, 0),
 }
 
 data class CatSpeech(
@@ -81,6 +90,7 @@ class CatCompanion {
     private var nextCreakMs = NEVER
     private var nextHeartbeatMs = NEVER
     private var lastHoldSoundMs = NEVER
+    private var saidRestTen = false
 
     fun view(): CatView = CatView(
         mood = mood,
@@ -169,6 +179,41 @@ class CatCompanion {
         }
 
         sounds += ambience(state)
+        return sounds
+    }
+
+    /**
+     * Folds in one frame of the rest between lives: what the session did on it and how long is left.
+     *
+     * The ceiling has gone back up, so the cat is calm again. It says it is fine as the rest begins —
+     * never that the user let it down — says when ten seconds are left, and when the rest is over
+     * starts again from waiting, as a new life does.
+     */
+    fun rest(restLeftMs: Long, events: List<CatSessionEvent>, nowMs: Long): List<SoundRequest> {
+        this.nowMs = nowMs
+        val sounds = mutableListOf<SoundRequest>()
+        for (event in events) {
+            when (event) {
+                is CatSessionEvent.LifeLost -> if (event.livesLeft > 0 || event.result.refunded) {
+                    mood = CatMood.CALM
+                    lastPushMs = NEVER
+                    saidRestTen = false
+                    // The result card of the life said nothing; this is the cat, relieved.
+                    speech = null
+                    if (say(CatLine.REST, event.atMs)) sounds += SoundRequest(SoundCue.CAT_HAPPY, volume = 0.8f)
+                }
+                is CatSessionEvent.RestOver -> {
+                    reset()
+                    say(CatLine.AGAIN, event.atMs)
+                    sounds += SoundRequest(SoundCue.CAT_MEOW, volume = 0.8f)
+                }
+                is CatSessionEvent.Over -> Unit
+            }
+        }
+        if (restLeftMs in 1..REST_TEN_MS && !saidRestTen) {
+            saidRestTen = true
+            say(CatLine.REST_TEN, nowMs)
+        }
         return sounds
     }
 
@@ -289,6 +334,9 @@ class CatCompanion {
         const val HEARTBEAT_SLOW_MS = 850L
         const val HEARTBEAT_FAST_MS = 420L
         const val HOLD_SOUND_EVERY_MS = 900L
+
+        /** When the cat says ten seconds of the rest are left. */
+        const val REST_TEN_MS = 10_000L
 
         /**
          * The mood for [height], given the mood the cat is already in.

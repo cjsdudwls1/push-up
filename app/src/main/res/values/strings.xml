@@ -194,6 +194,9 @@
     <string name="settings_auto_next_sub">던전을 깨고 다음 던전이 열려 있으면, 쉬는 시간이 지난 뒤 같은 운동으로 바로 시작돼요.</string>
     <string name="settings_auto_next_off">끄기</string>
     <string name="settings_auto_next_minutes">%1$d분</string>
+    <string name="settings_rest_minutes_seconds">%1$d분 %2$d초</string>
+    <string name="settings_cat_rest">고냥이 쉬는 시간</string>
+    <string name="settings_cat_rest_sub">목숨이 하나 줄면 이만큼 쉬고 다음 목숨을 시작해요. 쉬어야 다음 판에 더 많이 해요.</string>
     <string name="result_rest_title">쉬는 시간</string>
     <string name="result_rest_time">%1$d:%2$02d</string>
     <string name="result_rest_body">끝나면 %1$s에서 바로 이어서 해요</string>
@@ -312,12 +315,10 @@
     <string name="survival_body">천장이 내려와요. 밀어 올려서 고냥이를 지켜주세요!</string>
     <string name="survival_score">%1$,d점</string>
     <string name="survival_best">최고 %1$,d점</string>
-    <!-- %1$s is the cat's name with its particle already attached: 치즈가, 호박이. -->
-    <string name="survival_gameover">%1$s 놀랐어요</string>
     <!-- Before the first armed frame. The ceiling does not move until the user is in position. -->
     <string name="survival_waiting_with">%1$s 자세를 잡으면 천장이 내려오기 시작해요</string>
     <string name="pick_survival_title">뭐로 밀어 올릴까요?</string>
-    <string name="pick_survival_sub">한 번 할 때마다 천장이 올라가요. 힘든 운동일수록 더 많이 올라가요.</string>
+    <string name="pick_survival_sub">한 번 할 때마다 천장이 올라가요. 목숨은 3개, 하나 줄면 잠깐 쉬었다 이어 가요.</string>
     <!-- Under the pushup placement hint, before the tutorial's ceiling starts. -->
     <string name="tutorial_intro_body">푸쉬업 자세를 잡으면 천장이 내려와요. 밀어 올려서 고냥이를 지켜 주세요.</string>
     <!-- The tutorial's ending, by what it counted: reps; none, but reps refused as not deep enough;
@@ -332,14 +333,33 @@
     <string name="tutorial_done_shallow">조금만 더 내려가면 세져요. 힘들면 무릎 대고 해도 괜찮아요.</string>
     <!-- The camera's miss, followed by the pushup placement hint. -->
     <string name="tutorial_done_zero">카메라가 아직 한 개도 못 셌어요.</string>
-    <!-- %1$d is what the first dungeon asks, from the same count the picker and the HUD quote. It is
-         that count only when every rep is done the class's way, so the line says which way. -->
-    <string name="tutorial_first_dungeon_knight">첫 던전은 천천히 깊게 하면 푸쉬업 %1$d개예요.</string>
-    <string name="tutorial_first_dungeon_archer">첫 던전은 쉬지 않고 이어 가면 푸쉬업 %1$d개예요.</string>
-    <string name="tutorial_continue">던전으로 가기</string>
+    <!-- What comes after the tutorial's one life: a session is three, with a rest between them. -->
+    <string name="tutorial_done_next">이제부터는 목숨 3개로 지켜요. 목숨이 하나 줄면 1분 쉬고 이어 가요.</string>
+    <string name="tutorial_continue">홈으로 가기</string>
     <!-- Back while the tutorial's ceiling waits. Answered with 계속하기 or 건너뛰기; skipped, it does not come back. -->
     <string name="tutorial_skip_confirm">튜토리얼을 건너뛸까요?</string>
     <string name="survival_share">자랑하기</string>
+    <!-- The hearts' spoken label: lives not yet lost, the one being played included. -->
+    <string name="survival_lives_left">남은 목숨 %1$d개</string>
+
+    <!-- The rest between two lives. It is not optional; the countdown is result_rest_time. -->
+    <string name="rest_last_reps">방금 %1$d개 했어요!</string>
+    <string name="rest_last_hold">방금 %1$d초 지켰어요!</string>
+    <!-- %1$d is the best one go before this life: the record it beat, or the one it is measured against. -->
+    <string name="rest_record_new">신기록이에요! 전에는 한 번에 %1$d개였어요</string>
+    <string name="rest_record_best">내 최고 기록은 한 번에 %1$d개예요</string>
+    <!-- The life ended while the camera had lost the user, so it was given back. Said as the camera's miss. -->
+    <string name="rest_refunded">카메라가 잠깐 놓쳐서, 이번 목숨은 깎지 않았어요</string>
+    <string name="rest_tip">물 한 모금 마시고 숨을 골라요. 쉬어야 다음 판에 더 많이 해요.</string>
+    <string name="rest_after">쉬는 시간이 끝나면, 자세를 잡을 때 다음 목숨이 시작돼요</string>
+
+    <!-- Every life spent. The cat's line goes through cat_says with its name. -->
+    <string name="session_over_title">오늘의 고냥이 지키기 끝!</string>
+    <string name="session_over_cat">지켜 줘서 고마워요, 냥!</string>
+    <string name="session_life_reps">%1$d개</string>
+    <string name="session_life_seconds">%1$d초</string>
+    <string name="session_life_n">%1$d번째</string>
+    <string name="session_again">한 판 더</string>
     <string name="survival_share_text">푸쉬업 RPG에서 고냥이를 %1$,d점만큼 지켰어요! 🐱💪</string>
 
     <!-- The cat. Its default name is the mode's; the user can rename it on the survival picker. -->
@@ -378,6 +398,13 @@
     <string name="cat_line_saved_1">살았다냥!</string>
     <string name="cat_line_saved_2">고마워요, 냥! 살았어요!</string>
     <string name="cat_line_saved_3">휴… 살았다냥!</string>
+    <!-- A life is over and the rest begins: the cat is fine, and never disappointed. -->
+    <string name="cat_line_rest_1">괜찮아요, 냥! 잠깐 쉬어요</string>
+    <string name="cat_line_rest_2">휴… 잘했어요. 숨 좀 돌려요, 냥</string>
+    <string name="cat_line_rest_ten">십 초 남았어요, 냥!</string>
+    <!-- The rest is over; the next life waits for the user to be in position. -->
+    <string name="cat_line_again_1">다시 지켜 줄 거죠, 냥?</string>
+    <string name="cat_line_again_2">준비됐어요? 또 부탁해요, 냥!</string>
     <!-- A line of the cat's out of its bubble, while setting up: the bubble would sit over the
          framing guide. %1$s is the cat's name, %2$s the line. -->
     <string name="cat_says">%1$s: %2$s</string>
@@ -398,6 +425,38 @@
     <string name="home_replay">%1$s 다시 도전</string>
     <string name="home_xp_to_next">다음 레벨까지 경험치 %1$,d</string>
     <string name="home_max_level">최고 레벨에 닿았어요</string>
+
+    <!-- The climb: every rep's lift added up, as the height of a place people know. -->
+    <string name="climb_title">지금까지 오른 높이</string>
+    <string name="climb_m">%1$sm</string>
+    <string name="climb_km">%1$skm</string>
+    <string name="climb_ground">이제 막 출발했어요</string>
+    <!-- %1$s is the last place passed. -->
+    <string name="climb_reached">%1$s 통과</string>
+    <!-- %1$s is the next place, %2$s the height still to go, with its unit. -->
+    <string name="climb_next">다음은 %1$s, %2$s 남았어요</string>
+    <!-- %1$s is the movement picked last, %2$d how many of it reach the next place. -->
+    <string name="climb_next_reps">%1$s 약 %2$,d개면 도착해요</string>
+    <string name="climb_next_seconds">%1$s 약 %2$,d초면 도착해요</string>
+    <string name="climb_top">우주까지 왔어요. 이제 더 갈 곳이 없어요!</string>
+    <string name="landmark_cat_tower">캣타워</string>
+    <string name="landmark_apartment_5f">아파트 5층</string>
+    <string name="landmark_apartment_15f">아파트 15층</string>
+    <string name="landmark_liberty">자유의 여신상</string>
+    <string name="landmark_sixty_three">63빌딩</string>
+    <string name="landmark_lotte_tower">롯데월드타워</string>
+    <string name="landmark_bukhansan">북한산</string>
+    <string name="landmark_hallasan">한라산</string>
+    <string name="landmark_baekdusan">백두산</string>
+    <string name="landmark_fuji">후지산</string>
+    <string name="landmark_kilimanjaro">킬리만자로</string>
+    <string name="landmark_everest">에베레스트</string>
+    <string name="landmark_space">우주</string>
+    <!-- What one run did, where it ends. %1$s the movement, %2$d the new best, %3$d the one it beat. -->
+    <string name="growth_record">신기록! %1$s 한 번에 %2$d개 (전에는 %3$d개)</string>
+    <string name="growth_record_hold">신기록! %1$s %2$d초 (전에는 %3$d초)</string>
+    <string name="growth_climbed">이번에 %1$s 더 올라갔어요</string>
+    <string name="growth_passed">%1$s 통과!</string>
 
     <!-- Rank card -->
     <string name="rank_lifetime">누적 %1$,d개</string>

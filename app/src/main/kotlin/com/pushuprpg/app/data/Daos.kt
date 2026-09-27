@@ -23,6 +23,20 @@ data class MovementTotalRow(
     val activeMs: Long,
 )
 
+/**
+ * One run as the growth screens read it: the climb, the records and the week. [exercise] is the
+ * stored name, read as a string for the same reason as [MovementTotalRow]'s.
+ */
+data class FactsRow(
+    val exercise: String,
+    val epochDay: Long,
+    val startedAtMs: Long,
+    val reps: Int,
+    val maxCombo: Int,
+    val deepReps: Int,
+    val durationMs: Long,
+)
+
 @Dao
 interface SessionDao {
 
@@ -79,4 +93,26 @@ interface SessionDao {
 
     @Query("SELECT COUNT(*) FROM sessions")
     suspend fun sessionCount(): Int
+
+    /** Every run, oldest first. Live, so the hub's climb and records move as a run is banked. */
+    @Query(
+        """
+        SELECT exercise AS exercise, epochDay AS epochDay, startedAtMs AS startedAtMs, reps AS reps,
+               maxCombo AS maxCombo, deepReps AS deepReps, durationMs AS durationMs
+        FROM sessions
+        ORDER BY startedAtMs ASC, id ASC
+        """
+    )
+    fun factsFlow(): Flow<List<FactsRow>>
+
+    /** [factsFlow], read once: what a run is compared with before it is banked. */
+    @Query(
+        """
+        SELECT exercise AS exercise, epochDay AS epochDay, startedAtMs AS startedAtMs, reps AS reps,
+               maxCombo AS maxCombo, deepReps AS deepReps, durationMs AS durationMs
+        FROM sessions
+        ORDER BY startedAtMs ASC, id ASC
+        """
+    )
+    suspend fun facts(): List<FactsRow>
 }

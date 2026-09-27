@@ -185,6 +185,17 @@ fun SettingsScreen(
         Spacer(Modifier.height(10.dp))
         SectionHeader(text = stringResource(R.string.settings_section_exercise))
         SegmentedSetting(
+            title = stringResource(R.string.settings_cat_rest),
+            subtitle = stringResource(R.string.settings_cat_rest_sub),
+            options = CAT_REST_OPTIONS,
+            labelFor = { seconds ->
+                if (seconds % 60 == 0) stringResource(R.string.settings_auto_next_minutes, seconds / 60)
+                else stringResource(R.string.settings_rest_minutes_seconds, seconds / 60, seconds % 60)
+            },
+            selected = settings.catRestSeconds.takeIf { it in CAT_REST_OPTIONS } ?: CAT_REST_OPTIONS.first(),
+            onSelect = { v -> onChange { it.copy(catRestSeconds = v) } },
+        )
+        SegmentedSetting(
             title = stringResource(R.string.settings_auto_next),
             subtitle = stringResource(R.string.settings_auto_next_sub),
             options = AUTO_NEXT_REST_OPTIONS,
@@ -407,3 +418,9 @@ private fun musicLabelRes(track: MusicTrack): Int = when (track) {
 
 /** Rest between dungeons, in seconds; 0 is off. Two minutes is a normal rest between sets. */
 private val AUTO_NEXT_REST_OPTIONS = listOf(0, 60, 120, 180)
+
+/**
+ * Rest between two lives of 고냥이 지켜줘, in seconds. A minute is the owner's default; more suits a
+ * set taken to the edge of failure, which recovers better with two.
+ */
+private val CAT_REST_OPTIONS = listOf(60, 90, 120)
