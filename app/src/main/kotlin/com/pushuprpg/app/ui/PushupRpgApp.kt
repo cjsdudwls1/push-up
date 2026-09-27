@@ -43,6 +43,8 @@ import com.pushuprpg.app.trace.TraceFiles
 import com.pushuprpg.app.domain.AppSettings
 import com.pushuprpg.app.domain.ThemeMode
 import com.pushuprpg.app.domain.capacityOf
+import com.pushuprpg.app.domain.wearing
+import com.pushuprpg.app.domain.withWear
 import com.pushuprpg.core.detect.ExerciseType
 import com.pushuprpg.app.pose.PoseFrameSink
 import com.pushuprpg.app.share.ShareCardData
@@ -61,6 +63,8 @@ import com.pushuprpg.app.ui.theme.PushupRpgTheme
 import com.pushuprpg.core.game.Dungeons
 import com.pushuprpg.core.game.PlayerClass
 import com.pushuprpg.core.progression.Climb
+import com.pushuprpg.core.progression.Gift
+import com.pushuprpg.core.progression.Gifts
 import com.pushuprpg.core.progression.RunGrowth
 import com.pushuprpg.app.ui.components.metersText
 import kotlinx.coroutines.flow.StateFlow
@@ -262,9 +266,55 @@ fun PushupRpgApp(
                         onAdventure = { navController.navigateFrom(entry, Routes.DUNGEON_SELECT) },
                         onRecords = { navController.navigateFrom(entry, Routes.RECORDS) },
                         onSettings = { navController.navigateFrom(entry, Routes.SETTINGS) },
+                        onWardrobe = { navController.navigateFrom(entry, Routes.WARDROBE) },
                         lastExercise = settings.exercise,
                         catName = settings.catName,
                         catCoat = settings.catCoat,
+                        catWear = settings.wearing(),
+                    )
+                }
+
+                composable(Routes.WARDROBE) {
+                    val factsFlow = remember { container.sessionRepository.facts() }
+                    val facts by factsFlow.collectAsState(initial = null)
+                    // Worked out from the runs and the longest streak, as the hub does, once both are in.
+                    val found = remember(facts, progressState) {
+                        val runs = facts
+                        val stored = progressState
+                        if (runs == null || stored == null) null else Gifts.earned(runs, stored.bestStreakDays)
+                    }
+                    // What was new as the screen opened stays marked for this visit; from now on it
+                    // has been seen, and the hub stops counting it.
+                    var fresh by remember { mutableStateOf<Set<Gift>?>(null) }
+                    LaunchedEffect(found) {
+                        val now = found ?: return@LaunchedEffect
+                        val seen = container.progressRepository.current().giftsSeen
+                        if (fresh == null) fresh = now.filterTo(mutableSetOf()) { it.name !in seen }
+                        if (now.any { it.name !in seen }) {
+                            container.progressRepository.update { p -> p.copy(giftsSeen = p.giftsSeen + now.map { it.name }) }
+                        }
+                    }
+                    WardrobeScreen(
+                        catName = settings.catName,
+                        catCoat = settings.catCoat,
+                        onCatChange = { name, coat ->
+                            scope.launch {
+                                container.settingsRepository.update { it.copy(catName = name, catCoat = coat) }
+                            }
+                        },
+                        wearing = settings.wearing(),
+                        found = found.orEmpty(),
+                        fresh = fresh.orEmpty(),
+                        onWear = { item ->
+                            scope.launch {
+                                container.settingsRepository.update { it.withWear(Gifts.wear(it.wearing(), item)) }
+                            }
+                        },
+                        onTakeOff = { slot ->
+                            scope.launch {
+                                container.settingsRepository.update { it.withWear(Gifts.takeOff(it.wearing(), slot)) }
+                            }
+                        },
                     )
                 }
 
@@ -507,6 +557,7 @@ fun PushupRpgApp(
                         survival = true,
                         catName = settings.catName,
                         catCoat = settings.catCoat,
+                        catWear = settings.wearing(),
                         onCatChange = { name, coat ->
                             scope.launch {
                                 container.settingsRepository.update { it.copy(catName = name, catCoat = coat) }
@@ -572,6 +623,7 @@ fun PushupRpgApp(
                                 setupSkeleton = setupSkeleton,
                                 catName = settings.catName,
                                 catCoat = settings.catCoat,
+                                catWear = settings.wearing(),
                                 poseSource = poseSource,
                                 exercise = exercise,
                                 isTutorial = isTutorial,

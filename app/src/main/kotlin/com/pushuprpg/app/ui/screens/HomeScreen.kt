@@ -27,8 +27,10 @@ import com.pushuprpg.app.ui.theme.Type
 import com.pushuprpg.core.detect.ExerciseType
 import com.pushuprpg.core.detect.Exercises
 import com.pushuprpg.core.detect.MovementKind
+import com.pushuprpg.core.progression.CatItem
 import com.pushuprpg.core.progression.Climb
 import com.pushuprpg.core.progression.ClimbProgress
+import com.pushuprpg.core.progression.Gift
 import com.pushuprpg.core.progression.MovementRecord
 import com.pushuprpg.core.progression.Streak
 import com.pushuprpg.core.progression.StreakState
@@ -58,6 +60,8 @@ data class HomeUiState(
     val lastWeekRecap: WeekRecap? = null,
     /** The day of the last banked run, or null before the first. */
     val lastWorkoutDay: Long? = null,
+    /** Every gift the cat has found. */
+    val gifts: Set<Gift> = emptySet(),
 ) {
     private val streak: StreakState
         get() = StreakState(progress.streakDays, progress.lastActiveEpochDay)
@@ -72,6 +76,10 @@ data class HomeUiState(
     /** What the cat says when the hub opens, by how long it has been since the last workout. */
     val welcome: Welcome
         get() = Welcome.of(lastWorkoutDay, today)
+
+    /** Gifts found and not yet looked at in 꾸미기. */
+    val newGifts: Int
+        get() = gifts.count { it.name !in progress.giftsSeen }
 
     /** How much more of [exercise] keeps the streak today; zero once today has kept it. */
     fun leftToday(exercise: ExerciseType): Int = Streak.leftOn(streak, today, todayWork, exercise)
@@ -99,10 +107,13 @@ fun HomeScreen(
     onAdventure: () -> Unit,
     onRecords: () -> Unit,
     onSettings: () -> Unit,
+    /** 꾸미기: the cat's name, coat and what it has found. */
+    onWardrobe: () -> Unit,
     /** The movement picked last: whose bar the nudge quotes, whose record shows, what the button plays. */
     lastExercise: ExerciseType,
     catName: String,
     catCoat: CatCoat,
+    catWear: Set<CatItem>,
     modifier: Modifier = Modifier,
 ) {
     val colors = LocalGameColors.current
@@ -129,17 +140,38 @@ fun HomeScreen(
         Spacer(Modifier.height(12.dp))
         CatSpeechBubble(
             name = name,
-            text = welcomeText(state.welcome, monday = Weeks.mondayOf(state.today) == state.today),
+            // Once today's workout is in, a find not yet looked at is the news; a return is said first.
+            text = if (state.newGifts > 0 && state.welcome == Welcome.Today) {
+                stringResource(R.string.home_welcome_gift)
+            } else {
+                welcomeText(state.welcome, monday = Weeks.mondayOf(state.today) == state.today)
+            },
             modifier = Modifier
                 .align(Alignment.CenterHorizontally)
                 .padding(horizontal = 12.dp),
         )
-        CatPortrait(
-            coat = catCoat,
+        // The cat is the way into 꾸미기: tapped, or by the pill beside it that counts what is new.
+        val openWardrobe = stringResource(R.string.home_wardrobe_open)
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(150.dp),
-        )
+        ) {
+            CatPortrait(
+                coat = catCoat,
+                wear = catWear,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clickable(onClickLabel = openWardrobe, onClick = onWardrobe),
+            )
+            WardrobePill(
+                newGifts = state.newGifts,
+                onClick = onWardrobe,
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(8.dp),
+            )
+        }
 
         Spacer(Modifier.height(6.dp))
         Text(
@@ -363,6 +395,28 @@ private fun WeekCard(thisWeek: WeekSummary, lastWeek: WeekSummary, today: Long) 
             color = Palette.TextSecondary,
         )
     }
+}
+
+/**
+ * The pill over the cat that opens 꾸미기: plain, or lit with how many gifts are new. A new gift is
+ * a surprise waiting, so it is shown and counted, and never called overdue.
+ */
+@Composable
+private fun WardrobePill(newGifts: Int, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val fresh = newGifts > 0
+    Text(
+        text = if (fresh) stringResource(R.string.home_wardrobe_new, newGifts) else stringResource(R.string.home_wardrobe),
+        style = Type.labelL,
+        color = if (fresh) Palette.TextOnBrand else Palette.TextSecondary,
+        maxLines = 1,
+        // Opaque either way: it sits over the cat's picture, and over a scene when there is one.
+        modifier = modifier
+            .clip(CircleShape)
+            .background(if (fresh) Palette.Brand600 else Palette.Bg2)
+            .border(1.dp, if (fresh) Palette.Brand600 else Palette.StrokeSoft, CircleShape)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 14.dp, vertical = 8.dp),
+    )
 }
 
 /** The way to the dungeons, kept but out of the way while the test period decides their future. */

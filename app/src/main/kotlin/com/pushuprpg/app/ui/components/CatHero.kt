@@ -16,6 +16,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -26,19 +27,24 @@ import androidx.compose.ui.unit.dp
 import com.pushuprpg.app.domain.CatCoat
 import com.pushuprpg.app.ui.theme.LocalReduceMotion
 import com.pushuprpg.app.ui.theme.Type
+import com.pushuprpg.core.progression.CatItem
+import com.pushuprpg.core.progression.WearSlot
 
 /**
  * 고냥이 at rest, on a cushion: the hub's face.
  *
  * The same drawing the run uses, calm and smiling, with the tail swaying on its own clock — still
- * under reduced motion. [cheer] above a third closes the eyes into a smile.
+ * under reduced motion. [cheer] above a third closes the eyes into a smile. It wears [wear], and
+ * sits in the scene among them, if there is one, on a card of its own.
  */
 @Composable
 fun CatPortrait(
     coat: CatCoat,
     modifier: Modifier = Modifier,
+    wear: Set<CatItem> = emptySet(),
     cheer: Float = 1f,
 ) {
+    val scene = wear.firstOrNull { it.slot == WearSlot.SCENE }
     val reduceMotion = LocalReduceMotion.current
     val clock = rememberInfiniteTransition(label = "portrait")
     val phase by clock.animateFloat(
@@ -47,9 +53,11 @@ fun CatPortrait(
         animationSpec = infiniteRepeatable(tween(durationMillis = 4_000, easing = LinearEasing)),
         label = "portrait-phase",
     )
-    Canvas(modifier) {
+    Canvas(if (scene != null) modifier.clip(SCENE_SHAPE) else modifier) {
         val baseY = size.height * 0.90f
+        scene?.let { drawCatScene(it, floorY = baseY) }
         // The cat is 1.95 heads of 30 units tall from its paws to its ear tips, plus room for the tail.
+        // A party hat's pompom, the tallest thing it wears, is under a third of a head above them.
         val scale = minOf(size.height / 175f, size.width / 260f)
         val cushionW = 150f * scale
         drawRoundRect(
@@ -65,11 +73,13 @@ fun CatPortrait(
             coat = coat,
             cheer = cheer,
             phase = if (reduceMotion) 0f else phase,
+            wear = wear,
         )
     }
 }
 
 private val CUSHION = Color(0xFFE58A7B)
+private val SCENE_SHAPE = RoundedCornerShape(24.dp)
 
 /**
  * What the cat says, in a paper bubble with its name on top: the same bubble the run draws over

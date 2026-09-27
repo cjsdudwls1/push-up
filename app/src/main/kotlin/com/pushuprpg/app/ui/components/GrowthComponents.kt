@@ -22,10 +22,13 @@ import com.pushuprpg.app.ui.theme.Type
 import com.pushuprpg.core.detect.ExerciseType
 import com.pushuprpg.core.detect.Exercises
 import com.pushuprpg.core.detect.MovementKind
+import com.pushuprpg.core.progression.CatItem
 import com.pushuprpg.core.progression.Climb
 import com.pushuprpg.core.progression.ClimbProgress
+import com.pushuprpg.core.progression.Gift
 import com.pushuprpg.core.progression.Landmark
 import com.pushuprpg.core.progression.RunGrowth
+import com.pushuprpg.core.survival.CatSession
 import java.util.Locale
 
 /** A place on the climb, by name. */
@@ -44,6 +47,38 @@ fun landmarkNameRes(landmark: Landmark): Int = when (landmark) {
     Landmark.KILIMANJARO -> R.string.landmark_kilimanjaro
     Landmark.EVEREST -> R.string.landmark_everest
     Landmark.SPACE -> R.string.landmark_space
+}
+
+/** One of the cat's things, by name. */
+@StringRes
+fun itemNameRes(item: CatItem): Int = when (item) {
+    CatItem.BELL -> R.string.item_bell
+    CatItem.RIBBON -> R.string.item_ribbon
+    CatItem.FLOWER -> R.string.item_flower
+    CatItem.CITY -> R.string.item_city
+    CatItem.BEANIE -> R.string.item_beanie
+    CatItem.STRAW_HAT -> R.string.item_straw_hat
+    CatItem.SCARF -> R.string.item_scarf
+    CatItem.BOW_TIE -> R.string.item_bow_tie
+    CatItem.GLASSES -> R.string.item_glasses
+    CatItem.SUNGLASSES -> R.string.item_sunglasses
+    CatItem.MOUNTAIN -> R.string.item_mountain
+    CatItem.PARTY_HAT -> R.string.item_party_hat
+    CatItem.CROWN -> R.string.item_crown
+    CatItem.SNOW -> R.string.item_snow
+    CatItem.SPACE -> R.string.item_space
+}
+
+/** What a gift was found for, said after the fact. */
+@Composable
+fun giftWhyText(gift: Gift): String = when (gift.kind) {
+    Gift.Kind.FIRST_RUN -> stringResource(R.string.gift_why_first_run)
+    Gift.Kind.SET -> stringResource(R.string.gift_why_set, gift.count)
+    Gift.Kind.STREAK -> stringResource(R.string.gift_why_streak, gift.count)
+    Gift.Kind.COMEBACK -> stringResource(R.string.gift_why_comeback)
+    Gift.Kind.FULL_SESSION -> stringResource(R.string.gift_why_full_session, CatSession.LIVES)
+    Gift.Kind.RECORDS -> stringResource(R.string.gift_why_records, gift.count)
+    Gift.Kind.CLIMB -> gift.place?.let { stringResource(R.string.gift_why_climb, stringResource(landmarkNameRes(it))) }.orEmpty()
 }
 
 /**
@@ -136,7 +171,8 @@ fun ClimbCard(progress: ClimbProgress, exercise: ExerciseType, modifier: Modifie
 
 /**
  * What one run did for the climb and the records, said where the run ends: a record broken, the
- * metres it added, the places it passed. Nothing when it has not been banked yet.
+ * metres it added, the places it passed, and what the cat found. Nothing when it has not been
+ * banked yet.
  */
 @Composable
 fun RunGrowthLines(growth: RunGrowth?, modifier: Modifier = Modifier) {
@@ -174,6 +210,15 @@ fun RunGrowthLines(growth: RunGrowth?, modifier: Modifier = Modifier) {
                 text = stringResource(R.string.growth_passed, stringResource(landmarkNameRes(place))),
                 style = Type.bodyL,
                 color = colors.accept,
+                textAlign = TextAlign.Center,
+            )
+        }
+        if (growth.gifts.isNotEmpty()) {
+            val names = growth.gifts.map { stringResource(itemNameRes(it.item)) }
+            Text(
+                text = stringResource(R.string.growth_gift, names.joinToString(", ")),
+                style = Type.titleM,
+                color = Palette.TextPrimary,
                 textAlign = TextAlign.Center,
             )
         }

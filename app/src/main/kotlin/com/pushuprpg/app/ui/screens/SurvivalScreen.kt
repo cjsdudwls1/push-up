@@ -76,6 +76,7 @@ import com.pushuprpg.core.detect.Exercises
 import com.pushuprpg.core.detect.MovementKind
 import com.pushuprpg.core.detect.Placement
 import com.pushuprpg.core.detect.RenderSkeleton
+import com.pushuprpg.core.progression.CatItem
 import com.pushuprpg.core.progression.RunGrowth
 import com.pushuprpg.core.survival.CatLine
 import com.pushuprpg.core.survival.CatPhase
@@ -134,6 +135,8 @@ fun SurvivalScreen(
     /** As the user typed it; blank is the default name. */
     catName: String = "",
     catCoat: CatCoat = CatCoat.CREAM,
+    /** What the cat has on. A scene stays at home: under the ceiling is the only place this cat is. */
+    catWear: Set<CatItem> = emptySet(),
 ) {
     KeepScreenOn()
     val name = catName.ifBlank { stringResource(R.string.cat_default_name) }
@@ -207,6 +210,7 @@ fun SurvivalScreen(
             state = if (resting) life.copy(height = 1f, intensity = 0f) else life,
             cat = cat,
             coat = catCoat,
+            wear = catWear,
             faded = settingUp,
             modifier = Modifier.fillMaxSize(),
         )
@@ -384,6 +388,7 @@ fun SurvivalScreen(
                 TutorialDoneCard(
                     reps = state.totalReps,
                     nearMisses = nearMisses,
+                    growth = growth,
                     onContinue = onHome,
                     modifier = Modifier.align(Alignment.Center),
                 )
@@ -463,6 +468,7 @@ private fun CeilingAndCat(
     cat: CatView,
     coat: CatCoat,
     modifier: Modifier = Modifier,
+    wear: Set<CatItem> = emptySet(),
     /** Setting up: the cat and the floor are drawn faint, so the framing guide reads through them. */
     faded: Boolean = false,
 ) {
@@ -527,6 +533,7 @@ private fun CeilingAndCat(
                 alarm = danger,
                 cheer = cat.cheer,
                 phase = if (reduceMotion) 0f else phase,
+                wear = wear,
             )
             drawHearts(
                 centerX = size.width / 2f,
@@ -697,6 +704,8 @@ private fun TutorialIntro(
 private fun TutorialDoneCard(
     reps: Int,
     nearMisses: Int,
+    /** What the first run did: the first metres, the cat tower, and the cat's first find. */
+    growth: RunGrowth?,
     onContinue: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -740,6 +749,12 @@ private fun TutorialDoneCard(
                 textAlign = TextAlign.Center,
             )
         }
+        RunGrowthLines(
+            growth = growth,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 10.dp),
+        )
         Spacer(Modifier.height(8.dp))
         Text(
             text = stringResource(R.string.tutorial_done_next, CatSession.LIVES),

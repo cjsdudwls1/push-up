@@ -12,6 +12,7 @@ import com.pushuprpg.app.domain.SessionRepository
 import com.pushuprpg.core.detect.ExerciseType
 import com.pushuprpg.core.progression.Climb
 import com.pushuprpg.core.progression.DayTotal
+import com.pushuprpg.core.progression.Gifts
 import com.pushuprpg.core.progression.Records
 import com.pushuprpg.core.progression.Weeks
 import com.pushuprpg.core.progression.recap
@@ -66,7 +67,7 @@ class HomeViewModel(
                 Days(total, sessionRepository.workOn(epochDay), totals)
             }
         },
-        // Every run, for the climb, the records and the day of the last workout.
+        // Every run, for the climb, the records, the gifts and the day of the last workout.
         sessionRepository.facts(),
     ) { progress, days, facts ->
         val (thisWeek, lastWeek) = Weeks.thisAndLast(
@@ -86,6 +87,7 @@ class HomeViewModel(
             lastWeek = lastWeek,
             lastWeekRecap = Weeks.recap(facts, thisWeek.start - 7),
             lastWorkoutDay = facts.maxOfOrNull { it.epochDay },
+            gifts = Gifts.earned(facts, progress.bestStreakDays),
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeUiState())
 

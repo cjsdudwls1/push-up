@@ -193,6 +193,16 @@ never said — by the owner's decision, pointing at what was lost is how a retur
 The week is one card, with last week summed up at the start of the next (`Weeks.recap`). There are
 no push notifications, by the owner's decision.
 
+**The cat's things are gifts it finds, never a shop or a task list**, by the owner's decision: a
+reward promised for doing something is one people do it for and stop when it stops, and one that
+arrives as a surprise adds to why they came. `Gifts.earned` works each gift out from what only
+grows — the runs, the best set of a counted movement, the longest streak, returns after three days
+away, records broken, the height climbed — so nothing is stored but which were seen
+(`PlayerProgress.giftsSeen`) and what is worn (`AppSettings.catWear`), and no gift is ever taken
+back. A run says what it found (`RunGrowth.gifts`, read after the streak is written) and puts it on
+where nothing is worn; something the user chose is never taken off for it. 꾸미기 shows what each
+found gift was for, after the fact, and nothing about the ones still wrapped. `GiftsTest` pins it.
+
 The cat's fear, its lines and its sounds are decided by `CatCompanion` in `:core`, from the run's
 state and events — the rest's lines included; the screen draws the `CatView` it is given and plays
 the sounds, and decides nothing about how the cat feels. It never changes the game —

@@ -155,6 +155,8 @@
     <string name="home_welcome_monday">새로운 한 주예요! 이번 주도 같이 해요, 냥</string>
     <string name="home_welcome_back">%1$d일 만이에요! 기다리고 있었어요, 냥</string>
     <string name="home_welcome_back_week">%1$d일 만이에요! 보고 싶었어요. 천천히 다시 시작해요, 냥</string>
+    <!-- After a workout today, while something the cat found has not been looked at yet. -->
+    <string name="home_welcome_gift">선물을 찾아 왔어요! 저를 눌러 보세요, 냥</string>
     <string name="home_welcome_back_month">정말 오랜만이에요! %1$d일 만이네요. 오늘은 가볍게 한 판만 해요, 냥</string>
     <!-- The best one go of the movement picked last, and how far it has come from the first. -->
     <string name="home_record_title">내 최고 기록</string>
@@ -364,7 +366,7 @@
     <string name="tutorial_done_shallow">조금만 더 내려가면 세져요. 힘들면 무릎 대고 해도 괜찮아요.</string>
     <!-- The camera's miss, followed by the pushup placement hint. -->
     <string name="tutorial_done_zero">카메라가 아직 한 개도 못 셌어요.</string>
-    <!-- What comes after the tutorial's one life: a session is three, with a rest between them. -->
+    <!-- What comes after the tutorial's one life: a session is %1$d lives, with a rest between them. -->
     <string name="tutorial_done_next">이제부터는 목숨 %1$d개로 지켜요. 목숨이 하나 줄면 1분 쉬고 이어 가요.</string>
     <string name="tutorial_continue">홈으로 가기</string>
     <!-- Back while the tutorial's ceiling waits. Answered with 계속하기 or 건너뛰기; skipped, it does not come back. -->
@@ -394,7 +396,7 @@
     <string name="session_again">한 판 더</string>
     <string name="survival_share_text">푸쉬업 RPG에서 고냥이를 %1$,d점만큼 지켰어요! 🐱💪</string>
 
-    <!-- The cat. Its default name is the mode's; the user can rename it on the survival picker. -->
+    <!-- The cat. Its default name is the mode's; the user can rename it on the survival picker and in 꾸미기. -->
     <string name="cat_default_name">고냥이</string>
     <string name="cat_card_title">우리 고양이</string>
     <string name="cat_card_sub">이름과 털 색을 정해 주세요. 천장 아래에서 이 아이가 기다려요.</string>
@@ -482,6 +484,49 @@
     <string name="growth_record_hold">신기록! %1$s %2$d초 (전에는 %3$d초)</string>
     <string name="growth_climbed">이번에 %1$s 더 올라갔어요</string>
     <string name="growth_passed">%1$s 통과!</string>
+    <!-- What the cat found on this run, %1$s the things by name. Said as its find, never as a task done. -->
+    <string name="growth_gift">🎁 선물을 찾아 왔어요: %1$s</string>
+
+    <!-- The cat's things: what it wears, and the places it can sit. -->
+    <string name="item_bell">방울</string>
+    <string name="item_ribbon">리본</string>
+    <string name="item_flower">꽃핀</string>
+    <string name="item_city">도시의 밤</string>
+    <string name="item_beanie">털모자</string>
+    <string name="item_straw_hat">밀짚모자</string>
+    <string name="item_scarf">목도리</string>
+    <string name="item_bow_tie">나비넥타이</string>
+    <string name="item_glasses">동그란 안경</string>
+    <string name="item_sunglasses">선글라스</string>
+    <string name="item_mountain">푸른 산</string>
+    <string name="item_party_hat">고깔모자</string>
+    <string name="item_crown">왕관</string>
+    <string name="item_snow">눈 덮인 산</string>
+    <string name="item_space">우주</string>
+    <!-- Under a found gift in 꾸미기: what it was found for, said after the fact. Gifts not yet found
+         say nothing about what they wait for: they are surprises, by the owner's decision. -->
+    <string name="gift_why_first_run">첫 운동</string>
+    <string name="gift_why_set">한 번에 %1$d개</string>
+    <string name="gift_why_streak">%1$d일 연속</string>
+    <string name="gift_why_comeback">다시 와 준 날</string>
+    <string name="gift_why_full_session">%1$d세트 끝까지</string>
+    <string name="gift_why_records">신기록 %1$d번</string>
+    <!-- %1$s is a place on the climb. -->
+    <string name="gift_why_climb">%1$s 도착</string>
+
+    <!-- 꾸미기: the cat's name and coat, and what it has found. -->
+    <string name="wardrobe_title">고냥이 꾸미기</string>
+    <string name="wardrobe_found">찾은 선물 %1$d개</string>
+    <string name="wardrobe_hint">누르면 입고, 한 번 더 누르면 벗어요.</string>
+    <string name="wardrobe_secret">아직 비밀</string>
+    <!-- %1$d is how many gifts are still to be found. -->
+    <string name="wardrobe_secret_note">비밀 선물 %1$d개가 남았어요. 운동하다 보면 고냥이가 찾아 와요.</string>
+    <string name="wardrobe_new">새로</string>
+    <string name="wardrobe_wearing">입는 중</string>
+    <!-- The way in, over the cat on the hub; with the count of gifts not yet looked at. -->
+    <string name="home_wardrobe">꾸미기</string>
+    <string name="home_wardrobe_new">새 선물 %1$d</string>
+    <string name="home_wardrobe_open">고냥이 꾸미기 열기</string>
 
 
     <!-- Dungeon select -->

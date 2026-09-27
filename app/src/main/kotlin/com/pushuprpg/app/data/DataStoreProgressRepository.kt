@@ -12,6 +12,7 @@ import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.pushuprpg.app.domain.PlayerProgress
 import com.pushuprpg.app.domain.ProgressRepository
@@ -85,6 +86,7 @@ private val LEGACY_CAPACITY_KEYS: Map<ExerciseType, Preferences.Key<Float>> = ma
 private val KEY_BEST_SURVIVAL = intPreferencesKey("best_survival_score")
 private val KEY_CLASS_CHOSEN = booleanPreferencesKey("class_chosen")
 private val KEY_ONBOARDED = booleanPreferencesKey("onboarded")
+private val KEY_GIFTS_SEEN = stringSetPreferencesKey("gifts_seen")
 
 private fun calibrationTopKey(e: ExerciseType) = floatPreferencesKey("cal_${e.name}_top")
 private fun calibrationBotKey(e: ExerciseType) = floatPreferencesKey("cal_${e.name}_bot")
@@ -105,6 +107,7 @@ private fun Preferences.toProgress(): PlayerProgress = PlayerProgress(
     bestSurvivalScore = this[KEY_BEST_SURVIVAL] ?: PROGRESS_DEFAULT.bestSurvivalScore,
     classChosen = this[KEY_CLASS_CHOSEN] ?: PROGRESS_DEFAULT.classChosen,
     onboarded = this[KEY_ONBOARDED] ?: PROGRESS_DEFAULT.onboarded,
+    giftsSeen = this[KEY_GIFTS_SEEN] ?: PROGRESS_DEFAULT.giftsSeen,
 )
 
 private fun MutablePreferences.writeProgress(p: PlayerProgress) {
@@ -122,6 +125,7 @@ private fun MutablePreferences.writeProgress(p: PlayerProgress) {
     this[KEY_BEST_SURVIVAL] = p.bestSurvivalScore
     this[KEY_CLASS_CHOSEN] = p.classChosen
     this[KEY_ONBOARDED] = p.onboarded
+    this[KEY_GIFTS_SEEN] = p.giftsSeen
 }
 
 /**

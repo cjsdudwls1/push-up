@@ -35,6 +35,8 @@ data class FactsRow(
     val maxCombo: Int,
     val deepReps: Int,
     val durationMs: Long,
+    val dungeonIndex: Int?,
+    val cleared: Boolean,
 )
 
 @Dao
@@ -98,7 +100,8 @@ interface SessionDao {
     @Query(
         """
         SELECT exercise AS exercise, epochDay AS epochDay, startedAtMs AS startedAtMs, reps AS reps,
-               maxCombo AS maxCombo, deepReps AS deepReps, durationMs AS durationMs
+               maxCombo AS maxCombo, deepReps AS deepReps, durationMs AS durationMs,
+               dungeonIndex AS dungeonIndex, cleared AS cleared
         FROM sessions
         ORDER BY startedAtMs ASC, id ASC
         """
@@ -109,7 +112,8 @@ interface SessionDao {
     @Query(
         """
         SELECT exercise AS exercise, epochDay AS epochDay, startedAtMs AS startedAtMs, reps AS reps,
-               maxCombo AS maxCombo, deepReps AS deepReps, durationMs AS durationMs
+               maxCombo AS maxCombo, deepReps AS deepReps, durationMs AS durationMs,
+               dungeonIndex AS dungeonIndex, cleared AS cleared
         FROM sessions
         ORDER BY startedAtMs ASC, id ASC
         """

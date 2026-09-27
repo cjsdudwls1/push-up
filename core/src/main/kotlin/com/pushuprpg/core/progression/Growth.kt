@@ -20,6 +20,8 @@ data class SessionFacts(
     val deepReps: Int,
     /** For a hold, how long it was held; for anything else, how long the run took. */
     val durationMs: Long,
+    /** A 고냥이 session played to its last life: every set done. */
+    val fullSession: Boolean = false,
 )
 
 /** One movement's work in its own unit: reps, or whole seconds held for a hold. */
@@ -149,6 +151,19 @@ object Records {
      */
     fun isNew(previousBest: Int?, now: Int): Boolean =
         previousBest != null && previousBest > 0 && now > previousBest
+
+    /** The runs that broke a record, in the order they did: each against the best before it. */
+    fun broken(facts: List<SessionFacts>): List<SessionFacts> {
+        val best = HashMap<ExerciseType, Int>()
+        val out = mutableListOf<SessionFacts>()
+        for (run in facts.sortedBy { it.startedAtMs }) {
+            val previous = best[run.exercise]
+            val now = run.oneGo()
+            if (isNew(previous, now)) out += run
+            if (previous == null || now > previous) best[run.exercise] = now
+        }
+        return out
+    }
 }
 
 /**
@@ -235,12 +250,23 @@ data class RunGrowth(
     val metersBefore: Float,
     val metersAfter: Float,
     val passed: List<Landmark>,
+    /** Gifts this run brought: things the cat found, in the order they arrive. */
+    val gifts: List<Gift> = emptyList(),
 ) {
     val climbed: Float get() = (metersAfter - metersBefore).coerceAtLeast(0f)
 
     companion object {
-        /** [run] is what is being banked; [before], everything banked until now. */
-        fun of(before: List<SessionFacts>, run: List<SessionFacts>): RunGrowth {
+        /**
+         * [run] is what is being banked; [before], everything banked until now. [bestStreakBefore]
+         * and [bestStreakAfter] are the longest streak ever, before the run and with it: the gifts a
+         * streak brings are read from them.
+         */
+        fun of(
+            before: List<SessionFacts>,
+            run: List<SessionFacts>,
+            bestStreakBefore: Int = 0,
+            bestStreakAfter: Int = bestStreakBefore,
+        ): RunGrowth {
             val bests = Records.of(before)
             val records = run.groupBy { it.exercise }.mapNotNull { (exercise, runs) ->
                 val previous = bests[exercise]?.best
@@ -249,7 +275,9 @@ data class RunGrowth(
             }
             val from = Climb.meters(before)
             val to = from + Climb.meters(run)
-            return RunGrowth(records, from, to, Climb.passed(from, to))
+            val had = Gifts.earned(before, bestStreakBefore)
+            val have = Gifts.earned(before + run, bestStreakAfter)
+            return RunGrowth(records, from, to, Climb.passed(from, to), Gift.entries.filter { it in have && it !in had })
         }
     }
 }
@@ -270,14 +298,6 @@ fun Weeks.recap(facts: List<SessionFacts>, monday: Long): WeekRecap {
     val week = monday until monday + 7
     val inWeek = facts.filter { it.epochDay in week }
     val days = inWeek.map { DayTotal(it.epochDay, it.reps, it.durationMs) }
-    // Records as they were broken, in order: each run against the best of everything before it.
-    val best = HashMap<ExerciseType, Int>()
-    var records = 0
-    for (run in facts.sortedBy { it.startedAtMs }) {
-        val previous = best[run.exercise]
-        val now = run.oneGo()
-        if (run.epochDay in week && Records.isNew(previous, now)) records++
-        if (previous == null || now > previous) best[run.exercise] = now
-    }
+    val records = Records.broken(facts).count { it.epochDay in week }
     return WeekRecap(summary(days, monday), Climb.meters(inWeek), records)
 }

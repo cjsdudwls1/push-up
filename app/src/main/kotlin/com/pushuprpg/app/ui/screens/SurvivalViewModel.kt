@@ -19,6 +19,7 @@ import com.pushuprpg.app.domain.SessionRecord
 import com.pushuprpg.app.domain.SessionRepository
 import com.pushuprpg.core.detect.DetectorFactory
 import com.pushuprpg.app.domain.capacityOf
+import com.pushuprpg.app.domain.wearFound
 import com.pushuprpg.app.domain.withCapacity
 import com.pushuprpg.core.detect.ExerciseType
 import com.pushuprpg.core.detect.Exercises
@@ -429,10 +430,7 @@ class SurvivalViewModel(
             val epochDay = Instant.ofEpochMilli(startedAt).atZone(ZoneId.systemDefault()).toLocalDate().toEpochDay()
             val doneEarlier = sessionRepository.workOn(epochDay)
             val before = sessionRepository.factsNow()
-            val growth = RunGrowth.of(
-                before,
-                listOf(SessionFacts(exercise, epochDay, startedAt, repsDone, bestSet, deep, durationMs)),
-            )
+            val facts = SessionFacts(exercise, epochDay, startedAt, repsDone, bestSet, deep, durationMs, fullSession = completed)
             sessionRepository.insert(
                 SessionRecord(
                     startedAtMs = startedAt,
@@ -448,10 +446,11 @@ class SurvivalViewModel(
                     plausibility = plausibility,
                 )
             )
-            _growth.value = growth
             if (!hold) _personalBest.value = maxOf(_personalBest.value, bestSet)
             // As a dungeon run does: only the run that met the day's bar maintains the streak.
             var maintained: Int? = null
+            var bestStreakBefore = 0
+            var bestStreakAfter = 0
             progressRepository.update { current ->
                 val streak = Streak.advance(
                     StreakState(current.streakDays, current.lastActiveEpochDay),
@@ -459,17 +458,24 @@ class SurvivalViewModel(
                     Streak.sum(doneEarlier, work),
                 )
                 maintained = streak.days.takeIf { streak.lastActiveDay != current.lastActiveEpochDay }
+                bestStreakBefore = current.bestStreakDays
+                bestStreakAfter = maxOf(current.bestStreakDays, streak.days)
                 current.copy(
                     lifetimeReps = current.lifetimeReps + repsDone,
                     bestCombo = maxOf(current.bestCombo, bestSet),
                     totalActiveMs = current.totalActiveMs + playedMs,
                     bestSurvivalScore = maxOf(current.bestSurvivalScore, score),
                     streakDays = streak.days,
-                    bestStreakDays = maxOf(current.bestStreakDays, streak.days),
+                    bestStreakDays = bestStreakAfter,
                     lastActiveEpochDay = streak.lastActiveDay,
                 )
             }
             maintained?.let { telemetry.log(Event.StreakMaintained(it)) }
+            // Once the streak is written, so a gift the streak brings comes with the session that
+            // earned it; and put on, so the cat comes home wearing it.
+            val growth = RunGrowth.of(before, listOf(facts), bestStreakBefore, bestStreakAfter)
+            _growth.value = growth
+            settingsRepository.wearFound(growth)
         }
     }
 
