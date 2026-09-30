@@ -106,7 +106,7 @@ sealed class Event(val name: String, val params: Map<String, Any> = emptyMap()) 
     data object TutorialStarted : Event("tutorial_started")
 
     /**
-     * The tutorial run, which is also the calibration set. Sent however it ended once the ceiling
+     * The tutorial run, the first set anybody does here. Sent however it ended once the ceiling
      * moved, so [ended] and [nearMisses] are what tell a first minute that worked from one that did
      * not: a run the camera counted nothing in is a completion too.
      */
