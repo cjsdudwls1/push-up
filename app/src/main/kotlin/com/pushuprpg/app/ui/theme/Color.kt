@@ -10,9 +10,9 @@ import androidx.compose.ui.graphics.Color
  * The palette.
  *
  * The menus follow the user's dark/light choice; the run does not. A live camera feed sits behind
- * the battle and survival screens, most of it is used in a dim room on the floor, and a light
- * surface over video is unreadable — so everything from the first rep to the result screen is
- * wrapped in [AlwaysDark], and the choice only ever reaches screens with nothing behind them.
+ * the run's screen, most of it is used in a dim room on the floor, and a light surface over video is
+ * unreadable — so everything from the first rep to the session's ending is wrapped in
+ * [AlwaysDark], and the choice only ever reaches screens with nothing behind them.
  *
  * The surface and text tokens below read the current [ThemeColors], the way
  * `MaterialTheme.colorScheme` does, so a call site cannot tell which theme it is in and does not
@@ -70,7 +70,7 @@ object Palette {
     val ScrimPanel = Color(0x9E0B0E14)
     val ScrimPanelHigh = Color(0xC70B0E14)
     /**
-     * [com.pushuprpg.app.ui.battle.CameraText]'s stroke. Near opaque: at 62% a white wall behind
+     * [com.pushuprpg.app.ui.components.CameraText]'s stroke. Near opaque: at 62% a white wall behind
      * it showed through, and secondary text on it fell to 2.9:1.
      */
     val OutlineInk = Color(0xE6000000)

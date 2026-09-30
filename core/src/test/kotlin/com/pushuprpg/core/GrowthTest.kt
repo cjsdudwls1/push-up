@@ -1,9 +1,9 @@
 package com.pushuprpg.core
 
 import com.pushuprpg.core.detect.ExerciseType
-import com.pushuprpg.core.progression.Climb
+import com.pushuprpg.core.progression.Calories
 import com.pushuprpg.core.progression.DayTotal
-import com.pushuprpg.core.progression.Landmark
+import com.pushuprpg.core.progression.Food
 import com.pushuprpg.core.progression.Records
 import com.pushuprpg.core.progression.RunGrowth
 import com.pushuprpg.core.progression.SessionFacts
@@ -29,54 +29,66 @@ class GrowthTest {
     ) = SessionFacts(exercise, day, at, reps, bestSet, deep, durationMs)
 
     @Test
-    fun `the first session already reaches somewhere`() {
-        // The tutorial is a handful of pushups; the first place is within them.
-        val p = Climb.progress(Climb.meters(mapOf(ExerciseType.PUSHUP to 7)))
-        assertEquals(Landmark.CAT_TOWER, p.reached)
-        assertEquals(Landmark.APARTMENT_5F, p.next)
+    fun `a rep's calories are its MET, the reference weight and the time it takes`() {
+        // 7.5 MET × 65 kg × 2 s: 0.27 kcal a pushup.
+        assertEquals(0.2708f, Calories.perUnit(ExerciseType.PUSHUP), 0.0001f)
+        // A pull-up is the same effort for longer; a second of plank is light work.
+        assertEquals(0.4063f, Calories.perUnit(ExerciseType.PULL_UP), 0.0001f)
+        assertEquals(0.2934f, Calories.perUnit(ExerciseType.SQUAT), 0.0001f)
+        assertEquals(0.0506f, Calories.perUnit(ExerciseType.PLANK), 0.0001f)
+        // Every movement has a figure.
+        ExerciseType.entries.forEach { assertTrue(Calories.perUnit(it) > 0f, "$it") }
     }
 
     @Test
-    fun `nothing done is the ground, with the first place ahead`() {
-        val p = Climb.progress(0f)
+    fun `the first session already burns something off`() {
+        // The tutorial is a handful of pushups; the first food is within them.
+        val p = Calories.progress(Calories.of(mapOf(ExerciseType.PUSHUP to 7)))
+        assertEquals(Food.BLUEBERRY, p.reached)
+        assertEquals(Food.CHERRY_TOMATO, p.next)
+    }
+
+    @Test
+    fun `nothing done is nothing burned, with the first food ahead`() {
+        val p = Calories.progress(0f)
         assertNull(p.reached)
-        assertEquals(Landmark.CAT_TOWER, p.next)
+        assertEquals(Food.BLUEBERRY, p.next)
         assertEquals(0f, p.fraction)
     }
 
     @Test
-    fun `every movement climbs, a hold by the second`() {
-        val mixed = Climb.meters(
+    fun `every movement burns, a hold by the second`() {
+        val mixed = Calories.of(
             mapOf(ExerciseType.PUSHUP to 100, ExerciseType.SQUAT to 50, ExerciseType.PLANK to 60)
         )
-        // 30 m of pushups, 20 m of squats, and a minute of plank worth thirty pushups' 9 m.
-        assertEquals(59f, mixed, 0.01f)
+        // 27.1 kcal of pushups, 14.7 of squats and 3.0 for a minute of plank.
+        assertEquals(44.79f, mixed, 0.01f)
     }
 
     @Test
-    fun `the places come in order and never run out`() {
-        val heights = Landmark.entries.map { it.meters }
-        assertEquals(heights.sorted(), heights)
-        assertEquals(heights.distinct(), heights)
-        val beyond = Climb.progress(1_000_000f)
+    fun `the foods come in order and never run out`() {
+        val kcal = Food.entries.map { it.kcal }
+        assertEquals(kcal.sorted(), kcal)
+        assertEquals(kcal.distinct(), kcal)
+        val beyond = Calories.progress(1_000_000f)
         assertNull(beyond.next)
         assertEquals(1f, beyond.fraction)
-        assertEquals(Landmark.SPACE, beyond.reached)
+        assertEquals(Food.RICE_BALE, beyond.reached)
     }
 
     @Test
-    fun `the count to the next place is whole reps, rounded up`() {
-        val p = Climb.progress(Climb.meters(mapOf(ExerciseType.PUSHUP to 7)))
-        // 2.1 m of 15 m: 12.9 m, 43 pushups.
-        assertEquals(43, Climb.toNext(p, ExerciseType.PUSHUP))
-        assertTrue(Climb.toNext(p, ExerciseType.PULL_UP) < Climb.toNext(p, ExerciseType.PUSHUP))
+    fun `the count to the next food is whole reps, rounded up`() {
+        val p = Calories.progress(Calories.of(mapOf(ExerciseType.PUSHUP to 7)))
+        // 1.9 kcal of 3: 1.1 kcal, 5 pushups.
+        assertEquals(5, Calories.toNext(p, ExerciseType.PUSHUP))
+        assertTrue(Calories.toNext(p, ExerciseType.PULL_UP) < Calories.toNext(p, ExerciseType.PUSHUP))
     }
 
     @Test
-    fun `passing a place is said once, on the run that passed it`() {
-        assertEquals(listOf(Landmark.CAT_TOWER), Climb.passed(0f, 2.1f))
-        assertEquals(emptyList(), Climb.passed(2.1f, 3f))
-        assertEquals(listOf(Landmark.APARTMENT_5F, Landmark.APARTMENT_15F), Climb.passed(10f, 50f))
+    fun `burning a food off is said once, on the run that did it`() {
+        assertEquals(listOf(Food.BLUEBERRY), Calories.passed(0f, 1.5f))
+        assertEquals(emptyList(), Calories.passed(1.5f, 2f))
+        assertEquals(listOf(Food.CHERRY_TOMATO, Food.CANDY), Calories.passed(2f, 25f))
     }
 
     @Test
@@ -124,14 +136,14 @@ class GrowthTest {
     }
 
     @Test
-    fun `a run reports the records it broke and the places it passed`() {
+    fun `a run reports the records it broke and the foods it burned off`() {
         val before = listOf(run(at = 1, reps = 40, bestSet = 15))
-        val beat = RunGrowth.of(before, listOf(run(at = 2, reps = 30, bestSet = 18)))
+        val beat = RunGrowth.of(before, listOf(run(at = 2, reps = 40, bestSet = 18)))
         assertEquals(15, beat.records.single().previous)
         assertEquals(18, beat.records.single().now)
-        // 12 m, then 21 m: past the fifth floor.
-        assertEquals(listOf(Landmark.APARTMENT_5F), beat.passed)
-        assertEquals(9f, beat.climbed, 0.01f)
+        // 10.8 kcal, then 21.7: past a candy.
+        assertEquals(listOf(Food.CANDY), beat.passed)
+        assertEquals(10.83f, beat.burned, 0.01f)
 
         val tie = RunGrowth.of(before, listOf(run(at = 2, reps = 15, bestSet = 15)))
         assertTrue(tie.records.isEmpty())
@@ -161,7 +173,7 @@ class GrowthTest {
     }
 
     @Test
-    fun `a week's recap is its days, its climb and the records broken in it`() {
+    fun `a week's recap is its days, its calories and the records broken in it`() {
         val monday = 20_710L // 2026-09-14
         val facts = listOf(
             run(day = monday - 3, at = 1, reps = 20, bestSet = 10), // the week before: a first go
@@ -176,7 +188,7 @@ class GrowthTest {
         assertEquals(100, recap.summary.reps)
         assertEquals(2, recap.records)
         // 80 pushups and 20 squats.
-        assertEquals(32f, recap.meters, 0.01f)
+        assertEquals(27.54f, recap.kcal, 0.01f)
         assertFalse(recap.empty)
         assertTrue(Weeks.recap(facts, monday - 14).empty)
     }

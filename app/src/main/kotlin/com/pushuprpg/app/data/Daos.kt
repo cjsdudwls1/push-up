@@ -24,7 +24,7 @@ data class MovementTotalRow(
 )
 
 /**
- * One run as the growth screens read it: the climb, the records and the week. [exercise] is the
+ * One run as the growth screens read it: the calories, the records and the week. [exercise] is the
  * stored name, read as a string for the same reason as [MovementTotalRow]'s.
  */
 data class FactsRow(
@@ -96,7 +96,7 @@ interface SessionDao {
     @Query("SELECT COUNT(*) FROM sessions")
     suspend fun sessionCount(): Int
 
-    /** Every run, oldest first. Live, so the hub's climb and records move as a run is banked. */
+    /** Every run, oldest first. Live, so the hub's calories and records move as a run is banked. */
     @Query(
         """
         SELECT exercise AS exercise, epochDay AS epochDay, startedAtMs AS startedAtMs, reps AS reps,

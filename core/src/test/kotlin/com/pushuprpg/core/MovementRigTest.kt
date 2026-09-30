@@ -303,7 +303,7 @@ class MovementRigTest {
 
     /**
      * The stored profile is `h` from the head. Seeded from it, a side-on set counted every rep but
-     * went 깊게 on one to seven of eight — a 기사's slow reps priced half — and wrote its side-on
+     * went 깊게 on one to seven of eight and wrote its side-on
      * range back into it. Side on the range starts from the prior, as a first set does, whatever
      * the head left: from a long-armed profile, a short one, a deep one and the one the rig's own
      * head-on set learns, every rep goes 깊게 and every half rep is called short, and the profile

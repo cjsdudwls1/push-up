@@ -13,8 +13,6 @@
     <string name="action_close">닫기</string>
     <string name="action_skip">건너뛰기</string>
     <string name="action_home">홈으로</string>
-    <string name="action_retry">다시 도전</string>
-    <string name="action_next_dungeon">다음 던전</string>
     <string name="action_view_records">기록 보기</string>
     <string name="action_settings">설정</string>
 
@@ -30,63 +28,13 @@
     <string name="permission_open_settings">설정에서 권한 켜기</string>
     <string name="permission_denied_body">권한이 없으면 동작을 읽을 수 없어요. 설정에서 언제든 켤 수 있어요.</string>
 
-    <!-- Class picking -->
-    <string name="class_pick_title">어떻게 싸울까요?</string>
-    <string name="class_pick_body">직업은 운동 방식을 고르는 거예요. 언제든 바꿀 수 있어요.</string>
-    <string name="class_knight">기사</string>
-    <string name="class_knight_desc">천천히 깊게 (근비대). 2초쯤 들여 깊게 선까지 내려가면 1개, 아니면 반 개로 쳐요. 대신 몬스터가 적은 개수에 쓰러져요.</string>
-    <string name="class_archer">궁수</string>
-    <string name="class_archer_desc">빠르게 이어서 (수행능력). 쉬지 않고 이어 가면 1개, 늘어지면 반 개로 쳐요. 대신 몬스터가 많은 개수를 버텨요.</string>
-    <!-- On each class card: what the free first dungeon asks with that class, at the chosen difficulty. -->
-    <string name="class_first_dungeon">첫 던전: 푸쉬업 %1$,d개</string>
-    <string name="class_change_title">직업 바꾸기</string>
-    <string name="class_change_body">싸우는 방식만 바뀌어요. 레벨과 기록은 그대로고, 몇 번이든 다시 바꿀 수 있어요.</string>
-    <string name="class_current">지금 직업</string>
-    <string name="home_class_change">바꾸기</string>
-
-    <!-- Battle -->
-    <string name="battle_unit_reps">개</string>
-    <string name="battle_unit_seconds">초</string>
-    <string name="battle_combo">콤보 ×%1$d</string>
-    <string name="battle_deep_strike">깊은 타격!</string>
-    <string name="battle_ultimate_incoming">필살기 준비!</string>
-    <string name="battle_ultimate_how_knight">천천히 깊게 %1$d개로 막아요</string>
-    <string name="battle_ultimate_how_archer">빠르게, 또는 깊게 %1$d개로 막아요</string>
-    <string name="battle_ultimate_how_hold">자세를 그대로 버티면 막아요</string>
-    <string name="battle_ultimate_progress">남은 기회 %1$d개 · 막기 %2$d/%3$d</string>
-    <string name="battle_ultimate_blocked">막았어요!</string>
-    <string name="battle_ultimate_hit">아야, 체력이 %1$d 줄었어요. 다음엔 막아요!</string>
-    <string name="battle_hp_label">체력</string>
-    <string name="battle_bootstrap">처음 몇 개로 내 몸에 맞출게요</string>
-    <string name="battle_calibrated">내 몸에 맞췄어요. 이제부터 제대로 셀게요</string>
-    <string name="battle_shallow_twice">조금만 더 내려가 볼까요?</string>
-    <string name="battle_shallow_four">힘들면 무릎 대고 해도 괜찮아요</string>
-    <string name="battle_shallow_pull">조금만 더 끌어올려 볼까요?</string>
-    <string name="battle_combo_milestone">콤보 %1$d! 불붙었어요</string>
-    <string name="battle_combo_broken">괜찮아요, 다시 쌓으면 돼요</string>
-    <string name="battle_boss_low_hp">거의 다 왔어요, 한 번만 더!</string>
-    <string name="battle_idle">숨 고르고 계속해요</string>
-    <string name="battle_paused_title">잠깐 쉬어요</string>
-    <string name="battle_quit_confirm">지금까지 한 %1$d개는 그대로 기록에 남아요</string>
-    <string name="battle_quit_confirm_hold">지금까지 버틴 %1$d초는 그대로 기록에 남아요</string>
-    <string name="battle_quit">그만두기</string>
-    <string name="battle_resume">계속하기</string>
-    <string name="battle_player_label">나</string>
-    <string name="battle_switch_title">운동 바꾸기</string>
-    <string name="battle_switch_sub">지금 몬스터에게 남은 만큼이 새 운동 개수로 바뀌어요. 앞에서 한 운동도 전부 기록돼요.</string>
-    <string name="battle_switch_current">지금</string>
-
-    <!-- Depth gauge -->
-    <string name="gauge_title">깊이</string>
-    <string name="gauge_accept">인정</string>
-    <string name="gauge_deep">깊게</string>
+    <!-- The run -->
+    <string name="run_resume">계속하기</string>
 
     <!-- Tracking quality -->
     <string name="quality_unstable_camera">폰이 흔들려요. 기대 세워둘 곳이 있을까요?</string>
     <string name="quality_subject_switch">자세를 다시 잡는 동안 기다릴게요</string>
     <string name="quality_implausible_rate">천천히 한 개씩 세어 볼게요</string>
-    <string name="quality_recovered">좋아요, 다시 보여요!</string>
-    <!-- Appended to a quality message: which of the parts this movement reads are out of shot. -->
     <!-- The live placement banner. Each line is something to do, not a diagnosis. -->
     <string name="placement_step_into_view">화면 안으로 들어와 주세요</string>
     <string name="placement_come_closer">폰에 조금 더 가까이 와 주세요</string>
@@ -112,36 +60,6 @@
     <string name="body_part_hip">엉덩이</string>
     <string name="body_part_knee">무릎</string>
     <string name="body_part_ankle">발목</string>
-    <string name="quality_paused_notice">카메라가 나를 놓친 동안에는 몬스터도 멈춰 있어요</string>
-
-    <!-- Result -->
-    <string name="result_cleared">던전 클리어</string>
-    <string name="result_cleared_sub">%1$s 완료</string>
-    <string name="result_defeat">다음엔 잡아요</string>
-    <string name="result_defeat_sub">오늘도 몸은 확실히 썼어요</string>
-    <string name="result_banner">%1$d개가 기록에 올라갔어요. 이기든 지든 사라지지 않아요.</string>
-    <string name="result_banner_hold">%1$d초가 기록에 올라갔어요. 이기든 지든 사라지지 않아요.</string>
-    <!-- A run in which the camera counted nothing at all. Said as the camera's miss, never the user's,
-         and followed by the movement's one-line placement hint. -->
-    <string name="result_nothing_counted">카메라가 아직 한 개도 못 셌어요</string>
-    <string name="result_nothing_counted_hold">카메라가 아직 버틴 시간을 못 셌어요</string>
-    <!-- Nothing counted, but the camera saw reps come back short of the 인정 line, so nothing here is
-         about the phone. Under the tutorial's near-miss title; a pushup gets that card's line, knees
-         and all, and the other movements say it the way they go. -->
-    <string name="result_shallow_down">조금만 더 내려가면 세져요.</string>
-    <string name="result_shallow_pull">조금만 더 끌어올리면 세져요.</string>
-    <string name="result_tile_combo">최고 콤보</string>
-    <string name="result_tile_time">시간</string>
-    <string name="result_tile_deep">깊게</string>
-    <string name="result_combo_value">×%1$d</string>
-    <string name="result_time_value">%1$d초</string>
-    <string name="result_level_up">레벨 %1$d 달성!</string>
-    <!-- Where a run stopped part way: the monster it was fighting and what that monster still owed,
-         the same count the next try starts from. -->
-    <string name="result_left">%1$s에게 %2$,d개 남기고 멈췄어요.</string>
-    <string name="result_left_hold">%1$s에게 %2$,d초 남기고 멈췄어요.</string>
-    <!-- The run stopped just as that monster fell, before the next one came. -->
-    <string name="result_fell">%1$s까지 쓰러뜨리고 멈췄어요.</string>
 
     <!-- Home -->
     <string name="home_today_reps">오늘 %1$d개</string>
@@ -176,12 +94,9 @@
     <!-- Last week summed up, at the start of this one until its first workout. -->
     <string name="recap_title">지난주 결과</string>
     <string name="recap_totals">%1$d일 동안 %2$,d개 했어요</string>
-    <string name="recap_climbed">%1$s 더 올라갔어요</string>
+    <string name="recap_burned">%1$s 태웠어요</string>
     <string name="recap_records">신기록을 %1$d번 세웠어요!</string>
     <string name="recap_next">이번 주도 같이 해요!</string>
-    <!-- The way to the dungeons, kept at the bottom of the hub. -->
-    <string name="home_adventure">던전 모험</string>
-    <string name="home_adventure_sub">몬스터를 쓰러뜨리며 하는 운동</string>
     <string name="home_streak">연속 %1$d일</string>
     <!-- %1$s is the movement picked last, %2$d that movement's streak bar: the real one. -->
     <string name="home_nudge">오늘은 아직이에요. %1$s %2$d개만 해볼까요?</string>
@@ -193,19 +108,10 @@
     <!-- The same, with no streak yet: there is nothing to continue, so it starts. -->
     <string name="home_left_first">%1$s %2$d개 더 하면 연속이 시작돼요.</string>
     <string name="home_left_first_hold">%1$s %2$d초 더 버티면 연속이 시작돼요.</string>
-    <string name="home_dungeons">던전</string>
-
-    <!-- Dungeon select -->
-    <string name="dungeon_locked">이전 던전을 먼저 클리어해요</string>
-    <string name="dungeon_recommended_level">권장 레벨 %1$d–%2$d</string>
-    <!-- %1$s is the movement the count is quoted in: the one picked last. -->
-    <string name="dungeon_estimated_reps">%1$s %2$,d개 예상</string>
-    <string name="dungeon_estimated_seconds">%1$s %2$,d초 예상</string>
-    <string name="difficulty_recommended">추천</string>
 
     <!-- Records -->
     <string name="records_title">기록</string>
-    <string name="records_empty">아직 기록이 없어요. 첫 던전부터 시작해요!</string>
+    <string name="records_empty">아직 기록이 없어요. 고냥이를 지키러 가요!</string>
     <string name="records_lifetime_reps">누적 개수</string>
     <string name="records_total_time">총 운동 시간</string>
     <string name="records_best_streak">최고 연속</string>
@@ -216,58 +122,14 @@
     <string name="records_movement_line_hold">처음 %1$d초 · 모두 %2$,d초</string>
 
     <!-- Settings -->
-    <string name="settings_overlay">뼈대 선 표시</string>
-    <string name="settings_overlay_off">끄기</string>
-    <string name="settings_overlay_minimal">운동 부위만</string>
-    <string name="settings_overlay_full">온몸</string>
-    <string name="settings_gauge_side">깊이 막대 위치</string>
-    <string name="settings_gauge_right">오른쪽</string>
-    <string name="settings_gauge_left">왼쪽</string>
-    <string name="settings_gauge_number">깊이 숫자 표시</string>
     <string name="settings_sfx">효과음</string>
-    <string name="settings_auto_next">다음 던전 자동 시작</string>
-    <string name="settings_auto_next_sub">던전을 깨고 다음 던전이 열려 있으면, 쉬는 시간이 지난 뒤 같은 운동으로 바로 시작돼요.</string>
-    <string name="settings_auto_next_off">끄기</string>
-    <string name="settings_auto_next_minutes">%1$d분</string>
+    <string name="settings_rest_minutes">%1$d분</string>
     <string name="settings_rest_minutes_seconds">%1$d분 %2$d초</string>
     <string name="settings_cat_rest">고냥이 쉬는 시간</string>
     <string name="settings_cat_rest_sub">목숨이 하나 줄면 이만큼 쉬고 다음 목숨을 시작해요. 쉬어야 다음 판에 더 많이 해요.</string>
     <string name="result_rest_title">쉬는 시간</string>
     <string name="result_rest_time">%1$d:%2$02d</string>
-    <string name="result_rest_body">끝나면 %1$s에서 바로 이어서 해요</string>
-    <string name="result_rest_now">지금 바로 시작</string>
-    <string name="result_rest_cancel">자동 시작 멈추기</string>
-    <!-- Spoken lines. Short and in the order of what to do, because they are heard mid-rep from two
-         metres away. Counts are words, not digits: the engine reads 3 as 삼. -->
-    <string name="voice_ultimate_knight">필살기 와요! 천천히 끝까지, %1$s 막아요!</string>
-    <string name="voice_ultimate_archer">필살기 와요! 빠르게, %1$s 막아요!</string>
-    <string name="voice_style_too_quick">천천히요!</string>
-    <string name="voice_style_not_full">끝까지요!</string>
-    <string name="voice_style_lagging">더 빠르게요!</string>
-    <string name="voice_ultimate_hold">필살기 와요! 자세 그대로 버텨요!</string>
-    <string name="voice_answers_left">%1$s 더!</string>
-    <string name="voice_ultimate_blocked">막았어요! 좋아요!</string>
-    <string name="voice_ultimate_hit">맞았어요. 괜찮아요, 계속 가요!</string>
-    <string name="voice_boss_low">거의 다 왔어요!</string>
-    <string name="voice_combo">%1$d 콤보!</string>
-    <string name="voice_shallow">조금만 더 깊게요!</string>
-    <!-- A pull-up short of the line goes up, not down: the screen says 끌어올려, and so does this. -->
-    <string name="voice_shallow_pull">조금만 더 올라가요!</string>
     <string name="voice_ready">좋아요, 시작해요!</string>
-    <string name="battle_not_split">다리를 앞뒤로 벌려야 런지로 세요</string>
-    <!-- A rep that counted but was worth half, and what makes the next one whole. -->
-    <string name="battle_style_too_quick">천천히 해야 1개로 쳐요</string>
-    <string name="battle_style_not_full">깊게 선까지 가야 1개로 쳐요</string>
-    <string name="battle_style_lagging">쉬지 않고 이어 가야 1개로 쳐요</string>
-    <string name="result_style_knight">천천히 깊게 해서 1개로 친 것 %1$d / %2$d</string>
-    <string name="result_style_archer">쉬지 않고 이어 가서 1개로 친 것 %1$d / %2$d</string>
-    <string name="voice_times_1">한 번</string>
-    <string name="voice_times_2">두 번</string>
-    <string name="voice_times_3">세 번</string>
-    <string name="voice_times_4">네 번</string>
-    <string name="voice_times_5">다섯 번</string>
-    <string name="voice_rest_ten">십 초 뒤에 다음 던전 시작해요</string>
-    <string name="voice_rest_go">시작!</string>
     <string name="settings_music">배경 음악</string>
     <string name="settings_music_sub">앱을 켜 두는 동안 계속 나와요. 고르면 바로 바뀌어요.</string>
     <string name="settings_music_off">끄기</string>
@@ -299,29 +161,11 @@
     <string name="settings_cvd_none">없음</string>
     <string name="settings_cvd_blue_yellow">파랑-노랑</string>
     <string name="settings_reduce_motion">모션 줄이기</string>
-    <string name="settings_audio_only">절전 집중 모드</string>
-    <string name="settings_audio_only_sub">던전에서 화면을 어둡게 하고 소리로만 진행해요. 배터리가 오래가요.</string>
-    <string name="pick_exercise_title">뭐로 싸울까요?</string>
-    <string name="pick_exercise_sub">시작할 운동을 골라요. 싸우는 중에도 화면 위 가운데에서 바꿀 수 있어요.</string>
-    <!-- Under it on a dungeon's picker: the counts on the rows are the class's way of doing each rep. -->
-    <string name="pick_exercise_class_knight">개수는 천천히 깊게 했을 때예요. 아니면 반 개로 쳐요.</string>
-    <string name="pick_exercise_class_archer">개수는 쉬지 않고 이어 갔을 때예요. 아니면 반 개로 쳐요.</string>
     <string name="pick_exercise_start">이걸로 시작</string>
     <string name="pick_exercise_last">지난번</string>
     <string name="pick_exercise_hold">시간으로 세요</string>
-    <string name="pick_exercise_cost_reps">%1$,d개</string>
-    <string name="result_stars_three">깊이까지 완벽했어요</string>
-    <string name="result_stars_two">좋아요. 조금만 더 내려가면 별 세 개예요</string>
-    <string name="result_stars_one">개수는 다 채웠어요. 다음엔 더 깊게 가봐요</string>
-    <string name="result_stars_one_defeat">다음엔 조금 더 깊게 가봐요</string>
-    <string name="battle_count_reps">%1$,d개</string>
-    <string name="battle_count_seconds">%1$,d초</string>
-    <string name="battle_remaining">남은 %1$,d개</string>
-    <string name="battle_remaining_seconds">남은 %1$,d초</string>
-    <string name="pick_exercise_cost_seconds">%1$,d초</string>
     <string name="settings_privacy">개인정보 처리방침</string>
     <string name="settings_terms">이용약관·건강 안내</string>
-    <string name="settings_recalibrate">내 몸에 다시 맞추기</string>
 
     <!-- Exercises -->
     <string name="exercise_pushup">푸쉬업</string>
@@ -348,7 +192,8 @@
     <!-- Survival mode -->
     <string name="survival_title">고냥이 지켜줘</string>
     <string name="survival_score">%1$,d점</string>
-    <string name="survival_best">최고 %1$,d점</string>
+    <!-- %1$s is the movement: each has its own best, since a pull-up is not a pushup. -->
+    <string name="survival_best_of">%1$s 최고 %2$,d점</string>
     <!-- Before the first armed frame. The ceiling does not move until the user is in position. -->
     <string name="survival_waiting_with">%1$s 자세를 잡으면 천장이 내려오기 시작해요</string>
     <string name="pick_survival_title">뭐로 밀어 올릴까요?</string>
@@ -450,38 +295,41 @@
     <string name="error_camera">카메라를 열 수 없어요. 다른 앱이 쓰고 있는지 확인해 주세요.</string>
     <string name="error_camera_retry">카메라 다시 열기</string>
 
-
-    <!-- The climb: every rep's lift added up, as the height of a place people know. -->
-    <string name="climb_title">지금까지 오른 높이</string>
-    <string name="climb_m">%1$sm</string>
-    <string name="climb_km">%1$skm</string>
-    <string name="climb_ground">이제 막 출발했어요</string>
-    <!-- %1$s is the last place passed. -->
-    <string name="climb_reached">%1$s 통과</string>
-    <!-- %1$s is the next place, %2$s the height still to go, with its unit. -->
-    <string name="climb_next">다음은 %1$s, %2$s 남았어요</string>
-    <!-- %1$s is the movement picked last, %2$d how many of it reach the next place. -->
-    <string name="climb_next_reps">%1$s 약 %2$,d개면 도착해요</string>
-    <string name="climb_next_seconds">%1$s 약 %2$,d초면 도착해요</string>
-    <string name="climb_top">우주까지 왔어요. 이제 더 갈 곳이 없어요!</string>
-    <string name="landmark_cat_tower">캣타워</string>
-    <string name="landmark_apartment_5f">아파트 5층</string>
-    <string name="landmark_apartment_15f">아파트 15층</string>
-    <string name="landmark_liberty">자유의 여신상</string>
-    <string name="landmark_sixty_three">63빌딩</string>
-    <string name="landmark_lotte_tower">롯데월드타워</string>
-    <string name="landmark_bukhansan">북한산</string>
-    <string name="landmark_hallasan">한라산</string>
-    <string name="landmark_baekdusan">백두산</string>
-    <string name="landmark_fuji">후지산</string>
-    <string name="landmark_kilimanjaro">킬리만자로</string>
-    <string name="landmark_everest">에베레스트</string>
-    <string name="landmark_space">우주</string>
+    <!-- Calories burned: every rep's energy added up, and the food it would take to put it back.
+         An estimate for a reference body weight, and said as one. -->
+    <string name="burn_title">지금까지 태운 칼로리</string>
+    <string name="burn_kcal">%1$skcal</string>
+    <string name="burn_none">이제 막 시작했어요</string>
+    <!-- %1$s is the biggest food burned off so far. -->
+    <string name="burn_reached">%1$s만큼 태웠어요</string>
+    <!-- %1$s is the next food, %2$s the calories still to go, with its unit. -->
+    <string name="burn_next">다음은 %1$s, %2$s 남았어요</string>
+    <!-- %1$s is the movement picked last, %2$d how many of it burn off the next food. -->
+    <string name="burn_next_reps">%1$s 약 %2$,d개면 돼요</string>
+    <string name="burn_next_seconds">%1$s 약 %2$,d초면 돼요</string>
+    <!-- %1$s is the last food on the ladder. -->
+    <string name="burn_top">%1$s까지 태웠어요. 더 셀 음식이 없어요!</string>
+    <!-- %1$d is the body weight the estimate is for: the app does not ask for the user's. -->
+    <string name="burn_estimate">몸무게 %1$dkg 기준 어림값이에요</string>
+    <string name="food_blueberry">블루베리 한 알</string>
+    <string name="food_cherry_tomato">방울토마토 한 알</string>
+    <string name="food_candy">사탕 한 알</string>
+    <string name="food_banana">바나나 한 개</string>
+    <string name="food_choco_pie">초코파이 한 개</string>
+    <string name="food_rice">공깃밥 한 공기</string>
+    <string name="food_ramen">라면 한 봉지</string>
+    <string name="food_jjajangmyeon">짜장면 한 그릇</string>
+    <string name="food_chicken">치킨 한 마리</string>
+    <string name="food_five_chickens">치킨 다섯 마리</string>
+    <string name="food_ramen_box">라면 한 박스</string>
+    <string name="food_rice_sack">쌀 한 포대</string>
+    <string name="food_rice_bale">쌀 한 가마니</string>
     <!-- What one run did, where it ends. %1$s the movement, %2$d the new best, %3$d the one it beat. -->
     <string name="growth_record">신기록! %1$s 한 번에 %2$d개 (전에는 %3$d개)</string>
     <string name="growth_record_hold">신기록! %1$s %2$d초 (전에는 %3$d초)</string>
-    <string name="growth_climbed">이번에 %1$s 더 올라갔어요</string>
-    <string name="growth_passed">%1$s 통과!</string>
+    <string name="growth_burned">이번에 %1$s 태웠어요</string>
+    <!-- %1$s is a food the calories passed on this run. -->
+    <string name="growth_food">%1$s만큼 태웠어요!</string>
     <!-- What the cat found on this run, %1$s the things by name. Said as its find, never as a task done. -->
     <string name="growth_gift">🎁 선물을 찾아 왔어요: %1$s</string>
 
@@ -509,8 +357,8 @@
     <string name="gift_why_comeback">다시 와 준 날</string>
     <string name="gift_why_full_session">%1$d세트 끝까지</string>
     <string name="gift_why_records">신기록 %1$d번</string>
-    <!-- %1$s is a place on the climb. -->
-    <string name="gift_why_climb">%1$s 도착</string>
+    <!-- %1$s is a food on the calorie ladder. -->
+    <string name="gift_why_burn">%1$s만큼</string>
 
     <!-- 꾸미기: the cat's name and coat, and what it has found. -->
     <string name="wardrobe_title">고냥이 꾸미기</string>
@@ -525,13 +373,6 @@
     <string name="home_wardrobe">꾸미기</string>
     <string name="home_wardrobe_new">새 선물 %1$d</string>
     <string name="home_wardrobe_open">고냥이 꾸미기 열기</string>
-
-
-    <!-- Dungeon select -->
-    <string name="dungeon_meta">%1$s · %2$s</string>
-    <string name="dungeon_locked_badge">잠김</string>
-    <string name="dungeon_cleared_badge">클리어</string>
-    <string name="difficulty_section">난이도</string>
 
     <!-- Records detail (heat calendar, session list) -->
     <string name="records_heat_title">지난 13주</string>
@@ -548,6 +389,8 @@
         <item>일</item>
     </string-array>
     <string name="records_recent_title">최근 운동</string>
+    <!-- A row played in a dungeon, from before the dungeons were taken out. Its reps still count. -->
+    <string name="records_session_dungeon">던전</string>
     <string name="records_session_cleared">완료</string>
     <string name="records_session_attempted">도전</string>
     <string name="records_date">%1$d월 %2$d일</string>
@@ -558,45 +401,26 @@
     <string name="records_duration_hm">%1$d시간 %2$d분</string>
     <string name="records_duration_ms">%1$d분 %2$d초</string>
     <string name="records_duration_s">%1$d초</string>
-    <string name="records_label_reps">개수</string>
 
     <!-- Settings detail (sections, subtitles) -->
     <string name="settings_section_display">표시</string>
     <string name="settings_section_sound">소리와 진동</string>
     <string name="settings_section_exercise">운동</string>
-    <string name="settings_overlay_sub">운동할 때 카메라 화면 속 내 몸 위에 관절을 잇는 선을 그려요. 카메라가 나를 잘 잡고 있는지 볼 때 좋아요.</string>
-    <string name="settings_gauge_side_sub">운동 화면에서 얼마나 내려갔는지 보여주는 막대예요. 보기 편한 쪽에 두세요.</string>
-    <string name="settings_gauge_number_sub">깊이 막대 옆에 숫자로도 같이 보여줘요.</string>
     <string name="settings_reduce_motion_sub">화면 흔들림과 번쩍임을 줄여요.</string>
     <string name="settings_cvd_sub">초록·빨강 대신 파랑·노랑으로 구분해요.</string>
-    <string name="settings_voice_sub">필살기와 자세 안내를 목소리로 알려줘요. 폰이 멀리 있어도 들려요.</string>
-    <string name="settings_difficulty">난이도</string>
-    <string name="settings_difficulty_sub">몬스터가 버티는 개수가 달라져요. 언제든 바꿀 수 있어요.</string>
-    <string name="settings_recalibrate_sub">개수가 잘 안 세지거나 너무 쉽게 세질 때, 폰 위치를 바꿨을 때 눌러요. 다음 운동의 처음 몇 개로 내 몸에 다시 맞춰요.</string>
-    <string name="settings_recalibrate_done">다음 운동 처음 몇 개로 다시 맞출게요</string>
+    <string name="settings_voice_sub">고냥이의 말과 자세 안내를 목소리로 알려줘요. 폰이 멀리 있어도 들려요.</string>
     <!-- Share card -->
     <string name="share_card_survival_headline">고냥이를 지켰어요</string>
     <string name="share_card_survival_hero_label">천장을 밀어 올린 점수</string>
-    <string name="share_card_dungeon_hero_label">이번 판에 해낸 횟수</string>
-    <!-- A run that only held, such as a plank dungeon: told in seconds, not as 0개. -->
-    <string name="share_card_dungeon_hero_label_hold">이번 판에 버틴 시간</string>
     <string name="share_card_point_suffix">점</string>
-    <string name="share_card_rep_suffix">개</string>
-    <string name="share_card_second_suffix">초</string>
     <string name="share_card_stat_reps">밀어 올린 횟수</string>
     <string name="share_card_stat_time">버틴 시간</string>
     <string name="share_card_stat_best">최고 기록</string>
     <string name="share_card_new_record">신기록</string>
     <string name="share_card_new_record_label">축하해요</string>
-    <string name="share_card_stat_climb">오른 높이</string>
     <string name="share_card_seconds">%1$d초</string>
     <string name="share_card_minutes">%1$d분 %2$d초</string>
     <string name="share_card_footer">카메라로 하는 운동 RPG · 안드로이드</string>
-    <string name="share_text_dungeon_cleared">푸쉬업 RPG · %1$s 클리어! 내 몸으로 %2$,d번 때려서 잡았어요 💪</string>
-    <string name="share_text_dungeon_defeat">푸쉬업 RPG · %1$s에서 %2$,d번 때렸어요. 다음엔 잡아요 💪</string>
-    <string name="share_text_dungeon_cleared_hold">푸쉬업 RPG · %1$s 클리어! %2$,d초 버텨서 잡았어요 💪</string>
-    <string name="share_text_dungeon_defeat_hold">푸쉬업 RPG · %1$s에서 %2$,d초 버텼어요. 다음엔 잡아요 💪</string>
-    <string name="result_share">이 판 자랑하기</string>
     <string name="share_unavailable">공유할 앱을 찾지 못했어요.</string>
     <string name="browser_unavailable">웹 브라우저를 찾지 못했어요.</string>
 

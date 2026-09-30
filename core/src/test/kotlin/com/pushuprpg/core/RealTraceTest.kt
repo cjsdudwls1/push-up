@@ -9,15 +9,9 @@ import com.pushuprpg.core.detect.PoseQuality
 import com.pushuprpg.core.detect.RepDetector
 import com.pushuprpg.core.detect.RepEvent
 import com.pushuprpg.core.detect.UserProfile
-import com.pushuprpg.core.game.CombatResolver
-import com.pushuprpg.core.game.Difficulty
-import com.pushuprpg.core.game.Dungeons
-import com.pushuprpg.core.game.PlayerClass
-import com.pushuprpg.core.game.PlayerState
-import com.pushuprpg.core.run.AlertKey
-import com.pushuprpg.core.run.BattleEngine
-import com.pushuprpg.core.run.Stars
 import com.pushuprpg.core.run.TrackingDrops
+import com.pushuprpg.core.survival.CeilingSurvival
+import com.pushuprpg.core.survival.SurvivalEvent
 import kotlin.test.assertEquals
 import com.pushuprpg.core.trace.PoseTrace
 import com.pushuprpg.core.trace.TraceReplay
@@ -127,64 +121,19 @@ class RealTraceTest {
     )
 
     /**
-     * From the head the tracker loses the body for a frame or two about once a second, and every
-     * drop put 추적이 끊긴 동안에는 보스도 멈춰 있어요 over whatever the alert slot was saying. A
-     * 기사's 천천히 해야 1개로 쳐요 — nearly the only place the class's rule is written — was gone in
-     * under a second. Lost and found now wait for the slot, and a drop from one reason to another is
-     * not a second loss.
-     */
-    @Test
-    fun `a coaching line stays up its whole time while the tracker blinks`() {
-        val tracking = setOf(AlertKey.QUALITY_LOST, AlertKey.QUALITY_RECOVERED)
-        for (stride in listOf(1, 2, 3)) {
-            val engine = BattleEngine(
-                dungeon = Dungeons.byIndex(3)!!,
-                difficulty = Difficulty.STANDARD,
-                capacity = 8f,
-                initialPlayer = PlayerState.create(PlayerClass.KNIGHT, level = 1),
-                detector = DetectorFactory.create(ExerciseType.PUSHUP),
-                resolver = CombatResolver(),
-            )
-            val states = TraceReplay.frames(pushups.every(stride)).map { it.timestampMs to engine.onPoseFrame(it) }
-            val lines = states.mapNotNull { it.second.alert }.filter { it.textKey !in tracking }.distinct()
-            assertTrue(lines.any { it.textKey == AlertKey.STYLE_TOO_QUICK }, "every $stride: no 기사 line to keep up: $lines")
-            for (line in lines) {
-                val over = states.firstOrNull { (t, s) ->
-                    t >= line.atMs && t - line.atMs < BattleEngine.ALERT_LIFETIME_MS && s.alert?.textKey in tracking
-                }
-                assertTrue(over == null, "every $stride: ${line.textKey} was covered by ${over?.second?.alert?.textKey} after ${over?.let { it.first - line.atMs }}ms")
-            }
-            val lost = states.mapNotNull { it.second.alert }.filter { it.textKey == AlertKey.QUALITY_LOST }.distinct().size
-            val drops = states.zipWithNext().count { (a, b) -> a.second.quality == PoseQuality.OK && b.second.quality != PoseQuality.OK }
-            assertTrue(lost <= drops, "every $stride: $lost tracking-lost toasts for $drops times tracking was lost")
-            // Found for the first time is not found again: 다시 보여요 before any loss said the
-            // tracker had dropped the user when it had only just seen them.
-            val firstOk = states.indexOfFirst { it.second.quality == PoseQuality.OK }
-            val recoveredBeforeAnyDrop = states.take(firstOk + 1).any { it.second.alert?.textKey == AlertKey.QUALITY_RECOVERED }
-            assertTrue(!recoveredBeforeAnyDrop, "every $stride: 다시 보여요 on the run's first sighting")
-        }
-    }
-
-    /**
-     * The same blinks are what run_finished reports for H2: each a drop after arming that the tracker
+     * From the head the tracker loses the body for a frame or two about once a second. Those blinks
+     * are what cat_session_finished reports for H2: each a drop after arming that the tracker
      * recovered from within a frame or a few, and the last one — the recording ends on it — not
      * recovered. The set is shorter than the tail a real run's end is left out by, so the tail is off.
      */
     @Test
     fun `the tracker's blinks from the head are reported as short recovered drops`() {
         for (stride in listOf(1, 2, 3)) {
-            val engine = BattleEngine(
-                dungeon = Dungeons.byIndex(3)!!,
-                difficulty = Difficulty.STANDARD,
-                capacity = 8f,
-                initialPlayer = PlayerState.create(PlayerClass.KNIGHT, level = 1),
-                detector = DetectorFactory.create(ExerciseType.PUSHUP),
-                resolver = CombatResolver(),
-            )
+            val detector = DetectorFactory.create(ExerciseType.PUSHUP)
             val tally = TrackingDrops(tailMs = 0)
             for (frame in TraceReplay.frames(pushups.every(stride))) {
-                val state = engine.onPoseFrame(frame)
-                tally.onFrame(frame.timestampMs, state.quality, state.phase)
+                val tick = detector.onFrame(frame)
+                tally.onFrame(frame.timestampMs, tick.quality, tick.phase)
             }
             val s = tally.summary()
             assertTrue(s.armed, "every $stride: the set never armed")
@@ -247,21 +196,22 @@ class RealTraceTest {
         assertEquals(recorded, Exercises.ALL.filter { it.validatedOnDevice }.map { it.type }.toSet())
     }
 
+    /**
+     * A rep strikes at the 인정 line on its way down, so read at the strike every rep is about 70
+     * deep. Reps that went to the floor have to be paid as 깊게 by what they went on to reach — once
+     * a set with the chest on the floor was graded as barely deep enough.
+     */
     @Test
-    fun `pushups with the chest on the floor grade three stars, every one 깊게`() {
-        val engine = BattleEngine(
-            dungeon = Dungeons.byIndex(3)!!,
-            difficulty = Difficulty.STANDARD,
-            capacity = 8f,
-            initialPlayer = PlayerState.create(PlayerClass.KNIGHT, level = 1),
-            detector = DetectorFactory.create(ExerciseType.PUSHUP),
-            resolver = CombatResolver(),
-        )
-        TraceReplay.frames(load("pushup-head-camera.json.gz")).forEach { engine.onPoseFrame(it) }
-        val outcome = engine.quit()
-        assertEquals(5, outcome.reps)
-        assertEquals(5, outcome.deepReps, "reps that went to the floor were not counted 깊게")
-        assertEquals(Stars.THREE, outcome.stars, "mean depth ${outcome.meanDepth}: the result screen said 다음엔 더 깊게")
+    fun `pushups with the chest on the floor are every one 깊게`() {
+        val detector = DetectorFactory.create(ExerciseType.PUSHUP)
+        val ceiling = CeilingSurvival.forExercise(ExerciseType.PUSHUP)
+        val events = TraceReplay.frames(load("pushup-head-camera.json.gz")).flatMap { frame ->
+            ceiling.onTick(detector.onFrame(frame))
+        }
+        // Counted as the session banks them: see CatSession.
+        val deep = events.count { it is SurvivalEvent.Deepened || (it is SurvivalEvent.Pushed && it.deep && !it.hold) }
+        assertEquals(5, ceiling.state().reps)
+        assertEquals(5, deep, "reps that went to the floor were not counted 깊게: $events")
     }
 
     @Test

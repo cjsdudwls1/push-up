@@ -10,7 +10,7 @@ import com.pushuprpg.app.domain.DailyTotal
 import com.pushuprpg.app.domain.ProgressRepository
 import com.pushuprpg.app.domain.SessionRepository
 import com.pushuprpg.core.detect.ExerciseType
-import com.pushuprpg.core.progression.Climb
+import com.pushuprpg.core.progression.Calories
 import com.pushuprpg.core.progression.DayTotal
 import com.pushuprpg.core.progression.Gifts
 import com.pushuprpg.core.progression.Records
@@ -67,7 +67,7 @@ class HomeViewModel(
                 Days(total, sessionRepository.workOn(epochDay), totals)
             }
         },
-        // Every run, for the climb, the records, the gifts and the day of the last workout.
+        // Every run, for the calories, the records, the gifts and the day of the last workout.
         sessionRepository.facts(),
     ) { progress, days, facts ->
         val (thisWeek, lastWeek) = Weeks.thisAndLast(
@@ -81,7 +81,7 @@ class HomeViewModel(
             todayWork = days.work,
             loading = false,
             today = days.today.epochDay,
-            climb = Climb.progress(Climb.meters(facts)),
+            burn = Calories.progress(Calories.of(facts)),
             records = Records.of(facts),
             thisWeek = thisWeek,
             lastWeek = lastWeek,

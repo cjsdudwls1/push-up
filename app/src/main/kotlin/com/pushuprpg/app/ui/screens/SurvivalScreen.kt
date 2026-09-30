@@ -65,8 +65,8 @@ import com.pushuprpg.app.ui.components.rememberModelStalled
 import com.pushuprpg.app.ui.theme.LocalReduceMotion
 import com.pushuprpg.app.ui.theme.Palette
 import com.pushuprpg.app.ui.theme.Type
-import com.pushuprpg.app.ui.battle.CameraText
-import com.pushuprpg.app.ui.battle.SkeletonOverlay
+import com.pushuprpg.app.ui.components.CameraText
+import com.pushuprpg.app.ui.components.SkeletonOverlay
 import com.pushuprpg.app.ui.components.FramingGuide
 import com.pushuprpg.app.ui.components.PlacementBanner
 import com.pushuprpg.app.ui.components.exerciseHintRes
@@ -91,8 +91,8 @@ import kotlinx.coroutines.delay
 /**
  * 고냥이 지켜줘.
  *
- * A deliberately different register from the dungeon: warm, round, no skeleton, no HP numbers, no
- * depth gauge — the descending ceiling *is* the gauge. This is the mode people are shown first and
+ * A deliberately warm, round register: no skeleton, no numbers on the run, no depth gauge — the
+ * descending ceiling *is* the gauge. This is the mode people are shown first and
  * the one they send to a friend, so it must not look like sports science.
  *
  * A session is ten lives — ten sets — with a rest between them that the screen counts down; the
@@ -255,14 +255,17 @@ fun SurvivalScreen(
                 color = Palette.TextPrimary,
             )
             // Not in the tutorial: a best of 0 says nothing to someone who has never played, and it
-            // has one life, which hearts would only count down.
+            // has one life, which hearts would only count down. The best is this movement's own, and
+            // says so — a pull-up's score is not a pushup's.
             if (!isTutorial) {
-                Spacer(Modifier.height(2.dp))
-                CameraText(
-                    text = stringResource(R.string.survival_best, bestScore),
-                    style = Type.bodyM,
-                    color = Palette.TextSecondary,
-                )
+                if (bestScore > 0) {
+                    Spacer(Modifier.height(2.dp))
+                    CameraText(
+                        text = stringResource(R.string.survival_best_of, stringResource(exerciseLabelRes(exercise)), bestScore),
+                        style = Type.bodyM,
+                        color = Palette.TextSecondary,
+                    )
+                }
                 Spacer(Modifier.height(4.dp))
                 LivesRow(lives = state.lives, left = state.livesLeft)
             }
@@ -309,7 +312,7 @@ fun SurvivalScreen(
             }
         }
 
-        // Top left, as in a dungeon. Leaving mid-run keeps the run, as a game over does.
+        // Top left. Leaving mid-run keeps the run, as a game over does.
         if (!isTutorial) {
             Box(
                 Modifier
@@ -420,8 +423,8 @@ fun SurvivalScreen(
 }
 
 /**
- * Asked when back is pressed while the tutorial's ceiling waits, over the screen as a dungeon's
- * quit is. Skipping is for good — the tutorial does not open again — and the ceiling is still until
+ * Asked when back is pressed while the tutorial's ceiling waits, over the screen. Skipping is for
+ * good — the tutorial does not open again — and the ceiling is still until
  * the user is in position, so there is nothing to lose by asking.
  */
 @Composable
@@ -446,7 +449,7 @@ private fun BoxScope.SkipConfirm(onSkip: () -> Unit, onStay: () -> Unit) {
             color = Palette.TextPrimary,
         )
         Spacer(Modifier.height(4.dp))
-        PrimaryButton(text = stringResource(R.string.battle_resume), onClick = onStay)
+        PrimaryButton(text = stringResource(R.string.run_resume), onClick = onStay)
         SecondaryButton(text = stringResource(R.string.action_skip), onClick = onSkip)
     }
 }
@@ -848,7 +851,7 @@ private fun RestCard(
 
 /**
  * Every life spent: the session's score, what each life made, and what the session did for the
- * climb and the records, which is the part that says the work is going somewhere.
+ * calories and the records, which is the part that says the work is going somewhere.
  */
 @Composable
 private fun SessionOverCard(
@@ -894,7 +897,11 @@ private fun SessionOverCard(
         )
         Spacer(Modifier.height(4.dp))
         Text(
-            text = stringResource(R.string.survival_best, maxOf(bestScore, state.totalScore)),
+            text = stringResource(
+                R.string.survival_best_of,
+                stringResource(exerciseLabelRes(exercise)),
+                maxOf(bestScore, state.totalScore),
+            ),
             style = Type.labelM,
             color = Palette.TextTertiary,
         )

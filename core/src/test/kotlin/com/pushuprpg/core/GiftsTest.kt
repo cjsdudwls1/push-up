@@ -77,11 +77,12 @@ class GiftsTest {
     }
 
     @Test
-    fun `the climb's gifts wait for their places`() {
-        // 830 pushups is 249 m: the 63 building.
-        val facts = listOf(run(1, reps = 830, bestSet = 30))
-        assertTrue(Gift.CLIMB_SIXTY_THREE in Gifts.earned(facts, 1))
-        assertFalse(Gift.CLIMB_HALLASAN in Gifts.earned(facts, 1))
+    fun `the calorie gifts wait for their foods`() {
+        // 1,108 pushups is 300 kcal: a bowl of rice, and not yet a chicken.
+        val facts = listOf(run(1, reps = 1_108, bestSet = 30))
+        assertTrue(Gift.BURN_RICE in Gifts.earned(facts, 1))
+        assertFalse(Gift.BURN_CHICKEN in Gifts.earned(facts, 1))
+        assertFalse(Gift.BURN_RICE in Gifts.earned(listOf(run(1, reps = 1_100, bestSet = 30)), 1))
     }
 
     @Test
@@ -129,7 +130,7 @@ class GiftsTest {
         for (gift in Gift.entries) {
             when (gift.kind) {
                 Gift.Kind.SET, Gift.Kind.STREAK, Gift.Kind.RECORDS -> assertTrue(gift.count > 0, "$gift")
-                Gift.Kind.CLIMB -> assertTrue(gift.place != null, "$gift")
+                Gift.Kind.BURN -> assertTrue(gift.food != null, "$gift")
                 else -> Unit
             }
         }

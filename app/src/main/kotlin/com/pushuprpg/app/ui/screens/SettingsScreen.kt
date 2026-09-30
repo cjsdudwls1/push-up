@@ -25,15 +25,11 @@ import com.pushuprpg.app.ui.components.cardSurface
 import com.pushuprpg.app.ui.theme.LocalGameColors
 import com.pushuprpg.app.ui.theme.Palette
 import com.pushuprpg.app.ui.theme.Type
-import com.pushuprpg.core.detect.SkeletonMode
-import com.pushuprpg.core.game.Difficulty
 
 @Composable
 fun SettingsScreen(
     settings: AppSettings,
     onChange: ((AppSettings) -> AppSettings) -> Unit,
-    onRecalibrate: () -> Unit,
-    onChangeClass: () -> Unit,
     onOpenPrivacy: () -> Unit,
     onOpenTerms: () -> Unit,
     modifier: Modifier = Modifier,
@@ -58,22 +54,11 @@ fun SettingsScreen(
             color = Palette.TextPrimary,
         )
 
-        // 절전 집중 모드 leads, because it is three features at once — the accessibility mode, the
-        // battery fix, and the honest test of whether the audio design carries the game. Burying it
-        // among the toggles would hide the most useful setting in the app.
-        Spacer(Modifier.height(6.dp))
-        FeatureCard(
-            title = stringResource(R.string.settings_audio_only),
-            subtitle = stringResource(R.string.settings_audio_only_sub),
-            checked = settings.audioOnly,
-            onCheckedChange = { v -> onChange { it.copy(audioOnly = v) } },
-        )
-
         Spacer(Modifier.height(10.dp))
         SectionHeader(text = stringResource(R.string.settings_section_display))
         SegmentedSetting(
             title = stringResource(R.string.settings_theme),
-            // Said here so that a dark battle screen after picking light does not read as a bug.
+            // Said here so that a dark run screen after picking light does not read as a bug.
             subtitle = stringResource(R.string.settings_theme_sub),
             options = ThemeMode.entries,
             labelFor = {
@@ -86,38 +71,6 @@ fun SettingsScreen(
             },
             selected = settings.themeMode,
             onSelect = { v -> onChange { it.copy(themeMode = v) } },
-        )
-        SegmentedSetting(
-            title = stringResource(R.string.settings_overlay),
-            subtitle = stringResource(R.string.settings_overlay_sub),
-            options = SkeletonMode.entries,
-            labelFor = {
-                stringResource(
-                    when (it) {
-                        SkeletonMode.OFF -> R.string.settings_overlay_off
-                        SkeletonMode.MINIMAL -> R.string.settings_overlay_minimal
-                        SkeletonMode.FULL -> R.string.settings_overlay_full
-                    }
-                )
-            },
-            selected = settings.skeletonMode,
-            onSelect = { v -> onChange { it.copy(skeletonMode = v) } },
-        )
-        SegmentedSetting(
-            title = stringResource(R.string.settings_gauge_side),
-            subtitle = stringResource(R.string.settings_gauge_side_sub),
-            options = listOf(true, false),
-            labelFor = {
-                stringResource(if (it) R.string.settings_gauge_right else R.string.settings_gauge_left)
-            },
-            selected = settings.gaugeOnRight,
-            onSelect = { v -> onChange { it.copy(gaugeOnRight = v) } },
-        )
-        SwitchSetting(
-            title = stringResource(R.string.settings_gauge_number),
-            subtitle = stringResource(R.string.settings_gauge_number_sub),
-            checked = settings.showGaugeNumber,
-            onCheckedChange = { v -> onChange { it.copy(showGaugeNumber = v) } },
         )
         // 큰 글씨, 배경 음악, 음성 안내 and 자막 were listed here and did nothing: no screen read them,
         // and the app ships no music or voice. A switch that changes nothing teaches people that
@@ -189,42 +142,14 @@ fun SettingsScreen(
             subtitle = stringResource(R.string.settings_cat_rest_sub),
             options = CAT_REST_OPTIONS,
             labelFor = { seconds ->
-                if (seconds % 60 == 0) stringResource(R.string.settings_auto_next_minutes, seconds / 60)
+                if (seconds % 60 == 0) stringResource(R.string.settings_rest_minutes, seconds / 60)
                 else stringResource(R.string.settings_rest_minutes_seconds, seconds / 60, seconds % 60)
             },
             selected = settings.catRestSeconds.takeIf { it in CAT_REST_OPTIONS } ?: CAT_REST_OPTIONS.first(),
             onSelect = { v -> onChange { it.copy(catRestSeconds = v) } },
         )
-        SegmentedSetting(
-            title = stringResource(R.string.settings_auto_next),
-            subtitle = stringResource(R.string.settings_auto_next_sub),
-            options = AUTO_NEXT_REST_OPTIONS,
-            labelFor = { seconds ->
-                if (seconds == 0) stringResource(R.string.settings_auto_next_off)
-                else stringResource(R.string.settings_auto_next_minutes, seconds / 60)
-            },
-            selected = settings.autoNextRestSeconds.takeIf { it in AUTO_NEXT_REST_OPTIONS } ?: 0,
-            onSelect = { v -> onChange { it.copy(autoNextRestSeconds = v) } },
-        )
-        // No exercise picker here. It lives on the way into a dungeon, where the choice is actually
-        // being made and where the per-exercise camera placement is worth reading.
-        SegmentedSetting(
-            title = stringResource(R.string.settings_difficulty),
-            subtitle = stringResource(R.string.settings_difficulty_sub),
-            options = Difficulty.entries,
-            labelFor = { it.korean },
-            selected = settings.difficulty,
-            onSelect = { v -> onChange { it.copy(difficulty = v) } },
-        )
-        ActionSetting(
-            title = stringResource(R.string.class_change_title),
-            onClick = onChangeClass,
-        )
-        ActionSetting(
-            title = stringResource(R.string.settings_recalibrate),
-            subtitle = stringResource(R.string.settings_recalibrate_sub),
-            onClick = onRecalibrate,
-        )
+        // No exercise picker here. It is the hub's 운동 바꾸기, where the choice is actually being
+        // made and where the per-exercise camera placement is worth reading.
 
         if (traceTools) {
             Spacer(Modifier.height(10.dp))
@@ -273,39 +198,6 @@ fun SettingsScreen(
         ActionSetting(
             title = stringResource(R.string.settings_terms),
             onClick = onOpenTerms,
-        )
-    }
-}
-
-@Composable
-private fun FeatureCard(
-    title: String,
-    subtitle: String,
-    checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit,
-) {
-    val colors = LocalGameColors.current
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .cardSurface(
-                shape = RoundedCornerShape(18.dp),
-                color = if (checked) Palette.BrandWash else Palette.Bg2,
-            )
-            .clickable { onCheckedChange(!checked) }
-            .padding(16.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(Modifier.weight(1f)) {
-            Text(text = title, style = Type.titleM, color = Palette.TextPrimary)
-            Spacer(Modifier.height(4.dp))
-            Text(text = subtitle, style = Type.bodyM, color = Palette.TextSecondary)
-        }
-        Spacer(Modifier.width(12.dp))
-        Switch(
-            checked = checked,
-            onCheckedChange = onCheckedChange,
-            colors = SwitchDefaults.colors(checkedTrackColor = colors.accept),
         )
     }
 }
@@ -415,9 +307,6 @@ private fun musicLabelRes(track: MusicTrack): Int = when (track) {
     MusicTrack.FOCUS -> R.string.settings_music_focus
     MusicTrack.CALM -> R.string.settings_music_calm
 }
-
-/** Rest between dungeons, in seconds; 0 is off. Two minutes is a normal rest between sets. */
-private val AUTO_NEXT_REST_OPTIONS = listOf(0, 60, 120, 180)
 
 /**
  * Rest between two lives of 고냥이 지켜줘, in seconds. A minute is the owner's default; more suits a

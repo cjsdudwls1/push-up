@@ -49,7 +49,6 @@ data class ExerciseDescriptor(
     val signal: RepSignal?,
     /** Thresholds, priors and clamps. The detector reads nothing else. */
     val config: DetectorConfig,
-    /** Damage per rep relative to a pushup. The balance knob; never an enemy HP number. */
     /** Where the body frame's axis and scale come from. See [AxisSource]. */
     val axisSource: AxisSource = AxisSource.SHOULDER_PAIR,
     /** How much of the core the quality gate insists on seeing. See [CoreConfidence]. */
@@ -76,24 +75,18 @@ data class ExerciseDescriptor(
      * RealTraceTest replays and counts, which that test pins.
      */
     val validatedOnDevice: Boolean = false,
-    val damageCoefficient: Float,
     /**
-     * Reps of *this* movement that make up the same session as one rep of content authored in
-     * pushups.
+     * Reps of *this* movement that make up the same session as one pushup: what 고냥이 지켜줘's
+     * ceiling converts a rep into (see [com.pushuprpg.core.survival.CeilingSurvival]).
      *
-     * Deliberately not [damageCoefficient], which is a per-rep damage ratio and answers a different
-     * question. A pull-up is worth 2.6 pushups as one rep of effort; that does not make a pull-up
-     * session 2.6 times shorter than a pushup session, it makes it about three times shorter,
-     * because a near-max movement caps out on volume long before a bodyweight push does. Using the
-     * damage coefficient for this gave 154 pull-ups and 471 bench reps for a 400-rep tier, neither
-     * of which is a session that exists.
+     * A session's worth, not one rep's effort. A pull-up is far harder than a pushup as one rep, but
+     * a pull-up session is about three times shorter, not the effort ratio shorter, because a
+     * near-max movement caps out on volume long before a bodyweight push does.
      *
      * Anchored on a trained pushup session of ~150 reps: pull-up 45, dip 45, squat 100, lunge 130.
      * A hold is in seconds, not reps.
      */
     val sessionVolumeScale: Float,
-    /** Starting capacity for a user who has never done this movement — reps, or seconds for a hold. */
-    val defaultCapacity: Float,
     /** Reps (or seconds, for a hold) in one day that keep a streak alive. */
     val streakBar: Int,
 ) {
@@ -138,9 +131,7 @@ data class ExerciseDescriptor(
         require(sideView == null || (kind == MovementKind.REP && axisSource == AxisSource.SHOULDER_PAIR)) {
             "$type has a side view, which only a movement read across the shoulder line needs"
         }
-        require(damageCoefficient > 0f) { "$type must deal damage" }
-        require(sessionVolumeScale > 0f) { "$type needs a session volume scale or a tier costs nothing" }
-        require(defaultCapacity > 0f) { "$type needs a starting capacity" }
+        require(sessionVolumeScale > 0f) { "$type needs a session volume scale or a rep moves nothing" }
         require(streakBar > 0) { "$type needs a streak bar" }
     }
 }
@@ -489,9 +480,7 @@ object Exercises {
         ),
         config = DetectorConfig(ExerciseType.PUSHUP),
         validatedOnDevice = true,
-        damageCoefficient = 1.00f,
         sessionVolumeScale = 1.00f,
-        defaultCapacity = 8f,
         streakBar = 10,
     )
 
@@ -537,9 +526,7 @@ object Exercises {
             topClampMin = 0.70f, topClampMax = 1.60f,
             botClampMin = -0.50f, botClampMax = 0.80f,
         ),
-        damageCoefficient = 0.85f,
         sessionVolumeScale = 0.67f,
-        defaultCapacity = 12f,
         streakBar = 15,
     )
 
@@ -600,12 +587,7 @@ object Exercises {
             botClampMin = 0.05f, botClampMax = 1.30f,
         ),
         validatedOnDevice = true,
-        // A pull-up is worth roughly two and a half pushups: typical untrained maxima are about
-        // twenty and seven. This coefficient is the knob to turn if a floor feels wrong — never an
-        // enemy HP number, because there isn't one.
-        damageCoefficient = 2.60f,
         sessionVolumeScale = 0.30f,
-        defaultCapacity = 4f,
         streakBar = 5,
     )
 
@@ -621,9 +603,7 @@ object Exercises {
         signal = null,
         config = DetectorConfig(ExerciseType.PLANK),
         validatedOnDevice = true,
-        damageCoefficient = 1.00f,
         sessionVolumeScale = 2.00f,
-        defaultCapacity = 20f,
         streakBar = 60,
     )
 
@@ -685,9 +665,7 @@ object Exercises {
             botClampMin = -0.60f, botClampMax = 0.70f,
         ),
         validatedOnDevice = true,
-        damageCoefficient = 0.95f,
         sessionVolumeScale = 0.87f,
-        defaultCapacity = 12f,
         streakBar = 15,
     )
     /**
@@ -762,9 +740,7 @@ object Exercises {
         validatedOnDevice = true,
         // Between a pushup and a pull-up, nearer the pull-up: a dip is near-max for most people but
         // the hands carry less than a full hang.
-        damageCoefficient = 1.90f,
         sessionVolumeScale = 0.30f,
-        defaultCapacity = 6f,
         streakBar = 8,
     )
 

@@ -16,7 +16,7 @@ import com.pushuprpg.app.R
 import com.pushuprpg.app.domain.DailyTotal
 import com.pushuprpg.app.domain.PlayerProgress
 import com.pushuprpg.app.domain.SessionRecord
-import com.pushuprpg.app.ui.components.ClimbCard
+import com.pushuprpg.app.ui.components.CalorieCard
 import com.pushuprpg.app.ui.components.SectionHeader
 import com.pushuprpg.app.ui.components.StatTile
 import com.pushuprpg.app.ui.components.cardSurface
@@ -28,8 +28,7 @@ import com.pushuprpg.app.ui.theme.Type
 import com.pushuprpg.core.detect.ExerciseType
 import com.pushuprpg.core.detect.Exercises
 import com.pushuprpg.core.detect.MovementKind
-import com.pushuprpg.core.game.Dungeons
-import com.pushuprpg.core.progression.Climb
+import com.pushuprpg.core.progression.Calories
 import com.pushuprpg.core.progression.MovementRecord
 import com.pushuprpg.core.progression.Records
 import com.pushuprpg.core.progression.SessionFacts
@@ -50,15 +49,15 @@ fun RecordsScreen(
     progress: PlayerProgress,
     sessions: List<SessionRecord>,
     dailyTotals: List<DailyTotal>,
-    /** Every run, for the climb, each movement's records and the days trained. */
+    /** Every run, for the calories, each movement's records and the days trained. */
     facts: List<SessionFacts>,
-    /** The movement picked last, whose count to the next place the climb quotes. */
+    /** The movement picked last, whose count to the next food the calorie card quotes. */
     exercise: ExerciseType,
     modifier: Modifier = Modifier,
 ) {
     val colors = LocalGameColors.current
     val format = NumberFormat.getIntegerInstance(Locale.KOREA)
-    val climb = remember(facts) { Climb.progress(Climb.meters(facts)) }
+    val burn = remember(facts) { Calories.progress(Calories.of(facts)) }
     // Most done first: the movement someone actually trains leads.
     val records = remember(facts) { Records.of(facts).values.sortedByDescending { it.total } }
     val daysTrained = remember(facts) { facts.map { it.epochDay }.distinct().size }
@@ -112,7 +111,7 @@ fun RecordsScreen(
             }
         }
 
-        item { ClimbCard(progress = climb, exercise = exercise) }
+        item { CalorieCard(progress = burn, exercise = exercise) }
 
         // Each movement's best one go against its first: the number that says the body is changing.
         if (records.isNotEmpty()) {
@@ -209,11 +208,11 @@ private fun ActivityGrid(totals: List<DailyTotal>) {
 }
 
 /**
- * One run, or one movement of a run that switched: what was done, when, and how much.
+ * One session: what was done, when, and how much.
  *
- * The movement leads the line, since a run that switched banks a row per movement and those rows
- * share a dungeon name. A hold is told in seconds, which is what it counts. The table keeps no hold
- * time, so the seconds are the row's length, which for a hold is written as the time it was held.
+ * A row from before the dungeons were taken out says so, and counts like any other. A hold is told
+ * in seconds, which is what it counts. The table keeps no hold time, so the seconds are the row's
+ * length, which for a hold is written as the time it was held.
  */
 @Composable
 private fun SessionRow(session: SessionRecord) {
@@ -240,8 +239,9 @@ private fun SessionRow(session: SessionRecord) {
     ) {
         Column(Modifier.weight(1f)) {
             Text(
-                text = Dungeons.byIndex(session.dungeonIndex ?: 0)?.korean
-                    ?: stringResource(R.string.survival_title),
+                text = stringResource(
+                    if (session.dungeonIndex != null) R.string.records_session_dungeon else R.string.survival_title
+                ),
                 style = Type.titleM,
                 color = Palette.TextPrimary,
             )

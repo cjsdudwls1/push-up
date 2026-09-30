@@ -84,9 +84,8 @@ sealed interface SurvivalEvent {
  * The curve above is written in pushups, and every other movement is converted into them rather
  * than given a curve of its own: a rep is worth [pushupsPerRep] pushups of lift and score, and a
  * second of a hold the same. The number is the movement's own
- * [com.pushuprpg.core.detect.ExerciseDescriptor.sessionVolumeScale] — the one a dungeon's rep cost
- * is converted by — so a pull-up, which a person manages about a third as many of, moves the ceiling
- * about three times as far, and a movement is worth the same here as everywhere else in the game.
+ * [com.pushuprpg.core.detect.ExerciseDescriptor.sessionVolumeScale], so a pull-up, which a person
+ * manages about a third as many of, moves the ceiling about three times as far.
  */
 class CeilingSurvival(
     private val config: DetectorConfig = DetectorConfig.pushup(),
@@ -175,8 +174,8 @@ class CeilingSurvival(
      *
      * Once started, the ceiling never stops. Resting, standing up, stepping out of view — it keeps
      * coming, and the only thing that holds it off is the next rep. This mode used to freeze
-     * whenever the user was out of position, by the same rule the dungeon keeps (never punish a
-     * tracking failure), and that made it something you could pause by sitting up. The mode is a
+     * whenever the user was out of position, by the app's rule never to punish a tracking failure,
+     * and that made it something you could pause by sitting up. The mode is a
      * sprint for a cat, and a sprint you can pause is not one; this is the deliberate exception to
      * that rule, and CLAUDE.md says so.
      */

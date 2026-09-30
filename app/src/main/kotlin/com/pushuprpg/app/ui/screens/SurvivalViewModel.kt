@@ -18,25 +18,26 @@ import com.pushuprpg.app.trace.RunTraces
 import com.pushuprpg.app.domain.SessionRecord
 import com.pushuprpg.app.domain.SessionRepository
 import com.pushuprpg.core.detect.DetectorFactory
-import com.pushuprpg.app.domain.capacityOf
+import com.pushuprpg.app.domain.bestSurvivalScoreOf
 import com.pushuprpg.app.domain.wearFound
-import com.pushuprpg.app.domain.withCapacity
+import com.pushuprpg.app.domain.withSurvivalScore
 import com.pushuprpg.core.detect.ExerciseType
 import com.pushuprpg.core.detect.Exercises
 import com.pushuprpg.core.detect.MovementKind
 import com.pushuprpg.core.detect.Placement
 import com.pushuprpg.core.detect.PlacementAdvice
 import com.pushuprpg.core.detect.PlacementCoach
+import com.pushuprpg.core.detect.PoseQuality
 import com.pushuprpg.core.detect.PoseTick
 import com.pushuprpg.core.detect.RepDetector
 import com.pushuprpg.core.detect.RepEvent
 import com.pushuprpg.core.detect.RenderSkeleton
 import com.pushuprpg.core.detect.SkeletonMode
-import com.pushuprpg.core.progression.Capacity
 import com.pushuprpg.core.progression.RunGrowth
 import com.pushuprpg.core.progression.SessionFacts
 import com.pushuprpg.core.progression.Streak
 import com.pushuprpg.core.progression.StreakState
+import com.pushuprpg.core.run.TrackingDrops
 import com.pushuprpg.core.survival.CatCompanion
 import com.pushuprpg.core.survival.CatPhase
 import com.pushuprpg.core.survival.CatSession
@@ -83,9 +84,9 @@ class SurvivalViewModel(
     @Volatile
     private var restMs = CatSession.REST_MS
 
-    // Through the factory, like a dungeon run, so a plank gets the hold detector rather than a rep
-    // state machine that would count nothing. The overlay is off: the mode's whole appeal is that
-    // it looks like a toy, and a joint diagram over the top would undo that immediately.
+    // Through the factory, so a plank gets the hold detector rather than a rep state machine that
+    // would count nothing. The overlay is off: the mode's whole appeal is that it looks like a toy,
+    // and a joint diagram over the top would undo that immediately.
     private val detector: RepDetector =
         DetectorFactory.create(exercise).also { it.skeletonMode = SkeletonMode.OFF }
 
@@ -137,12 +138,21 @@ class SurvivalViewModel(
         // Scoped to the destination, so without loading it back the mode reported "최고 0점" every
         // time the user returned — in the one place the product is built around a score.
         viewModelScope.launch {
-            _bestScore.value = progressRepository.current().bestSurvivalScore
+            _bestScore.value = progressRepository.current().bestSurvivalScoreOf(exercise)
         }
     }
 
     // Counted on the pose thread; read on the main one when the user leaves mid-run.
     @Volatile private var maxCombo = 0
+
+    /**
+     * How often tracking lost the user once in position, for cat_session_finished: H2, whether the
+     * tracker works on real phones. Fed on the pose thread, only while a life is on.
+     */
+    @Volatile private var tracking = TrackingDrops()
+
+    /** Null, not OK, outside a life: see the quality_lost log in [onPoseFrame]. Pose thread. */
+    private var lastReportedQuality: PoseQuality? = null
 
     /** When the first life started, by the phone's clock: the day the session is filed under. */
     @Volatile private var startedWallMs = 0L
@@ -198,9 +208,10 @@ class SurvivalViewModel(
         val step = session.onTick(tick)
         val now = session.state()
         if (startedWallMs == 0L && now.started) startedWallMs = System.currentTimeMillis()
+        reportTracking(before.phase, now, tick)
 
-        // Straight from this thread, like the dungeon's: a push has to be heard as it lands. The cat
-        // decides what it says about a rest as well as about a life.
+        // Straight from this thread: a push has to be heard as it lands. The cat decides what it
+        // says about a rest as well as about a life.
         audio.play(cat.update(now.life, step.life, tick.tMs) + cat.rest(now.restLeftMs, step.session, tick.tMs))
         val catView = cat.view()
         // The cat's lines are heard as well as read: the bubble is small and the phone is far. Where
@@ -222,6 +233,29 @@ class SurvivalViewModel(
             if (now.totalScore > _bestScore.value) _bestScore.value = now.totalScore
             save(now)
         }
+    }
+
+    /**
+     * Tracking health for H2, read only while a life is on: a rest is for stepping away, and losing
+     * the user then is not the tracker's doing. The end of a life is a changeover, as switching
+     * movement once was — its last seconds are left out, and the next life has to arm again.
+     *
+     * Every drop is also sent on its own, with its reason: that is what says why. Only once tracking
+     * has been OK, since a life starts with nobody in position yet. The tutorial sends neither, as it
+     * sends no cat_session_finished.
+     */
+    private fun reportTracking(was: CatPhase, now: CatSessionState, tick: PoseTick) {
+        if (tutorial) return
+        if (now.phase != CatPhase.PLAYING) {
+            if (was == CatPhase.PLAYING) tracking.onSwitch()
+            lastReportedQuality = null
+            return
+        }
+        tracking.onFrame(tick.tMs, tick.quality, tick.phase)
+        if (tick.quality != PoseQuality.OK && lastReportedQuality == PoseQuality.OK) {
+            telemetry.log(Event.QualityLost(tick.quality, now.life.reps, armed = tracking.armed))
+        }
+        lastReportedQuality = tick.quality
     }
 
     /**
@@ -268,6 +302,8 @@ class SurvivalViewModel(
         coach.reset()
         announcer.reset()
         maxCombo = 0
+        tracking = TrackingDrops()
+        lastReportedQuality = null
         startedWallMs = 0L
         _nearMisses.value = 0
         _growth.value = null
@@ -310,15 +346,11 @@ class SurvivalViewModel(
     }
 
     /**
-     * Seeds the player's capacity from the tutorial run and marks onboarding complete.
-     *
-     * The first survival run is the calibration set: it is the only moment the app can ask someone
-     * to do as many as they can without it feeling like a test, because they are busy protecting a
-     * cat.
+     * Marks onboarding complete once the tutorial run has been played.
      *
      * The done card's button ends it, and so does back once the ceiling is moving; a run ended
      * before the ceiling came down is banked first, as an ending banks it. Once, however many ways
-     * it is asked for: a double tap on the card applied the capacity twice.
+     * it is asked for: a double tap on the card once finished it twice.
      *
      * [closed] is the screen going rather than the user leaving it, for the ending H3 is read by.
      */
@@ -327,7 +359,6 @@ class SurvivalViewModel(
         if (!tutorialEnded.compareAndSet(false, true)) return
         val now = _state.value
         if (now.started) save(now)
-        val observed = now.bestLifeReps
         val ended = when {
             now.phase == CatPhase.OVER -> TutorialEnd.CRUSHED
             closed -> TutorialEnd.CLOSED
@@ -337,14 +368,7 @@ class SurvivalViewModel(
         // The tap that calls this also leaves the screen; in its own scope the write could be
         // cancelled, and the tutorial would come back on the next launch.
         appScope.launch {
-            progressRepository.update { current ->
-                current
-                    .withCapacity(
-                        exercise,
-                        Capacity.update(current.capacityOf(exercise), observed),
-                    )
-                    .copy(onboarded = true)
-            }
+            progressRepository.update { it.copy(onboarded = true) }
         }
     }
 
@@ -354,8 +378,7 @@ class SurvivalViewModel(
      *
      * Someone who cannot get down on the floor, whose room will not fit the phone, or whose phone
      * cannot run the model was held on a camera screen with no way past it: back closed the app, and
-     * opening it again opened the tutorial. Onboarding is complete and nothing is measured — the
-     * capacity keeps what it was, which is what a skipped calibration should mean.
+     * opening it again opened the tutorial. Onboarding is complete, and nothing is banked.
      */
     fun skipTutorial() {
         stopPlaying()
@@ -368,10 +391,10 @@ class SurvivalViewModel(
     }
 
     /**
-     * Survival reps count toward the lifetime total and the day's streak exactly like dungeon reps,
-     * and so do the tutorial's, which is banked here too.
+     * A session's reps count toward the lifetime total and the day's streak, and so do the
+     * tutorial's, which is banked here too.
      *
-     * They have to: the climb is built from every rep, and a mode whose work did not count would
+     * They have to: the calories are counted from every rep, and a mode whose work did not count would
      * quietly break the app's central promise that every rep is kept. Left out of the streak, the
      * quickest mode to play could never start one.
      *
@@ -393,9 +416,8 @@ class SurvivalViewModel(
         val plausibility = summary.plausibility
         val hold = Exercises.of(exercise).kind == MovementKind.HOLD
         val work = mapOf(exercise to Streak.amount(exercise, repsDone, summary.holdMs))
-        // As a dungeon's: a hold's row is as long as it was held, which is what the records screen
-        // and the day's streak bar read off it. Otherwise the time the lives were played: a rest is
-        // not activity.
+        // A hold's row is as long as it was held, which is what the records screen and the day's
+        // streak bar read off it. Otherwise the time the lives were played: a rest is not activity.
         val durationMs = if (hold) summary.holdMs else playedMs
         val startedAt = startedWallMs.takeIf { it > 0L } ?: (System.currentTimeMillis() - playedMs)
         // Every life played out. Never the tutorial's one life: its row must not read as a session
@@ -412,12 +434,14 @@ class SurvivalViewModel(
                     durationMs = playedMs,
                     refunded = lives.any { it.refunded },
                     completed = completed,
+                    plausibility = plausibility,
+                    tracking = tracking.summary(),
                 )
             )
         }
 
         appScope.launch {
-            // Judged as a dungeon run is: on the day the session started, with the rest of that day.
+            // Judged on the day the session started, with the rest of that day.
             val epochDay = Instant.ofEpochMilli(startedAt).atZone(ZoneId.systemDefault()).toLocalDate().toEpochDay()
             val doneEarlier = sessionRepository.workOn(epochDay)
             val before = sessionRepository.factsNow()
@@ -431,13 +455,11 @@ class SurvivalViewModel(
                     maxCombo = if (hold) combo else bestSet,
                     deepReps = deep,
                     meanDepth = 0f,
-                    dungeonIndex = null,
                     cleared = completed,
-                    xpEarned = 0,
                     plausibility = plausibility,
                 )
             )
-            // As a dungeon run does: only the run that met the day's bar maintains the streak.
+            // Only the day's work that meets its bar maintains the streak.
             var maintained: Int? = null
             var bestStreakBefore = 0
             var bestStreakAfter = 0
@@ -450,11 +472,10 @@ class SurvivalViewModel(
                 maintained = streak.days.takeIf { streak.lastActiveDay != current.lastActiveEpochDay }
                 bestStreakBefore = current.bestStreakDays
                 bestStreakAfter = maxOf(current.bestStreakDays, streak.days)
-                current.copy(
+                current.withSurvivalScore(exercise, score).copy(
                     lifetimeReps = current.lifetimeReps + repsDone,
                     bestCombo = maxOf(current.bestCombo, bestSet),
                     totalActiveMs = current.totalActiveMs + playedMs,
-                    bestSurvivalScore = maxOf(current.bestSurvivalScore, score),
                     streakDays = streak.days,
                     bestStreakDays = bestStreakAfter,
                     lastActiveEpochDay = streak.lastActiveDay,

@@ -611,8 +611,8 @@ private fun DrawScope.drawHeadItem(item: CatItem, cx: Float, headY: Float, head:
 }
 
 /**
- * A place for the cat to sit, drawn over the whole canvas behind it: one of the scenes the climb's
- * places bring. [floorY] is where the cat's paws are.
+ * A place for the cat to sit, drawn over the whole canvas behind it: one of the scenes the calories
+ * burned bring. [floorY] is where the cat's paws are.
  */
 fun DrawScope.drawCatScene(scene: CatItem, floorY: Float) {
     val w = size.width

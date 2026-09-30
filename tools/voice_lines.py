@@ -13,9 +13,7 @@ Usage:
   tools/voice_lines.py --check   also report which lines have a clip, which do not, and stale clips
 
 lines.json is a list of {"file", "text", "style", "key"}:
-  style  URGENT  the ultimate winding up and its outcome: fast, high, pressing — someone two metres
-                 away mid-rep has to act on it now
-         COACH   a training partner's plain encouragement, 해요체
+  style  COACH   a training partner's plain encouragement, 해요체
          CAT     고냥이, the survival mode's cat: small, cute, frightened or relieved
   key    the string resource and argument it came from, for people
 """
@@ -30,20 +28,15 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 STRINGS = os.path.join(ROOT, "app/src/main/res/values/strings.xml")
 CLIPS = os.path.join(ROOT, "app/src/main/assets/voice")
 OUT = os.path.join(ROOT, "tools/voice/lines.json")
-# Where lines are chosen. Every R.string these name must be listed below or be a fragment.
+# Where lines are chosen. Every R.string these name must be listed below.
 SPEAKERS = [
     os.path.join(ROOT, "app/src/main/kotlin/com/pushuprpg/app/audio/GameVoice.kt"),
 ]
 
-# The ultimate is blocked by three answers: said as "세 번", and the count down as "두 번 더!", "한 번 더!".
-ANSWERS_TO_BLOCK = 3
-# Battle combo callouts every 10; the cat's every 10; the cat's time callouts every 30 s. Lines past
-# these ranges are rare and fall back to text-to-speech.
+# The cat's combo callouts every 10, and its time callouts every 30 s. Lines past these ranges are
+# rare and fall back to text-to-speech.
 COMBOS = range(10, 101, 10)
 SECONDS = range(30, 301, 30)
-
-# Pieces of other lines, never spoken alone.
-FRAGMENTS = {f"voice_times_{n}" for n in range(1, 6)}
 
 
 def load_strings():
@@ -68,7 +61,6 @@ def fmt(template, *args):
 
 
 def lines(s):
-    times = {n: s[f"voice_times_{n}"] for n in range(1, 6)}
     out = []
 
     def add(name, style, *args, key=None):
@@ -77,25 +69,8 @@ def lines(s):
             sys.exit(f"{name} has escapes or quotes; the clip hash cannot be matched reliably")
         out.append({"text": fmt(t, *args), "style": style, "key": key or name})
 
-    # The ultimate, and its outcome.
-    for name in ("voice_ultimate_knight", "voice_ultimate_archer"):
-        add(name, "URGENT", times[ANSWERS_TO_BLOCK], key=f"{name}:{ANSWERS_TO_BLOCK}")
-    add("voice_ultimate_hold", "URGENT")
-    for left in range(1, ANSWERS_TO_BLOCK):
-        add("voice_answers_left", "URGENT", times[left], key=f"voice_answers_left:{left}")
-    add("voice_ultimate_blocked", "URGENT")
-    add("voice_ultimate_hit", "URGENT")
-
-    # Coaching in battle.
-    for name in ("voice_boss_low", "voice_shallow", "voice_shallow_pull", "battle_not_split",
-                 "voice_style_too_quick", "voice_style_not_full", "voice_style_lagging", "voice_ready",
-                 "voice_rest_ten", "voice_rest_go"):
-        add(name, "COACH")
-    for n in COMBOS:
-        add("voice_combo", "COACH", n, key=f"voice_combo:{n}")
-
-    # Where to move: the placement coach.
-    for name in ("placement_step_into_view", "placement_come_closer", "placement_move_back",
+    # Where to move: the placement coach, and its 좋아요 once the user is in position.
+    for name in ("voice_ready", "placement_step_into_view", "placement_come_closer", "placement_move_back",
                  "placement_show_below", "placement_show_above", "placement_center",
                  "placement_face_standing", "placement_clearer",
                  "quality_unstable_camera", "quality_subject_switch", "quality_implausible_rate",
@@ -130,7 +105,7 @@ def check_speakers(listed_keys):
     missing = []
     for path in SPEAKERS:
         for name in sorted(set(re.findall(r"R\.string\.(\w+)", open(path, encoding="utf-8").read()))):
-            if name not in listed and name not in FRAGMENTS:
+            if name not in listed:
                 missing.append(f"{os.path.relpath(path, ROOT)}: R.string.{name}")
     if missing:
         sys.exit("spoken but not listed in tools/voice_lines.py:\n  " + "\n  ".join(missing))

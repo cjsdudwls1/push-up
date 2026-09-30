@@ -98,17 +98,6 @@ object ShareCards {
     private fun caption(context: Context, data: ShareCardData): String = when (data) {
         is ShareCardData.Survival ->
             context.getString(R.string.survival_share_text, data.score)
-
-        is ShareCardData.Dungeon -> context.getString(
-            when {
-                data.inSeconds && data.cleared -> R.string.share_text_dungeon_cleared_hold
-                data.inSeconds -> R.string.share_text_dungeon_defeat_hold
-                data.cleared -> R.string.share_text_dungeon_cleared
-                else -> R.string.share_text_dungeon_defeat
-            },
-            data.dungeonName,
-            if (data.inSeconds) data.heldSeconds else data.reps,
-        )
     }
 
     private fun authority(context: Context): String = context.packageName + ".fileprovider"

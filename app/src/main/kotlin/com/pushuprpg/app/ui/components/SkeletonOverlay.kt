@@ -1,4 +1,4 @@
-package com.pushuprpg.app.ui.battle
+package com.pushuprpg.app.ui.components
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.runtime.Composable

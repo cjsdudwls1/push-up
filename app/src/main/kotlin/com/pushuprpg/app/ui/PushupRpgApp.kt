@@ -8,11 +8,9 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -42,34 +40,22 @@ import com.pushuprpg.app.BuildConfig
 import com.pushuprpg.app.trace.TraceFiles
 import com.pushuprpg.app.domain.AppSettings
 import com.pushuprpg.app.domain.ThemeMode
-import com.pushuprpg.app.domain.capacityOf
 import com.pushuprpg.app.domain.wearing
 import com.pushuprpg.app.domain.withWear
 import com.pushuprpg.core.detect.ExerciseType
 import com.pushuprpg.app.pose.PoseFrameSink
 import com.pushuprpg.app.share.ShareCardData
-import com.pushuprpg.app.telemetry.Event
 import com.pushuprpg.app.pose.PoseLandmarkerSource
-import com.pushuprpg.app.ui.battle.BattleScreen
 import com.pushuprpg.app.ui.components.ModelErrorBanner
 import com.pushuprpg.app.ui.components.RunMusic
-import com.pushuprpg.app.ui.battle.BattleViewModel
-import com.pushuprpg.app.ui.result.ResultScreen
 import com.pushuprpg.app.ui.screens.*
 import com.pushuprpg.app.R
 import com.pushuprpg.app.ui.theme.AlwaysDark
 import com.pushuprpg.app.ui.theme.Palette
 import com.pushuprpg.app.ui.theme.PushupRpgTheme
-import com.pushuprpg.core.game.Dungeons
-import com.pushuprpg.core.game.PlayerClass
-import com.pushuprpg.core.progression.Climb
 import com.pushuprpg.core.progression.Gift
 import com.pushuprpg.core.progression.Gifts
-import com.pushuprpg.core.progression.RunGrowth
-import com.pushuprpg.app.ui.components.metersText
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.launch
@@ -143,9 +129,6 @@ fun PushupRpgApp(
             container.settingsRepository.update { it.copy(themeMode = it.themeMode.toggled()) }
         }
     }
-    val changeClass: () -> Unit = {
-        navController.navigate(Routes.CLASS_CHANGE) { launchSingleTop = true }
-    }
 
     PushupRpgTheme(
         darkTheme = darkTheme,
@@ -171,7 +154,7 @@ fun PushupRpgApp(
             // settings or the privacy policy — which says the other screens stay usable.
             val startDestination = remember {
                 when {
-                    !progress.classChosen -> Routes.ONBOARDING
+                    !progress.introSeen -> Routes.ONBOARDING
                     !granted && !progress.onboarded -> Routes.PERMISSION
                     !progress.onboarded -> Routes.survival(tutorial = true)
                     else -> Routes.HOME
@@ -187,47 +170,20 @@ fun PushupRpgApp(
                         themeMode = settings.themeMode,
                         onToggleTheme = toggleTheme,
                         onContinue = {
-                            // No class to pick on the way in: the cat is the front door, and a class
-                            // only prices the dungeons, where it can be changed. The default class
-                            // stands until then. A second tap during the transition would push a
-                            // second tutorial behind the first.
+                            // A second tap during the transition would push a second tutorial
+                            // behind the first.
                             if (navController.isOnTop(entry)) {
                                 scope.launch {
-                                    container.progressRepository.update { it.copy(classChosen = true) }
+                                    container.progressRepository.update { it.copy(introSeen = true) }
                                 }
                                 // Onboarding is not finished here: the tutorial finishes it, run or
-                                // skipped, because its run is also the first measurement of the
-                                // player's capacity.
+                                // skipped.
                                 navController.navigate(
                                     if (granted) Routes.survival(tutorial = true) else Routes.PERMISSION
                                 ) {
                                     popUpTo(Routes.ONBOARDING) { inclusive = true }
                                 }
                             }
-                        },
-                    )
-                }
-
-                composable(Routes.CLASS_CHANGE) {
-                    ClassPickScreen(
-                        capacity = progress.capacityOf(ExerciseType.PUSHUP),
-                        difficulty = settings.difficulty,
-                        current = progress.playerClass,
-                        onPick = { playerClass: PlayerClass ->
-                            val from = progress.playerClass
-                            if (playerClass != from) {
-                                scope.launch {
-                                    container.progressRepository.update {
-                                        it.copy(playerClass = playerClass)
-                                    }
-                                    container.telemetry.log(
-                                        Event.ClassChanged(from = from.name, to = playerClass.name)
-                                    )
-                                }
-                            }
-                            // By route rather than a bare pop, so a second tap that lands before
-                            // the screen has gone cannot pop the hub along with it.
-                            navController.popBackStack(Routes.CLASS_CHANGE, inclusive = true)
                         },
                     )
                 }
@@ -265,7 +221,6 @@ fun PushupRpgApp(
                         // Straight in with the movement the button names; changing it is the link under it.
                         onPlayCat = { navController.navigateFrom(entry, Routes.survival(exercise = settings.exercise)) },
                         onChangeExercise = { navController.navigateFrom(entry, Routes.SURVIVAL_PICK) },
-                        onAdventure = { navController.navigateFrom(entry, Routes.DUNGEON_SELECT) },
                         onRecords = { navController.navigateFrom(entry, Routes.RECORDS) },
                         onSettings = { navController.navigateFrom(entry, Routes.SETTINGS) },
                         onWardrobe = { navController.navigateFrom(entry, Routes.WARDROBE) },
@@ -320,243 +275,8 @@ fun PushupRpgApp(
                     )
                 }
 
-                composable(Routes.DUNGEON_SELECT) { entry ->
-                    DungeonSelectScreen(
-                        highestCleared = progress.highestDungeonCleared,
-                        exercise = settings.exercise,
-                        capacity = progress.capacityOf(settings.exercise),
-                        difficulty = settings.difficulty,
-                        playerClass = progress.playerClass,
-                        onChangeClass = changeClass,
-                        onDifficultyChange = { difficulty ->
-                            scope.launch {
-                                container.settingsRepository.update { it.copy(difficulty = difficulty) }
-                            }
-                        },
-                        onStart = { navController.navigateFrom(entry, Routes.exercisePick(it)) },
-                    )
-                }
-
-                composable(
-                    route = Routes.EXERCISE_PICK,
-                    arguments = listOf(navArgument(Routes.ARG_DUNGEON_INDEX) { type = NavType.IntType }),
-                ) { entry ->
-                    val dungeonIndex = entry.arguments?.getInt(Routes.ARG_DUNGEON_INDEX) ?: 1
-                    val dungeon = Dungeons.byIndex(dungeonIndex)
-                    ExercisePickScreen(
-                        dungeon = dungeon,
-                        initial = settings.exercise,
-                        difficulty = settings.difficulty,
-                        playerClass = progress.playerClass,
-                        onStart = { picked ->
-                            scope.launch {
-                                // Persisted before navigating, and awaited, because BattleViewModel
-                                // reads the choice out of settings when it starts. Firing the write
-                                // and navigating in parallel would race, and losing that race means
-                                // a run counted with the previous movement's detector.
-                                container.settingsRepository.update { it.copy(exercise = picked) }
-                                // Two taps inside that wait both get here.
-                                if (navController.isOnTop(entry)) {
-                                    navController.navigate(Routes.battle(dungeonIndex)) {
-                                        popUpTo(Routes.EXERCISE_PICK) { inclusive = true }
-                                    }
-                                }
-                            }
-                        },
-                    )
-                }
-
-                composable(
-                    route = Routes.BATTLE,
-                    arguments = listOf(navArgument(Routes.ARG_DUNGEON_INDEX) { type = NavType.IntType }),
-                ) { entry ->
-                    val dungeonIndex = entry.arguments?.getInt(Routes.ARG_DUNGEON_INDEX) ?: 1
-                    val vm: BattleViewModel = viewModel(factory = BattleViewModel.factory(container))
-                    val state by vm.state.collectAsState()
-
-                    LaunchedEffect(dungeonIndex) { vm.start(dungeonIndex) }
-                    DisposableEffect(vm) {
-                        val consumer: (com.pushuprpg.core.pose.PoseFrame) -> Unit = vm::onPoseFrame
-                        frameSink.attach(consumer)
-                        onDispose { frameSink.detach(consumer) }
-                    }
-
-                    LaunchedEffect(state.outcome) {
-                        // Not after a quit: the screen keeps counting frames on its way out, and the
-                        // result must be the run that was banked.
-                        state.outcome?.takeIf { navController.isOnTop(entry) }?.let { outcome ->
-                            lastOutcome = outcome
-                            lastLevelsGained = vm.levelsGained.value
-                            lastLevelReached = vm.levelReached.value
-                            lastGrowth = vm.growth
-                            navController.navigate(Routes.result(dungeonIndex)) {
-                                popUpTo(Routes.BATTLE) { inclusive = true }
-                            }
-                        }
-                    }
-
-                    AlwaysDark {
-                        CameraGate(
-                            granted = granted,
-                            permanentlyDenied = permanentlyDenied,
-                            onRequestCameraPermission = onRequestCameraPermission,
-                            onOpenAppSettings = onOpenAppSettings,
-                        ) {
-                            BattleScreen(
-                                state = state,
-                                playerClass = progress.playerClass,
-                                poseSource = poseSource,
-                                sessionBestDepth = vm.currentSessionBestDepth(),
-                                gaugeOnRight = settings.gaugeOnRight,
-                                showGaugeNumber = settings.showGaugeNumber,
-                                audioOnly = settings.audioOnly,
-                                modelFailed = poseError != null,
-                                onSwitchExercise = vm::switchExercise,
-                                onQuit = {
-                                    if (navController.isOnTop(entry)) {
-                                        val outcome = vm.quit()
-                                        if (outcome == null) {
-                                            // Left with nothing done, which banks nothing: back to
-                                            // the movement picker it came in by. It used to open a
-                                            // result — 다음엔 잡아요 over a fight never started. Reps
-                                            // that all fell short still get their result, which says
-                                            // how to make the next one count.
-                                            navController.navigate(Routes.exercisePick(dungeonIndex)) {
-                                                popUpTo(Routes.BATTLE) { inclusive = true }
-                                            }
-                                        } else {
-                                            lastOutcome = outcome
-                                            lastLevelsGained = vm.levelsGained.value
-                                            lastLevelReached = vm.levelReached.value
-                                            lastGrowth = vm.growth
-                                            navController.navigate(Routes.result(dungeonIndex)) {
-                                                popUpTo(Routes.BATTLE) { inclusive = true }
-                                            }
-                                        }
-                                    }
-                                },
-                            )
-                        }
-                    }
-                }
-
-                composable(
-                    route = Routes.RESULT,
-                    arguments = listOf(navArgument(Routes.ARG_DUNGEON_INDEX) { type = NavType.IntType }),
-                ) { entry ->
-                    val dungeonIndex = entry.arguments?.getInt(Routes.ARG_DUNGEON_INDEX) ?: 1
-                    val outcome = lastOutcome
-                    if (outcome == null) {
-                        LaunchedEffect(Unit) {
-                            navController.navigate(Routes.HOME) { popUpTo(Routes.HOME) { inclusive = true } }
-                        }
-                    } else {
-                        // Auto-advance: after a clear, rest, then the next dungeon with the same
-                        // movement. Only where there is a next one — the clear is what opened it —
-                        // and never after a loss, which gets a retry, not a harder floor.
-                        val next = dungeonIndex + 1
-                        val canAutoNext = settings.autoNextRestSeconds > 0 && outcome.cleared &&
-                            dungeonIndex < Dungeons.ALL.size
-                        var autoNextCancelled by rememberSaveable { mutableStateOf(false) }
-                        var restLeft by rememberSaveable { mutableIntStateOf(settings.autoNextRestSeconds) }
-                        val startNextNow: () -> Unit = {
-                            scope.launch {
-                                // The movement the run ended on, which is the one the user was just
-                                // doing, and awaited for the same reason as on the picker.
-                                val exercise = outcome.segments.lastOrNull()?.exercise ?: settings.exercise
-                                container.settingsRepository.update { it.copy(exercise = exercise) }
-                                // The rest running out and a tap on 지금 시작 can both land here.
-                                if (navController.isOnTop(entry)) {
-                                    navController.navigate(Routes.battle(next)) {
-                                        popUpTo(Routes.RESULT) { inclusive = true }
-                                    }
-                                }
-                            }
-                        }
-                        if (canAutoNext && !autoNextCancelled) {
-                            LaunchedEffect(Unit) {
-                                // Only while this screen is in front. A rest spent on a phone call
-                                // counted on behind it, announced the next dungeon and 시작! over
-                                // the call, and came back to a dungeon already under way. Back in
-                                // front it carries on from where it stopped, since restLeft is saved.
-                                entry.repeatOnLifecycle(Lifecycle.State.RESUMED) {
-                                    // Already run out, and the next dungeon is on its way.
-                                    if (restLeft == 0) return@repeatOnLifecycle
-                                    while (restLeft > 0) {
-                                        delay(1_000)
-                                        restLeft--
-                                        // Heard from across the room, where the rest is taken.
-                                        if (restLeft == 10) container.voice.say(context.getString(R.string.voice_rest_ten))
-                                    }
-                                    container.voice.say(context.getString(R.string.voice_rest_go))
-                                    startNextNow()
-                                }
-                            }
-                        }
-                        // The climb as it stands with this run banked, and what the run itself did to it.
-                        val factsFlow = remember { container.sessionRepository.facts() }
-                        val facts by factsFlow.collectAsState(initial = emptyList())
-                        val climb = remember(facts) { Climb.progress(Climb.meters(facts)) }
-                        val growth by lastGrowth.collectAsState()
-                        val climbText = metersText(climb.meters)
-                        AlwaysDark {
-                            ResultScreen(
-                                climb = climb,
-                                growth = growth,
-                                restLeftSeconds = restLeft.takeIf { canAutoNext && !autoNextCancelled },
-                                nextDungeonName = Dungeons.byIndex(next)?.korean.orEmpty(),
-                                onStartNextNow = startNextNow,
-                                onCancelAutoNext = { autoNextCancelled = true },
-                                outcome = outcome,
-                                playerClass = progress.playerClass,
-                                dungeonName = Dungeons.byIndex(dungeonIndex)?.korean.orEmpty(),
-                                // The run's own, not the stored level: that lands after this opens.
-                                level = lastLevelReached,
-                                levelsGained = lastLevelsGained,
-                                hasNextDungeon = dungeonIndex < Dungeons.ALL.size,
-                                onNextDungeon = {
-                                    if (navController.isOnTop(entry)) {
-                                        navController.navigate(Routes.exercisePick(next)) {
-                                            popUpTo(Routes.RESULT) { inclusive = true }
-                                        }
-                                    }
-                                },
-                                onRetry = {
-                                    if (navController.isOnTop(entry)) {
-                                        navController.navigate(Routes.exercisePick(dungeonIndex)) {
-                                            popUpTo(Routes.RESULT) { inclusive = true }
-                                        }
-                                    }
-                                },
-                                onShare = {
-                                    onShare(
-                                        ShareCardData.Dungeon(
-                                            dungeonName = Dungeons.byIndex(dungeonIndex)?.korean.orEmpty(),
-                                            cleared = outcome.cleared,
-                                            reps = outcome.reps,
-                                            heldSeconds = (outcome.segments.sumOf { it.holdMs } / 1000).toInt(),
-                                            maxCombo = outcome.maxCombo,
-                                            seconds = (outcome.durationMs / 1000).toInt(),
-                                            climb = climbText,
-                                            lifetimeReps = progress.lifetimeReps,
-                                        )
-                                    )
-                                },
-                                onRecords = { navController.navigateFrom(entry, Routes.RECORDS) },
-                                onHome = {
-                                    navController.navigate(Routes.HOME) {
-                                        popUpTo(Routes.HOME) { inclusive = true }
-                                    }
-                                },
-                            )
-                        }
-                    }
-                }
-
                 composable(Routes.SURVIVAL_PICK) { entry ->
                     ExercisePickScreen(
-                        dungeon = null,
-                        survival = true,
                         catName = settings.catName,
                         catCoat = settings.catCoat,
                         catWear = settings.wearing(),
@@ -567,9 +287,9 @@ fun PushupRpgApp(
                         },
                         initial = settings.exercise,
                         onStart = { picked ->
-                            // Remembered as the last choice, for this picker and the dungeon one.
-                            // Not awaited: unlike a battle, the survival run takes its movement from
-                            // the route, so there is nothing for the write to race.
+                            // Remembered as the last choice, which the hub's button starts. Not
+                            // awaited: the run takes its movement from the route, so there is nothing
+                            // for the write to race.
                             scope.launch {
                                 container.settingsRepository.update { it.copy(exercise = picked) }
                             }
@@ -700,24 +420,6 @@ fun PushupRpgApp(
                         onChange = { transform ->
                             scope.launch { container.settingsRepository.update(transform) }
                         },
-                        onRecalibrate = {
-                            scope.launch {
-                                // Every movement's range, not just the last one played. The button
-                                // lives on the settings screen, which no longer names an exercise,
-                                // so clearing only one would be clearing one the user cannot see —
-                                // and a range relearns itself within a few reps anyway.
-                                ExerciseType.entries.forEach { type ->
-                                    container.progressRepository.saveCalibrationProfile(
-                                        type,
-                                        com.pushuprpg.core.detect.UserProfile.empty(),
-                                    )
-                                }
-                                // It used to finish in silence, and a reset nobody can see looks
-                                // exactly like a button that does nothing.
-                                toast(context, R.string.settings_recalibrate_done)
-                            }
-                        },
-                        onChangeClass = changeClass,
                         onOpenPrivacy = { openUrl(context, context.getString(R.string.privacy_policy_url)) },
                         onOpenTerms = { openUrl(context, context.getString(R.string.terms_url)) },
                         onPreviewHaptic = container.audio::previewHaptic,
@@ -756,37 +458,11 @@ fun PushupRpgApp(
 }
 
 /**
- * The finished run, handed from the battle destination to the result destination.
- *
- * A module-level holder rather than a navigation argument: [com.pushuprpg.core.run.Outcome] is a
- * structured value and serialising it through a route string would be a lot of ceremony for a
- * hand-off that lives for exactly one screen transition.
- *
- * It does not survive process death, and that is an accepted trade rather than an oversight: the
- * run is already written to the database before this screen opens, so the worst case is the user
- * returning to a killed app and landing on the hub instead of on a summary — with every rep, every
- * point of XP and the streak already banked. Losing a screen is acceptable; losing the work is not.
- */
-internal var lastOutcome: com.pushuprpg.core.run.Outcome? = null
-
-/** Travels with [lastOutcome]; the battle entry is popped before the result screen composes. */
-internal var lastLevelsGained: Int = 0
-
-/** The level [lastOutcome] ended on; travels with it for the same reason. */
-internal var lastLevelReached: Int = 1
-
-/**
- * What [lastOutcome]'s run did for the climb and the records, from the battle's model. A flow, not a
- * value: it is set once the rows are written, which is after the result screen has opened.
- */
-internal var lastGrowth: StateFlow<RunGrowth?> = MutableStateFlow(null)
-
-/**
  * The permission screen in place of a camera screen that has no camera to show.
  *
  * The graph asks about the permission once, when it picks where to start, and a restored back stack
  * skips even that. A permission given 이번만 lapses with the process, and the app then came back from
- * recents onto the battle it was on: a black preview saying 화면 안으로 들어와 주세요 to someone
+ * recents onto the run it was on: a black preview saying 화면 안으로 들어와 주세요 to someone
  * standing in front of it, and no way to be asked again. MainActivity reads the permission again on
  * resume, so turning it on in settings brings back the screen that was here.
  */
@@ -845,7 +521,7 @@ private val DARK_NAV_SCRIM = android.graphics.Color.argb(0x80, 0x1B, 0x1B, 0x1B)
  *
  * Asked before a navigation that pops the screen it starts from. A second tap during the
  * transition, or two taps let through by an awaited write, arrived after the first had popped the
- * screen: its popUpTo then named a route no longer on the stack, and it pushed a second battle
+ * screen: its popUpTo then named a route no longer on the stack, and it pushed a second run
  * behind the first. Unlike waiting for RESUMED, a tap while the screen is still sliding in counts.
  */
 private fun NavController.isOnTop(entry: NavBackStackEntry): Boolean =

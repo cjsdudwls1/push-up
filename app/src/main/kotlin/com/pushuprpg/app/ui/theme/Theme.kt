@@ -114,9 +114,9 @@ fun PushupRpgTheme(
 /**
  * Pins everything inside it to the dark theme, whatever the user chose.
  *
- * For the run. The battle and survival screens draw over the live camera, where a light surface
- * is unreadable, and the result screen closes a run in the same dark it was played in rather
- * than flashing white between the last rep and the summary.
+ * For the run. Its screen draws over the live camera, where a light surface is unreadable, and
+ * the ending closes a session in the same dark it was played in rather than flashing white between
+ * the last rep and the summary.
  */
 @Composable
 fun AlwaysDark(content: @Composable () -> Unit) {

@@ -317,8 +317,8 @@ fun Pill(text: String, tint: Color, modifier: Modifier = Modifier) {
  *
  * Counted per view, because every screen shares the one root view: in a transition the screen
  * coming in holds it before the one going out lets go, and the last to let go used to turn it off.
- * The rest before the next dungeon and the dungeon it led into ran with the screen free to sleep,
- * and a phone that slept paused the rest and stopped the camera mid-set.
+ * A rest and the set it led into ran with the screen free to sleep, and a phone that slept paused
+ * the rest and stopped the camera mid-set.
  */
 @Composable
 fun KeepScreenOn() {
@@ -353,8 +353,8 @@ fun durationText(seconds: Long): String = when {
 /**
  * The Korean name of an exercise, as a string resource.
  *
- * Shared rather than written out at each call site: the settings picker and the battle HUD must
- * never disagree about what a movement is called, and a new exercise should not be able to ship
+ * Shared rather than written out at each call site: the picker and the run's screen must never
+ * disagree about what a movement is called, and a new exercise should not be able to ship
  * with a name in one place and an enum constant in the other.
  */
 @StringRes

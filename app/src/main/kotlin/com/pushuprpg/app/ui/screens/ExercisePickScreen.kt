@@ -41,45 +41,29 @@ import com.pushuprpg.app.ui.theme.Type
 import com.pushuprpg.core.detect.ExerciseType
 import com.pushuprpg.core.detect.Exercises
 import com.pushuprpg.core.detect.MovementKind
-import com.pushuprpg.core.game.Dungeon
-import com.pushuprpg.core.game.Difficulty
-import com.pushuprpg.core.game.PlayerClass
 import com.pushuprpg.core.progression.CatItem
 import com.pushuprpg.core.survival.CatSession
 
 /**
- * Picks the movement for one dungeon run, on the way in.
+ * Picks the movement for 고냥이 지켜줘.
  *
- * This replaces both a settings-screen picker and, before that, a build that tried to work the
- * exercise out from the camera. The camera version identified the movement correctly and was still
- * wrong: nine detectors raced and only the winner's reps reached the game, so every rep done before
- * the race resolved was discarded — measured at 0 of 6 pull-ups for someone who went straight from
- * the floor to the bar. A run has one movement. It is declared, not inferred.
+ * A run has one movement, and it is declared, not inferred. An early build worked the exercise out
+ * from the camera: it identified the movement correctly and was still wrong, because nine detectors
+ * raced and only the winner's reps reached the game — measured at 0 of 6 pull-ups for someone who
+ * went straight from the floor to the bar.
  *
- * Entry is also simply the right place to ask. In settings the choice was made minutes before it
- * mattered and then silently applied to every later run; here it is made while the user is standing
- * in front of the phone deciding what they are about to do, which is the moment the one-line
- * camera placement is worth reading. The rest of the placement is said live, once the phone is down.
- *
- * One tap starts the run. The last choice is pre-expanded so the common case — the same movement as
- * yesterday — is that one tap and no reading.
- *
- * With [survival] it picks the movement for 고냥이 지켜줘 instead: no dungeon, so no cost to quote.
- * It is reached from the hub's 운동 바꾸기 — the hub's own button starts the movement picked last, by
- * the owner's decision, since it is the same one day after another — and the cat can be named and
- * coloured here as well as in 꾸미기.
+ * It is reached from the hub's 운동 바꾸기: the hub's own button starts the movement picked last, by
+ * the owner's decision, since it is the same one day after another. Choosing here is done standing in
+ * front of the phone, which is the moment the one-line camera placement is worth reading; the rest of
+ * the placement is said live, once the phone is down. The last choice is pre-expanded, so the same
+ * movement as yesterday is one tap and no reading. The cat can be named and coloured here as well as
+ * in 꾸미기.
  */
 @Composable
 fun ExercisePickScreen(
-    /** The run being entered: its name, and the cost each row quotes. */
-    dungeon: Dungeon?,
     initial: ExerciseType,
     onStart: (ExerciseType) -> Unit,
     modifier: Modifier = Modifier,
-    difficulty: Difficulty = Difficulty.STANDARD,
-    /** The class each row's count is quoted for; the same pricing the run itself uses. */
-    playerClass: PlayerClass = PlayerClass.KNIGHT,
-    survival: Boolean = false,
     catName: String = "",
     catCoat: CatCoat = CatCoat.CREAM,
     /** The cat's name, as it should be stored, and its coat. Called on every change. */
@@ -99,49 +83,28 @@ fun ExercisePickScreen(
     ) {
         item {
             Text(
-                text = if (survival) stringResource(R.string.survival_title) else dungeon?.korean.orEmpty(),
+                text = stringResource(R.string.survival_title),
                 style = Type.labelL,
                 color = Palette.TextSecondary,
             )
             Spacer(Modifier.height(4.dp))
             Text(
-                text = stringResource(if (survival) R.string.pick_survival_title else R.string.pick_exercise_title),
+                text = stringResource(R.string.pick_survival_title),
                 style = Type.headline,
                 color = Palette.TextPrimary,
             )
             Spacer(Modifier.height(6.dp))
             Text(
-                text = if (survival) {
-                    stringResource(R.string.pick_survival_sub, CatSession.LIVES)
-                } else {
-                    stringResource(R.string.pick_exercise_sub)
-                },
+                text = stringResource(R.string.pick_survival_sub, CatSession.LIVES),
                 style = Type.bodyM,
                 color = Palette.TextSecondary,
             )
-            // The rows' counts are the class's price, which holds only for reps done its way. A 기사
-            // who went in at the tutorial's pace was quoted 10개 and did about twenty.
-            if (dungeon != null) {
-                Spacer(Modifier.height(6.dp))
-                Text(
-                    text = stringResource(
-                        when (playerClass) {
-                            PlayerClass.KNIGHT -> R.string.pick_exercise_class_knight
-                            PlayerClass.ARCHER -> R.string.pick_exercise_class_archer
-                        }
-                    ),
-                    style = Type.bodyM,
-                    color = Palette.TextPrimary,
-                )
-            }
             Spacer(Modifier.height(10.dp))
         }
 
-        if (survival) {
-            item(key = "cat") {
-                CatCard(name = catName, coat = catCoat, onChange = onCatChange, wear = catWear)
-                Spacer(Modifier.height(6.dp))
-            }
+        item(key = "cat") {
+            CatCard(name = catName, coat = catCoat, onChange = onCatChange, wear = catWear)
+            Spacer(Modifier.height(6.dp))
         }
 
         items(ExerciseType.entries, key = { it.name }) { exercise ->
@@ -149,10 +112,6 @@ fun ExercisePickScreen(
                 exercise = exercise,
                 expanded = exercise == expanded,
                 isLast = exercise == initial,
-                // Exact, not an estimate: under the volume model the enemy's health IS this count,
-                // and Dungeon.repCost is the same function the run itself is priced by — so this is
-                // the number of reps the user will actually perform, not a rounding of it.
-                cost = dungeon?.repCost(difficulty, exercise, playerClass) ?: 0,
                 onExpand = { expanded = exercise },
                 onStart = { onStart(exercise) },
             )
@@ -165,7 +124,6 @@ private fun ExerciseRow(
     exercise: ExerciseType,
     expanded: Boolean,
     isLast: Boolean,
-    cost: Int,
     onExpand: () -> Unit,
     onStart: () -> Unit,
 ) {
@@ -200,18 +158,6 @@ private fun ExerciseRow(
             }
             if (isLast) {
                 Pill(text = stringResource(R.string.pick_exercise_last), tint = colors.accept)
-                Spacer(Modifier.width(6.dp))
-            }
-            if (cost > 0) {
-                Text(
-                    text = stringResource(
-                        if (descriptor.kind == MovementKind.HOLD) R.string.pick_exercise_cost_seconds
-                        else R.string.pick_exercise_cost_reps,
-                        cost,
-                    ),
-                    style = Type.labelL,
-                    color = Palette.TextPrimary,
-                )
             }
         }
 

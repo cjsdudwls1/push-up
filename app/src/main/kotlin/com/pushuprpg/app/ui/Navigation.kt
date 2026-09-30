@@ -5,18 +5,14 @@ import com.pushuprpg.core.detect.ExerciseType
 /**
  * Route names.
  *
- * Plain strings rather than a sealed hierarchy: there are a dozen destinations and two of them take
- * an argument, so the type ceremony would cost more than it saves.
+ * Plain strings rather than a sealed hierarchy: there are a handful of destinations and one of them
+ * takes arguments, so the type ceremony would cost more than it saves.
  */
 object Routes {
     const val BOOT = "boot"
     const val ONBOARDING = "onboarding"
-
-    /** The class picker, reached from the dungeon list or settings. Pops back when done. */
-    const val CLASS_CHANGE = "class_change"
     const val PERMISSION = "permission"
     const val HOME = "home"
-    const val DUNGEON_SELECT = "dungeon_select"
     const val RECORDS = "records"
     const val SETTINGS = "settings"
 
@@ -29,46 +25,23 @@ object Routes {
     const val ARG_EXERCISE = "exercise"
 
     /**
-     * The tutorial is always pushups: it is the calibration set that seeds pushup capacity, and a
-     * first-time user has not been asked about any other movement yet.
+     * The tutorial is always pushups: it is the first set anybody does here, and a first-time user
+     * has not been asked about any other movement yet.
      */
     fun survival(tutorial: Boolean = false, exercise: ExerciseType = ExerciseType.PUSHUP) =
         "$SURVIVAL_BASE/$tutorial/${exercise.name}"
 
-    /** Choosing the movement for 고냥이 지켜줘, the same way a dungeon run chooses one. */
-    const val SURVIVAL_PICK = "survival_pick"
-
-    const val ARG_DUNGEON_INDEX = "dungeonIndex"
-
     /**
-     * Choosing the movement sits on its own destination rather than inside the battle screen.
-     *
-     * Every way into a dungeon — the home shortcut, the dungeon list, retry, and next-dungeon from
-     * the clear screen — goes through here, so there is no path that starts a run without a choice.
-     * Keeping it off the battle screen also means the camera is not live while somebody reads a
-     * safety warning.
+     * Choosing the movement for 고냥이 지켜줘, on its own destination rather than inside the run:
+     * the camera is not live while somebody reads a safety note.
      */
-    private const val EXERCISE_PICK_BASE = "exercise_pick"
-    const val EXERCISE_PICK = "$EXERCISE_PICK_BASE/{dungeonIndex}"
-
-    fun exercisePick(dungeonIndex: Int) = "$EXERCISE_PICK_BASE/$dungeonIndex"
-
-    private const val BATTLE_BASE = "battle"
-    const val BATTLE = "$BATTLE_BASE/{dungeonIndex}"
-
-    fun battle(dungeonIndex: Int) = "$BATTLE_BASE/$dungeonIndex"
-
-    private const val RESULT_BASE = "result"
-    const val RESULT = "$RESULT_BASE/{dungeonIndex}"
-
-    fun result(dungeonIndex: Int) = "$RESULT_BASE/$dungeonIndex"
+    const val SURVIVAL_PICK = "survival_pick"
 
     /**
      * The run, which is dark whatever the user picked for the menus.
      *
-     * Each of these destinations wraps its screen in `AlwaysDark`; this set is what tells the
-     * system bars the same thing, since they sit outside any one screen. A new camera destination
-     * needs both.
+     * The destination wraps its screen in `AlwaysDark`; this set is what tells the system bars the
+     * same thing, since they sit outside any one screen. A new camera destination needs both.
      */
-    val ALWAYS_DARK = setOf(BATTLE, RESULT, SURVIVAL)
+    val ALWAYS_DARK = setOf(SURVIVAL)
 }

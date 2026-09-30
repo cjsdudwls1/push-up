@@ -27,7 +27,7 @@ sealed interface RepEvent {
         val front: BodySide? = null,
         /**
          * How long this rep took from leaving the top band to crossing the count line — the
-         * controlled part of the way down, placed between frames. What a 기사's tempo is read from.
+         * controlled part of the way down, placed between frames.
          */
         val descentMs: Int = 0,
     ) : RepEvent
@@ -45,8 +45,8 @@ sealed interface RepEvent {
         val depth: Float,
         /**
          * How long the way down took, from leaving the top band to crossing the deep line, placed
-         * between frames. Most of a full lowering, which is what a 기사's tempo is read from: the
-         * count line alone sits in the fast middle of the rep and moves while calibrating.
+         * between frames: most of a full lowering, where the count line alone sits in the fast middle
+         * of the rep and moves while calibrating.
          */
         val loweringMs: Int = 0,
     ) : RepEvent

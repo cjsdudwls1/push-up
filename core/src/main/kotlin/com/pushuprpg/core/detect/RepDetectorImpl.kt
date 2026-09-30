@@ -189,8 +189,8 @@ class RepDetectorImpl(
             advance(tMs, h, sample, body, events)
             watchArming(h, sample)
         } else {
-            // Never punish the user for a tracking failure: the gauge freezes rather than falling,
-            // and the caller pauses the boss while quality is not OK.
+            // Never punish the user for a tracking failure: the reading freezes rather than
+            // falling, and nothing counts until quality is OK again.
             depthVelocity = 0f
             // A blip does not restart the wait to arm; losing the body does. Filmed from the head
             // the model swaps the shoulders for a frame or two, and at 14 fps those frames landed

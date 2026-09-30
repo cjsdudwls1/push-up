@@ -8,16 +8,13 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
-import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
-import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.pushuprpg.app.domain.PlayerProgress
 import com.pushuprpg.app.domain.ProgressRepository
 import com.pushuprpg.core.detect.ExerciseType
-import com.pushuprpg.core.detect.UserProfile
 import com.pushuprpg.core.progression.Streak
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -38,10 +35,6 @@ private val Context.progressStore: DataStore<Preferences> by preferencesDataStor
     name = "progress",
     corruptionHandler = ReplaceFileCorruptionHandler { emptyPreferences() },
 )
-private val Context.calibrationStore: DataStore<Preferences> by preferencesDataStore(
-    name = "calibration",
-    corruptionHandler = ReplaceFileCorruptionHandler { emptyPreferences() },
-)
 
 /**
  * Resolves a stored enum name, falling back to [default] when the name is absent or unknown.
@@ -58,97 +51,53 @@ internal fun Flow<Preferences>.orEmptyOnIoError(): Flow<Preferences> =
 
 private val PROGRESS_DEFAULT = PlayerProgress()
 
-private val KEY_CLASS = stringPreferencesKey("player_class")
-private val KEY_LEVEL = intPreferencesKey("level")
-private val KEY_XP = intPreferencesKey("xp_into_level")
+// What the dungeons kept — the class, the level and its XP, the dungeons cleared, each movement's
+// capacity — and each movement's calibration, which only the dungeons read, are no longer read or
+// written. Nothing is deleted: a user who downgrades still finds them where the old build looks.
 private val KEY_LIFETIME_REPS = intPreferencesKey("lifetime_reps")
 private val KEY_BEST_COMBO = intPreferencesKey("best_combo")
 private val KEY_TOTAL_ACTIVE_MS = longPreferencesKey("total_active_ms")
 private val KEY_STREAK_DAYS = intPreferencesKey("streak_days")
 private val KEY_BEST_STREAK_DAYS = intPreferencesKey("best_streak_days")
 private val KEY_LAST_ACTIVE_DAY = longPreferencesKey("last_active_epoch_day")
-private val KEY_HIGHEST_DUNGEON = intPreferencesKey("highest_dungeon_cleared")
 /**
- * Capacity is stored one key per movement, the same way calibration already is, so a new exercise
- * is a new key that simply does not exist yet rather than a schema change.
- *
- * The three keys below are what the first three movements were written under. They are read once as
- * a fallback and never written again, so an existing install keeps the capacity it earned. Nothing
- * is deleted: a user who downgrades still finds their old values where the old build looks.
+ * The best 고냥이 score, one key per movement. The single key before it ("best_survival_score") is
+ * neither read nor deleted: nothing says which movement its score came from, so each movement's
+ * best starts over rather than inheriting another's, and a downgrade still finds the old value.
  */
-private fun capacityKey(e: ExerciseType) = floatPreferencesKey("capacity_${e.name}")
-
-private val LEGACY_CAPACITY_KEYS: Map<ExerciseType, Preferences.Key<Float>> = mapOf(
-    ExerciseType.PUSHUP to floatPreferencesKey("capacity_pushup"),
-    ExerciseType.SQUAT to floatPreferencesKey("capacity_squat"),
-    ExerciseType.PLANK to floatPreferencesKey("capacity_plank_seconds"),
-)
-private val KEY_BEST_SURVIVAL = intPreferencesKey("best_survival_score")
-private val KEY_CLASS_CHOSEN = booleanPreferencesKey("class_chosen")
+private fun bestSurvivalKey(e: ExerciseType) = intPreferencesKey("best_survival_score_${e.name}")
+/**
+ * Under the name it had when the first screen asked for a class, so nobody who has been through it
+ * sees it again.
+ */
+private val KEY_INTRO_SEEN = booleanPreferencesKey("class_chosen")
 private val KEY_ONBOARDED = booleanPreferencesKey("onboarded")
 private val KEY_GIFTS_SEEN = stringSetPreferencesKey("gifts_seen")
 
-private fun calibrationTopKey(e: ExerciseType) = floatPreferencesKey("cal_${e.name}_top")
-private fun calibrationBotKey(e: ExerciseType) = floatPreferencesKey("cal_${e.name}_bot")
-private fun calibrationSessionsKey(e: ExerciseType) = intPreferencesKey("cal_${e.name}_sessions")
-
 private fun Preferences.toProgress(): PlayerProgress = PlayerProgress(
-    playerClass = enumOrDefault(this[KEY_CLASS], PROGRESS_DEFAULT.playerClass),
-    level = this[KEY_LEVEL] ?: PROGRESS_DEFAULT.level,
-    xpIntoLevel = this[KEY_XP] ?: PROGRESS_DEFAULT.xpIntoLevel,
     lifetimeReps = this[KEY_LIFETIME_REPS] ?: PROGRESS_DEFAULT.lifetimeReps,
     bestCombo = this[KEY_BEST_COMBO] ?: PROGRESS_DEFAULT.bestCombo,
     totalActiveMs = this[KEY_TOTAL_ACTIVE_MS] ?: PROGRESS_DEFAULT.totalActiveMs,
     streakDays = this[KEY_STREAK_DAYS] ?: PROGRESS_DEFAULT.streakDays,
     bestStreakDays = this[KEY_BEST_STREAK_DAYS] ?: PROGRESS_DEFAULT.bestStreakDays,
     lastActiveEpochDay = this[KEY_LAST_ACTIVE_DAY] ?: PROGRESS_DEFAULT.lastActiveEpochDay,
-    highestDungeonCleared = this[KEY_HIGHEST_DUNGEON] ?: PROGRESS_DEFAULT.highestDungeonCleared,
-    capacity = readCapacity(),
-    bestSurvivalScore = this[KEY_BEST_SURVIVAL] ?: PROGRESS_DEFAULT.bestSurvivalScore,
-    classChosen = this[KEY_CLASS_CHOSEN] ?: PROGRESS_DEFAULT.classChosen,
+    bestSurvivalScores = ExerciseType.entries.mapNotNull { e -> this[bestSurvivalKey(e)]?.let { e to it } }.toMap(),
+    introSeen = this[KEY_INTRO_SEEN] ?: PROGRESS_DEFAULT.introSeen,
     onboarded = this[KEY_ONBOARDED] ?: PROGRESS_DEFAULT.onboarded,
     giftsSeen = this[KEY_GIFTS_SEEN] ?: PROGRESS_DEFAULT.giftsSeen,
 )
 
 private fun MutablePreferences.writeProgress(p: PlayerProgress) {
-    this[KEY_CLASS] = p.playerClass.name
-    this[KEY_LEVEL] = p.level
-    this[KEY_XP] = p.xpIntoLevel
     this[KEY_LIFETIME_REPS] = p.lifetimeReps
     this[KEY_BEST_COMBO] = p.bestCombo
     this[KEY_TOTAL_ACTIVE_MS] = p.totalActiveMs
     this[KEY_STREAK_DAYS] = p.streakDays
     this[KEY_BEST_STREAK_DAYS] = p.bestStreakDays
     this[KEY_LAST_ACTIVE_DAY] = p.lastActiveEpochDay
-    this[KEY_HIGHEST_DUNGEON] = p.highestDungeonCleared
-    p.capacity.forEach { (exercise, value) -> this[capacityKey(exercise)] = value }
-    this[KEY_BEST_SURVIVAL] = p.bestSurvivalScore
-    this[KEY_CLASS_CHOSEN] = p.classChosen
+    p.bestSurvivalScores.forEach { (exercise, score) -> this[bestSurvivalKey(exercise)] = score }
+    this[KEY_INTRO_SEEN] = p.introSeen
     this[KEY_ONBOARDED] = p.onboarded
     this[KEY_GIFTS_SEEN] = p.giftsSeen
-}
-
-/**
- * Only movements the user has actually done appear in the map.
- *
- * Absent means "never measured", which [PlayerProgress.capacityOf] answers from the movement's own
- * starting value — deliberately not the same as a stored zero, which would size every encounter at
- * the capacity floor.
- */
-private fun Preferences.readCapacity(): Map<ExerciseType, Float> =
-    ExerciseType.entries.mapNotNull { e ->
-        val stored = this[capacityKey(e)] ?: LEGACY_CAPACITY_KEYS[e]?.let { this[it] }
-        stored?.let { e to it }
-    }.toMap()
-
-private fun Preferences.toCalibration(exercise: ExerciseType): UserProfile {
-    val sessions = this[calibrationSessionsKey(exercise)] ?: 0
-    if (sessions <= 0) return UserProfile.empty()
-    return UserProfile(
-        topEwma = this[calibrationTopKey(exercise)] ?: 0f,
-        botEwma = this[calibrationBotKey(exercise)] ?: 0f,
-        sessionCount = sessions,
-    )
 }
 
 /**
@@ -173,11 +122,8 @@ internal fun advanceStreak(p: PlayerProgress, epochDay: Long): PlayerProgress {
 }
 
 /**
- * Player progress and per-exercise calibration, in two DataStore files.
- *
- * They are separate because they change on very different rhythms: progress is rewritten after
- * every run, calibration only when the detector converges on a better range. [zone] is injectable
- * so the day boundary can be tested without touching the device clock.
+ * Player progress, in a DataStore file. [zone] is injectable so the day boundary can be tested
+ * without touching the device clock.
  */
 class DataStoreProgressRepository(
     context: Context,
@@ -185,7 +131,6 @@ class DataStoreProgressRepository(
 ) : ProgressRepository {
 
     private val store = context.applicationContext.progressStore
-    private val calibration = context.applicationContext.calibrationStore
 
     override val progress: Flow<PlayerProgress> =
         store.data.orEmptyOnIoError()
@@ -207,25 +152,4 @@ class DataStoreProgressRepository(
                 prefs.writeProgress(advanceStreak(prefs.toProgress(), epochDay))
             }.toProgress()
         }
-
-    override suspend fun calibrationProfile(exercise: ExerciseType): UserProfile =
-        withContext(Dispatchers.IO) {
-            calibration.data.orEmptyOnIoError().first().toCalibration(exercise)
-        }
-
-    override suspend fun saveCalibrationProfile(exercise: ExerciseType, profile: UserProfile) {
-        withContext(Dispatchers.IO) {
-            calibration.edit { prefs ->
-                prefs[calibrationTopKey(exercise)] = profile.topEwma
-                prefs[calibrationBotKey(exercise)] = profile.botEwma
-                prefs[calibrationSessionsKey(exercise)] = profile.sessionCount
-            }
-        }
-    }
-
-    /** Observable variant, for a screen that shows which exercises are already calibrated. */
-    fun calibrationProfiles(): Flow<Map<ExerciseType, UserProfile>> =
-        calibration.data.orEmptyOnIoError()
-            .map { prefs -> ExerciseType.entries.associateWith { prefs.toCalibration(it) } }
-            .flowOn(Dispatchers.IO)
 }
