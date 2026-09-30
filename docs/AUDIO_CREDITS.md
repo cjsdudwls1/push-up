@@ -98,8 +98,9 @@ GPU에서 만들었습니다. 대사 글과 말투 설명을 Modal로 보내 음
 
 - 고른 것: 같은 모델·리비전·목소리 설명에, 이 대사의 문장만 "Timid and a little anxious, softly and
   hopefully asking for help, and ending on a clearly rising, questioning pitch."로 바꿔 시드 7로 네 번 만든 것의
-  네 번째. 이 환경의 CPU에서 fp32로 만들었고, 대사를 외부 서비스로 보내지 않았습니다(Modal은 이 환경의
-  네트워크에서 쓸 수 없었습니다).
+  네 번째. 이 환경의 CPU에서 fp32로 만들었고, 대사를 외부 서비스로 보내지 않았습니다. 그날 Modal을 못 쓴 것은
+  네트워크 탓이 아니었습니다. Modal 클라이언트를 프록시 지원(`python-socks`) 없이 설치해 이 환경의 프록시를
+  거쳐 붙지 못했습니다. `pip install 'modal[api-proxy-support]'`로 설치하면 붙습니다.
 - 마지막 음절이 10.2반음 올라갑니다. Whisper large-v3-turbo는 첫 단어를 "현장이"로 받아썼지만, 사용자가 듣고
   이것으로 정했습니다.
 - 가공은 위와 같습니다(쉼 0.4초 이하, 앞뒤 무음 50 ms 이하, -15.9 LUFS, 트루 피크 -2.7 dBTP). 인코딩은 이
