@@ -1,11 +1,6 @@
 package com.pushuprpg.app.domain
 
 import com.pushuprpg.core.detect.ExerciseType
-import com.pushuprpg.core.detect.Exercises
-import com.pushuprpg.core.detect.SkeletonMode
-import com.pushuprpg.core.detect.UserProfile
-import com.pushuprpg.core.game.Difficulty
-import com.pushuprpg.core.game.PlayerClass
 import com.pushuprpg.core.progression.CatItem
 import com.pushuprpg.core.progression.Gifts
 import com.pushuprpg.core.progression.RunGrowth
@@ -19,9 +14,6 @@ import kotlinx.coroutines.flow.Flow
  * without stitching four flows together mid-frame.
  */
 data class PlayerProgress(
-    val playerClass: PlayerClass = PlayerClass.KNIGHT,
-    val level: Int = 1,
-    val xpIntoLevel: Int = 0,
     val lifetimeReps: Int = 0,
     val bestCombo: Int = 0,
     val totalActiveMs: Long = 0,
@@ -29,21 +21,15 @@ data class PlayerProgress(
     val bestStreakDays: Int = 0,
     /** Epoch day of the most recent day that met the streak bar. */
     val lastActiveEpochDay: Long = 0,
-    val highestDungeonCleared: Int = 0,
     /**
-     * Measured working capacity per movement — reps for a counted exercise, seconds for a hold.
-     *
-     * A map rather than a field per exercise, so adding a movement is adding a descriptor value and
-     * not a field here, a preference key in the repository, a branch in the battle view model and a
-     * branch in the survival one. A movement the user has never done is simply absent; read it
-     * through [capacityOf] so it falls back to the descriptor's own starting value.
+     * 고냥이 지켜줘's best score per movement, by the owner's decision: a pull-up and a plank are
+     * not the same effort, so one best across all of them only ever said what the easiest one
+     * scored. Read it through [bestSurvivalScoreOf]; a movement never played is absent.
      */
-    val capacity: Map<ExerciseType, Float> = emptyMap(),
-    val bestSurvivalScore: Int = 0,
-    /** The player has chosen a class. Separate from [onboarded] because the default class is a
-     *  real class, so it cannot be used to infer whether anyone picked it. */
-    val classChosen: Boolean = false,
-    /** Onboarding is complete, which means the tutorial run has measured a starting capacity. */
+    val bestSurvivalScores: Map<ExerciseType, Int> = emptyMap(),
+    /** The first screen's 시작 has been tapped, so it is not shown again. */
+    val introSeen: Boolean = false,
+    /** Onboarding is complete: the tutorial run was played or skipped. */
     val onboarded: Boolean = false,
     /**
      * Gifts the user has already been shown, by name ([com.pushuprpg.core.progression.Gift]). Which
@@ -53,12 +39,13 @@ data class PlayerProgress(
     val giftsSeen: Set<String> = emptySet(),
 )
 
-/** This player's capacity for a movement, or the movement's own starting value. */
-fun PlayerProgress.capacityOf(exercise: ExerciseType): Float =
-    capacity[exercise] ?: Exercises.of(exercise).defaultCapacity
+/** The best 고냥이 score with [exercise], or 0 before its first session. */
+fun PlayerProgress.bestSurvivalScoreOf(exercise: ExerciseType): Int = bestSurvivalScores[exercise] ?: 0
 
-fun PlayerProgress.withCapacity(exercise: ExerciseType, value: Float): PlayerProgress =
-    copy(capacity = capacity + (exercise to value))
+/** [score] kept as [exercise]'s best if it beats the one there. */
+fun PlayerProgress.withSurvivalScore(exercise: ExerciseType, score: Int): PlayerProgress =
+    if (score <= bestSurvivalScoreOf(exercise)) this
+    else copy(bestSurvivalScores = bestSurvivalScores + (exercise to score))
 
 /** One finished run, win or lose. Losses are recorded exactly like wins — that is the point. */
 data class SessionRecord(
@@ -74,9 +61,13 @@ data class SessionRecord(
     val maxCombo: Int,
     val deepReps: Int,
     val meanDepth: Float,
-    val dungeonIndex: Int?,
+    /**
+     * The dungeon a row was played in, for rows written while the app had dungeons; null for every
+     * 고냥이 session. Their reps still count everywhere, and [cleared] means something else on them.
+     */
+    val dungeonIndex: Int? = null,
+    /** Every life played out; on a dungeon row, the dungeon cleared. */
     val cleared: Boolean,
-    val xpEarned: Int,
     /** Below 0.85 the session still counts for the user but stays off any leaderboard. */
     val plausibility: Float,
 )
@@ -87,10 +78,6 @@ interface ProgressRepository {
     val progress: Flow<PlayerProgress>
     suspend fun current(): PlayerProgress
     suspend fun update(transform: (PlayerProgress) -> PlayerProgress)
-
-    /** Per-exercise calibrated range, so session two starts accurate instead of relearning. */
-    suspend fun calibrationProfile(exercise: ExerciseType): UserProfile
-    suspend fun saveCalibrationProfile(exercise: ExerciseType, profile: UserProfile)
 }
 
 interface SessionRepository {
@@ -106,7 +93,7 @@ interface SessionRepository {
      */
     suspend fun workOn(epochDay: Long): Map<ExerciseType, Int>
 
-    /** Every run as the growth screens read it — the climb, the records, the week — oldest first. */
+    /** Every run as the growth screens read it — the calories, the records, the week — oldest first. */
     fun facts(): Flow<List<SessionFacts>>
 
     /** [facts], read once: what a run is measured against before it is banked. */
@@ -115,9 +102,6 @@ interface SessionRepository {
 
 /** User-facing settings. Defaults are the shipping defaults, not placeholders. */
 data class AppSettings(
-    val skeletonMode: SkeletonMode = SkeletonMode.MINIMAL,
-    val gaugeOnRight: Boolean = true,
-    val showGaugeNumber: Boolean = false,
     val sfxEnabled: Boolean = true,
     /** The background music during a run, or [MusicTrack.OFF]. */
     val music: MusicTrack = MusicTrack.ADVENTURE,
@@ -126,16 +110,12 @@ data class AppSettings(
     val hapticStrength: HapticStrength = HapticStrength.MEDIUM,
     val colourBlindSafe: Boolean = false,
     val reduceMotion: Boolean = false,
-    /** Screen dark, audio only. The battery fix and the accessibility mode are the same feature. */
-    val audioOnly: Boolean = false,
     val largeText: Boolean = false,
     /**
-     * The movement picked on the way into the last dungeon, remembered so the entry picker opens on
-     * it. It is a default for that screen, not a global mode — the run's exercise is whatever was
-     * chosen at entry.
+     * The movement picked last, which the hub's button starts and the picker opens on. It is a
+     * default, not a global mode — a run's exercise is whatever it was started with.
      */
     val exercise: ExerciseType = ExerciseType.PUSHUP,
-    val difficulty: Difficulty = Difficulty.STANDARD,
     /** The menus' look. The run is dark either way — it is drawn over the camera. */
     val themeMode: ThemeMode = ThemeMode.DARK,
     /**
@@ -154,12 +134,6 @@ data class AppSettings(
      * only what has been earned. A name a later build no longer knows is ignored.
      */
     val catWear: Set<String> = emptySet(),
-    /**
-     * Seconds to rest after a cleared dungeon before the next one starts by itself, or 0 for off.
-     * Without it a session ended at every clear screen: the next dungeon was a tap away, and a rest
-     * with no end is not a rest.
-     */
-    val autoNextRestSeconds: Int = 0,
     /**
      * The rest between two lives of 고냥이 지켜줘, in seconds. A minute by the owner's decision;
      * the settings offer longer, since a set to failure recovers better with more.

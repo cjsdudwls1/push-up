@@ -33,7 +33,7 @@ class AppContainer(context: Context) {
     /**
      * Outlives any screen. A finished run is written here: the screen that ended it is popped
      * straight away, and a write in that screen's own scope could be cancelled between the record
-     * row and the XP.
+     * row and the streak.
      */
     internal val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
@@ -50,8 +50,8 @@ class AppContainer(context: Context) {
     }
 
     /**
-     * Shared across screens rather than created per battle: loading fifteen samples takes long
-     * enough to be audible as a gap on the first rep of every run.
+     * Shared across screens rather than created per run: loading a dozen samples takes long enough
+     * to be audible as a gap on the first rep of every run.
      */
     val audio: GameAudio by lazy { GameAudio(appContext) }
 

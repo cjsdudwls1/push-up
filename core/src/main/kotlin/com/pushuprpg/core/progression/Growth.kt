@@ -7,7 +7,7 @@ import com.pushuprpg.core.detect.MovementKind
 /**
  * One banked run, as the growth screens read it: what was done, and on which day.
  *
- * The app maps its session rows onto this, so everything below — the climb, the records, the week
+ * The app maps its session rows onto this, so everything below — the calories, the records, the week
  * — is worked out here, where it can be tested, from the same rows the records screen lists.
  */
 data class SessionFacts(
@@ -33,85 +33,101 @@ fun SessionFacts.oneGo(): Int =
     if (Exercises.of(exercise).kind == MovementKind.HOLD) (durationMs / 1000L).toInt() else bestSet
 
 /**
- * Places on the way up, by height in metres.
+ * Foods, by the calories in one, from a blueberry to a bale of rice.
  *
  * The number that says how far someone has come has to mean something without a table beside it,
- * the way a word count does in a vocabulary app. A lifetime of reps is turned into the height the
- * body has been lifted, and heights are places people know. The first is a few reps off, so the
- * first session already reaches something; after that they spread out, so there is always a next
- * one in sight and never a last one.
+ * the way a word count does in a vocabulary app. By the owner's decision it is the calories every
+ * rep so far has burned, and calories are measured in food: a height was a number nobody feels, and
+ * a meal is one everybody does. The first is a few reps off, so the first session already reaches
+ * something; after that they spread out, so there is always a next one in sight, and the last is a
+ * lifetime away. The figures are the usual ones for a serving, rounded.
  */
-enum class Landmark(val meters: Int) {
-    CAT_TOWER(2),
-    APARTMENT_5F(15),
-    APARTMENT_15F(45),
-    LIBERTY(93),
-    SIXTY_THREE(249),
-    LOTTE_TOWER(555),
-    BUKHANSAN(836),
-    HALLASAN(1_947),
-    BAEKDUSAN(2_744),
-    FUJI(3_776),
-    KILIMANJARO(5_895),
-    EVEREST(8_849),
-    SPACE(100_000),
+enum class Food(val kcal: Int) {
+    BLUEBERRY(1),
+    CHERRY_TOMATO(3),
+    CANDY(20),
+    BANANA(90),
+    CHOCO_PIE(170),
+    RICE(300),
+    RAMEN(500),
+    JJAJANGMYEON(800),
+    CHICKEN(2_000),
+    FIVE_CHICKENS(10_000),
+    RAMEN_BOX(20_000),
+    RICE_SACK(72_000),
+    RICE_BALE(288_000),
 }
 
-/** Where a lifetime of reps has got to: the last place passed and the next one. */
-data class ClimbProgress(
-    val meters: Float,
-    val reached: Landmark?,
-    val next: Landmark?,
-    /** 0..1 from [reached] (or the ground) to [next]; 1 past the last. */
+/** Where a lifetime of reps has got to: the last food it burned off and the next one. */
+data class BurnProgress(
+    val kcal: Float,
+    val reached: Food?,
+    val next: Food?,
+    /** 0..1 from [reached] (or nothing) to [next]; 1 past the last. */
     val fraction: Float,
 ) {
-    val metersToNext: Float get() = next?.let { (it.meters - meters).coerceAtLeast(0f) } ?: 0f
+    val kcalToNext: Float get() = next?.let { (it.kcal - kcal).coerceAtLeast(0f) } ?: 0f
 }
 
 /**
- * The climb: every rep's lift added up.
+ * Calories burned: every rep's energy, added up.
  *
- * Roughly how far each movement raises the body, by an honest-looking round number rather than a
- * measurement — it is a way of counting, not a claim about work. A hold moves nothing, so a second
- * of it is worth what the rest of the game already says it is: half a pushup, since a plank's
- * session volume is twice a pushup's.
+ * Worked out the standard way — the movement's MET × body weight × the time it took — from the 2024
+ * Adult Compendium of Physical Activities. The app does not ask for a weight, so the estimate is for
+ * [REFERENCE_KG], and it is said as an estimate wherever it is shown: a way of counting that means
+ * something, not a measurement.
  */
-object Climb {
+object Calories {
 
-    fun metersPer(exercise: ExerciseType): Float = when (exercise) {
-        ExerciseType.PUSHUP -> 0.30f
-        ExerciseType.SQUAT -> 0.40f
-        ExerciseType.LUNGE -> 0.35f
-        ExerciseType.PULL_UP -> 0.50f
-        ExerciseType.DIP -> 0.30f
-        // Per second held: a pushup's lift over a plank's session volume.
-        ExerciseType.PLANK -> 0.30f / Exercises.of(ExerciseType.PLANK).sessionVolumeScale
+    /** The body weight the estimate is for: about the average Korean adult's. */
+    const val REFERENCE_KG = 65f
+
+    /**
+     * The movement's MET: 02020 vigorous calisthenics (push-ups, pull-ups) 7.5, and dips with them;
+     * 02057 high-intensity body-weight exercises (squat, lunge) 6.5; 02024 light calisthenics (plank)
+     * 2.8. A set here is taken to the edge, which is the vigorous end of each.
+     */
+    fun met(exercise: ExerciseType): Float = when (exercise) {
+        ExerciseType.PUSHUP, ExerciseType.PULL_UP, ExerciseType.DIP -> 7.5f
+        ExerciseType.SQUAT, ExerciseType.LUNGE -> 6.5f
+        ExerciseType.PLANK -> 2.8f
     }
 
-    /** Metres climbed by [work], each movement's in its own unit (see [SessionFacts.amount]). */
-    fun meters(work: Map<ExerciseType, Int>): Float =
-        work.entries.sumOf { (exercise, amount) -> (amount * metersPer(exercise)).toDouble() }.toFloat()
-
-    fun meters(facts: List<SessionFacts>): Float =
-        meters(facts.groupBy { it.exercise }.mapValues { (_, runs) -> runs.sumOf { it.amount() } })
-
-    fun progress(meters: Float): ClimbProgress {
-        val reached = Landmark.entries.lastOrNull { meters >= it.meters }
-        val next = Landmark.entries.firstOrNull { meters < it.meters }
-        val from = reached?.meters ?: 0
-        val fraction = if (next == null) 1f else ((meters - from) / (next.meters - from)).coerceIn(0f, 1f)
-        return ClimbProgress(meters, reached, next, fraction)
+    /** How long one rep takes at the pace the game is played at; a hold is counted by the second. */
+    fun secondsPer(exercise: ExerciseType): Float = when (exercise) {
+        ExerciseType.PUSHUP -> 2.0f
+        ExerciseType.SQUAT, ExerciseType.LUNGE, ExerciseType.DIP -> 2.5f
+        ExerciseType.PULL_UP -> 3.0f
+        ExerciseType.PLANK -> 1.0f
     }
 
-    /** How many more of [exercise] reach the next place — rounded up, since part of a rep is not one. */
-    fun toNext(progress: ClimbProgress, exercise: ExerciseType): Int {
+    /** kcal for one rep of [exercise], or one second of a hold: MET × kg × hours. */
+    fun perUnit(exercise: ExerciseType): Float = met(exercise) * REFERENCE_KG * secondsPer(exercise) / 3_600f
+
+    /** kcal burned by [work], each movement's in its own unit (see [SessionFacts.amount]). */
+    fun of(work: Map<ExerciseType, Int>): Float =
+        work.entries.sumOf { (exercise, amount) -> (amount * perUnit(exercise)).toDouble() }.toFloat()
+
+    fun of(facts: List<SessionFacts>): Float =
+        of(facts.groupBy { it.exercise }.mapValues { (_, runs) -> runs.sumOf { it.amount() } })
+
+    fun progress(kcal: Float): BurnProgress {
+        val reached = Food.entries.lastOrNull { kcal >= it.kcal }
+        val next = Food.entries.firstOrNull { kcal < it.kcal }
+        val from = reached?.kcal ?: 0
+        val fraction = if (next == null) 1f else ((kcal - from) / (next.kcal - from)).coerceIn(0f, 1f)
+        return BurnProgress(kcal, reached, next, fraction)
+    }
+
+    /** How many more of [exercise] reach the next food — rounded up, since part of a rep is not one. */
+    fun toNext(progress: BurnProgress, exercise: ExerciseType): Int {
         if (progress.next == null) return 0
-        return kotlin.math.ceil(progress.metersToNext / metersPer(exercise)).toInt().coerceAtLeast(1)
+        return kotlin.math.ceil(progress.kcalToNext / perUnit(exercise)).toInt().coerceAtLeast(1)
     }
 
-    /** The places passed between [before] and [after] metres, lowest first. */
-    fun passed(before: Float, after: Float): List<Landmark> =
-        Landmark.entries.filter { before < it.meters && after >= it.meters }
+    /** The foods burned off between [before] and [after] kcal, smallest first. */
+    fun passed(before: Float, after: Float): List<Food> =
+        Food.entries.filter { before < it.kcal && after >= it.kcal }
 }
 
 /** One movement's personal records. */
@@ -242,18 +258,19 @@ object Weeks {
 data class NewRecord(val exercise: ExerciseType, val previous: Int, val now: Int)
 
 /**
- * What one run changed in the growth the hub shows — the records it broke and the places it passed
- * — for the screen that ends it to say, since that is the moment it was earned.
+ * What one run changed in the growth the hub shows — the records it broke, the calories it burned
+ * and the foods they passed — for the screen that ends it to say, since that is the moment it was
+ * earned.
  */
 data class RunGrowth(
     val records: List<NewRecord>,
-    val metersBefore: Float,
-    val metersAfter: Float,
-    val passed: List<Landmark>,
+    val kcalBefore: Float,
+    val kcalAfter: Float,
+    val passed: List<Food>,
     /** Gifts this run brought: things the cat found, in the order they arrive. */
     val gifts: List<Gift> = emptyList(),
 ) {
-    val climbed: Float get() = (metersAfter - metersBefore).coerceAtLeast(0f)
+    val burned: Float get() = (kcalAfter - kcalBefore).coerceAtLeast(0f)
 
     companion object {
         /**
@@ -273,11 +290,11 @@ data class RunGrowth(
                 val now = runs.maxOf { it.oneGo() }
                 if (Records.isNew(previous, now)) NewRecord(exercise, previous ?: 0, now) else null
             }
-            val from = Climb.meters(before)
-            val to = from + Climb.meters(run)
+            val from = Calories.of(before)
+            val to = from + Calories.of(run)
             val had = Gifts.earned(before, bestStreakBefore)
             val have = Gifts.earned(before + run, bestStreakAfter)
-            return RunGrowth(records, from, to, Climb.passed(from, to), Gift.entries.filter { it in have && it !in had })
+            return RunGrowth(records, from, to, Calories.passed(from, to), Gift.entries.filter { it in have && it !in had })
         }
     }
 }
@@ -285,8 +302,8 @@ data class RunGrowth(
 /** A finished week, as the hub sums it up at the start of the next one. */
 data class WeekRecap(
     val summary: WeekSummary,
-    /** Metres climbed that week. */
-    val meters: Float,
+    /** kcal burned that week. */
+    val kcal: Float,
     /** Personal records broken that week: runs that beat the best before them, not first goes. */
     val records: Int,
 ) {
@@ -299,5 +316,5 @@ fun Weeks.recap(facts: List<SessionFacts>, monday: Long): WeekRecap {
     val inWeek = facts.filter { it.epochDay in week }
     val days = inWeek.map { DayTotal(it.epochDay, it.reps, it.durationMs) }
     val records = Records.broken(facts).count { it.epochDay in week }
-    return WeekRecap(summary(days, monday), Climb.meters(inWeek), records)
+    return WeekRecap(summary(days, monday), Calories.of(inWeek), records)
 }

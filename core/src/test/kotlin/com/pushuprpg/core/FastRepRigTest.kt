@@ -9,8 +9,8 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 
 /**
- * Brisk reps, which the 궁수 is built around, on the projected body at the frame rates a phone
- * actually delivers.
+ * Brisk reps, which 고냥이's ceiling asks for as it speeds up, on the projected body at the frame
+ * rates a phone actually delivers.
  *
  * Before the band crossings were interpolated, a 1-second squat was refused as TOO_FAST at 20 and
  * 30 fps and counted at 15 — the frame times undercut the descent by up to a frame, and a smoother

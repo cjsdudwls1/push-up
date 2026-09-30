@@ -14,8 +14,6 @@ import com.pushuprpg.core.audio.Announcement
 import com.pushuprpg.core.audio.VoiceStyle
 import com.pushuprpg.core.detect.ExerciseType
 import com.pushuprpg.core.detect.PlacementAdvice
-import com.pushuprpg.core.game.PlayerClass
-import com.pushuprpg.core.run.AlertKey
 import com.pushuprpg.core.survival.CatLine
 import java.security.MessageDigest
 import java.util.Locale
@@ -30,12 +28,11 @@ import java.util.Locale
  * and delivery. Keying on the text means a reworded line stops matching its old clip rather than
  * being played in words the app no longer uses, and a line nobody recorded is still said.
  *
- * Urgency is carried by delivery: urgent lines are faster and higher (in the clip, or by the
- * engine's rate and pitch) and cut off anything being said. Everything else queues behind the line
- * in progress, one at a time, whichever of the two is saying it. The music ducks under every line,
- * so the words are never the thing that gets lost — and so does anyone else's: each run of lines
- * holds transient, may-duck audio focus, so the user's own playlist drops under 필살기 와요 and comes
- * back when the queue is empty. When focus is refused, as it is in a phone call, nothing is said.
+ * Lines queue behind the one in progress, one at a time, whichever of the two is saying it. The
+ * music ducks under every line, so the words are never the thing that gets lost — and so does
+ * anyone else's: each run of lines holds transient, may-duck audio focus, so the user's own
+ * playlist drops under 천장이 무서워요 and comes back when the queue is empty. When focus is refused,
+ * as it is in a phone call, nothing is said.
  *
  * Called from the pose thread; every call is posted to the main thread, which is where the engine,
  * the clip player and the music player are touched.
@@ -113,23 +110,14 @@ class GameVoice(context: Context, private val music: MusicPlayer) {
     }
 
     /** Says [announcements], in the context the words depend on. */
-    fun announce(
-        announcements: List<Announcement>,
-        playerClass: PlayerClass = PlayerClass.KNIGHT,
-        exercise: ExerciseType = ExerciseType.PUSHUP,
-    ) {
+    fun announce(announcements: List<Announcement>, exercise: ExerciseType = ExerciseType.PUSHUP) {
         if (!enabled || announcements.isEmpty()) return
-        announcements.forEach { a -> textFor(a, playerClass, exercise)?.let { say(it, a.style) } }
+        announcements.forEach { a -> textFor(a, exercise)?.let { say(it, a.style) } }
     }
 
-    /** Says a fixed line — the rest countdown, say — outside the announcer. */
-    fun say(text: String, style: VoiceStyle = VoiceStyle.COACH) {
-        if (!enabled) return
+    /** Queues [text] behind whatever is being said. */
+    private fun say(text: String, style: VoiceStyle) {
         main.post {
-            if (style == VoiceStyle.URGENT) {
-                pending.clear()
-                interrupt()
-            }
             pending.addLast(text to style)
             if (current == null) next()
         }
@@ -217,7 +205,6 @@ class GameVoice(context: Context, private val music: MusicPlayer) {
         val engine = tts ?: return false
         if (!ready) return false
         val (rate, pitch) = when (style) {
-            VoiceStyle.URGENT -> 1.3f to 1.15f
             VoiceStyle.COACH -> 1.1f to 1.0f
             VoiceStyle.CAT -> 1.15f to 1.6f
         }
@@ -226,44 +213,11 @@ class GameVoice(context: Context, private val music: MusicPlayer) {
         return engine.speak(text, TextToSpeech.QUEUE_FLUSH, null, id) == TextToSpeech.SUCCESS
     }
 
-    private fun textFor(a: Announcement, playerClass: PlayerClass, exercise: ExerciseType): String? {
-        val res = appContext.resources
-        a.answersLeft?.let { left ->
-            return res.getString(R.string.voice_answers_left, times(left))
-        }
+    private fun textFor(a: Announcement, exercise: ExerciseType): String? {
         a.placement?.let { return placementText(it, exercise) }
         a.cat?.let { return catText(it.line, it.serial, it.arg) }
-        return when (a.alert) {
-            AlertKey.ULTIMATE_INCOMING -> when {
-                exercise == ExerciseType.PLANK -> res.getString(R.string.voice_ultimate_hold)
-                playerClass == PlayerClass.ARCHER -> res.getString(R.string.voice_ultimate_archer, times(a.arg))
-                else -> res.getString(R.string.voice_ultimate_knight, times(a.arg))
-            }
-            AlertKey.ULTIMATE_BLOCKED -> res.getString(R.string.voice_ultimate_blocked)
-            AlertKey.ULTIMATE_HIT -> res.getString(R.string.voice_ultimate_hit)
-            AlertKey.BOSS_LOW_HP -> res.getString(R.string.voice_boss_low)
-            AlertKey.COMBO_MILESTONE -> res.getString(R.string.voice_combo, a.arg)
-            AlertKey.SHALLOW_TWICE -> res.getString(R.string.voice_shallow)
-            // Up, not deeper: a pull-up short of the line, as its toast on screen says it.
-            AlertKey.SHALLOW_PULL -> res.getString(R.string.voice_shallow_pull)
-            AlertKey.NOT_SPLIT -> res.getString(R.string.battle_not_split)
-            AlertKey.STYLE_TOO_QUICK -> res.getString(R.string.voice_style_too_quick)
-            AlertKey.STYLE_NOT_FULL -> res.getString(R.string.voice_style_not_full)
-            AlertKey.STYLE_LAGGING -> res.getString(R.string.voice_style_lagging)
-            else -> null
-        }
+        return null
     }
-
-    /** "세 번", not "3번": the engine reads a digit as 삼. */
-    private fun times(n: Int): String = appContext.getString(
-        when (n) {
-            1 -> R.string.voice_times_1
-            2 -> R.string.voice_times_2
-            3 -> R.string.voice_times_3
-            4 -> R.string.voice_times_4
-            else -> R.string.voice_times_5
-        }
-    )
 
     private fun placementText(advice: PlacementAdvice, exercise: ExerciseType): String = appContext.getString(
         when (advice) {

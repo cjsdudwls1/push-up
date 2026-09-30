@@ -49,11 +49,11 @@ class MainActivity : ComponentActivity() {
 
         val container = (application as PushupApp).container
 
-        // Exactly when the graph starts at onboarding — no class chosen yet — and once per launch
-        // rather than per visit to the screen, which going back from the class picker repeats.
+        // Exactly when the graph starts at onboarding — its first screen not yet passed — and once
+        // per launch rather than per visit to the screen.
         if (savedInstanceState == null) {
             lifecycleScope.launch {
-                if (!container.progressRepository.current().classChosen) {
+                if (!container.progressRepository.current().introSeen) {
                     container.telemetry.log(Event.OnboardingStarted)
                 }
             }

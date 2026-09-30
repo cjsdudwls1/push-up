@@ -2,9 +2,9 @@
 
 ## Layout
 
-- `core/` — pure Kotlin/JVM. Rep detection, calibration, combat, progression, dungeon content,
-  survival mode, run orchestration. **No Android imports, ever.** If something can be expressed as
-  a rule rather than a screen, it belongs here.
+- `core/` — pure Kotlin/JVM. Rep detection, calibration, 고냥이 지켜줘 (the ceiling, the session
+  of ten lives, the cat), progression (streaks, calories, records, gifts). **No Android imports,
+  ever.** If something can be expressed as a rule rather than a screen, it belongs here.
 - `app/` — Android. CameraX, MediaPipe, Compose, Room, DataStore.
 
 ## Running the tests
@@ -35,14 +35,16 @@ project.
 ## Rules that are load-bearing
 
 **`:core` reads no clock and owns no randomness.** All time arrives as `PoseFrame.timestampMs` or
-an `atMs` parameter; randomness comes through the injected `Rng`. This is what makes a whole
-session replayable from a recorded landmark trace in a plain JVM test. Breaking it breaks every
+an `atMs` parameter, and nothing in it is random; anything that ever needs to be takes its
+randomness as a parameter. This is what makes a whole session replayable from a recorded landmark
+trace in a plain JVM test. Breaking it breaks every
 test in the module.
 
 **One component owns whether a rep counts.** The detector decides, using its calibrated range and
-its anti-cheat checks, and hands the verdict down as a `RepGrade`. Combat maps an accepted rep to
-damage and never re-tests the depth. Two components applying their own thresholds is exactly how
-the counter ended up incrementing without dealing damage.
+its anti-cheat checks, and hands the verdict down as a `RepGrade`. The ceiling maps an accepted rep
+to a push and never re-tests the depth (`CeilingSurvival.onRep`). Two components applying their own
+thresholds is exactly how a counter once ticked up while nothing happened, and how the cat's first
+minute was once all near misses.
 
 **The overlay draws only what `:core` gives it.** `RenderSkeleton` contains bones whose endpoints
 are both confidently visible, and joints that anchor a drawn bone. The renderer has no path to a
@@ -128,23 +130,15 @@ one rep in eight. It is validated on the rig only: until a real side-on set is i
 운동 기록 보내기).
 
 **A rep's depth is how deep it went, not where it counted.** A rep strikes at the 인정 line on its way
-down, so the strike's depth is always about 70. The stars and the 깊게 tally take each rep's depth
-from its deep upgrade and its finished record; averaged at the strike, a set with the chest on the
-floor graded one star and the result screen said 다음엔 더 깊게.
+down, so the strike's depth is always about 70. The ceiling's push and the 깊게 tally take each rep's
+depth from its deep upgrade and its finished record (`CeilingSurvival.onTick`); read at the strike, a
+set with the chest on the floor was once graded barely deep enough. `RealTraceTest` pins it on a real
+set.
 
 **A lunge needs a split stance** (`StanceCheck`, from world landmarks): the depth signal reads a
 squat exactly like a lunge. "Forward" is square to the hip line and the spine, never "horizontal" —
 world landmarks are in the camera's tilted frame. The game does not tell the user which leg to put
 forward, by the owner's decision: either leg counts, and the same leg twice is not remarked on.
-
-**A class is a way of training, and it decides what a rep is worth**, by the owner's decision: two
-classes, no more. 기사 is 근비대 — a rep whose lowering (top band to the 깊게 line) takes at least
-`ClassStyle.SLOW_LOWERING_MS` and reaches 깊게 is a whole rep off the monster, anything else half.
-궁수 is 수행능력 — a rep inside `ClassStyle.briskCycleMs` of the last, or the first of a set, is whole,
-anything else half. The detector still decides whether a rep counts; the class only prices it, from
-the detector's own timings. Both thresholds are measured on the rig (`ClassStyleRigTest`), and the
-brisk pace must stay well above what the detector can count (`FastRepRigTest`). 법사 was folded
-into 기사; a stored `MAGE` reads back as the default class.
 
 **Line crossings are placed between frames.** A brisk rep crosses the whole count band in one or
 two frames, and timing it frame to frame undercounted the descent by up to a frame — a 1-second
@@ -154,56 +148,59 @@ rate. `RepDetectorImpl.crossedAt` interpolates; any new timing taken off a line 
 **Bodyweight movements only**, by the owner's decision: pushup, squat, plank, pull-up, lunge, dip.
 The weighted ones were removed; stored names that point at them read back tolerantly.
 
-**The gauge reads its thresholds from `DetectorConfig`.** The line the user aims at must be the
-same value the rep counter uses. Never hardcode 70 or 88 in a composable.
+**A line drawn for the user to aim at reads its value from `DetectorConfig`.** It must be the same
+value the rep counter uses. Never hardcode 70 or 88 in a composable.
 
-**Reps survive a loss.** XP is earned per rep rather than on victory; progress is written whether
-the run was cleared or not. `BattleEngineTest` asserts it. The clear screen makes this promise in
-Korean and the code has to keep it.
+**Reps survive a loss.** A session's reps are banked however it ends — every life lost, the close
+button, back, or the screen going (`SurvivalViewModel.save` and `leave`) — and the records, the
+calories, the streak and the gifts are all worked out from what was banked.
 
-**Never punish a tracking failure.** When `PoseQuality != OK` the game clock stops and the boss
-stops attacking. A user must never lose health because the tracker blinked.
-
-고냥이 지켜줘 is the one deliberate exception, by the owner's decision: being in position only
-*starts* the run, and after that the ceiling never stops — resting, standing up and stepping out of
-view all let it keep coming. It is a sprint, and a sprint you can pause by sitting up is not one. Do
-not "fix" it back to pausing.
+**Never punish a tracking failure.** Nothing counts while `PoseQuality != OK`, and nothing may be
+lost for it either. 고냥이 지켜줘's ceiling does not pause for it, by the owner's decision: being in
+position only *starts* a life, and after that the ceiling never stops — resting, standing up and
+stepping out of view all let it keep coming. It is a sprint, and a sprint you can pause by sitting
+up is not one. Do not "fix" it back to pausing. What keeps the rule instead is the life given back:
+a life that ends while the tracker has lost the user for two seconds is refunded, once a session
+(`CatSession.REFUND_LOST_MS`, `REFUNDS`), without stepping out of view becoming a way to live
+forever.
 
 A session of 고냥이 지켜줘 is **ten lives with a rest between them**, by the owner's decision: a
 life is a set, and the rest (a minute by default; the settings offer 90 s and 2 min) is fully
 forced — no skip, no extend, no button — and the next life's ceiling does not come back until it
 is over, and then waits, as the first did, for the user to be in position. Each life is a fresh
-`CeilingSurvival` and keeps the sprint rule above. A life that ends while the tracker has lost the
-user for two seconds is given back, once a session (`CatSession.REFUND_LOST_MS`, `REFUNDS`): a
-tracking failure never costs the user, without stepping out of view becoming a way to live
-forever. The close button and back end the session where it is and show its ending, since with
-ten lives that is how most sessions end. The tutorial is one life and no rest. `CatSessionTest`
-pins all of it.
+`CeilingSurvival` and keeps the sprint rule above. The close button and back end the session where
+it is and show its ending, since with ten lives that is how most sessions end. The tutorial is one
+life and no rest. `CatSessionTest` pins all of it.
 
-**The cat is the front door; the dungeons are kept behind it**, by the owner's decision. The hub's
-one big button is 고냥이 지키기, and it starts the movement it names at once — the picker is the
-운동 바꾸기 link under it. Onboarding no longer asks for a class (a class only prices the dungeons,
-and its card lives on the dungeon list), and the dungeons are a quiet link at the bottom of the hub
-until the test period says whether anyone misses them.
+**The cat is the whole app; the dungeons were taken out** (2026-09-30), by the owner's decision.
+The hub's one big button is 고냥이 지키기, and it starts the movement it names at once — the picker
+is the 운동 바꾸기 link under it. There are no classes, levels, XP, difficulty or dungeon unlocks any
+more. What they stored is left where it was and not read, so a downgrade still finds it; rows played
+in a dungeon stay in the session table and count everywhere (`SessionRecord.dungeonIndex`), and the
+table kept its columns so there is no migration. Whether tracking works on real phones (H2) is read
+from `cat_session_finished`, which carries what `run_finished` used to (`TrackingDrops`).
 
 **A 고냥이 session shows its counts once, when it ends**, by the owner's decision: some people would
 rather not see a number while they train. Nothing on the run's screen or its rest card counts reps;
 the ending shows every set together. And a rep has no judgment sound of its own — the ding a
 counted rep makes is the feedback, and the owner judged it enough.
 
-**Growth is shown as things that only go up.** The climb (`Growth.kt`) turns every rep into the
-height it lifted the body and names the places passed; each movement's record is its best one go
-against its first. Neither ever falls, and a lost life or a week away subtracts nothing. The hub's
-cat greets by how long it has been (`Welcome`), glad whatever the answer, and a broken streak is
-never said — by the owner's decision, pointing at what was lost is how a return becomes a goodbye.
-The week is one card, with last week summed up at the start of the next (`Weeks.recap`). There are
-no push notifications, by the owner's decision.
+**Growth is shown as things that only go up.** The calories (`Growth.kt`) turn every rep into the
+energy it burned — MET × 65 kg × a movement's seconds per rep, an estimate the screen says is one,
+since the app does not ask anyone's weight — and name the foods it would take to put back; each
+movement's record is its best one go against its first, and each movement keeps its own best score,
+by the owner's decision, since a pull-up is not a pushup. None of them ever falls, and a lost life or
+a week away subtracts nothing. The hub's cat greets by how long it has been (`Welcome`), glad
+whatever the answer, and a broken streak is never said — by the owner's decision, pointing at what
+was lost is how a return becomes a goodbye. The week is one card, its days named 월 to 일 rather
+than drawn as dots, with last week summed up at the start of the next (`Weeks.recap`). There are no
+push notifications, by the owner's decision.
 
 **The cat's things are gifts it finds, never a shop or a task list**, by the owner's decision: a
 reward promised for doing something is one people do it for and stop when it stops, and one that
 arrives as a surprise adds to why they came. `Gifts.earned` works each gift out from what only
 grows — the runs, the best set of a counted movement, the longest streak, returns after three days
-away, records broken, the height climbed — so nothing is stored but which were seen
+away, records broken, the calories burned — so nothing is stored but which were seen
 (`PlayerProgress.giftsSeen`) and what is worn (`AppSettings.catWear`), and no gift is ever taken
 back. A run says what it found (`RunGrowth.gifts`, read after the streak is written) and puts it on
 where nothing is worn; something the user chose is never taken off for it. 꾸미기 shows what each
@@ -217,7 +214,8 @@ the sounds, and decides nothing about how the cat feels. It never changes the ga
 ## Copy
 
 Korean is the default locale, not a translation. Voice is 해요체 — an encouraging training partner,
-never a drill instructor. 실패 does not appear anywhere in the app; a lost run is `다음엔 잡아요`.
+never a drill instructor. 실패 does not appear anywhere in the app; a session ends as
+고냥이를 지켰어요, however it ended.
 Every user-visible string lives in `app/src/main/res/values/strings.xml`.
 
 Spoken lines play from `app/src/main/assets/voice/<id>.ogg` when a clip exists for the exact text
@@ -228,11 +226,10 @@ went stale. Outside audio and its licence go in `docs/AUDIO_CREDITS.md`.
 
 ## Balance
 
-Enemy HP is never authored. Content declares a *rep cost* and HP is derived at spawn: the rep cost
-× difficulty × the movement's session volume × the class's `repCostScale` (fewer reps for a 기사,
-more for a 궁수; a hold is the same for both). If a fight feels wrong, change its `standardRepCost`
-or a class's `repCostScale` — never an HP number, because there isn't one. Every screen that quotes
-a count passes the player's class to `Dungeon.repCost`, or it quotes a number the run won't ask for.
+The ceiling's curve is written in pushups — `CeilingSurvival`'s header does the arithmetic — and every
+other movement is converted into pushups by its `sessionVolumeScale` rather than given a curve of its
+own. If a movement keeps the cat alive too easily or too hard, change its `sessionVolumeScale`; if the
+whole mode does, the curve's constants.
 
 ## Before claiming something works
 

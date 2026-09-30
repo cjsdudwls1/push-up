@@ -174,7 +174,7 @@ class PoseLandmarkerSource(
      *
      * A GPU delegate that builds and then never answers reports no error, so the fallback on an
      * error never came and it stayed on the GPU counting nothing, in the tutorial and in every
-     * dungeon, while the screen said to open the app again — which tried the GPU again. After
+     * run, while the screen said to open the app again — which tried the GPU again. After
      * [STALL_MS] of silence it goes to the CPU as an error would take it; the CPU silent as well
      * is [stalled]. Each frame's gap is capped, so time with the camera stopped — the app in the
      * background — is not taken for the model's silence.

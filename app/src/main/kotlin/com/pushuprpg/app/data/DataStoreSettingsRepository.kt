@@ -33,9 +33,9 @@ private val Context.settingsStore: DataStore<Preferences> by preferencesDataStor
 
 private val SETTINGS_DEFAULT = AppSettings()
 
-private val KEY_SKELETON_MODE = stringPreferencesKey("skeleton_mode")
-private val KEY_GAUGE_ON_RIGHT = booleanPreferencesKey("gauge_on_right")
-private val KEY_SHOW_GAUGE_NUMBER = booleanPreferencesKey("show_gauge_number")
+// The dungeon screens' own settings — the overlay, the gauge's side and number, 절전 집중 모드, the
+// difficulty, the rest before the next dungeon — are no longer read or written, and are not deleted.
+
 private val KEY_SFX = booleanPreferencesKey("sfx_enabled")
 // A track name. The older "music_enabled" boolean was never read by anything that played music.
 private val KEY_MUSIC = stringPreferencesKey("music_track")
@@ -44,22 +44,16 @@ private val KEY_CAPTIONS = booleanPreferencesKey("captions_enabled")
 private val KEY_HAPTIC = stringPreferencesKey("haptic_strength")
 private val KEY_COLOUR_BLIND_SAFE = booleanPreferencesKey("colour_blind_safe")
 private val KEY_REDUCE_MOTION = booleanPreferencesKey("reduce_motion")
-private val KEY_AUDIO_ONLY = booleanPreferencesKey("audio_only")
 private val KEY_LARGE_TEXT = booleanPreferencesKey("large_text")
 private val KEY_EXERCISE = stringPreferencesKey("exercise")
-private val KEY_DIFFICULTY = stringPreferencesKey("difficulty")
 private val KEY_THEME_MODE = stringPreferencesKey("theme_mode")
 private val KEY_RECORD_TRACES = booleanPreferencesKey("record_traces")
 private val KEY_CAT_NAME = stringPreferencesKey("cat_name")
 private val KEY_CAT_COAT = stringPreferencesKey("cat_coat")
-private val KEY_AUTO_NEXT_REST = intPreferencesKey("auto_next_rest_seconds")
 private val KEY_CAT_REST = intPreferencesKey("cat_rest_seconds")
 private val KEY_CAT_WEAR = stringSetPreferencesKey("cat_wear")
 
 private fun Preferences.toSettings(): AppSettings = AppSettings(
-    skeletonMode = enumOrDefault(this[KEY_SKELETON_MODE], SETTINGS_DEFAULT.skeletonMode),
-    gaugeOnRight = this[KEY_GAUGE_ON_RIGHT] ?: SETTINGS_DEFAULT.gaugeOnRight,
-    showGaugeNumber = this[KEY_SHOW_GAUGE_NUMBER] ?: SETTINGS_DEFAULT.showGaugeNumber,
     sfxEnabled = this[KEY_SFX] ?: SETTINGS_DEFAULT.sfxEnabled,
     music = enumOrDefault(this[KEY_MUSIC], SETTINGS_DEFAULT.music),
     voiceEnabled = this[KEY_VOICE] ?: SETTINGS_DEFAULT.voiceEnabled,
@@ -67,23 +61,17 @@ private fun Preferences.toSettings(): AppSettings = AppSettings(
     hapticStrength = enumOrDefault(this[KEY_HAPTIC], SETTINGS_DEFAULT.hapticStrength),
     colourBlindSafe = this[KEY_COLOUR_BLIND_SAFE] ?: SETTINGS_DEFAULT.colourBlindSafe,
     reduceMotion = this[KEY_REDUCE_MOTION] ?: SETTINGS_DEFAULT.reduceMotion,
-    audioOnly = this[KEY_AUDIO_ONLY] ?: SETTINGS_DEFAULT.audioOnly,
     largeText = this[KEY_LARGE_TEXT] ?: SETTINGS_DEFAULT.largeText,
     exercise = enumOrDefault(this[KEY_EXERCISE], SETTINGS_DEFAULT.exercise),
-    difficulty = enumOrDefault(this[KEY_DIFFICULTY], SETTINGS_DEFAULT.difficulty),
     themeMode = enumOrDefault(this[KEY_THEME_MODE], SETTINGS_DEFAULT.themeMode),
     recordTraces = this[KEY_RECORD_TRACES] ?: SETTINGS_DEFAULT.recordTraces,
     catName = this[KEY_CAT_NAME] ?: SETTINGS_DEFAULT.catName,
     catCoat = enumOrDefault(this[KEY_CAT_COAT], SETTINGS_DEFAULT.catCoat),
-    autoNextRestSeconds = (this[KEY_AUTO_NEXT_REST] ?: SETTINGS_DEFAULT.autoNextRestSeconds).coerceAtLeast(0),
     catRestSeconds = (this[KEY_CAT_REST] ?: SETTINGS_DEFAULT.catRestSeconds).coerceIn(10, 600),
     catWear = this[KEY_CAT_WEAR] ?: SETTINGS_DEFAULT.catWear,
 )
 
 private fun MutablePreferences.writeSettings(s: AppSettings) {
-    this[KEY_SKELETON_MODE] = s.skeletonMode.name
-    this[KEY_GAUGE_ON_RIGHT] = s.gaugeOnRight
-    this[KEY_SHOW_GAUGE_NUMBER] = s.showGaugeNumber
     this[KEY_SFX] = s.sfxEnabled
     this[KEY_MUSIC] = s.music.name
     this[KEY_VOICE] = s.voiceEnabled
@@ -91,15 +79,12 @@ private fun MutablePreferences.writeSettings(s: AppSettings) {
     this[KEY_HAPTIC] = s.hapticStrength.name
     this[KEY_COLOUR_BLIND_SAFE] = s.colourBlindSafe
     this[KEY_REDUCE_MOTION] = s.reduceMotion
-    this[KEY_AUDIO_ONLY] = s.audioOnly
     this[KEY_LARGE_TEXT] = s.largeText
     this[KEY_EXERCISE] = s.exercise.name
-    this[KEY_DIFFICULTY] = s.difficulty.name
     this[KEY_THEME_MODE] = s.themeMode.name
     this[KEY_RECORD_TRACES] = s.recordTraces
     this[KEY_CAT_NAME] = s.catName
     this[KEY_CAT_COAT] = s.catCoat.name
-    this[KEY_AUTO_NEXT_REST] = s.autoNextRestSeconds
     this[KEY_CAT_REST] = s.catRestSeconds
     this[KEY_CAT_WEAR] = s.catWear
 }
@@ -127,7 +112,7 @@ class DataStoreSettingsRepository(context: Context) : SettingsRepository {
 
     suspend fun current(): AppSettings = settings.first()
 
-    /** Resets to the shipping defaults without disturbing progress or calibration. */
+    /** Resets to the shipping defaults without disturbing progress. */
     suspend fun reset() {
         withContext(Dispatchers.IO) {
             store.edit { prefs -> prefs.clear() }

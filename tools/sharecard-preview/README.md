@@ -28,5 +28,5 @@ string breaks this build instead of silently rendering stale copy.
 nothing in the app draws it — it exists only to be uploaded to the Console. The committed copy is
 `docs/store-assets/feature-graphic.png`.
 
-Adding a card variant means adding it to `Preview.kt`. Prefer values that break the layout — the
-longest dungeon name in the content table, a six-digit score — over ones that flatter it.
+Adding a card variant means adding it to `Preview.kt`. Prefer values that break the layout — a
+six-digit score, the longest session anyone could play — over ones that flatter it.

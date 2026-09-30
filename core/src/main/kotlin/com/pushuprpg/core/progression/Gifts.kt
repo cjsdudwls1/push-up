@@ -29,7 +29,7 @@ enum class CatItem(val slot: WearSlot) {
  * A gift the cat finds, and the thing it brings.
  *
  * Each one is earned by something that only ever grows — runs banked, the best set, the longest
- * streak, returns, records broken, the height climbed — so a gift is never taken back, and nothing
+ * streak, returns, records broken, the calories burned — so a gift is never taken back, and nothing
  * a bad week does can cost one. They are given as the cat's finds, not listed as tasks: a reward
  * promised for doing something is one people come to do it for, and stop when it stops; one that
  * arrives as a surprise adds to why they came. The owner chose this over coins and a shop.
@@ -39,14 +39,14 @@ enum class Gift(
     val kind: Kind,
     /** The count a [Kind.SET], [Kind.STREAK] or [Kind.RECORDS] gift waits for. */
     val count: Int = 0,
-    /** The place a [Kind.CLIMB] gift waits for. */
-    val place: Landmark? = null,
+    /** The food a [Kind.BURN] gift waits for: the calories burned in all, as much as it holds. */
+    val food: Food? = null,
 ) {
     /** The first run of any kind, the tutorial's included. */
     FIRST_RUN(CatItem.BELL, Kind.FIRST_RUN),
     SET_10(CatItem.RIBBON, Kind.SET, count = 10),
     STREAK_3(CatItem.FLOWER, Kind.STREAK, count = 3),
-    CLIMB_SIXTY_THREE(CatItem.CITY, Kind.CLIMB, place = Landmark.SIXTY_THREE),
+    BURN_RICE(CatItem.CITY, Kind.BURN, food = Food.RICE),
     SET_20(CatItem.BEANIE, Kind.SET, count = 20),
     /** Back after [Gifts.COMEBACK_DAYS] days or more away: the return is what is celebrated. */
     COMEBACK(CatItem.STRAW_HAT, Kind.COMEBACK),
@@ -55,11 +55,11 @@ enum class Gift(
     STREAK_7(CatItem.BOW_TIE, Kind.STREAK, count = 7),
     RECORDS_3(CatItem.GLASSES, Kind.RECORDS, count = 3),
     SET_30(CatItem.SUNGLASSES, Kind.SET, count = 30),
-    CLIMB_HALLASAN(CatItem.MOUNTAIN, Kind.CLIMB, place = Landmark.HALLASAN),
+    BURN_CHICKEN(CatItem.MOUNTAIN, Kind.BURN, food = Food.CHICKEN),
     STREAK_30(CatItem.PARTY_HAT, Kind.STREAK, count = 30),
     SET_50(CatItem.CROWN, Kind.SET, count = 50),
-    CLIMB_EVEREST(CatItem.SNOW, Kind.CLIMB, place = Landmark.EVEREST),
-    CLIMB_SPACE(CatItem.SPACE, Kind.CLIMB, place = Landmark.SPACE),
+    BURN_FIVE_CHICKENS(CatItem.SNOW, Kind.BURN, food = Food.FIVE_CHICKENS),
+    BURN_RICE_SACK(CatItem.SPACE, Kind.BURN, food = Food.RICE_SACK),
     ;
 
     /** What a gift is found for. */
@@ -73,8 +73,8 @@ enum class Gift(
         FULL_SESSION,
         /** [count] records broken, all told. */
         RECORDS,
-        /** The climb past [place]. */
-        CLIMB,
+        /** As many calories burned, in all, as [food] holds. */
+        BURN,
     }
 }
 
@@ -88,7 +88,7 @@ object Gifts {
         // The best set of any counted movement. A hold has no set: what its row keeps there is not
         // reps, and ten seconds of plank is not ten pushups.
         val bestSet = facts.filter { Exercises.of(it.exercise).kind != MovementKind.HOLD }.maxOfOrNull { it.bestSet } ?: 0
-        val meters = Climb.meters(facts)
+        val kcal = Calories.of(facts)
         val records = Records.broken(facts).size
         return Gift.entries.filterTo(mutableSetOf()) { gift ->
             when (gift.kind) {
@@ -98,7 +98,7 @@ object Gifts {
                 Gift.Kind.COMEBACK -> comebacks(facts) > 0
                 Gift.Kind.FULL_SESSION -> facts.any { it.fullSession }
                 Gift.Kind.RECORDS -> records >= gift.count
-                Gift.Kind.CLIMB -> gift.place != null && meters >= gift.place.meters
+                Gift.Kind.BURN -> gift.food != null && kcal >= gift.food.kcal
             }
         }
     }

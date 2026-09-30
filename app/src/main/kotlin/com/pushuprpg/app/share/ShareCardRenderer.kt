@@ -12,8 +12,6 @@ import android.graphics.Shader
 import android.graphics.Typeface
 import com.pushuprpg.app.R
 import java.util.Locale
-import kotlin.math.cos
-import kotlin.math.sin
 
 /**
  * Draws a share card.
@@ -43,22 +41,16 @@ object ShareCardRenderer {
 
     // The palette, duplicated from the Compose theme as plain ints. Duplicated rather than shared
     // because ui.theme.Palette is Compose Color and this file must not depend on Compose.
-    private const val BG0 = 0xFF07080C.toInt()
-    private const val BG1 = 0xFF0E1117.toInt()
-    private const val BG2 = 0xFF161A23.toInt()
     private const val STROKE = 0xFF2E3542.toInt()
     private const val TEXT_PRIMARY = 0xFFF2F5FA.toInt()
     private const val TEXT_SECONDARY = 0xFFA9B3C4.toInt()
     private const val TEXT_TERTIARY = 0xFF6E7A8E.toInt()
     private const val TEXT_ON_ACCENT = 0xFF0B0D12.toInt()
-    private const val BRAND = 0xFF7C6BFF.toInt()
-    private const val BRAND_LIGHT = 0xFF9A8CFF.toInt()
     private const val DEEP = 0xFFFFC53D.toInt()
-    private const val COMBO = 0xFFFF9F43.toInt()
     private const val ACCEPT = 0xFF35E08A.toInt()
     private const val INFO = 0xFF35C3FF.toInt()
 
-    // 고냥이's warm set. The mode looks nothing like the dungeon on purpose and the card keeps that.
+    // 고냥이's warm set.
     private const val CAT_BG = 0xFF1A1208.toInt()
     private const val CAT_PANEL = 0xFF241809.toInt()
     private const val CAT_FUR = 0xFFF3D9A8.toInt()
@@ -74,7 +66,6 @@ object ShareCardRenderer {
         val canvas = Canvas(bitmap)
         when (data) {
             is ShareCardData.Survival -> drawSurvival(res, canvas, data)
-            is ShareCardData.Dungeon -> drawDungeon(res, canvas, data)
         }
         return bitmap
     }
@@ -83,7 +74,7 @@ object ShareCardRenderer {
 
     private fun drawSurvival(res: Resources, canvas: Canvas, data: ShareCardData.Survival) {
         background(canvas, top = CAT_BG, bottom = 0xFF120C05.toInt(), glow = DEEP)
-        header(res, canvas, chip = res.getString(R.string.survival_title), chipColor = DEEP)
+        header(res, canvas, chip = data.movement, chipColor = DEEP)
 
         val panel = panel(canvas, CAT_PANEL)
         drawCeilingAndCat(canvas, panel)
@@ -123,8 +114,11 @@ object ShareCardRenderer {
      *
      * Frozen a little above the cat rather than at the height the run ended: the card is read by
      * someone who has never played, and a slab resting on the cat reads as a squashed cat.
+     *
+     * The Play feature graphic draws its picture with this too (`tools/sharecard-preview`), so the
+     * store shows the same cat the card does.
      */
-    private fun drawCeilingAndCat(canvas: Canvas, panel: RectF) {
+    internal fun drawCeilingAndCat(canvas: Canvas, panel: RectF) {
         canvas.save()
         canvas.clipPath(Path().apply { addRoundRect(panel, 44f, 44f, Path.Direction.CW) })
 
@@ -252,141 +246,6 @@ object ShareCardRenderer {
         }
     }
 
-    // ---------------------------------------------------------------- 던전
-
-    private fun drawDungeon(res: Resources, canvas: Canvas, data: ShareCardData.Dungeon) {
-        val accent = if (data.cleared) DEEP else BRAND_LIGHT
-        background(canvas, top = BG1, bottom = BG0, glow = accent)
-        header(res, canvas, chip = data.dungeonName, chipColor = accent)
-
-        val panel = panel(canvas, BG2)
-        drawCrest(canvas, panel, cleared = data.cleared)
-
-        headline(
-            canvas,
-            res.getString(
-                if (data.cleared) R.string.result_cleared else R.string.result_defeat
-            ),
-            accent,
-        )
-        hero(
-            canvas,
-            value = format(if (data.inSeconds) data.heldSeconds else data.reps),
-            suffix = res.getString(
-                if (data.inSeconds) R.string.share_card_second_suffix else R.string.share_card_rep_suffix
-            ),
-            color = TEXT_PRIMARY,
-            suffixColor = accent,
-        )
-        heroLabel(
-            canvas,
-            res.getString(
-                if (data.inSeconds) R.string.share_card_dungeon_hero_label_hold
-                else R.string.share_card_dungeon_hero_label
-            ),
-        )
-
-        // The run's length is plain 시간, as the result screen names it. 버틴 시간 is what a hold is
-        // counted in and what the cat's card counts, and on a pushup's card it read as a plank.
-        val time = Stat(duration(res, data.seconds), res.getString(R.string.result_tile_time), INFO)
-        val rank = Stat(data.climb, res.getString(R.string.share_card_stat_climb), ACCEPT)
-        if (data.inSeconds) {
-            // A hold builds no combo, so there is no ×0 tile.
-            stats(canvas, time, rank)
-        } else {
-            stats(
-                canvas,
-                Stat(
-                    res.getString(R.string.result_combo_value, data.maxCombo),
-                    res.getString(R.string.result_tile_combo),
-                    COMBO,
-                ),
-                time,
-                rank,
-            )
-        }
-        footer(res, canvas)
-    }
-
-    /**
-     * A hexagonal crest.
-     *
-     * Cleared fills it; a loss leaves it outlined and cracked. Both are worth posting, which is the
-     * point — the run banked its reps either way and the card must not look like a consolation.
-     */
-    private fun drawCrest(canvas: Canvas, panel: RectF, cleared: Boolean) {
-        val cx = panel.centerX()
-        val cy = panel.centerY()
-        val r = panel.height() * 0.38f
-
-        val hex = Path()
-        for (i in 0 until 6) {
-            val a = Math.toRadians((60.0 * i) - 90.0)
-            val x = cx + r * cos(a).toFloat()
-            val y = cy + r * sin(a).toFloat()
-            if (i == 0) hex.moveTo(x, y) else hex.lineTo(x, y)
-        }
-        hex.close()
-
-        val paint = Paint(Paint.ANTI_ALIAS_FLAG)
-        if (cleared) {
-            paint.shader = LinearGradient(
-                cx, cy - r, cx, cy + r,
-                intArrayOf(DEEP, COMBO), floatArrayOf(0f, 1f), Shader.TileMode.CLAMP,
-            )
-        } else {
-            paint.color = 0xFF1F2430.toInt()
-        }
-        canvas.drawPath(hex, paint)
-        paint.shader = null
-
-        paint.style = Paint.Style.STROKE
-        paint.strokeWidth = 8f
-        paint.color = if (cleared) 0x66FFFFFF else BRAND
-        canvas.drawPath(hex, paint)
-
-        drawSword(canvas, cx, cy, r, ink = if (cleared) TEXT_ON_ACCENT else BRAND_LIGHT)
-
-        if (!cleared) {
-            // A crack, not a cross-out. The run happened.
-            paint.color = 0x59FFFFFF
-            paint.strokeWidth = 7f
-            val crack = Path()
-            crack.moveTo(cx - r * 0.75f, cy - r * 0.35f)
-            crack.lineTo(cx - r * 0.18f, cy + r * 0.05f)
-            crack.lineTo(cx + r * 0.12f, cy - r * 0.28f)
-            crack.lineTo(cx + r * 0.78f, cy + r * 0.30f)
-            canvas.drawPath(crack, paint)
-        }
-    }
-
-    private fun drawSword(canvas: Canvas, cx: Float, cy: Float, r: Float, ink: Int) {
-        val paint = Paint(Paint.ANTI_ALIAS_FLAG)
-        paint.color = ink
-
-        val bladeW = r * 0.16f
-        val tipY = cy - r * 0.62f
-        val guardY = cy + r * 0.18f
-        val blade = Path()
-        blade.moveTo(cx, tipY)
-        blade.lineTo(cx + bladeW, tipY + bladeW * 1.6f)
-        blade.lineTo(cx + bladeW, guardY)
-        blade.lineTo(cx - bladeW, guardY)
-        blade.lineTo(cx - bladeW, tipY + bladeW * 1.6f)
-        blade.close()
-        canvas.drawPath(blade, paint)
-
-        canvas.drawRoundRect(
-            RectF(cx - r * 0.46f, guardY, cx + r * 0.46f, guardY + r * 0.13f),
-            r * 0.06f, r * 0.06f, paint,
-        )
-        canvas.drawRoundRect(
-            RectF(cx - bladeW * 0.7f, guardY + r * 0.13f, cx + bladeW * 0.7f, cy + r * 0.62f),
-            bladeW * 0.5f, bladeW * 0.5f, paint,
-        )
-        canvas.drawCircle(cx, cy + r * 0.68f, r * 0.09f, paint)
-    }
-
     // ---------------------------------------------------------------- shared furniture
 
     private fun background(canvas: Canvas, top: Int, bottom: Int, glow: Int) {
@@ -397,7 +256,7 @@ object ShareCardRenderer {
         )
         canvas.drawRect(0f, 0f, WIDTH.toFloat(), HEIGHT.toFloat(), paint)
 
-        // A single soft glow behind the crest. Enough to stop the card reading as a screenshot of a
+        // A single soft glow behind the picture. Enough to stop the card reading as a screenshot of a
         // settings page when it lands in a feed of photographs.
         paint.shader = RadialGradient(
             WIDTH / 2f, PANEL_TOP + 180f, WIDTH * 0.72f,
@@ -545,7 +404,7 @@ object ShareCardRenderer {
     /**
      * Shrinks until it fits.
      *
-     * Korean dungeon names and rank names vary in width far more than the layout can absorb, and a
+     * Korean labels and six-digit scores vary in width far more than the layout can absorb, and a
      * card is worthless if the one number on it is clipped. Shrinking is always preferable to
      * wrapping here: every string on the card is a label, and a wrapped label looks broken.
      */

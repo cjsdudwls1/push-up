@@ -8,7 +8,6 @@ import com.google.firebase.analytics.FirebaseAnalytics
 import com.google.firebase.crashlytics.FirebaseCrashlytics
 import com.pushuprpg.core.detect.ExerciseType
 import com.pushuprpg.core.detect.PoseQuality
-import com.pushuprpg.core.game.Difficulty
 import com.pushuprpg.core.run.TrackingDrops
 
 /**
@@ -89,17 +88,13 @@ class Telemetry(context: Context) {
  *
  * Deliberately short. The two questions that actually need answering are where a first session
  * loses people, which the onboarding and tutorial events cover, and whether rep detection works on
- * hardware nobody here has ever held — which is what [RunFinished]'s tracking numbers and
+ * hardware nobody here has ever held — which is what [CatSessionFinished]'s tracking numbers and
  * plausibility, and [QualityLost]'s reasons, are for. Every detection constant in this app is
  * reasoned rather than measured, and without a signal from real phones there is no way to tune them.
  */
 sealed class Event(val name: String, val params: Map<String, Any> = emptyMap()) {
 
     data object OnboardingStarted : Event("onboarding_started")
-
-    /** A class change, from the dungeon list or settings. Onboarding no longer asks for one. */
-    data class ClassChanged(val from: String, val to: String) :
-        Event("class_changed", mapOf("from" to from, "to" to to))
 
     data class PermissionResolved(val granted: Boolean) :
         Event("camera_permission", mapOf("granted" to granted))
@@ -111,7 +106,7 @@ sealed class Event(val name: String, val params: Map<String, Any> = emptyMap()) 
     data object TutorialStarted : Event("tutorial_started")
 
     /**
-     * The tutorial run, which is also the calibration set. Sent however it ended once the ceiling
+     * The tutorial run, the first set anybody does here. Sent however it ended once the ceiling
      * moved, so [ended] and [nearMisses] are what tell a first minute that worked from one that did
      * not: a run the camera counted nothing in is a completion too.
      */
@@ -134,62 +129,22 @@ sealed class Event(val name: String, val params: Map<String, Any> = emptyMap()) 
     /** Left before its run started, so nothing was measured: how many never got a first rep in. */
     data object TutorialSkipped : Event("tutorial_skipped")
 
-    data class RunStarted(
-        val dungeon: Int,
-        val difficulty: Difficulty,
-        val exercise: ExerciseType,
-    ) : Event(
-        "run_started",
-        mapOf(
-            "dungeon" to dungeon,
-            "difficulty" to difficulty.name,
-            "exercise" to exercise.name,
-        ),
-    )
-
-    data class RunFinished(
-        val dungeon: Int,
-        val cleared: Boolean,
-        val reps: Int,
-        val durationMs: Long,
-        val plausibility: Float,
-        /** How often tracking lost the user once they were in position; see [TrackingDrops]. */
-        val tracking: TrackingDrops.Summary,
-    ) : Event(
-        "run_finished",
-        mapOf(
-            "dungeon" to dungeon,
-            "cleared" to cleared,
-            "reps" to reps,
-            "duration_ms" to durationMs,
-            // Below 0.85 the detector itself flagged the session. A population of these is the
-            // first hint that the thresholds are wrong for some device or some body.
-            "plausibility" to plausibility,
-            // H2, per run: whether the user was ever in position, and after that how often the
-            // tracker lost them, how often it found them again and for how long in all. The run's
-            // last seconds are left out: that is the user getting up to end it.
-            "armed" to tracking.armed,
-            "lost_count" to tracking.drops,
-            "lost_recovered" to tracking.recovered,
-            "lost_ms" to tracking.lostMs,
-        ),
-    )
-
     /**
-     * Tracking dropped mid-run.
+     * Tracking dropped while a life was on.
      *
      * How "it stopped counting my last three reps" turns into something anyone can act on, broken
-     * down by reason and by device. It is one event per drop with no run to sum it over, and it
-     * fires as readily for the user getting up to quit, so how often runs lose the user is read from
-     * [RunFinished]; this is for why. [armed] says whether the movement had armed before it.
+     * down by reason and by device. It is one event per drop with no session to sum it over, and it
+     * fires as readily for the user getting up to quit, so how often sessions lose the user is read
+     * from [CatSessionFinished]; this is for why. [armed] says whether the movement had armed before
+     * it, and [atRep] is the life's reps so far.
      */
     data class QualityLost(val quality: PoseQuality, val atRep: Int, val armed: Boolean) :
         Event("quality_lost", mapOf("reason" to quality.name, "at_rep" to atRep, "armed" to armed))
 
     /**
      * A session of 고냥이 지켜줘 ended, every life lost or left part way; the tutorial's is
-     * [TutorialCompleted]. Now that the cat is the front door, this and [RunFinished] are how the two
-     * modes are compared, and [lives] and [completed] say whether people play all three sets.
+     * [TutorialCompleted]. [lives] and [completed] say whether people play all ten sets, and
+     * [tracking] and [plausibility] whether the tracker works on their phone (H2).
      */
     data class CatSessionFinished(
         val exercise: ExerciseType,
@@ -203,6 +158,9 @@ sealed class Event(val name: String, val params: Map<String, Any> = emptyMap()) 
         val refunded: Boolean,
         /** Every life was played out, rather than the session left part way. */
         val completed: Boolean,
+        val plausibility: Float,
+        /** How often tracking lost the user once they were in position; see [TrackingDrops]. */
+        val tracking: TrackingDrops.Summary,
     ) : Event(
         "cat_session_finished",
         mapOf(
@@ -213,6 +171,16 @@ sealed class Event(val name: String, val params: Map<String, Any> = emptyMap()) 
             "duration_ms" to durationMs,
             "refunded" to refunded,
             "completed" to completed,
+            // Below 0.85 the detector itself flagged the session. A population of these is the
+            // first hint that the thresholds are wrong for some device or some body.
+            "plausibility" to plausibility,
+            // H2, per session: whether the user was ever in position, and after that how often the
+            // tracker lost them, how often it found them again and for how long in all. Rests and
+            // each life's last seconds are left out: that is the user stepping away.
+            "armed" to tracking.armed,
+            "lost_count" to tracking.drops,
+            "lost_recovered" to tracking.recovered,
+            "lost_ms" to tracking.lostMs,
         ),
     )
 

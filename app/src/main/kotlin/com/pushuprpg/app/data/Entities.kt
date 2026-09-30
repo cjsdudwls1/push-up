@@ -16,6 +16,9 @@ import java.time.ZoneId
  * [epochDay] is denormalised from [startedAtMs] at insert time rather than derived in SQL. SQLite's
  * date functions work in UTC, so a 07:00 KST session would land on the previous calendar day and
  * the streak would break for a user who trains in the morning.
+ *
+ * [dungeonIndex] and [xpEarned] are the dungeons' and stay as columns, so the table needs no
+ * migration and a dungeon row is still told from a 고냥이 one; new rows leave them null and zero.
  */
 @Entity(
     tableName = "sessions",
@@ -71,7 +74,6 @@ fun SessionEntity.toRecord(): SessionRecord = SessionRecord(
     meanDepth = meanDepth,
     dungeonIndex = dungeonIndex,
     cleared = cleared,
-    xpEarned = xpEarned,
     plausibility = plausibility,
 )
 
@@ -87,6 +89,6 @@ fun SessionRecord.toEntity(epochDay: Long): SessionEntity = SessionEntity(
     meanDepth = meanDepth,
     dungeonIndex = dungeonIndex,
     cleared = cleared,
-    xpEarned = xpEarned,
+    xpEarned = 0,
     plausibility = plausibility,
 )

@@ -1,6 +1,6 @@
 package com.pushuprpg.core.survival
 
-import com.pushuprpg.core.audio.BattleAudio
+import com.pushuprpg.core.audio.ComboPitch
 import com.pushuprpg.core.audio.SoundCue
 import com.pushuprpg.core.audio.SoundRequest
 
@@ -240,7 +240,7 @@ class CatCompanion {
             lastHoldSoundMs = event.atMs
             return listOf(SoundRequest(SoundCue.CEILING_PUSH, volume = 0.45f))
         }
-        val push = SoundRequest(SoundCue.CEILING_PUSH, rate = BattleAudio.pitchForCombo(event.combo))
+        val push = SoundRequest(SoundCue.CEILING_PUSH, rate = ComboPitch.of(event.combo))
         return when {
             event.deep -> listOf(push, SoundRequest(SoundCue.REP_DEEP))
             event.combo > 0 -> listOf(push, SoundRequest(SoundCue.REP_ACCEPT))

@@ -31,8 +31,7 @@ class GameAudio(context: Context) {
     private val appContext = context.applicationContext
 
     private val pool: SoundPool = SoundPool.Builder()
-        // Enough voices for a deep rep landing on a crit while the boss is winding up — or, in
-        // 고냥이, a push landing over a creak, a heartbeat and a cry.
+        // Enough voices for a push landing over a creak, a heartbeat and a cry.
         .setMaxStreams(8)
         .setAudioAttributes(
             AudioAttributes.Builder()
@@ -91,12 +90,12 @@ class GameAudio(context: Context) {
     fun play(requests: List<SoundRequest>) {
         if (requests.isEmpty()) return
         requests.forEach(::play)
-        requests.firstOrNull { it.cue.band == SoundCue.Band.COMBAT }?.let { vibrateFor(it.cue) }
+        requests.firstOrNull { it.cue.band == SoundCue.Band.IMPACT }?.let { vibrateFor(it.cue) }
     }
 
     /**
-     * One buzz at [strength], the length of a hit — so choosing a strength in settings is feeling
-     * it, rather than reading a word and guessing. Ignores the current setting on purpose.
+     * One buzz at [strength], a little longer than a push — so choosing a strength in settings is
+     * feeling it, rather than reading a word and guessing. Ignores the current setting on purpose.
      */
     fun previewHaptic(strength: HapticStrength) {
         vibrate(strength, PREVIEW_MS)
@@ -104,10 +103,6 @@ class GameAudio(context: Context) {
 
     private fun vibrateFor(cue: SoundCue) {
         val durationMs = when (cue) {
-            SoundCue.CRIT -> 55L
-            SoundCue.HIT_HEAVY -> 40L
-            SoundCue.PLAYER_HURT -> 80L
-            SoundCue.ENEMY_DOWN -> 90L
             SoundCue.HEARTBEAT -> 35L
             else -> 22L
         }
@@ -143,23 +138,14 @@ class GameAudio(context: Context) {
     }
 
     private companion object {
-        /** Long enough to tell three strengths apart by feel; the length of a heavy hit and a bit. */
+        /** Long enough to tell three strengths apart by feel. */
         const val PREVIEW_MS = 60L
 
         val RESOURCES: Map<SoundCue, Int> = mapOf(
             SoundCue.REP_ACCEPT to R.raw.sfx_rep_accept,
             SoundCue.REP_DEEP to R.raw.sfx_rep_deep,
-            SoundCue.HIT to R.raw.sfx_hit,
-            SoundCue.HIT_HEAVY to R.raw.sfx_hit_heavy,
-            SoundCue.CRIT to R.raw.sfx_crit,
-            SoundCue.PLAYER_HURT to R.raw.sfx_player_hurt,
-            SoundCue.TELEGRAPH to R.raw.sfx_telegraph,
             SoundCue.COMBO_UP to R.raw.sfx_combo_up,
-            SoundCue.COMBO_BREAK to R.raw.sfx_combo_break,
-            SoundCue.ENEMY_DOWN to R.raw.sfx_enemy_down,
-            SoundCue.VICTORY to R.raw.sfx_victory,
             SoundCue.DEFEAT to R.raw.sfx_defeat,
-            SoundCue.COUNTDOWN to R.raw.sfx_countdown,
             SoundCue.GO to R.raw.sfx_go,
             SoundCue.CEILING_PUSH to R.raw.sfx_ceiling_push,
             SoundCue.HEARTBEAT to R.raw.sfx_heartbeat,

@@ -138,8 +138,8 @@ class PullUpDetectorTest {
         // (RealTraceTest).
         assertTrue(pullUp.minRepPeriodMs > pushup.minRepPeriodMs)
         assertTrue(
-            Exercises.PULL_UP.damageCoefficient > 2f * Exercises.PUSHUP.damageCoefficient,
-            "a floor costed in pushups must not ask for the same number of pull-ups",
+            Exercises.PULL_UP.sessionVolumeScale < Exercises.PUSHUP.sessionVolumeScale / 2f,
+            "a pull-up must move the ceiling further than a pushup",
         )
         assertTrue(Exercises.PULL_UP.streakBar < Exercises.PUSHUP.streakBar)
     }

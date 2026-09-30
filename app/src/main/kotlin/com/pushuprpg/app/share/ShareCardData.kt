@@ -11,29 +11,15 @@ sealed interface ShareCardData {
 
     /** 고냥이 지켜줘. The card that has to travel. */
     data class Survival(
+        /**
+         * The movement the session was played with, as the app names it: 푸쉬업. The card's chip,
+         * since the best score beside it is that movement's, and the app's name is on the card
+         * already.
+         */
+        val movement: String,
         val score: Int,
         val best: Int,
         val reps: Int,
         val seconds: Int,
     ) : ShareCardData
-
-    /** A dungeon run, cleared or not. Losses share too — that is the whole promise of the mode. */
-    data class Dungeon(
-        val dungeonName: String,
-        val cleared: Boolean,
-        val reps: Int,
-        /** Seconds held in a hold such as the plank; zero for a run of counted movements. */
-        val heldSeconds: Int,
-        val maxCombo: Int,
-        val seconds: Int,
-        /** How high every rep so far has climbed, already worded: 312m. */
-        val climb: String,
-        val lifetimeReps: Int,
-    ) : ShareCardData {
-        /**
-         * A run that only held is told in seconds, as its HUD and the result screen told it. Its
-         * reps are zero by construction, and a card saying 0개 is a card nobody posts.
-         */
-        val inSeconds: Boolean get() = reps == 0 && heldSeconds > 0
-    }
 }

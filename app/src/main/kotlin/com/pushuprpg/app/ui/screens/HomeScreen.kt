@@ -16,6 +16,7 @@ import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.pushuprpg.app.R
 import com.pushuprpg.app.domain.CatCoat
@@ -29,8 +30,8 @@ import com.pushuprpg.core.detect.ExerciseType
 import com.pushuprpg.core.detect.Exercises
 import com.pushuprpg.core.detect.MovementKind
 import com.pushuprpg.core.progression.CatItem
-import com.pushuprpg.core.progression.Climb
-import com.pushuprpg.core.progression.ClimbProgress
+import com.pushuprpg.core.progression.BurnProgress
+import com.pushuprpg.core.progression.Calories
 import com.pushuprpg.core.progression.Gift
 import com.pushuprpg.core.progression.MovementRecord
 import com.pushuprpg.core.progression.Streak
@@ -51,8 +52,8 @@ data class HomeUiState(
     val loading: Boolean = true,
     /** Today, as an epoch day: what the streak is read against. */
     val today: Long = 0,
-    /** Every rep so far, as height climbed. */
-    val climb: ClimbProgress = Climb.progress(0f),
+    /** Every rep so far, as calories burned and the food they add up to. */
+    val burn: BurnProgress = Calories.progress(0f),
     /** Each movement's best one go and first one, for how far it has come. */
     val records: Map<ExerciseType, MovementRecord> = emptyMap(),
     val thisWeek: WeekSummary = EMPTY_WEEK,
@@ -95,11 +96,8 @@ private val EMPTY_WEEK = WeekSummary(start = 0, days = List(7) { false }, reps =
  * mode the tutorial already taught, which starts the movement it names at once; the picker is the
  * link under it, since the movement is the same one day after another. Under that, the answer to
  * the other question a habit needs,
- * "am I getting anywhere": how high every rep so far has climbed, the best set against the first,
+ * "am I getting anywhere": the calories every rep so far has burned, the best set against the first,
  * and the week at a glance. The cat says how long it has been, glad whatever the answer.
- *
- * The dungeons are still here, by the owner's decision, behind one quiet link at the bottom: kept
- * while the test period says whether anyone misses them.
  */
 @Composable
 fun HomeScreen(
@@ -110,7 +108,6 @@ fun HomeScreen(
     onPlayCat: () -> Unit,
     /** The picker, for another movement. */
     onChangeExercise: () -> Unit,
-    onAdventure: () -> Unit,
     onRecords: () -> Unit,
     onSettings: () -> Unit,
     /** 꾸미기: the cat's name, coat and what it has found. */
@@ -247,8 +244,8 @@ fun HomeScreen(
         }
 
         Spacer(Modifier.height(22.dp))
-        ClimbCard(
-            progress = state.climb,
+        CalorieCard(
+            progress = state.burn,
             exercise = lastExercise,
             modifier = Modifier.clickable(onClick = onRecords),
         )
@@ -274,9 +271,6 @@ fun HomeScreen(
                 modifier = Modifier.weight(1f),
             )
         }
-
-        Spacer(Modifier.height(20.dp))
-        AdventureLink(onClick = onAdventure)
     }
 }
 
@@ -301,7 +295,7 @@ private fun welcomeText(welcome: Welcome, monday: Boolean): String = when (welco
 
 /**
  * The best one go of the movement picked last, and how far it has come from the first: the number
- * that says the body is changing, where the climb says the work is adding up.
+ * that says the body is changing, where the calories say the work is adding up.
  */
 @Composable
 private fun RecordCard(record: MovementRecord, onClick: () -> Unit) {
@@ -348,13 +342,11 @@ private fun RecordCard(record: MovementRecord, onClick: () -> Unit) {
 }
 
 /**
- * The week at a glance: a dot a day, lit on the days that had any work, and one line on how it
+ * The week at a glance: its days by name, lit on the days that had any work, and one line on how it
  * stands against last week — said only as a lead, never as a shortfall.
  */
 @Composable
 private fun WeekCard(thisWeek: WeekSummary, lastWeek: WeekSummary, today: Long) {
-    val colors = LocalGameColors.current
-    val labels = stringArrayResource(R.array.weekday_short)
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -375,32 +367,12 @@ private fun WeekCard(thisWeek: WeekSummary, lastWeek: WeekSummary, today: Long) 
             )
         }
         Spacer(Modifier.height(14.dp))
-        Row(
+        WeekDays(
+            days = thisWeek.days,
+            todayIndex = (today - thisWeek.start).toInt(),
+            size = 32.dp,
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-        ) {
-            thisWeek.days.forEachIndexed { i, worked ->
-                val isToday = thisWeek.start + i == today
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Box(
-                        Modifier
-                            .size(28.dp)
-                            .clip(CircleShape)
-                            .background(if (worked) colors.accept else Palette.Bg3)
-                            .then(
-                                if (isToday && !worked) Modifier.border(2.dp, colors.accept, CircleShape)
-                                else Modifier
-                            ),
-                    )
-                    Spacer(Modifier.height(4.dp))
-                    Text(
-                        text = labels.getOrElse(i) { "" },
-                        style = Type.labelS,
-                        color = if (isToday) Palette.TextPrimary else Palette.TextTertiary,
-                    )
-                }
-            }
-        }
+        )
         Spacer(Modifier.height(12.dp))
         Text(
             text = when {
@@ -413,6 +385,46 @@ private fun WeekCard(thisWeek: WeekSummary, lastWeek: WeekSummary, today: Long) 
             style = Type.bodyM,
             color = Palette.TextSecondary,
         )
+    }
+}
+
+/**
+ * A week as its days, 월 to 일, each a circle with its name in it: filled on a day with any work,
+ * ringed if it is today and nothing is done yet. Named rather than bare dots, which only someone who
+ * built the card could read.
+ */
+@Composable
+private fun WeekDays(
+    days: List<Boolean>,
+    size: Dp,
+    modifier: Modifier = Modifier,
+    /** Which of the seven is today, if the week is this one. */
+    todayIndex: Int = -1,
+) {
+    val colors = LocalGameColors.current
+    val labels = stringArrayResource(R.array.weekday_short)
+    Row(modifier = modifier, horizontalArrangement = Arrangement.SpaceBetween) {
+        days.forEachIndexed { i, worked ->
+            val isToday = i == todayIndex
+            Box(
+                modifier = Modifier
+                    .size(size)
+                    .clip(CircleShape)
+                    .background(if (worked) colors.accept else Palette.Bg3)
+                    .then(if (isToday && !worked) Modifier.border(2.dp, colors.accept, CircleShape) else Modifier),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = labels.getOrElse(i) { "" },
+                    style = Type.labelM,
+                    color = when {
+                        worked -> Palette.TextOnAccent
+                        isToday -> Palette.TextPrimary
+                        else -> Palette.TextTertiary
+                    },
+                )
+            }
+        }
     }
 }
 
@@ -438,44 +450,12 @@ private fun WardrobePill(newGifts: Int, onClick: () -> Unit, modifier: Modifier 
     )
 }
 
-/** The way to the dungeons, kept but out of the way while the test period decides their future. */
-@Composable
-private fun AdventureLink(onClick: () -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(CardShape)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 8.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(Modifier.weight(1f)) {
-            Text(
-                text = stringResource(R.string.home_adventure),
-                style = Type.bodyL,
-                color = Palette.TextSecondary,
-            )
-            Text(
-                text = stringResource(R.string.home_adventure_sub),
-                style = Type.labelM,
-                color = Palette.TextTertiary,
-            )
-        }
-        Text(
-            text = "›",
-            style = Type.titleL,
-            color = Palette.TextTertiary,
-        )
-    }
-}
-
 /**
- * Last week, summed up at the start of this one: its days, its reps, the height it added and the
+ * Last week, summed up at the start of this one: its days, its reps, the calories it burned and the
  * records it broke. Shown until the first workout of the new week, which is the moment it is for.
  */
 @Composable
 private fun RecapCard(recap: WeekRecap) {
-    val colors = LocalGameColors.current
     val week = recap.summary
     Column(
         modifier = Modifier
@@ -489,25 +469,16 @@ private fun RecapCard(recap: WeekRecap) {
             color = Palette.TextPrimary,
         )
         Spacer(Modifier.height(10.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            week.days.forEach { worked ->
-                Box(
-                    Modifier
-                        .size(14.dp)
-                        .clip(CircleShape)
-                        .background(if (worked) colors.accept else Palette.Bg3),
-                )
-            }
-        }
+        WeekDays(days = week.days, size = 28.dp, modifier = Modifier.fillMaxWidth())
         Spacer(Modifier.height(10.dp))
         Text(
             text = stringResource(R.string.recap_totals, week.activeDays, week.reps),
             style = Type.bodyL,
             color = Palette.TextPrimary,
         )
-        if (recap.meters > 0f) {
+        if (recap.kcal > 0f) {
             Text(
-                text = stringResource(R.string.recap_climbed, metersText(recap.meters)),
+                text = stringResource(R.string.recap_burned, kcalText(recap.kcal)),
                 style = Type.bodyM,
                 color = Palette.TextSecondary,
             )

@@ -3,56 +3,6 @@ package com.pushuprpg.core.progression
 import com.pushuprpg.core.detect.ExerciseType
 import com.pushuprpg.core.detect.Exercises
 import com.pushuprpg.core.detect.MovementKind
-import kotlin.math.pow
-import kotlin.math.roundToInt
-
-object Levels {
-    const val MAX_LEVEL = 50
-
-    fun xpToNext(level: Int): Int =
-        if (level >= MAX_LEVEL) 0 else (30.0 * level.toDouble().pow(1.5)).roundToInt() + 20
-
-    /** Applies [gained] XP and returns the new level and leftover XP. */
-    fun apply(level: Int, xpIntoLevel: Int, gained: Int): LevelUpResult {
-        var l = level
-        var xp = xpIntoLevel + gained
-        var levelsGained = 0
-        while (l < MAX_LEVEL) {
-            val need = xpToNext(l)
-            if (xp < need) break
-            xp -= need
-            l++
-            levelsGained++
-        }
-        if (l >= MAX_LEVEL) xp = 0
-        return LevelUpResult(l, xp, levelsGained)
-    }
-}
-
-data class LevelUpResult(val level: Int, val xpIntoLevel: Int, val levelsGained: Int) {
-    val leveledUp: Boolean get() = levelsGained > 0
-}
-
-/**
- * The player's measured working capacity — the largest set of consecutive counted reps seen
- * recently. It never appears in the UI as a number: showing it invites both gaming and shame, and
- * its only job is to size encounters.
- */
-object Capacity {
-    const val FLOOR = 5f
-    const val DEFAULT_PLANK_SECONDS = 20f
-
-    /** Improvement moves it quickly; a bad day does not move it at all. */
-    fun update(current: Float, observedSet: Int): Float =
-        maxOf(current, 0.75f * current + 0.25f * observedSet).coerceAtLeast(FLOOR)
-
-    /** Decays slowly while the app goes unused, so returning after a break is not brutal. */
-    fun decay(current: Float, daysIdle: Int): Float {
-        if (daysIdle < 7) return current
-        val weeks = daysIdle / 7
-        return (current * 0.97f.pow(weeks)).coerceAtLeast(FLOOR)
-    }
-}
 
 /** A streak's length, and the last day (an epoch day) that met its bar. */
 data class StreakState(val days: Int, val lastActiveDay: Long)
@@ -64,13 +14,8 @@ data class StreakState(val days: Int, val lastActiveDay: Long)
  * get the user to open the app on a bad day, not to extract a workout from them. A genuine break
  * halves the streak rather than zeroing it, so one missed week does not erase a year.
  *
- * It is a day's, not a run's: the bar is met by everything done that day, in any mode. Judged one
- * run at a time, two sets of five never kept it, and neither did the tutorial or 고냥이 지켜줘.
- *
- * A dungeon cleared meets it on its own, whatever it asked for. A dungeon is priced by class,
- * movement and difficulty and the bar is not: the free dungeon cleared on squats by a 기사 asked for
- * eight of the fifteen, and on a plank for thirty-six seconds of the sixty, so the screen said 던전
- * 클리어 and the streak did not move.
+ * It is a day's, not a run's: the bar is met by everything done that day. Judged one run at a time,
+ * two sets of five never kept it, and neither did the tutorial.
  */
 object Streak {
     const val MIN_REPS_TO_MAINTAIN = 10
@@ -126,17 +71,9 @@ object Streak {
      * set that runs past midnight counts for the evening it began in. A day that has already met the
      * bar changes nothing, and neither does a day before the last one that did (a clock moved back):
      * it never rewinds the streak and never counts a day twice.
-     *
-     * [cleared] is whether the run being banked cleared its dungeon, which meets the day's bar
-     * whatever [dayWork] comes to.
      */
-    fun advance(
-        current: StreakState,
-        day: Long,
-        dayWork: Map<ExerciseType, Int>,
-        cleared: Boolean = false,
-    ): StreakState {
-        if (!cleared && !maintained(dayWork)) return current
+    fun advance(current: StreakState, day: Long, dayWork: Map<ExerciseType, Int>): StreakState {
+        if (!maintained(dayWork)) return current
         val gap = day - current.lastActiveDay
         return when {
             gap <= 0L -> current.copy(days = current.days.coerceAtLeast(1))
@@ -148,7 +85,7 @@ object Streak {
     /**
      * How much more of [exercise], in its bar's unit, keeps the streak on [today] after [dayWork]:
      * the least that does, the day's other movements counted at their share of their own bars. Zero
-     * once today has kept it, by its work or by a dungeon cleared, which its work does not show.
+     * once today has kept it.
      */
     fun leftOn(current: StreakState, today: Long, dayWork: Map<ExerciseType, Int>, exercise: ExerciseType): Int {
         if (current.lastActiveDay >= today || maintained(dayWork)) return 0
@@ -169,9 +106,6 @@ object Streak {
      */
     fun shown(current: StreakState, today: Long): Int =
         if (broken(current, today)) afterBreak(current.days) else current.days
-
-    /** Bonus max HP from a streak, capped so it never becomes the reason to play. */
-    fun hpBonus(days: Int): Float = (days * 0.01f).coerceAtMost(0.25f)
 
     fun afterBreak(peak: Int): Int = (peak / 2).coerceAtLeast(0)
 }

@@ -34,8 +34,9 @@ enum class DepthSource { PRIMARY, ELBOW_FALLBACK, NONE }
 /**
  * Why counting is or is not currently possible.
  *
- * Anything other than [OK] pauses the game clock as well as the counter. A user must never lose
- * health to a boss because the tracker lost them.
+ * Anything other than [OK] holds the counter: nothing counts while the tracker cannot see. What a
+ * lost frame costs the run is the run's to decide, and it is never the user's fault — 고냥이 gives a
+ * life back rather than pausing (see [com.pushuprpg.core.survival.CatSession]).
  */
 enum class PoseQuality {
     OK,

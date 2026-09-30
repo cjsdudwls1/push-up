@@ -3,9 +3,9 @@
 Generates the game's sound effects.
 
 They are synthesised rather than recorded or licensed for two reasons. There is no audio budget,
-and — more usefully — the design calls for the sounds to sit in two separate spectral bands so they
-never mask each other: form feedback dry and high (1.5-4 kHz), combat impacts wet and low
-(60-250 Hz). Synthesising them is the only way to guarantee that precisely, and it makes the whole
+and — more usefully — the design calls for the sounds to sit in separate spectral bands so they
+never mask each other: form feedback dry and high (1.5-4 kHz), impacts wet and low (60-250 Hz),
+and the cat between them. Synthesising them is the only way to guarantee that precisely, and it makes the whole
 palette a diff rather than a folder of binaries nobody can adjust.
 
 Run:  python3 tools/generate_sfx.py [sfx_name ...]
@@ -118,69 +118,11 @@ def hit(pitch_semitones=0.0, heavy=False):
     return normalise(thump + body + crack, 0.95 if heavy else 0.85)
 
 
-def crit():
-    n = secs(0.5)
-    base = hit(0, heavy=True)
-    base = np.pad(base, (0, n - len(base)))
-    ring = tone(880, n) * env(n, decay=0.12) * 0.3
-    ring += tone(1_320, n) * env(n, decay=0.09) * 0.22
-    return normalise(base + ring, 0.98)
-
-
-def player_hurt():
-    """The boss landing one. Dull and unpleasant, deliberately not satisfying."""
-    n = secs(0.42)
-    thud = sweep(90, 45, n) * env(n, decay=0.11)
-    grit = lowpass(noise(n), 400) * env(n, decay=0.09) * 0.6
-    return normalise(thud + grit, 0.9)
-
-
-def telegraph():
-    """
-    필살기 온다. Three accelerating beats at -3.0s, -1.6s, -0.7s.
-
-    Timed so the warning can be read by ear alone — the user is mid-rep and not looking at the
-    screen, which is the whole reason the audio design exists.
-    """
-    n = secs(3.2)
-    out = np.zeros(n)
-    for offset, gain in ((0.0, 0.55), (1.4, 0.75), (2.3, 1.0)):
-        start = secs(offset)
-        m = secs(0.22)
-        if start + m > n:
-            m = n - start
-        beat = sweep(210, 120, m) * env(m, decay=0.06) * gain
-        out[start:start + m] += beat
-    return normalise(out, 0.9)
-
-
 def combo_up():
     n = secs(0.22)
     a = tone(880, n, "tri") * env(n, decay=0.05)
     b = tone(1_320, n, "tri") * env(n, decay=0.07) * 0.6
     return normalise(a + b, 0.7)
-
-
-def combo_break():
-    n = secs(0.3)
-    return normalise(sweep(700, 260, n) * env(n, decay=0.09), 0.6)
-
-
-def enemy_down():
-    n = secs(0.7)
-    crumble = lowpass(noise(n), 1_200) * env(n, decay=0.16) * 0.8
-    drop = sweep(320, 70, n) * env(n, decay=0.2)
-    return normalise(crumble + drop, 0.95)
-
-
-def victory():
-    n = secs(1.1)
-    out = np.zeros(n)
-    for i, f in enumerate((523.25, 659.25, 783.99, 1046.50)):
-        start = secs(0.10 * i)
-        m = n - start
-        out[start:] += tone(f, m, "tri") * env(m, decay=0.30) * (0.5 + 0.12 * i)
-    return normalise(out, 0.85)
 
 
 def defeat():
@@ -194,11 +136,6 @@ def defeat():
     return normalise(out, 0.6)
 
 
-def countdown():
-    n = secs(0.18)
-    return normalise(tone(1_046, n, "tri") * env(n, decay=0.05), 0.7)
-
-
 def go():
     n = secs(0.45)
     a = tone(1_568, n, "tri") * env(n, decay=0.12)
@@ -207,7 +144,7 @@ def go():
 
 
 def ceiling_push():
-    """고냥이. Warmer and rounder than the dungeon's impacts — a different register on purpose."""
+    """고냥이. Warm and round, a push rather than a blow."""
     n = secs(0.26)
     a = sweep(240, 460, n) * env(n, decay=0.08)
     b = tone(700, n, "sine") * env(n, decay=0.05) * 0.4
@@ -394,17 +331,8 @@ def heartbeat():
 SOUNDS = {
     "sfx_rep_accept": rep_accept,
     "sfx_rep_deep": rep_deep,
-    "sfx_hit": lambda: hit(0),
-    "sfx_hit_heavy": lambda: hit(0, heavy=True),
-    "sfx_crit": crit,
-    "sfx_player_hurt": player_hurt,
-    "sfx_telegraph": telegraph,
     "sfx_combo_up": combo_up,
-    "sfx_combo_break": combo_break,
-    "sfx_enemy_down": enemy_down,
-    "sfx_victory": victory,
     "sfx_defeat": defeat,
-    "sfx_countdown": countdown,
     "sfx_go": go,
     "sfx_ceiling_push": ceiling_push,
     "sfx_heartbeat": heartbeat,

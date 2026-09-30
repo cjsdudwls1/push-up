@@ -95,14 +95,13 @@ carry the full notice; and the store listing ends with it. Keep the three saying
    the resource link, a `drawText` import from the wrong package, three thread races around the
    camera and the landmarker, and a timestamp unit mismatch that would have made MediaPipe reject
    frames under load — none of which a compiler would have caught anyway.
-2. **Character art is geometric, not illustrated.** Fighters and monsters are drawn from shapes on
-   a Compose canvas, with a wind-up blend that moves the avatar in step with the user and a
-   three-hit attack string that varies by depth and crit. It works and it is consistent, but it is
-   not the commissioned sticker art the demo showed. Replacing it later means swapping
-   `CharacterArt.kt` and `MonsterArt.kt`; nothing else reads them.
-3. **Audio is synthesised.** Fifteen cues from `tools/generate_sfx.py`, deliberately split into a
-   dry high band for form and a wet low band for impacts. Adequate and coherent; a sound designer
-   would do better. There is no music and no voice.
+2. **The art is geometric, not illustrated.** The cat, its things and the ceiling are drawn from
+   shapes on a Compose canvas (`CatArt.kt`). It works and it is consistent, but it is not
+   commissioned art. The fighters and monsters went with the dungeons (2026-09-30).
+3. **Audio is synthesised.** Eleven cues from `tools/generate_sfx.py`, deliberately split into a
+   dry high band for form, a wet low band for impacts and the cat between them, and one recorded
+   purr. Adequate and coherent; a sound designer would do better. Music is synthesised too
+   (`tools/generate_music.py`), and the voice is generated (`docs/AUDIO_CREDITS.md`).
 4. **Every detection constant is reasoned, not measured.** They come from anthropometry and
    projection geometry, tested against synthetic traces. Before a public release, record real
    sessions on four or five different phones and re-tune. A trace recorder and a replay harness are

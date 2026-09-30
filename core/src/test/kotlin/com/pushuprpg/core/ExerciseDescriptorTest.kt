@@ -2,7 +2,6 @@ package com.pushuprpg.core
 
 import com.pushuprpg.core.detect.*
 import com.pushuprpg.core.fixtures.PoseFixtures
-import com.pushuprpg.core.game.coefficient
 import com.pushuprpg.core.pose.PoseLandmarks as Lm
 import com.pushuprpg.core.progression.Streak
 import kotlin.test.Test
@@ -32,8 +31,7 @@ class ExerciseDescriptorTest {
         ExerciseType.entries.forEach { type ->
             val d = Exercises.of(type)
             assertEquals(type, d.config.exercise, "$type config disagrees with its descriptor")
-            assertTrue(type.coefficient() > 0f, "$type deals no damage")
-            assertTrue(d.defaultCapacity > 0f, "$type has no starting capacity")
+            assertTrue(d.sessionVolumeScale > 0f, "$type moves the ceiling nowhere")
             assertTrue(Streak.maintained(type, d.streakBar), "$type can never keep a streak")
             assertTrue(!Streak.maintained(type, d.streakBar - 1), "$type streak bar is not a bar")
         }
@@ -123,10 +121,6 @@ class ExerciseDescriptorTest {
         assertEquals(1.05f, squat.hTopPrior)
         assertEquals(0.05f, squat.hBotPrior)
         assertEquals(-0.50f, squat.botClampMin)
-
-        assertEquals(1.00f, ExerciseType.PUSHUP.coefficient())
-        assertEquals(0.85f, ExerciseType.SQUAT.coefficient())
-        assertEquals(1.00f, ExerciseType.PLANK.coefficient())
     }
 
     @Test
@@ -201,5 +195,16 @@ class ExerciseDescriptorTest {
             DepthSignal.compute(frame, body, confidence, DetectorConfig.plank()),
             "a hold has no depth ratio",
         )
+    }
+
+    @Test
+    fun `the calibration clamps are wide enough for an unusual camera angle`() {
+        // The ratio shifts with how steeply the phone is tilted. A clamp tight enough to exclude a
+        // real living-room setup would make the accept line permanently unreachable while every
+        // quality indicator reported OK — silent, and unrecoverable by the user.
+        val config = DetectorConfig.pushup()
+        assertTrue(config.topClampMax / config.topClampMin >= 3f,
+            "top clamp spans only ${config.topClampMin}..${config.topClampMax}")
+        assertTrue(config.botClampMin <= 0.15f)
     }
 }

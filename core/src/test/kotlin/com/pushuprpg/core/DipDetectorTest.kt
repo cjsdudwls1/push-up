@@ -114,6 +114,5 @@ class DipDetectorTest {
     fun `a dip is priced as its own session, not a pushup's`() {
         val d = Exercises.of(ExerciseType.DIP)
         assertTrue(d.sessionVolumeScale < 0.5f, "a dip session is near-max, not 150 reps")
-        assertTrue(d.damageCoefficient > 1f, "a dip is worth more than a pushup per rep")
     }
 }

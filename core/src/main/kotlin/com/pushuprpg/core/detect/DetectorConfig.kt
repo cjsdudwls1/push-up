@@ -20,7 +20,7 @@ data class DetectorConfig(
     val countEnter: Float = 70f,
     /** depth < this leaves the bottom. */
     val countExit: Float = 55f,
-    /** the 깊게 line: bonus damage. */
+    /** the 깊게 line: a deeper push, and a rep in the 깊게 tally. */
     val deepEnter: Float = 88f,
     val deepExit: Float = 80f,
 

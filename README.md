@@ -1,17 +1,18 @@
-# 푸쉬업 RPG
+# 고냥이 지켜줘
 
-An Android fitness RPG. The phone's camera watches you do pushups; every rep is an attack on a
-monster. Rest and the boss hits back.
+An Android fitness game. The phone's camera watches you do pushups; every rep pushes up a ceiling
+that is coming down on a cat. Rest, and it keeps coming.
 
-Korean-language, on-device, camera-based. Nothing you record ever leaves the phone.
+Korean-language, on-device, camera-based. Nothing you record ever leaves the phone. It was called
+푸쉬업 RPG until 2026-09-30, when the dungeons were taken out and the cat became the whole app.
 
 ---
 
 ## How it works
 
 The camera feed goes to MediaPipe's Pose Landmarker, which returns 33 body landmarks per frame.
-Those are converted into a single depth value, 0 to 100, which drives both the gauge on screen and
-the rep counter. Each counted rep resolves into damage against the current enemy.
+Those are converted into a single depth value, 0 to 100, which drives the rep counter. Each counted
+rep pushes the ceiling back up, further the deeper it went.
 
 ### The depth signal
 
@@ -52,44 +53,42 @@ from most placements.
 ### Why the rep counts at the bottom
 
 The strike fires the moment depth crosses the accept line, not on the return to the top, so the hit
-lands when the effort is *felt*. Firing at lockout would put the damage number several hundred
-milliseconds after the exertion and the game would read as disconnected from the body.
+lands when the effort is *felt*. Firing at lockout would put the push several hundred milliseconds
+after the exertion and the game would read as disconnected from the body.
 
 Farming is prevented structurally rather than by validation: a strike is only reachable from a
 re-armed top, so a second rep requires a genuine lockout. A bouncing user gets exactly one rep, and
 there is a test for it.
 
-### Why enemy HP is never authored
+### Why every movement is counted in pushups
 
-A beginner does 8 pushups and an athlete does 100. Any fixed HP number either walls the first or is
-trivial for the second, so content declares a *rep cost* — "this boss should take about fourteen
-pushups" — and HP is derived at spawn from the player's measured capacity and the attack of a
-player at the dungeon's recommended level. Capacity scaling is deliberately compressive, so a
-twelvefold capacity spread becomes a sixfold volume spread; what compression gives away, the
-difficulty tier gives back as a choice the player makes.
+A pull-up is not a pushup, and a plank is not counted at all. Rather than a ceiling tuned per
+movement, the ceiling's curve is written once, in pushups, and every other movement is converted into
+them by how many of it make up the same session: a pull-up, which a person manages about a third as
+many of, moves the ceiling about three times as far, and a second of a plank counts like a rep. The
+best score is kept per movement for the same reason.
 
-### "이기든 지든 사라지지 않아요"
+### "Your reps are kept"
 
-The clear screen promises that your reps are recorded whether you win or lose. That is implemented,
-not just written: XP is earned per rep rather than on victory, so defeat cannot cost more than the
-completion bonus, and losing still banks a fraction of the damage dealt so the retry is measurably
-shorter. `BattleEngineTest` asserts it.
+A session's reps are banked however it ends — every life lost, the close button, back, or the app
+closed mid-set — and the records, the calories, the streak and the gifts are worked out from what was
+banked, so nothing is ever taken back.
 
-Two related rules hold everywhere: the game clock and the boss both pause whenever tracking is lost,
-so nobody ever takes damage because the tracker blinked; and a lost run appears in the records
-exactly as prominently as a won one.
+Nothing counts while tracking is lost. The ceiling does not pause for it, on purpose: a sprint you can
+pause by sitting up is not one. What keeps the user from paying for the tracker instead is that a
+life that ends while the camera had lost them is given back, once a session.
 
 ---
 
 ## Project layout
 
 ```
-core/     Pure Kotlin/JVM. Rep detection, calibration, combat, progression, dungeon content,
-          survival mode, and the run orchestration. No Android imports anywhere.
+core/     Pure Kotlin/JVM. Rep detection, calibration, 고냥이 지켜줘 (the ceiling, the session of
+          ten lives, the cat), and progression. No Android imports anywhere.
 app/      Android. CameraX, MediaPipe, Compose UI, Room, DataStore.
 ```
 
-Everything that can be a rule rather than a screen lives in `:core`, which is why 88 unit tests can
+Everything that can be a rule rather than a screen lives in `:core`, which is why 260 unit tests can
 cover the parts of this app most likely to be wrong without an emulator, a camera, or a human.
 
 ## Building

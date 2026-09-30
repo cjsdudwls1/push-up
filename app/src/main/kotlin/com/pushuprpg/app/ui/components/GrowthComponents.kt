@@ -22,31 +22,31 @@ import com.pushuprpg.app.ui.theme.Type
 import com.pushuprpg.core.detect.ExerciseType
 import com.pushuprpg.core.detect.Exercises
 import com.pushuprpg.core.detect.MovementKind
+import com.pushuprpg.core.progression.BurnProgress
+import com.pushuprpg.core.progression.Calories
 import com.pushuprpg.core.progression.CatItem
-import com.pushuprpg.core.progression.Climb
-import com.pushuprpg.core.progression.ClimbProgress
+import com.pushuprpg.core.progression.Food
 import com.pushuprpg.core.progression.Gift
-import com.pushuprpg.core.progression.Landmark
 import com.pushuprpg.core.progression.RunGrowth
 import com.pushuprpg.core.survival.CatSession
 import java.util.Locale
 
-/** A place on the climb, by name. */
+/** A food on the calorie ladder, by name. */
 @StringRes
-fun landmarkNameRes(landmark: Landmark): Int = when (landmark) {
-    Landmark.CAT_TOWER -> R.string.landmark_cat_tower
-    Landmark.APARTMENT_5F -> R.string.landmark_apartment_5f
-    Landmark.APARTMENT_15F -> R.string.landmark_apartment_15f
-    Landmark.LIBERTY -> R.string.landmark_liberty
-    Landmark.SIXTY_THREE -> R.string.landmark_sixty_three
-    Landmark.LOTTE_TOWER -> R.string.landmark_lotte_tower
-    Landmark.BUKHANSAN -> R.string.landmark_bukhansan
-    Landmark.HALLASAN -> R.string.landmark_hallasan
-    Landmark.BAEKDUSAN -> R.string.landmark_baekdusan
-    Landmark.FUJI -> R.string.landmark_fuji
-    Landmark.KILIMANJARO -> R.string.landmark_kilimanjaro
-    Landmark.EVEREST -> R.string.landmark_everest
-    Landmark.SPACE -> R.string.landmark_space
+fun foodNameRes(food: Food): Int = when (food) {
+    Food.BLUEBERRY -> R.string.food_blueberry
+    Food.CHERRY_TOMATO -> R.string.food_cherry_tomato
+    Food.CANDY -> R.string.food_candy
+    Food.BANANA -> R.string.food_banana
+    Food.CHOCO_PIE -> R.string.food_choco_pie
+    Food.RICE -> R.string.food_rice
+    Food.RAMEN -> R.string.food_ramen
+    Food.JJAJANGMYEON -> R.string.food_jjajangmyeon
+    Food.CHICKEN -> R.string.food_chicken
+    Food.FIVE_CHICKENS -> R.string.food_five_chickens
+    Food.RAMEN_BOX -> R.string.food_ramen_box
+    Food.RICE_SACK -> R.string.food_rice_sack
+    Food.RICE_BALE -> R.string.food_rice_bale
 }
 
 /** One of the cat's things, by name. */
@@ -78,29 +78,26 @@ fun giftWhyText(gift: Gift): String = when (gift.kind) {
     Gift.Kind.COMEBACK -> stringResource(R.string.gift_why_comeback)
     Gift.Kind.FULL_SESSION -> stringResource(R.string.gift_why_full_session, CatSession.LIVES)
     Gift.Kind.RECORDS -> stringResource(R.string.gift_why_records, gift.count)
-    Gift.Kind.CLIMB -> gift.place?.let { stringResource(R.string.gift_why_climb, stringResource(landmarkNameRes(it))) }.orEmpty()
+    Gift.Kind.BURN -> gift.food?.let { stringResource(R.string.gift_why_burn, stringResource(foodNameRes(it))) }.orEmpty()
 }
 
-/**
- * A height as people say it: 2.1m under ten metres, whole metres with separators after, and
- * kilometres past ten of them.
- */
+/** Calories as people say them: 1.9kcal under ten, whole ones with separators after. */
 @Composable
-fun metersText(meters: Float): String = when {
-    meters >= 10_000f -> stringResource(R.string.climb_km, String.format(Locale.KOREA, "%.1f", meters / 1_000f))
-    meters >= 10f -> stringResource(R.string.climb_m, String.format(Locale.KOREA, "%,d", meters.toInt()))
-    else -> stringResource(R.string.climb_m, String.format(Locale.KOREA, "%.1f", meters))
+fun kcalText(kcal: Float): String = when {
+    kcal >= 10f -> stringResource(R.string.burn_kcal, String.format(Locale.KOREA, "%,d", kcal.toInt()))
+    else -> stringResource(R.string.burn_kcal, String.format(Locale.KOREA, "%.1f", kcal))
 }
 
 /**
- * The climb: how high every rep so far has lifted the body, the place it last passed, and how many
- * of [exercise] reach the next one.
+ * The calories every rep so far has burned, the biggest food they add up to, and how many of
+ * [exercise] burn off the next one.
  *
  * It is the answer to "am I getting anywhere", which a lifetime count of reps gives only to someone
- * who knows what a count means. A height does not need explaining.
+ * who knows what a count means. A meal does not need explaining — by the owner's decision, after a
+ * height did not land. It says it is an estimate, because the app does not know the user's weight.
  */
 @Composable
-fun ClimbCard(progress: ClimbProgress, exercise: ExerciseType, modifier: Modifier = Modifier) {
+fun CalorieCard(progress: BurnProgress, exercise: ExerciseType, modifier: Modifier = Modifier) {
     val colors = LocalGameColors.current
     Column(
         modifier = modifier
@@ -109,23 +106,23 @@ fun ClimbCard(progress: ClimbProgress, exercise: ExerciseType, modifier: Modifie
             .padding(20.dp),
     ) {
         Text(
-            text = stringResource(R.string.climb_title),
+            text = stringResource(R.string.burn_title),
             style = Type.labelL,
             color = Palette.TextTertiary,
         )
         Spacer(Modifier.height(6.dp))
         Row(verticalAlignment = Alignment.Bottom) {
             Text(
-                text = metersText(progress.meters),
+                text = kcalText(progress.kcal),
                 style = Type.numeralL,
                 color = Palette.TextPrimary,
             )
             val reached = progress.reached
             Text(
                 text = if (reached == null) {
-                    stringResource(R.string.climb_ground)
+                    stringResource(R.string.burn_none)
                 } else {
-                    stringResource(R.string.climb_reached, stringResource(landmarkNameRes(reached)))
+                    stringResource(R.string.burn_reached, stringResource(foodNameRes(reached)))
                 },
                 style = Type.bodyM,
                 color = colors.accept,
@@ -133,7 +130,7 @@ fun ClimbCard(progress: ClimbProgress, exercise: ExerciseType, modifier: Modifie
                     .weight(1f)
                     .padding(start = 10.dp, bottom = 4.dp),
                 textAlign = TextAlign.End,
-                maxLines = 1,
+                maxLines = 2,
             )
         }
         Spacer(Modifier.height(12.dp))
@@ -142,12 +139,12 @@ fun ClimbCard(progress: ClimbProgress, exercise: ExerciseType, modifier: Modifie
         val next = progress.next
         Text(
             text = if (next == null) {
-                stringResource(R.string.climb_top)
+                stringResource(R.string.burn_top, stringResource(foodNameRes(Food.entries.last())))
             } else {
                 stringResource(
-                    R.string.climb_next,
-                    stringResource(landmarkNameRes(next)),
-                    metersText(progress.metersToNext),
+                    R.string.burn_next,
+                    stringResource(foodNameRes(next)),
+                    kcalText(progress.kcalToNext),
                 )
             },
             style = Type.bodyM,
@@ -158,20 +155,26 @@ fun ClimbCard(progress: ClimbProgress, exercise: ExerciseType, modifier: Modifie
             val hold = Exercises.of(exercise).kind == MovementKind.HOLD
             Text(
                 text = stringResource(
-                    if (hold) R.string.climb_next_seconds else R.string.climb_next_reps,
+                    if (hold) R.string.burn_next_seconds else R.string.burn_next_reps,
                     stringResource(exerciseLabelRes(exercise)),
-                    Climb.toNext(progress, exercise),
+                    Calories.toNext(progress, exercise),
                 ),
                 style = Type.bodyM,
                 color = Palette.TextTertiary,
             )
         }
+        Spacer(Modifier.height(8.dp))
+        Text(
+            text = stringResource(R.string.burn_estimate, Calories.REFERENCE_KG.toInt()),
+            style = Type.labelS,
+            color = Palette.TextTertiary,
+        )
     }
 }
 
 /**
- * What one run did for the climb and the records, said where the run ends: a record broken, the
- * metres it added, the places it passed, and what the cat found. Nothing when it has not been
+ * What one run did for the calories and the records, said where the run ends: a record broken, the
+ * calories it burned, the foods they passed, and what the cat found. Nothing when it has not been
  * banked yet.
  */
 @Composable
@@ -197,17 +200,17 @@ fun RunGrowthLines(growth: RunGrowth?, modifier: Modifier = Modifier) {
                 textAlign = TextAlign.Center,
             )
         }
-        if (growth.climbed > 0f) {
+        if (growth.burned > 0f) {
             Text(
-                text = stringResource(R.string.growth_climbed, metersText(growth.climbed)),
+                text = stringResource(R.string.growth_burned, kcalText(growth.burned)),
                 style = Type.bodyM,
                 color = Palette.TextSecondary,
                 textAlign = TextAlign.Center,
             )
         }
-        growth.passed.forEach { place ->
+        growth.passed.forEach { food ->
             Text(
-                text = stringResource(R.string.growth_passed, stringResource(landmarkNameRes(place))),
+                text = stringResource(R.string.growth_food, stringResource(foodNameRes(food))),
                 style = Type.bodyL,
                 color = colors.accept,
                 textAlign = TextAlign.Center,

@@ -2,12 +2,7 @@ package com.pushuprpg.core
 
 import com.pushuprpg.core.audio.Announcer
 import com.pushuprpg.core.audio.VoiceStyle
-import com.pushuprpg.core.detect.Placement
 import com.pushuprpg.core.detect.PlacementAdvice
-import com.pushuprpg.core.game.Encounter
-import com.pushuprpg.core.run.AlertKey
-import com.pushuprpg.core.run.BattleState
-import com.pushuprpg.core.run.Toast
 import com.pushuprpg.core.survival.CatLine
 import com.pushuprpg.core.survival.CatSpeech
 import kotlin.test.Test
@@ -17,39 +12,10 @@ import kotlin.test.assertTrue
 
 class AnnouncerTest {
 
-    private val quiet = BattleState(placement = Placement())
-
-    @Test
-    fun `an ultimate is announced once, urgently, then counted down as answers land`() {
-        val a = Announcer()
-        val incoming = quiet.copy(ultimateIncoming = true, ultimateRepsLeft = 5)
-        val first = a.battle(incoming, 1_000)
-        assertEquals(1, first.size)
-        assertEquals(VoiceStyle.URGENT, first[0].style)
-        assertEquals(AlertKey.ULTIMATE_INCOMING, first[0].alert)
-        assertEquals(Encounter.ANSWERS_TO_BLOCK, first[0].arg)
-
-        // Frames with nothing new say nothing.
-        assertTrue(a.battle(incoming, 1_033).isEmpty())
-
-        val oneIn = a.battle(incoming.copy(ultimateAnswers = 1, ultimateRepsLeft = 4), 2_000)
-        assertEquals(Encounter.ANSWERS_TO_BLOCK - 1, oneIn.single().answersLeft)
-        val twoIn = a.battle(incoming.copy(ultimateAnswers = 2, ultimateRepsLeft = 3), 2_400)
-        assertEquals(Encounter.ANSWERS_TO_BLOCK - 2, twoIn.single().answersLeft)
-    }
-
-    @Test
-    fun `the outcome of an ultimate is said, and not twice for one toast`() {
-        val a = Announcer()
-        val blocked = quiet.copy(alert = Toast(AlertKey.ULTIMATE_BLOCKED, atMs = 5_000))
-        assertEquals(AlertKey.ULTIMATE_BLOCKED, a.battle(blocked, 5_000).single().alert)
-        assertTrue(a.battle(blocked, 5_033).isEmpty())
-    }
-
     @Test
     fun `placement advice is said when it changes and not repeated soon after`() {
         val a = Announcer()
-        fun at(advice: PlacementAdvice?, t: Long) = a.battle(quiet.copy(placement = Placement(advice)), t)
+        fun at(advice: PlacementAdvice?, t: Long) = a.survival(null, advice, t)
 
         assertEquals(PlacementAdvice.COME_CLOSER, at(PlacementAdvice.COME_CLOSER, 0).single().placement)
         assertTrue(at(PlacementAdvice.COME_CLOSER, 500).isEmpty(), "repeated while unchanged")
@@ -62,31 +28,14 @@ class AnnouncerTest {
     }
 
     @Test
-    fun `calm lines wait for a gap, urgent ones cut in`() {
+    fun `a line waits for a gap rather than talking over the last`() {
         val a = Announcer()
-        a.battle(quiet.copy(placement = Placement(PlacementAdvice.COME_CLOSER)), 0)
-        // A calm alert half a second later is dropped rather than queued behind.
-        val low = quiet.copy(placement = Placement(PlacementAdvice.COME_CLOSER), alert = Toast(AlertKey.BOSS_LOW_HP, atMs = 500))
-        assertTrue(a.battle(low, 500).isEmpty())
-        // The ultimate does not wait.
-        val urgent = low.copy(ultimateIncoming = true)
-        assertEquals(VoiceStyle.URGENT, a.battle(urgent, 600).single().style)
-    }
-
-    @Test
-    fun `a pull-up's shallow nudge is said like every other movement's`() {
-        for (key in listOf(AlertKey.SHALLOW_TWICE, AlertKey.SHALLOW_PULL)) {
-            val said = Announcer().battle(quiet.copy(alert = Toast(key, atMs = 100)), 100).single()
-            assertEquals(VoiceStyle.COACH, said.style)
-            assertEquals(key, said.alert)
-        }
-    }
-
-    @Test
-    fun `frequent alerts stay silent`() {
-        val a = Announcer()
-        val deep = quiet.copy(alert = Toast(AlertKey.DEEP_STRIKE, atMs = 100))
-        assertTrue(a.battle(deep, 100).isEmpty())
+        a.survival(null, PlacementAdvice.COME_CLOSER, 0)
+        // Half a second later the cat's line is dropped rather than queued behind.
+        val saved = CatSpeech(CatLine.SAVED, serial = 0, atMs = 500)
+        assertTrue(a.survival(saved, PlacementAdvice.COME_CLOSER, 500).isEmpty())
+        val again = CatSpeech(CatLine.SAVED, serial = 1, atMs = 2_500)
+        assertEquals(VoiceStyle.CAT, a.survival(again, PlacementAdvice.COME_CLOSER, 2_500).single().style)
     }
 
     @Test
