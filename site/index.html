@@ -3,29 +3,30 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>푸쉬업 RPG — 팔굽혀펴기가 곧 공격이에요</title>
-<meta name="description" content="카메라가 자세를 보고 개수를 세요. 한 개가 한 번의 공격이고, 얕게 하면 개수로 안 쳐요. 영상은 저장되지도, 어디로도 전송되지 않아요.">
+<title>고냥이 지켜줘 — 팔굽혀펴기 한 번에 천장이 올라가요</title>
+<meta name="description" content="천장이 내려와요. 그 밑에 고냥이가 있어요. 카메라가 운동을 한 개씩 세고, 한 개마다 천장이 올라가요. 영상은 저장되지도, 어디로도 전송되지 않아요.">
 <link rel="canonical" href="https://cjsdudwls1.github.io/push-up/">
 <meta property="og:type" content="website">
-<meta property="og:site_name" content="푸쉬업 RPG">
-<meta property="og:title" content="푸쉬업 RPG — 팔굽혀펴기가 곧 공격이에요">
-<meta property="og:description" content="카메라가 자세를 보고 개수를 세요. 얕게 하면 안 맞아요. 져도 개수는 남아요.">
-<meta property="og:image" content="https://cjsdudwls1.github.io/push-up/assets/card-dungeon.png">
+<meta property="og:site_name" content="고냥이 지켜줘">
+<meta property="og:title" content="고냥이 지켜줘 — 팔굽혀펴기 한 번에 천장이 올라가요">
+<meta property="og:description" content="카메라가 세는 홈트예요. 한 개마다 천장을 밀어 올려서 고냥이를 지켜 주세요.">
+<meta property="og:image" content="https://cjsdudwls1.github.io/push-up/assets/card-survival.png">
 <meta property="og:url" content="https://cjsdudwls1.github.io/push-up/">
 <meta property="og:locale" content="ko_KR">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="theme-color" content="#07080c">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💪</text></svg>">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐱</text></svg>">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
 <header>
   <div class="wrap">
-    <a class="wordmark" href="./">푸쉬업 <span>RPG</span></a>
+    <a class="wordmark" href="./">고냥이 <span>지켜줘</span></a>
     <nav>
       <a href="#how">어떻게 하나요</a>
-      <a href="#cat">고냥이 모드</a>
+      <a href="#lives">목숨 열 개</a>
+      <a href="#growth">기록</a>
       <a href="#privacy">개인정보</a>
       <a href="#price">요금</a>
     </nav>
@@ -36,11 +37,11 @@
   <div class="wrap">
     <div>
       <span class="eyebrow">안드로이드 · 출시 준비 중</span>
-      <h1>팔굽혀펴기가 <em>곧 공격</em>이에요</h1>
+      <h1>팔굽혀펴기 한 번에 <em>천장이 올라가요</em></h1>
       <p class="lede">
-        폰을 바닥에 세워두고 엎드리면 카메라가 자세를 봐요.
-        한 개가 한 번의 공격이고, 얕게 하면 개수로 안 쳐요.
-        개수를 세느라 집중이 끊기지 않아요.
+        천장이 내려와요. 그 밑에 고냥이가 있어요.
+        폰을 바닥에 세워 두고 운동하면 카메라가 한 개씩 세고, 한 개마다 천장이 올라가요.
+        깊게 할수록 더 높이 올라가요.
       </p>
       <div class="cta-row" id="cta-row">
         <a class="btn btn-primary" data-link="play" hidden>Google Play에서 받기</a>
@@ -52,43 +53,46 @@
     </div>
 
     <!-- Drawn rather than screenshotted: the app is not on a store yet, and a mockup that claims to
-         be a screenshot would be a lie about a product nobody can check. -->
-    <svg viewBox="0 0 300 420" role="img" aria-label="깊이 게이지와 몬스터에게 남은 개수가 보이는 게임 화면 그림" style="width:100%;max-width:330px;margin:0 auto;display:block">
+         be a screenshot would be a lie about a product nobody can check. It shows no count, as the
+         run itself shows none: the counts come once, at the end. -->
+    <svg viewBox="0 0 300 420" role="img" aria-label="천장이 내려오고 그 밑에서 고냥이가 기다리는 게임 화면 그림" style="width:100%;max-width:330px;margin:0 auto;display:block">
       <defs>
         <linearGradient id="screen" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stop-color="#161a23"/>
-          <stop offset="1" stop-color="#07080c"/>
+          <stop offset="0" stop-color="#241809"/>
+          <stop offset="1" stop-color="#120c05"/>
         </linearGradient>
-        <linearGradient id="gauge" x1="0" y1="1" x2="0" y2="0">
-          <stop offset="0" stop-color="#35e08a"/>
-          <stop offset="1" stop-color="#ffc53d"/>
-        </linearGradient>
+        <clipPath id="inner"><rect x="36" y="14" width="228" height="392" rx="29"/></clipPath>
       </defs>
       <rect x="30" y="8" width="240" height="404" rx="34" fill="#1f2430"/>
       <rect x="36" y="14" width="228" height="392" rx="29" fill="url(#screen)"/>
 
-      <!-- what the boss still owes, as the battle HUD says it: a count, not hit points -->
-      <rect x="56" y="36" width="188" height="10" rx="5" fill="#2e3542"/>
-      <rect x="56" y="36" width="116" height="10" rx="5" fill="#ff4d5e"/>
-      <text x="56" y="62" fill="#f2f5fa" font-size="11" font-family="sans-serif" font-weight="700">고블린 킹</text>
-      <text x="244" y="62" fill="#a9b3c4" font-size="11" font-family="sans-serif" text-anchor="end">남은 8개</text>
+      <g clip-path="url(#inner)">
+        <!-- the ceiling, coming down -->
+        <rect x="36" y="14" width="228" height="128" fill="#7a4a32"/>
+        <path d="M36 142 L44 154 L52 142 L60 154 L68 142 L76 154 L84 142 L92 154 L100 142 L108 154 L116 142 L124 154 L132 142 L140 154 L148 142 L156 154 L164 142 L172 154 L180 142 L188 154 L196 142 L204 154 L212 142 L220 154 L228 142 L236 154 L244 142 L252 154 L260 142 L264 142 L264 142 Z" fill="#7a4a32"/>
+        <!-- the floor -->
+        <rect x="36" y="372" width="228" height="34" fill="#3a2a18"/>
+      </g>
 
-      <!-- monster -->
-      <circle cx="150" cy="150" r="42" fill="#3b2f52"/>
-      <path d="M120 118 L130 96 L140 116 Z M180 118 L170 96 L160 116 Z" fill="#3b2f52"/>
-      <circle cx="136" cy="146" r="6" fill="#ff4d5e"/>
-      <circle cx="164" cy="146" r="6" fill="#ff4d5e"/>
+      <text x="56" y="44" fill="#f3d9a8" font-size="12" font-family="sans-serif" font-weight="700">남은 목숨 7개</text>
 
-      <!-- depth gauge: the line the user aims at -->
-      <rect x="56" y="228" width="26" height="150" rx="13" fill="#161a23" stroke="#2e3542"/>
-      <rect x="56" y="300" width="26" height="78" rx="13" fill="url(#gauge)"/>
-      <line x1="48" y1="296" x2="92" y2="296" stroke="#ffc53d" stroke-width="2" stroke-dasharray="3 3"/>
-      <text x="98" y="300" fill="#ffc53d" font-size="11" font-family="sans-serif" font-weight="700">깊게</text>
-      <line x1="48" y1="336" x2="92" y2="336" stroke="#35e08a" stroke-width="2" stroke-dasharray="3 3"/>
-      <text x="98" y="340" fill="#35e08a" font-size="11" font-family="sans-serif" font-weight="700">인정</text>
+      <!-- what the cat says while it waits -->
+      <rect x="62" y="184" width="176" height="44" rx="14" fill="#f2f5fa"/>
+      <path d="M142 228 L150 240 L158 228 Z" fill="#f2f5fa"/>
+      <text x="150" y="203" fill="#3a2a18" font-size="11.5" font-family="sans-serif" font-weight="700" text-anchor="middle">천장이 무서워요…</text>
+      <text x="150" y="220" fill="#3a2a18" font-size="11.5" font-family="sans-serif" font-weight="700" text-anchor="middle">지켜 줄 거죠?</text>
 
-      <text x="150" y="214" fill="#f2f5fa" font-size="30" font-family="sans-serif" font-weight="800" text-anchor="middle">18</text>
-      <text x="244" y="378" fill="#ff9f43" font-size="14" font-family="sans-serif" font-weight="800" text-anchor="end">콤보 ×7</text>
+      <!-- 고냥이 -->
+      <path d="M186 356 Q214 352 211 330 Q209 316 198 318" fill="none" stroke="#f3d9a8" stroke-width="8" stroke-linecap="round"/>
+      <rect x="120" y="310" width="60" height="62" rx="26" fill="#f3d9a8"/>
+      <path d="M135 280 L127 258 L147 274 Z M165 280 L173 258 L153 274 Z" fill="#f3d9a8"/>
+      <path d="M137 275 L132 263 L143 272 Z M163 275 L168 263 L157 272 Z" fill="#e0a88c"/>
+      <circle cx="150" cy="292" r="24" fill="#f3d9a8"/>
+      <circle cx="141" cy="289" r="3.6" fill="#3a2a18"/>
+      <circle cx="159" cy="289" r="3.6" fill="#3a2a18"/>
+      <path d="M147.5 296 L152.5 296 L150 299 Z" fill="#3a2a18"/>
+      <path d="M150 300 L146.5 303 M150 300 L153.5 303" stroke="#3a2a18" stroke-width="1.4" stroke-linecap="round"/>
+      <path d="M140 296 L123 292 M140 299 L122 300 M160 296 L177 292 M160 299 L178 300" stroke="#3a2a18" stroke-width="1.2" stroke-linecap="round"/>
     </svg>
   </div>
 </div>
@@ -107,55 +111,61 @@
         <p>어깨와 손목의 위치로 깊이를 재요. 카메라가 멀든 가깝든 같은 기준으로 세요. 폰은 바닥에, 머리 앞쪽이나 옆에 세워 두면 돼요.</p>
       </div>
       <div class="card">
-        <span class="mark">⚔️</span>
-        <h3>얕게 하면 안 맞아요</h3>
-        <p>개수는 올라가는데 데미지는 안 들어가는 일이 없어요. 깊이를 판정하는 곳이 한 군데뿐이라, 인정된 한 개는 반드시 한 방이에요.</p>
+        <span class="mark">🐱</span>
+        <h3>얕게 하면 안 올라가요</h3>
+        <p>세는 곳과 천장을 올리는 곳이 한 군데예요. 인정된 한 개는 반드시 천장을 밀어 올리고, 얕게 한 건 세지도 올리지도 않아요.</p>
       </div>
       <div class="card">
         <span class="mark">🌱</span>
-        <h3>져도 남아요</h3>
-        <p>경험치는 이긴 순간이 아니라 개수마다 들어와요. 못 잡고 끝나도 오늘 한 건 그대로 기록되고 등급도 올라가요.</p>
+        <h3>한 건 사라지지 않아요</h3>
+        <p>천장에 눌려도, 중간에 그만둬도 한 개수는 그대로 기록돼요. 기록은 올라가기만 하고 내려가지 않아요.</p>
       </div>
     </div>
   </div>
 </section>
 
-<section class="alt" id="cat">
+<section class="alt" id="lives">
   <div class="wrap">
     <div class="split">
       <div>
-        <h2>처음엔 고냥이부터요</h2>
+        <h2>목숨 열 개, 세트 열 번</h2>
         <p class="section-lede" style="margin-bottom:0">
-          천장이 내려와요. 한 번 밀 때마다 다시 올라가요. 설명이 필요 없는 게 이 모드의 전부예요.
-          팔굽혀펴기를 한 번도 안 해본 사람도 30초면 무슨 게임인지 알아요.
+          목숨 하나가 한 세트예요. 천장에 눌리면 1분 쉬고 다음 목숨으로 이어 가요. 쉬는 시간은 건너뛸 수 없어요 —
+          쉬는 것까지가 운동이에요. 설명이 필요 없는 규칙이라, 운동을 처음 하는 사람도 30초면 알아요.
         </p>
         <ul class="checks">
-          <li>튜토리얼이자 캐주얼 모드예요. 던전을 안 해도 여기만 계속 할 수 있어요.</li>
+          <li>하는 동안엔 개수를 보여 주지 않아요. 끝나면 세트마다 몇 개였는지 한 번에 보여 줘요.</li>
+          <li>카메라가 2초 넘게 놓친 채 끝난 목숨은 한 판에 한 번 돌려받아요.</li>
+          <li>팔굽혀펴기, 스쿼트, 플랭크, 턱걸이, 런지, 딥스로 할 수 있어요. 플랭크는 버틴 시간으로 세요.</li>
           <li>끝나면 기록이 카드로 나와요. 그대로 보내면 돼요.</li>
         </ul>
       </div>
-      <img src="assets/card-survival.png" alt="고냥이 지켜줘 기록 카드. 점수 1,240점, 밀어 올린 횟수 31회, 버틴 시간 1분 36초." width="1080" height="1350" loading="lazy">
+      <img src="assets/card-survival.png" alt="고냥이 지켜줘 기록 카드. 푸쉬업 1,240점, 밀어 올린 횟수 31회, 버틴 시간 1분 36초, 신기록." width="1080" height="1350" loading="lazy">
     </div>
   </div>
 </section>
 
-<section>
+<section id="growth">
   <div class="wrap">
-    <div class="split">
-      <img src="assets/card-dungeon.png" alt="던전 클리어 카드. 팔굽혀펴기 64개, 최고 콤보 21, 3분 34초." width="1080" height="1350" loading="lazy">
-      <div>
-        <h2>몬스터 체력은 개수로 되어 있어요</h2>
-        <p class="section-lede" style="margin-bottom:0">
-          체력이 몇이라는 숫자를 정해두지 않았어요. 이 몬스터를 잡는 데 팔굽혀펴기 몇 개가 필요한지를 먼저 정하고,
-          거기서 체력을 거꾸로 계산해요. 그래서 던전에 들어가기 전에 본 개수가, 고른 직업의 방식대로 했을 때 해야 할 개수예요.
-          기사는 천천히 깊게, 궁수는 쉬지 않고 이어서 하면 그 개수 그대로고, 아니면 한 개를 반 개로 쳐요.
-          잘하는 사람이라고 개수가 늘어나지 않아요. 힘에 맞는 난이도를 고르면 돼요.
-        </p>
-        <ul class="checks">
-          <li>스쿼트·플랭크 같은 다른 맨몸운동으로도 싸울 수 있어요.</li>
-          <li>몬스터에게 남은 개수를 숫자로 정확히 보여줘요.</li>
-          <li>트래킹이 흔들리면 시계가 멈춰요. 카메라가 놓쳐서 맞는 일은 없어요.</li>
-        </ul>
+    <h2>올라가기만 하는 기록</h2>
+    <p class="section-lede">
+      목숨을 잃어도, 며칠 쉬어도 줄어드는 숫자가 없어요. 오랜만에 와도 고냥이는 반가워하기만 해요.
+    </p>
+    <div class="grid-3">
+      <div class="card">
+        <span class="mark">🍗</span>
+        <h3>태운 칼로리를 음식으로</h3>
+        <p>지금까지 태운 칼로리를 블루베리 한 알부터 치킨 한 마리, 쌀 한 가마니까지 음식으로 보여 줘요. 다음 음식까지 몇 개 남았는지도요.</p>
+      </div>
+      <div class="card">
+        <span class="mark">📈</span>
+        <h3>운동마다 내 기록</h3>
+        <p>운동마다 한 번에 가장 많이 한 기록을 처음 기록과 나란히 보여 줘요. 최고 점수도 운동마다 따로예요.</p>
+      </div>
+      <div class="card">
+        <span class="mark">🎁</span>
+        <h3>고냥이가 찾아온 선물</h3>
+        <p>꾸준히 하다 보면 고냥이가 리본, 밀짚모자, 안경, 왕관 같은 선물을 찾아와요. 코인도 상점도 없어요. 이름과 털 색도 정할 수 있어요.</p>
       </div>
     </div>
   </div>
@@ -166,7 +176,7 @@
     <div class="privacy-band">
       <h2>영상은 저장되지도, 전송되지도 않아요</h2>
       <p class="section-lede" style="margin-bottom:18px">
-        동작 인식은 전부 폰 안에서 일어나요. 카메라 화면은 게임을 하는 동안 화면에만 있고,
+        동작 인식은 전부 폰 안에서 일어나요. 카메라 화면은 운동하는 동안 화면에만 있고,
         어디에도 기록되지 않고 서버로 올라가지도 않아요. 운동 기록은 앱이 어디로도 보내지 않고 기기에
         저장돼요(휴대폰의 Google 백업을 켜 두었다면 그 백업에는 들어가요). 이용 통계와 오류 보고로는
         개수·시간·기기 모델 같은 값 일부만 전송돼요. 무엇이 가는지는 방침 3항과 4항에 다 적혀 있어요.
@@ -180,17 +190,17 @@
   <div class="wrap">
     <h2>전부 무료예요</h2>
     <p class="section-lede">
-      구독도, 체험 기간도, 광고도 없어요. 모든 던전과 운동을 무료로 할 수 있고, 앞 던전을 깨면 다음 던전이 열려요.
+      구독도, 체험 기간도, 광고도 없어요. 모든 운동과 목숨 열 개, 기록과 꾸미기까지 무료예요.
     </p>
     <div class="price-grid">
       <div class="price free">
         <div class="tag">무료</div>
         <div class="amount">0원</div>
         <ul>
-          <li>모든 던전과 보스</li>
-          <li>모든 운동, 난이도 선택</li>
-          <li>고냥이 지켜줘</li>
-          <li>기록, 연속 일수, 등급 전부</li>
+          <li>모든 운동</li>
+          <li>목숨 열 개와 쉬는 시간 설정</li>
+          <li>기록, 연속 일수, 태운 칼로리</li>
+          <li>고냥이 이름·털 색·선물</li>
           <li>광고 없음</li>
         </ul>
       </div>
@@ -208,11 +218,15 @@
     </details>
     <details>
       <summary>폰을 어디에 둬야 하나요?</summary>
-      <p>푸쉬업은 폰을 바닥에, 머리 앞쪽이나 옆으로 1m쯤 떨어뜨려 세워 두세요. 스쿼트는 폰을 정면에 두고, 다른 운동은 고르는 화면에 한 줄씩 적혀 있어요. 거리는 크게 상관없어요 — 깊이를 몸 크기에 맞춰 재기 때문에 카메라가 멀든 가깝든 같은 기준이 나와요. 너무 멀거나 가깝거나 몸이 잘리면 화면에서 알려줘요.</p>
+      <p>팔굽혀펴기는 폰을 바닥에, 머리 앞쪽이나 옆으로 1m쯤 떨어뜨려 세워 두세요. 스쿼트는 폰을 정면에 두고, 다른 운동은 고르는 화면에 한 줄씩 적혀 있어요. 거리는 크게 상관없어요 — 깊이를 몸 크기에 맞춰 재기 때문에 카메라가 멀든 가깝든 같은 기준이 나와요. 너무 멀거나 가깝거나 몸이 잘리면 화면과 목소리로 알려줘요.</p>
     </details>
     <details>
       <summary>무릎 대고 하는 것도 인정되나요?</summary>
       <p>네. 처음에 각자 내려갈 수 있는 범위를 재고, 그 범위를 기준으로 판정해요. 남의 깊이가 아니라 오늘 내 깊이가 기준이에요.</p>
+    </details>
+    <details>
+      <summary>칼로리는 얼마나 정확한가요?</summary>
+      <p>어림값이에요. 몸무게를 묻지 않아서 65kg을 기준으로, 운동마다 알려진 운동 강도(MET)와 한 개에 걸리는 시간으로 계산해요.</p>
     </details>
     <details>
       <summary>iOS 버전은요?</summary>
@@ -232,7 +246,7 @@
       <a href="terms.html">이용약관</a>
       <a href="https://github.com/cjsdudwls1/push-up">GitHub</a>
     </div>
-    <div>© 2026 푸쉬업 RPG</div>
+    <div>© 2026 고냥이 지켜줘</div>
   </div>
 </footer>
 

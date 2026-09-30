@@ -18,9 +18,9 @@ fun main(args: Array<String>) {
     val res = Resources(STRING_TABLE)
 
     val cards = listOf(
-        "survival-typical" to ShareCardData.Survival(score = 1_240, best = 1_240, reps = 31, seconds = 96),
-        "survival-first-try" to ShareCardData.Survival(score = 180, best = 940, reps = 6, seconds = 23),
-        "survival-extreme" to ShareCardData.Survival(score = 184_500, best = 184_500, reps = 412, seconds = 1_247),
+        "survival-typical" to ShareCardData.Survival(movement = "푸쉬업", score = 1_240, best = 1_240, reps = 31, seconds = 96),
+        "survival-first-try" to ShareCardData.Survival(movement = "턱걸이", score = 180, best = 940, reps = 6, seconds = 23),
+        "survival-extreme" to ShareCardData.Survival(movement = "스쿼트", score = 184_500, best = 184_500, reps = 412, seconds = 1_247),
     )
 
     val banner = File(outDir, "feature-graphic.png")

@@ -6,7 +6,7 @@
   any correction.
 -->
 <resources>
-    <string name="app_name">푸쉬업 RPG</string>
+    <string name="app_name">고냥이 지켜줘</string>
 
     <!-- Navigation / common -->
     <string name="action_start">시작하기</string>
@@ -155,7 +155,7 @@
     <string name="settings_record_traces_sub">방금 한 운동 하나의 관절 위치만 폰 메모리에 남겨요. 영상은 없고, 보내기를 눌러야만 밖으로 나가요.</string>
     <string name="settings_send_trace">방금 한 운동 기록 보내기</string>
     <string name="trace_share_title">동작 기록 보내기</string>
-    <string name="trace_share_subject">푸쉬업 RPG 동작 기록</string>
+    <string name="trace_share_subject">고냥이 지켜줘 동작 기록</string>
     <string name="trace_none">보낼 기록이 없어요. 동작 기록을 켜고 운동을 한 번 해 주세요.</string>
     <string name="trace_write_failed">기록 파일을 만들지 못했어요. 저장 공간을 확인해 주세요.</string>
     <string name="settings_cvd_none">없음</string>
@@ -237,7 +237,7 @@
     <string name="session_chart_title_hold">세트별 지킨 시간(초) (%1$d세트)</string>
     <string name="session_total_reps">모두 %1$,d개 했어요</string>
     <string name="session_again">한 판 더</string>
-    <string name="survival_share_text">푸쉬업 RPG에서 고냥이를 %1$,d점만큼 지켰어요! 🐱💪</string>
+    <string name="survival_share_text">고냥이 지켜줘 %1$,d점! 운동으로 고냥이를 지켰어요 🐱💪</string>
 
     <!-- The cat. Its default name is the mode's; the user can rename it on the survival picker and in 꾸미기. -->
     <string name="cat_default_name">고냥이</string>
@@ -420,7 +420,7 @@
     <string name="share_card_new_record_label">축하해요</string>
     <string name="share_card_seconds">%1$d초</string>
     <string name="share_card_minutes">%1$d분 %2$d초</string>
-    <string name="share_card_footer">카메라로 하는 운동 RPG · 안드로이드</string>
+    <string name="share_card_footer">카메라가 세는 홈트 · 안드로이드</string>
     <string name="share_unavailable">공유할 앱을 찾지 못했어요.</string>
     <string name="browser_unavailable">웹 브라우저를 찾지 못했어요.</string>
 

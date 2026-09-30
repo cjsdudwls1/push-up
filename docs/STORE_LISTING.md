@@ -6,6 +6,9 @@ Counts below are characters including spaces, measured the way Play measures the
 Korean is the primary listing. Add an English listing only if the Korean one shows traction —
 translating first is exactly the kind of work that feels like progress and moves nothing.
 
+The app is 고냥이 지켜줘 (the owner's choice, 2026-09-30). It was 푸쉬업 RPG, a dungeon game, until
+the dungeons were taken out; nothing below mentions them.
+
 ---
 
 ## App name — 30 characters
@@ -15,28 +18,27 @@ rather than list search terms. These all do.
 
 | # | Title | Chars | Note |
 |---|-------|-------|------|
-| **A** | `푸쉬업 RPG: 팔굽혀펴기 게임` | 17 | **Recommended.** Covers the two terms people actually type. |
-| B | `푸쉬업 RPG - 홈트 몬스터 사냥` | 19 | Stronger hook, weaker keyword. |
-| C | `푸쉬업 RPG` | 8 | Cleanest, gives up the free keyword slot. |
+| **A** | `고냥이 지켜줘: 카메라 홈트` | 15 | **Recommended.** The name, what makes it different, and the category people type. |
+| B | `고냥이 지켜줘: 팔굽혀펴기 홈트` | 17 | Covers the most-typed movement, but the app is six movements, not one. |
+| C | `고냥이 지켜줘` | 7 | Cleanest, gives up the free keyword slot. |
 
-Go with **A**. `팔굽혀펴기` is the term most Korean searchers use in full; `푸쉬업` is in the brand
-already, so the title covers both spellings without repeating either.
+Go with **A**. `홈트` is the category Korean searchers type; `카메라` is the one thing no timer or log
+app can say. `팔굽혀펴기` and `푸쉬업` are in the short description, where Play indexes them too.
 
 ## Short description — 80 characters
 
 Shown under the title in search results. After the title this is the highest-weighted ASO field,
 and it is the only sentence most people read.
 
-> `카메라가 팔굽혀펴기를 세요. 한 개가 한 번의 공격이에요. 몬스터를 잡는 홈트레이닝.`
+> `천장이 내려와요. 팔굽혀펴기 한 번에 천장이 올라가요. 카메라가 세는 홈트로 고냥이를 지켜 주세요.`
 
-47 characters. Deliberately short — it renders on one or two lines on every phone, and the three
-sentences are three separate hooks: the tech, the mechanic, the category.
+55 characters. Three sentences, three hooks: the danger, the mechanic, the category and what makes it
+different. It renders on two lines on every phone.
 
-Alternatives, if the first underperforms in a Console experiment:
+Alternative, if the first underperforms in a Console experiment:
 
-- `개수를 세지 않아도 돼요. 카메라가 보고 세고, 한 개마다 몬스터가 맞아요.` (42)
-- `천장이 내려와요. 팔굽혀펴기로 밀어 올려서 고냥이를 지켜주세요.` (35) — leads with 고냥이,
-  which is the mode that actually spreads. Worth testing as the primary.
+- `카메라가 개수를 세요. 한 개마다 천장이 올라가요. 고양이를 지키는 홈트예요.` (43) — leads with the
+  camera, for people searching for a counter rather than a game.
 
 ## Full description — 4000 characters
 
@@ -45,36 +47,33 @@ structure below front-loads the hook, puts the search terms where they occur nat
 with the objection that kills installs for a camera app.
 
 ```
-팔굽혀펴기 한 개가 몬스터를 한 번 때려요.
+천장이 내려와요. 그 밑에 고냥이가 있어요.
+팔굽혀펴기 한 번에 천장이 올라가요.
 
-폰을 바닥에 세워두고 엎드리면 카메라가 자세를 봐요. 개수를 손으로 세지 않아도 되고,
-몇 개 했는지 기억할 필요도 없어요. 얕게 하면 개수로 안 치니까, 대충 하면 몬스터가
-안 죽어요.
+폰을 바닥에 세워 두고 엎드리면 카메라가 자세를 봐요. 개수를 손으로 세지 않아도 되고,
+얕게 하면 세지 않으니 대충 할 수도 없어요. 깊게 내려갈수록 천장이 더 높이 올라가요.
 
-▶ 카메라가 세는 팔굽혀펴기
-어깨와 손목의 위치로 내려간 깊이를 재요. 카메라가 멀든 가깝든 같은 기준으로 세요.
-폰은 바닥에, 머리 앞쪽이나 옆으로 1m쯤 떨어뜨려 세워 두세요.
+▶ 목숨 열 개, 세트 열 번
+목숨 하나가 한 세트예요. 천장에 눌리면 1분 쉬고 다음 목숨으로 이어 가요.
+쉬는 시간은 건너뛸 수 없어요. 쉬는 것까지가 운동이에요.
+하는 동안엔 개수를 보여 주지 않고, 끝나면 세트마다 몇 개였는지 한 번에 보여 줘요.
 
-▶ 얕게 하면 안 맞아요
-개수는 올라가는데 체력은 안 깎이는 일이 없어요. 깊이를 판정하는 곳이 한 군데뿐이라,
-인정된 한 개는 반드시 한 번의 공격이에요. 더 깊게 내려가면 '깊은 타격'이 뜨고,
-결과 화면의 별로 남아요.
+▶ 카메라가 세는 맨몸운동
+팔굽혀펴기(푸쉬업), 스쿼트, 플랭크, 턱걸이, 런지, 딥스. 폰을 어디에 두면 되는지는
+운동을 고를 때 한 줄로 알려 줘요. 플랭크는 개수 대신 버틴 시간으로 세요.
+어깨와 손목의 위치로 깊이를 재서, 카메라가 멀든 가깝든 같은 기준으로 세요.
 
-▶ 져도 남아요
-경험치는 이긴 순간이 아니라 개수마다 들어와요. 보스를 못 잡고 끝나도 오늘 한 개수는
-그대로 기록되고, 등급도 올라가요. 운동한 시간이 사라지지 않아요.
+▶ 카메라가 놓쳐도 괜찮아요
+카메라가 2초 넘게 놓친 채 끝난 목숨은 한 판에 한 번 돌려받아요.
 
-▶ 고냥이 지켜줘
-천장이 내려와요. 한 번 밀 때마다 다시 올라가요. 설명이 필요 없는 모드예요.
-팔굽혀펴기를 한 번도 안 해본 사람도 30초면 무슨 게임인지 알아요.
+▶ 올라가기만 하는 기록
+지금까지 태운 칼로리를 음식으로 보여 줘요. 블루베리 한 알에서 시작해 치킨 한 마리,
+쌀 한 가마니까지. 운동마다 한 번에 가장 많이 한 기록을 처음 기록과 나란히 보여 주고,
+최고 점수도 운동마다 따로 남아요. 목숨을 잃어도, 며칠 쉬어도 줄지 않아요.
 
-▶ 팔굽혀펴기만 있는 게 아니에요
-스쿼트·플랭크 같은 다른 맨몸운동으로도 싸울 수 있어요. 플랭크는 개수 대신 버틴
-시간으로 세요. 폰을 어디에 두면 되는지는 운동을 고를 때 한 줄로 알려줘요.
-
-▶ 기록
-누적 개수, 최고 콤보, 운동한 시간, 연속 운동 일수를 남겨요.
-등급은 누적 개수로만 올라가고, 한 번 올라가면 내려가지 않아요.
+▶ 고냥이가 선물을 찾아와요
+꾸준히 하다 보면 고냥이가 리본, 밀짚모자, 안경, 왕관 같은 선물을 찾아와요.
+코인도 상점도 없어요. 이름과 털 색도 내 고양이처럼 정할 수 있어요.
 
 ▶ 카메라 영상은 저장되지 않아요
 동작 인식은 전부 폰 안에서 일어나요. 촬영된 화면도, 관절 좌표도 저장되거나
@@ -83,17 +82,15 @@ with the objection that kills installs for a camera app.
 이런 분들께 맞아요
 · 홈트레이닝을 시작했다가 세 번쯤 그만둬 본 적이 있는 분
 · 맨몸운동은 하고 싶은데 혼자 개수 세는 게 지겨운 분
-· 헬스장에 갈 시간이 안 나는 분
-· 운동 습관을 만들고 싶은데 동기가 부족한 분
+· 고양이를 좋아하는 분
 
 전부 무료예요
-· 모든 던전과 보스 — 앞 던전을 깨면 다음 던전이 열려요
-· 모든 운동, 난이도 선택
-· 고냥이 지켜줘 모드
-· 운동 기록, 연속 일수, 등급 전부
+· 모든 운동과 목숨 열 개
+· 운동 기록, 연속 일수, 태운 칼로리
+· 고냥이 이름·털 색·선물
 · 광고 없음
 
-※ 이 앱은 의료기기가 아니며 의학적 조언을 제공하지 않아요.
+※ 이 앱은 의료기기가 아니며 의학적 조언을 제공하지 않아요. 칼로리는 몸무게 65kg 기준 어림값이에요.
 통증이 있으면 바로 멈추고, 지병이 있다면 시작 전에 의사와 상의해 주세요.
 
 개인정보처리방침: https://cjsdudwls1.github.io/push-up/privacy.html
@@ -106,12 +103,13 @@ white space. Play does not reward length.
 
 Terms placed naturally, in rough order of Korean search volume:
 
-`팔굽혀펴기` `푸쉬업` `홈트` `홈트레이닝` `맨몸운동` `스쿼트` `플랭크` `운동 게임` `운동 기록`
-`운동 습관` `근력` `코어` `헬스`
+`홈트` `홈트레이닝` `팔굽혀펴기` `푸쉬업` `맨몸운동` `스쿼트` `플랭크` `턱걸이` `런지` `운동 기록`
+`운동 습관` `고양이` `칼로리`
 
-Deliberately not used: `다이어트`, `체지방`, `칼로리`. The app does not measure any of them, and a
-listing that implies it does earns one-star reviews from people who installed for the wrong reason —
-which costs more ranking than the keyword gains.
+Deliberately not used: `다이어트`, `체지방`. The app measures neither, and its calories are an
+estimate for a 65 kg body that the listing says is one. A listing that implies weight loss earns
+one-star reviews from people who installed for the wrong reason — which costs more ranking than the
+keyword gains.
 
 ---
 
@@ -120,7 +118,7 @@ which costs more ranking than the keyword gains.
 | Asset | Spec | Status |
 |-------|------|--------|
 | App icon | 512×512 PNG, 32-bit | In repo as `ic_launcher`; export at 512 |
-| Feature graphic | 1024×500 PNG | **Done** — `docs/store-assets/feature-graphic.png`, regenerate with `scripts/render-art.sh` |
+| Feature graphic | 1024×500 PNG | **Done** — `docs/store-assets/feature-graphic.png`, regenerate with `scripts/render-art.sh`. The picture is the share card's own ceiling and cat |
 | Phone screenshots | 2–8, 16:9 or 9:16, min 320px | **Needs a real device** |
 | Tablet screenshots | optional | Skip |
 | Promo video | optional, YouTube URL | See the launch plan |
@@ -130,19 +128,17 @@ which costs more ranking than the keyword gains.
 Only the first two or three appear in search results without a tap, so they carry the whole listing.
 Caption text is burned into the image above the screenshot, in the app's own type.
 
-1. **고냥이, mid-run.** Ceiling low, cat alarmed. Caption: `천장이 내려와요. 밀어 올리세요.`
-   First, not the dungeon — it is the most legible frame in the app and needs no fitness context.
-2. **Battle, at the bottom of a rep.** Gauge in the deep band, boss HP as a number, combo visible.
-   Caption: `한 개가 한 번의 공격이에요.`
-3. **The depth gauge, close.** Both threshold lines labelled. Caption: `얕게 하면 안 맞아요.`
-4. **The clear screen after a loss.** The reassurance banner visible.
-   Caption: `져도 개수는 남아요.`
-5. **Records screen** with a streak. Caption: `연속 며칠 했는지가 남아요.`
-6. **Exercise picker.** Caption: `스쿼트와 플랭크로도 싸워요.`
-7. **Privacy line from onboarding.** Caption: `카메라 영상은 저장되지 않아요.`
-8. **A share card.** Caption: `기록은 카드로 나가요.`
+1. **고냥이, mid-set.** Ceiling low, cat alarmed. Caption: `천장이 내려와요. 밀어 올리세요.`
+   First — it is the most legible frame in the app and needs no fitness context.
+2. **The cat waiting for the first rep**, its line in the bubble. Caption: `팔굽혀펴기 한 번에 천장이 올라가요.`
+3. **The rest between lives**, the countdown large. Caption: `목숨 하나가 한 세트예요.`
+4. **The session's ending**, every set's count together. Caption: `개수는 끝나고 한 번에 보여 줘요.`
+5. **The hub** with the calories card and a food. Caption: `태운 칼로리는 음식으로 보여 줘요.`
+6. **Records**, one movement's best against its first. Caption: `운동마다 내 기록이 남아요.`
+7. **꾸미기**, the cat wearing something it found. Caption: `고냥이가 선물을 찾아와요.`
+8. **Privacy line from onboarding.** Caption: `카메라 영상은 저장되지 않아요.`
 
-Shoot all eight in one session on the real device once `:app` builds. Do not mock them.
+Shoot all eight in one session on the real device. Do not mock them.
 
 ---
 
@@ -154,7 +150,8 @@ Shoot all eight in one session on the real device once `:app` builds. Do not moc
 - **Tags:** 운동, 피트니스, 홈트레이닝
 - **Contains ads:** No
 - **In-app purchases:** No — the app is free for the whole test period (`DECISIONS.md`)
-- **Content rating:** complete the IARC questionnaire; cartoon combat, no realistic violence
+- **Content rating:** complete the IARC questionnaire. There is no combat and no blood; a cartoon
+  ceiling comes down towards a frightened cartoon cat, and reaching it ends a set.
 - **Target audience:** 18+ (the app collects no age, and a lower bracket triggers Families policy
   requirements this app is not built for)
 - **Countries:** 대한민국 only at launch. Widening costs nothing later and narrows nothing now.
@@ -164,8 +161,8 @@ Shoot all eight in one session on the real device once `:app` builds. Do not moc
 ```
 첫 출시예요.
 
-· 팔굽혀펴기와 스쿼트·플랭크 같은 맨몸운동으로 몬스터와 싸워요
-· 모든 던전이 무료예요. 앞 던전을 깨면 다음 던전이 열려요
+· 천장이 내려와요. 팔굽혀펴기, 스쿼트, 플랭크 같은 맨몸운동 한 번에 천장이 올라가요
+· 목숨 열 개, 세트 열 번. 모든 기능이 무료예요
 · 카메라 영상은 저장되지 않아요
 
 이상한 점이 있으면 알려주세요. 어떤 폰에서 인식이 잘 안 되는지가 특히 궁금해요.

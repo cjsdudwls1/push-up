@@ -1,9 +1,10 @@
-# 푸쉬업 RPG
+# 고냥이 지켜줘
 
 An Android fitness game. The phone's camera watches you do pushups; every rep pushes up a ceiling
 that is coming down on a cat. Rest, and it keeps coming.
 
-Korean-language, on-device, camera-based. Nothing you record ever leaves the phone.
+Korean-language, on-device, camera-based. Nothing you record ever leaves the phone. It was called
+푸쉬업 RPG until 2026-09-30, when the dungeons were taken out and the cat became the whole app.
 
 ---
 

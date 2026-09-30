@@ -392,6 +392,7 @@ fun SurvivalScreen(
                     modifier = Modifier.align(Alignment.Center),
                 )
             } else {
+                val movement = stringResource(exerciseLabelRes(exercise))
                 SessionOverCard(
                     catName = name,
                     state = state,
@@ -402,6 +403,7 @@ fun SurvivalScreen(
                     onShare = {
                         onShare(
                             ShareCardData.Survival(
+                                movement = movement,
                                 score = state.totalScore,
                                 best = maxOf(bestScore, state.totalScore),
                                 reps = state.totalReps,

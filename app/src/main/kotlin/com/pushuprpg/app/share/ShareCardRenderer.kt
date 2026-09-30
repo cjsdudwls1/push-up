@@ -74,7 +74,7 @@ object ShareCardRenderer {
 
     private fun drawSurvival(res: Resources, canvas: Canvas, data: ShareCardData.Survival) {
         background(canvas, top = CAT_BG, bottom = 0xFF120C05.toInt(), glow = DEEP)
-        header(res, canvas, chip = res.getString(R.string.survival_title), chipColor = DEEP)
+        header(res, canvas, chip = data.movement, chipColor = DEEP)
 
         val panel = panel(canvas, CAT_PANEL)
         drawCeilingAndCat(canvas, panel)
@@ -114,8 +114,11 @@ object ShareCardRenderer {
      *
      * Frozen a little above the cat rather than at the height the run ended: the card is read by
      * someone who has never played, and a slab resting on the cat reads as a squashed cat.
+     *
+     * The Play feature graphic draws its picture with this too (`tools/sharecard-preview`), so the
+     * store shows the same cat the card does.
      */
-    private fun drawCeilingAndCat(canvas: Canvas, panel: RectF) {
+    internal fun drawCeilingAndCat(canvas: Canvas, panel: RectF) {
         canvas.save()
         canvas.clipPath(Path().apply { addRoundRect(panel, 44f, 44f, Path.Direction.CW) })
 
