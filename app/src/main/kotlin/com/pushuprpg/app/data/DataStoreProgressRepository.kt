@@ -10,6 +10,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.pushuprpg.app.domain.PlayerProgress
@@ -73,6 +74,10 @@ private fun bestSurvivalKey(e: ExerciseType) = intPreferencesKey("best_survival_
 private val KEY_INTRO_SEEN = booleanPreferencesKey("class_chosen")
 private val KEY_ONBOARDED = booleanPreferencesKey("onboarded")
 private val KEY_GIFTS_SEEN = stringSetPreferencesKey("gifts_seen")
+/** One movement's bests per set, comma-separated, first set first. */
+private fun setBestsKey(e: ExerciseType) = stringPreferencesKey("set_bests_${e.name}")
+private val KEY_CHURU = intPreferencesKey("churu")
+private val KEY_BOUGHT = stringSetPreferencesKey("bought")
 
 private fun Preferences.toProgress(): PlayerProgress = PlayerProgress(
     lifetimeReps = this[KEY_LIFETIME_REPS] ?: PROGRESS_DEFAULT.lifetimeReps,
@@ -85,6 +90,11 @@ private fun Preferences.toProgress(): PlayerProgress = PlayerProgress(
     introSeen = this[KEY_INTRO_SEEN] ?: PROGRESS_DEFAULT.introSeen,
     onboarded = this[KEY_ONBOARDED] ?: PROGRESS_DEFAULT.onboarded,
     giftsSeen = this[KEY_GIFTS_SEEN] ?: PROGRESS_DEFAULT.giftsSeen,
+    setBests = ExerciseType.entries.mapNotNull { e ->
+        this[setBestsKey(e)]?.let { raw -> e to raw.split(',').mapNotNull { it.trim().toIntOrNull() } }
+    }.toMap(),
+    churu = this[KEY_CHURU] ?: PROGRESS_DEFAULT.churu,
+    bought = this[KEY_BOUGHT] ?: PROGRESS_DEFAULT.bought,
 )
 
 private fun MutablePreferences.writeProgress(p: PlayerProgress) {
@@ -98,6 +108,9 @@ private fun MutablePreferences.writeProgress(p: PlayerProgress) {
     this[KEY_INTRO_SEEN] = p.introSeen
     this[KEY_ONBOARDED] = p.onboarded
     this[KEY_GIFTS_SEEN] = p.giftsSeen
+    p.setBests.forEach { (exercise, bests) -> this[setBestsKey(exercise)] = bests.joinToString(",") }
+    this[KEY_CHURU] = p.churu
+    this[KEY_BOUGHT] = p.bought
 }
 
 /**

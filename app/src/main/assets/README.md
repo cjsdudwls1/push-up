@@ -1,13 +1,12 @@
 # Bundled models
 
-`pose_landmarker_lite.task` — MediaPipe Pose Landmarker, float16, model bundle v1.
+`pose_landmarker_full.task` — MediaPipe Pose Landmarker *full*, float16, model bundle v1.
 
 Source:
-https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task
+https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_full/float16/1/pose_landmarker_full.task
+(sha256 `5134a3aad27a58b93da0088d431f366da362b44e3ccfbe3462b3827a839011b1`)
 
-The *lite* variant is bundled deliberately: it is the only one that reliably holds 30 fps on the
-mid-range Android hardware most users have, and pose landmark accuracy is not the limiting factor
-for rep counting — landmark *stability* is, which the One Euro filter in `:core` handles.
-
-`full` and `heavy` variants exist at the same URL pattern (swap `lite` for `full`/`heavy`) if a
-future "high accuracy" setting is added for flagship devices.
+Until 2026-10-01 the *lite* variant was bundled, for its frame rate on mid-range phones. The owner
+chose accuracy instead: tired reps at the end of a set went uncounted. The traces in
+`core/src/test/resources/traces/` recorded before then are the lite model's.
+`lite` and `heavy` live at the same URL pattern.

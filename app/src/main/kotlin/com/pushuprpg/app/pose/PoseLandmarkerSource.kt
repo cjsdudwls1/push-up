@@ -299,11 +299,12 @@ class PoseLandmarkerSource(
         private const val TAG = "PoseLandmarkerSource"
 
         /**
-         * The lite model is bundled on purpose. It is the only variant that reliably holds 30fps on
-         * the mid-range hardware most users have, and landmark *accuracy* is not what limits rep
-         * counting here — landmark *stability* is, which the filter in `:core` handles.
+         * The full model, by the owner's decision (2026-10-01). The lite one was bundled for its
+         * frame rate, on the reasoning that stability, not accuracy, limits counting; on a phone it
+         * lost the reps that matter most — the slow, tired ones at the end of a set — and the
+         * detector is pinned at 15 fps as well as 30, which the full model holds on the GPU.
          */
-        const val MODEL_ASSET = "pose_landmarker_lite.task"
+        const val MODEL_ASSET = "pose_landmarker_full.task"
 
         const val MIN_DETECTION_CONFIDENCE = 0.5f
         const val MIN_PRESENCE_CONFIDENCE = 0.5f

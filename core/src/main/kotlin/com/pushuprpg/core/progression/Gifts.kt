@@ -23,6 +23,16 @@ enum class CatItem(val slot: WearSlot) {
     CROWN(WearSlot.HEAD),
     SNOW(WearSlot.SCENE),
     SPACE(WearSlot.SCENE),
+
+    // Sold for 츄르 rather than found: see [Shop]. Never a gift, so nothing found is ever for sale.
+    HEADBAND(WearSlot.HEAD),
+    BANDANA(WearSlot.NECK),
+    HEART_GLASSES(WearSlot.FACE),
+    CHEF_HAT(WearSlot.HEAD),
+    MEDAL(WearSlot.NECK),
+    WITCH_HAT(WearSlot.HEAD),
+    BEACH(WearSlot.SCENE),
+    GYM(WearSlot.SCENE),
 }
 
 /**
@@ -32,7 +42,8 @@ enum class CatItem(val slot: WearSlot) {
  * streak, returns, records broken, the calories burned — so a gift is never taken back, and nothing
  * a bad week does can cost one. They are given as the cat's finds, not listed as tasks: a reward
  * promised for doing something is one people come to do it for, and stop when it stops; one that
- * arrives as a surprise adds to why they came. The owner chose this over coins and a shop.
+ * arrives as a surprise adds to why they came. They stay that way beside the [Shop], which the owner
+ * added later (2026-10-01): what is bought is bought with 츄르 from records broken, and never a gift.
  */
 enum class Gift(
     val item: CatItem,

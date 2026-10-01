@@ -121,8 +121,9 @@ class GiftsTest {
         assertEquals(setOf(CatItem.BELL), Gifts.takeOff(wearing, WearSlot.HEAD))
         // Every slot has something to put in it.
         assertEquals(WearSlot.entries.toSet(), CatItem.entries.map { it.slot }.toSet())
-        // And every item is some gift's.
-        assertEquals(CatItem.entries.toSet(), Gift.entries.map { it.item }.toSet())
+        // And every item is some gift's or on the shop's shelf, never both.
+        val sold = com.pushuprpg.core.progression.ShopItem.entries.map { it.item }.toSet()
+        assertEquals(CatItem.entries.toSet(), Gift.entries.map { it.item }.toSet() + sold)
     }
 
     @Test

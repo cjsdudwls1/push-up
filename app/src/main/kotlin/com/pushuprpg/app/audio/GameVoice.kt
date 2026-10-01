@@ -7,8 +7,6 @@ import android.media.AudioManager
 import android.media.MediaPlayer
 import android.os.Handler
 import android.os.Looper
-import android.speech.tts.TextToSpeech
-import android.speech.tts.UtteranceProgressListener
 import com.pushuprpg.app.R
 import com.pushuprpg.core.audio.Announcement
 import com.pushuprpg.core.audio.VoiceStyle
@@ -16,17 +14,17 @@ import com.pushuprpg.core.detect.ExerciseType
 import com.pushuprpg.core.detect.PlacementAdvice
 import com.pushuprpg.core.survival.CatLine
 import java.security.MessageDigest
-import java.util.Locale
 
 /**
  * The game's voice: what [com.pushuprpg.core.audio.Announcer] decides to say, spoken aloud.
  *
- * A line is played from a pre-rendered clip when the app ships one for its exact text —
- * `assets/voice/<id>.ogg`, where the id is the first 12 hex digits of the SHA-1 of the text — and
- * otherwise spoken by the phone's own text-to-speech engine, which is free, offline, and on any
- * recent Android a neural Korean voice. `tools/voice_lines.py` lists every line with its file name
- * and delivery. Keying on the text means a reworded line stops matching its old clip rather than
- * being played in words the app no longer uses, and a line nobody recorded is still said.
+ * A line is played from a pre-rendered clip for its exact text — `assets/voice/<id>.ogg`, where
+ * the id is the first 12 hex digits of the SHA-1 of the text — and a line with no clip is not said.
+ * The phone's own text-to-speech used to say those, and by the owner's decision (2026-10-01) a
+ * machine voice beside the cat's is worse than silence: the bubble still shows the line.
+ * `tools/voice_lines.py` lists every line with its file name and delivery, and `--check` says which
+ * have no clip. Keying on the text means a reworded line stops matching its old clip rather than
+ * being played in words the app no longer uses.
  *
  * Lines queue behind the one in progress, one at a time, whichever of the two is saying it. The
  * music ducks under every line, so the words are never the thing that gets lost — and so does
@@ -41,8 +39,6 @@ class GameVoice(context: Context, private val music: MusicPlayer) {
 
     private val appContext = context.applicationContext
     private val main = Handler(Looper.getMainLooper())
-    private var tts: TextToSpeech? = null
-    private var ready = false
     private var seq = 0
 
     /** Lines waiting for the one in progress, oldest first. Main thread only. */
@@ -83,29 +79,6 @@ class GameVoice(context: Context, private val music: MusicPlayer) {
     init {
         main.post {
             clips = runCatching { appContext.assets.list(CLIP_DIR)?.toSet() }.getOrNull().orEmpty()
-            tts = TextToSpeech(appContext) { status ->
-                val engine = tts ?: return@TextToSpeech
-                if (status != TextToSpeech.SUCCESS) return@TextToSpeech
-                val lang = engine.setLanguage(Locale.KOREAN)
-                ready = lang != TextToSpeech.LANG_MISSING_DATA && lang != TextToSpeech.LANG_NOT_SUPPORTED
-                engine.setAudioAttributes(speech)
-                engine.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
-                    override fun onStart(utteranceId: String?) = Unit
-
-                    override fun onDone(utteranceId: String?) {
-                        main.post { finished(utteranceId) }
-                    }
-
-                    @Deprecated("Deprecated in Java")
-                    override fun onError(utteranceId: String?) {
-                        main.post { finished(utteranceId) }
-                    }
-
-                    override fun onStop(utteranceId: String?, interrupted: Boolean) {
-                        main.post { finished(utteranceId) }
-                    }
-                })
-            }
         }
     }
 
@@ -134,7 +107,7 @@ class GameVoice(context: Context, private val music: MusicPlayer) {
     /** Starts the oldest waiting line, or lets the music back up when there is none. */
     private fun next() {
         while (true) {
-            val (text, style) = pending.removeFirstOrNull() ?: run {
+            val (text, _) = pending.removeFirstOrNull() ?: run {
                 current = null
                 music.setDucked(false)
                 releaseFocus()
@@ -149,7 +122,7 @@ class GameVoice(context: Context, private val music: MusicPlayer) {
             val id = "line-${seq++}"
             current = id
             music.setDucked(true)
-            if (playClip(clipName(text), id) || speak(text, style, id)) return
+            if (playClip(clipName(text), id)) return
         }
     }
 
@@ -178,7 +151,6 @@ class GameVoice(context: Context, private val music: MusicPlayer) {
         current = null
         clip?.run { runCatching { stop() }; release() }
         clip = null
-        tts?.stop()
         music.setDucked(false)
     }
 
@@ -199,18 +171,6 @@ class GameVoice(context: Context, private val music: MusicPlayer) {
             clip?.release()
             clip = null
         }.isSuccess
-    }
-
-    private fun speak(text: String, style: VoiceStyle, id: String): Boolean {
-        val engine = tts ?: return false
-        if (!ready) return false
-        val (rate, pitch) = when (style) {
-            VoiceStyle.COACH -> 1.1f to 1.0f
-            VoiceStyle.CAT -> 1.15f to 1.6f
-        }
-        engine.setSpeechRate(rate)
-        engine.setPitch(pitch)
-        return engine.speak(text, TextToSpeech.QUEUE_FLUSH, null, id) == TextToSpeech.SUCCESS
     }
 
     private fun textFor(a: Announcement, exercise: ExerciseType): String? {
@@ -259,6 +219,7 @@ class GameVoice(context: Context, private val music: MusicPlayer) {
             CatLine.REST -> listOf(R.string.cat_line_rest_1, R.string.cat_line_rest_2)
             CatLine.REST_TEN -> listOf(R.string.cat_line_rest_ten)
             CatLine.AGAIN -> listOf(R.string.cat_line_again_1, R.string.cat_line_again_2)
+            CatLine.RECORD -> listOf(R.string.cat_line_record_1, R.string.cat_line_record_2)
         }
         val id = wordings[serial % wordings.size]
         return if (line == CatLine.MILESTONE || line == CatLine.COMBO) appContext.getString(id, arg)

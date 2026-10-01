@@ -67,6 +67,14 @@ fun itemNameRes(item: CatItem): Int = when (item) {
     CatItem.CROWN -> R.string.item_crown
     CatItem.SNOW -> R.string.item_snow
     CatItem.SPACE -> R.string.item_space
+    CatItem.HEADBAND -> R.string.item_headband
+    CatItem.BANDANA -> R.string.item_bandana
+    CatItem.HEART_GLASSES -> R.string.item_heart_glasses
+    CatItem.CHEF_HAT -> R.string.item_chef_hat
+    CatItem.MEDAL -> R.string.item_medal
+    CatItem.WITCH_HAT -> R.string.item_witch_hat
+    CatItem.BEACH -> R.string.item_beach
+    CatItem.GYM -> R.string.item_gym
 }
 
 /** What a gift was found for, said after the fact. */

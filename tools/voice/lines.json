@@ -414,6 +414,18 @@
   "key": "cat_line_panic_2"
  },
  {
+  "file": "a6692d3b17a8.ogg",
+  "text": "신기록이에요! 최고예요, 냥!",
+  "style": "CAT",
+  "key": "cat_line_record_1"
+ },
+ {
+  "file": "91bec2c4e8bd.ogg",
+  "text": "기록 깼어요, 냥! 대단해요!",
+  "style": "CAT",
+  "key": "cat_line_record_2"
+ },
+ {
   "file": "8d45582137ea.ogg",
   "text": "괜찮아요, 냥! 잠깐 쉬어요",
   "style": "CAT",

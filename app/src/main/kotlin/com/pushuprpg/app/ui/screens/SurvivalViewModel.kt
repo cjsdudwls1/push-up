@@ -19,6 +19,7 @@ import com.pushuprpg.app.domain.SessionRecord
 import com.pushuprpg.app.domain.SessionRepository
 import com.pushuprpg.core.detect.DetectorFactory
 import com.pushuprpg.app.domain.bestSurvivalScoreOf
+import com.pushuprpg.app.domain.setBestsOf
 import com.pushuprpg.app.domain.wearFound
 import com.pushuprpg.app.domain.withSurvivalScore
 import com.pushuprpg.core.detect.ExerciseType
@@ -34,6 +35,8 @@ import com.pushuprpg.core.detect.RepEvent
 import com.pushuprpg.core.detect.RenderSkeleton
 import com.pushuprpg.core.detect.SkeletonMode
 import com.pushuprpg.core.progression.RunGrowth
+import com.pushuprpg.core.progression.SetBests
+import com.pushuprpg.core.progression.SetOutcome
 import com.pushuprpg.core.progression.SessionFacts
 import com.pushuprpg.core.progression.Streak
 import com.pushuprpg.core.progression.StreakState
@@ -96,6 +99,19 @@ class SurvivalViewModel(
     private val _bestScore = MutableStateFlow(0)
     val bestScore: StateFlow<Int> = _bestScore.asStateFlow()
 
+    /**
+     * This movement's best per set, as it stood before this session: what each life is played
+     * against, on screen and by the cat. Moves on only when a session is banked, for the next one.
+     */
+    private val _setBests = MutableStateFlow(SetBests())
+    val setBests: StateFlow<SetBests> = _setBests.asStateFlow()
+
+    /** What the banked session did to the set bests, and the 츄르 it earned. Null until written. */
+    private val _setOutcome = MutableStateFlow<SetOutcome?>(null)
+    val setOutcome: StateFlow<SetOutcome?> = _setOutcome.asStateFlow()
+
+    private val hold = Exercises.of(exercise).kind == MovementKind.HOLD
+
     /** What the banked session changed: a record, places passed. Null until it is written. */
     private val _growth = MutableStateFlow<RunGrowth?>(null)
     val growth: StateFlow<RunGrowth?> = _growth.asStateFlow()
@@ -138,7 +154,10 @@ class SurvivalViewModel(
         // Scoped to the destination, so without loading it back the mode reported "최고 0점" every
         // time the user returned — in the one place the product is built around a score.
         viewModelScope.launch {
-            _bestScore.value = progressRepository.current().bestSurvivalScoreOf(exercise)
+            val progress = progressRepository.current()
+            _bestScore.value = progress.bestSurvivalScoreOf(exercise)
+            // The tutorial is nobody's set to beat, and sets none.
+            if (!tutorial) _setBests.value = progress.setBestsOf(exercise)
         }
     }
 
@@ -212,7 +231,11 @@ class SurvivalViewModel(
 
         // Straight from this thread: a push has to be heard as it lands. The cat decides what it
         // says about a rest as well as about a life.
-        audio.play(cat.update(now.life, step.life, tick.tMs) + cat.rest(now.restLeftMs, step.session, tick.tMs))
+        val best = if (now.phase == CatPhase.PLAYING) _setBests.value.at(now.ended.size) else 0
+        audio.play(
+            cat.update(now.life, step.life, tick.tMs, best = best, hold = hold) +
+                cat.rest(now.restLeftMs, step.session, tick.tMs)
+        )
         val catView = cat.view()
         // The cat's lines are heard as well as read: the bubble is small and the phone is far. Where
         // to stand is not said during a rest: stepping away for water is what a rest is for.
@@ -307,6 +330,7 @@ class SurvivalViewModel(
         startedWallMs = 0L
         _nearMisses.value = 0
         _growth.value = null
+        _setOutcome.value = null
         saved.set(false)
         endedHere = false
         _state.value = session.state()
@@ -414,7 +438,6 @@ class SurvivalViewModel(
         // Read now rather than inside the write, which runs later on a thread of its own.
         val summary = detector.sessionSummary()
         val plausibility = summary.plausibility
-        val hold = Exercises.of(exercise).kind == MovementKind.HOLD
         val work = mapOf(exercise to Streak.amount(exercise, repsDone, summary.holdMs))
         // A hold's row is as long as it was held, which is what the records screen and the day's
         // streak bar read off it. Otherwise the time the lives were played: a rest is not activity.
@@ -463,6 +486,7 @@ class SurvivalViewModel(
             var maintained: Int? = null
             var bestStreakBefore = 0
             var bestStreakAfter = 0
+            var sets: SetOutcome? = null
             progressRepository.update { current ->
                 val streak = Streak.advance(
                     StreakState(current.streakDays, current.lastActiveEpochDay),
@@ -472,7 +496,13 @@ class SurvivalViewModel(
                 maintained = streak.days.takeIf { streak.lastActiveDay != current.lastActiveEpochDay }
                 bestStreakBefore = current.bestStreakDays
                 bestStreakAfter = maxOf(current.bestStreakDays, streak.days)
+                // Against what is stored now, not what this session started from: a session banked
+                // meanwhile from another screen must not have its records written over.
+                val setsNow = if (tutorial) null else SetOutcome.of(current.setBestsOf(exercise), lives, hold)
+                sets = setsNow
                 current.withSurvivalScore(exercise, score).copy(
+                    setBests = if (setsNow == null) current.setBests else current.setBests + (exercise to setsNow.bests.bests),
+                    churu = current.churu + (setsNow?.churu ?: 0),
                     lifetimeReps = current.lifetimeReps + repsDone,
                     bestCombo = maxOf(current.bestCombo, bestSet),
                     totalActiveMs = current.totalActiveMs + playedMs,
@@ -484,6 +514,11 @@ class SurvivalViewModel(
             maintained?.let { telemetry.log(Event.StreakMaintained(it)) }
             // Once the streak is written, so a gift the streak brings comes with the session that
             // earned it; and put on, so the cat comes home wearing it.
+            sets?.let {
+                _setOutcome.value = it
+                // The next session, a retry included, is played against these.
+                _setBests.value = it.bests
+            }
             val growth = RunGrowth.of(before, listOf(facts), bestStreakBefore, bestStreakAfter)
             _growth.value = growth
             settingsRepository.wearFound(growth)

@@ -21,8 +21,14 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -48,6 +54,7 @@ import com.pushuprpg.app.ui.theme.Palette
 import com.pushuprpg.app.ui.theme.Type
 import com.pushuprpg.core.progression.CatItem
 import com.pushuprpg.core.progression.Gift
+import com.pushuprpg.core.progression.ShopItem
 import com.pushuprpg.core.progression.WearSlot
 
 /**
@@ -72,7 +79,26 @@ fun WardrobeScreen(
     onWear: (CatItem) -> Unit,
     onTakeOff: (WearSlot) -> Unit,
     modifier: Modifier = Modifier,
+    /** 츄르 in hand and what it has bought; see [com.pushuprpg.core.progression.Shop]. */
+    churu: Int = 0,
+    bought: Set<CatItem> = emptySet(),
+    /** Asked once the user has said yes; the caller pays and puts it on. */
+    onBuy: (ShopItem) -> Unit = {},
 ) {
+    var asking by remember { mutableStateOf<ShopItem?>(null) }
+    asking?.let { item ->
+        AlertDialog(
+            onDismissRequest = { asking = null },
+            title = { Text(stringResource(R.string.shop_confirm_title, stringResource(itemNameRes(item.item)))) },
+            text = { Text(stringResource(R.string.shop_confirm_body, item.price, churu)) },
+            confirmButton = {
+                TextButton(onClick = { asking = null; onBuy(item) }) { Text(stringResource(R.string.shop_buy)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { asking = null }) { Text(stringResource(R.string.action_cancel)) }
+            },
+        )
+    }
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -147,6 +173,104 @@ fun WardrobeScreen(
                 color = Palette.TextSecondary,
             )
         }
+
+        // The shop, by the owner's decision (2026-10-01): 츄르 from set records buys what no gift
+        // brings. Unlike the gifts, everything on the shelf shows what it is and what it costs.
+        Spacer(Modifier.height(28.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = stringResource(R.string.shop_title),
+                style = Type.titleM,
+                color = Palette.TextPrimary,
+                modifier = Modifier.weight(1f),
+            )
+            Pill(text = stringResource(R.string.shop_churu, churu), tint = Palette.Deep)
+        }
+        Spacer(Modifier.height(4.dp))
+        Text(
+            text = stringResource(R.string.shop_hint),
+            style = Type.bodyM,
+            color = Palette.TextSecondary,
+        )
+        Spacer(Modifier.height(12.dp))
+        ShopItem.entries.chunked(TILES_PER_ROW).forEach { row ->
+            Row(
+                modifier = Modifier.height(IntrinsicSize.Min),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                row.forEach { item ->
+                    val owned = item.item in bought
+                    val worn = item.item in wearing
+                    ShopTile(
+                        item = item,
+                        owned = owned,
+                        worn = worn,
+                        affordable = churu >= item.price,
+                        coat = catCoat,
+                        onClick = {
+                            when {
+                                worn -> onTakeOff(item.item.slot)
+                                owned -> onWear(item.item)
+                                churu >= item.price -> asking = item
+                            }
+                        },
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight(),
+                    )
+                }
+                repeat(TILES_PER_ROW - row.size) { Spacer(Modifier.weight(1f)) }
+            }
+            Spacer(Modifier.height(10.dp))
+        }
+    }
+}
+
+@Composable
+private fun ShopTile(
+    item: ShopItem,
+    owned: Boolean,
+    worn: Boolean,
+    affordable: Boolean,
+    coat: CatCoat,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val shape = RoundedCornerShape(14.dp)
+    val tappable = owned || affordable
+    Column(
+        modifier = modifier
+            .cardSurface(shape = shape, color = if (worn) Palette.Bg3 else Palette.Bg2)
+            .then(if (worn) Modifier.border(2.dp, Palette.Brand600, shape) else Modifier)
+            .then(if (tappable) Modifier.clickable(role = Role.Button, onClick = onClick) else Modifier)
+            .padding(horizontal = 6.dp, vertical = 10.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Box(Modifier.size(64.dp), contentAlignment = Alignment.Center) {
+            ItemPicture(item.item, coat, Modifier.fillMaxSize())
+        }
+        Spacer(Modifier.height(6.dp))
+        Text(
+            text = stringResource(itemNameRes(item.item)),
+            style = Type.labelL,
+            color = Palette.TextPrimary,
+            textAlign = TextAlign.Center,
+            maxLines = 2,
+        )
+        Pill(
+            text = when {
+                worn -> stringResource(R.string.wardrobe_wearing)
+                owned -> stringResource(R.string.shop_owned)
+                else -> stringResource(R.string.shop_price, item.price)
+            },
+            tint = when {
+                worn -> Palette.Brand400
+                owned -> Palette.TextSecondary
+                affordable -> Palette.Deep
+                else -> Palette.TextTertiary
+            },
+            modifier = Modifier.padding(top = 6.dp),
+        )
     }
 }
 

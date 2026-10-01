@@ -55,6 +55,8 @@ import com.pushuprpg.app.ui.theme.Palette
 import com.pushuprpg.app.ui.theme.PushupRpgTheme
 import com.pushuprpg.core.progression.Gift
 import com.pushuprpg.core.progression.Gifts
+import com.pushuprpg.core.progression.Shop
+import com.pushuprpg.app.domain.purse
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.withContext
@@ -169,6 +171,13 @@ fun PushupRpgApp(
                     OnboardingScreen(
                         themeMode = settings.themeMode,
                         onToggleTheme = toggleTheme,
+                        catName = settings.catName,
+                        catCoat = settings.catCoat,
+                        onCatChange = { name, coat ->
+                            scope.launch {
+                                container.settingsRepository.update { it.copy(catName = name, catCoat = coat) }
+                            }
+                        },
                         onContinue = {
                             // A second tap during the transition would push a second tutorial
                             // behind the first.
@@ -272,19 +281,27 @@ fun PushupRpgApp(
                                 container.settingsRepository.update { it.withWear(Gifts.takeOff(it.wearing(), slot)) }
                             }
                         },
+                        churu = progressState?.churu ?: 0,
+                        bought = progressState?.purse()?.owned.orEmpty(),
+                        onBuy = { item ->
+                            scope.launch {
+                                var paid = false
+                                container.progressRepository.update { p ->
+                                    val after = Shop.buy(p.purse(), item) ?: return@update p
+                                    paid = true
+                                    p.copy(churu = after.churu, bought = after.owned.mapTo(mutableSetOf()) { it.name })
+                                }
+                                // Bought to be worn: on at once, in place of whatever was in its slot.
+                                if (paid) {
+                                    container.settingsRepository.update { it.withWear(Gifts.wear(it.wearing(), item.item)) }
+                                }
+                            }
+                        },
                     )
                 }
 
                 composable(Routes.SURVIVAL_PICK) { entry ->
                     ExercisePickScreen(
-                        catName = settings.catName,
-                        catCoat = settings.catCoat,
-                        catWear = settings.wearing(),
-                        onCatChange = { name, coat ->
-                            scope.launch {
-                                container.settingsRepository.update { it.copy(catName = name, catCoat = coat) }
-                            }
-                        },
                         initial = settings.exercise,
                         onStart = { picked ->
                             // Remembered as the last choice, which the hub's button starts. Not
@@ -322,6 +339,8 @@ fun PushupRpgApp(
                     val setupSkeleton by vm.setupSkeleton.collectAsState()
                     val nearMisses by vm.nearMisses.collectAsState()
                     val growth by vm.growth.collectAsState()
+                    val setBests by vm.setBests.collectAsState()
+                    val setOutcome by vm.setOutcome.collectAsState()
 
                     DisposableEffect(vm) {
                         val consumer: (com.pushuprpg.core.pose.PoseFrame) -> Unit = vm::onPoseFrame
@@ -345,6 +364,8 @@ fun PushupRpgApp(
                                 catName = settings.catName,
                                 catCoat = settings.catCoat,
                                 catWear = settings.wearing(),
+                                setBests = setBests,
+                                setOutcome = setOutcome,
                                 poseSource = poseSource,
                                 exercise = exercise,
                                 isTutorial = isTutorial,
@@ -367,6 +388,16 @@ fun PushupRpgApp(
                                     if (navController.isOnTop(entry) && !vm.endHere()) {
                                         vm.leave()
                                         navController.popBackStack(Routes.SURVIVAL, inclusive = true)
+                                    }
+                                },
+                                onChangeExercise = {
+                                    // The ending's 운동 바꾸기: banked like 홈으로, then straight to the
+                                    // picker, which starts the next session itself.
+                                    if (navController.isOnTop(entry)) {
+                                        vm.leave()
+                                        navController.navigate(Routes.SURVIVAL_PICK) {
+                                            popUpTo(Routes.SURVIVAL) { inclusive = true }
+                                        }
                                     }
                                 },
                                 onHome = {
