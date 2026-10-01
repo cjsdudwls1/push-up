@@ -340,6 +340,37 @@ object Body3d {
         return s
     }
 
+    /**
+     * The fake pull-up: standing on the floor, hands overhead at a pull-up's grip, the elbows
+     * bending by [depth] exactly as [pullUp]'s do, so the shoulder-to-wrist gap and the elbow close
+     * the same way — but the hands come down to the shoulders and the shoulders stay put. With
+     * [sinkM] the shoulders also go *down* that far by the bottom: letting go of the bar and
+     * folding the arms on the way to the floor.
+     */
+    fun overheadArmBend(depth: Float, facing: V3 = V3(0f, 0f, 1f), sinkM: Float = 0f, gripHalfWidth: Float = 0.30f): Skeleton {
+        val s = Skeleton()
+        val f = facing.unit()
+        val left = V3(f.z, 0f, -f.x)
+        val hipMid = V3(0f, STANDING_HIP_Y - sinkM * depth, 0f)
+        for ((side, hip, knee, ankle) in SIDES_LEG) {
+            s[hip] = hipMid + left * (side * HIP_WIDTH / 2f)
+            s[ankle] = V3(0f, ANKLE_HEIGHT, 0f) + left * (side * HIP_WIDTH / 2f)
+            s[knee] = midJoint(s[hip], s[ankle], THIGH, SHANK, f)
+        }
+        val shoulderMid = hipMid + V3(0f, TORSO, 0f)
+        val theta = deg(172f - depth * (172f - 52f))
+        val lateral = gripHalfWidth - SHOULDER_WIDTH / 2f
+        val reach = sqrt(UPPER_ARM * UPPER_ARM + FOREARM * FOREARM - 2f * UPPER_ARM * FOREARM * cos(theta))
+        val rise = sqrt((reach * reach - lateral * lateral).coerceAtLeast(0.01f))
+        for ((side, shoulder, elbow, wrist) in SIDES_ARM) {
+            s[shoulder] = shoulderMid + left * (side * SHOULDER_WIDTH / 2f)
+            s[wrist] = shoulderMid + V3(0f, rise, 0f) + left * (side * gripHalfWidth)
+            s[elbow] = midJoint(s[shoulder], s[wrist], UPPER_ARM, FOREARM, left * side + f * 0.3f)
+        }
+        s[Lm.NOSE] = shoulderMid + V3(0f, NOSE_ABOVE_SHOULDER, 0f) + f * NOSE_FORWARD
+        return s
+    }
+
     /** A dip seen from any side: [dip], turned so the chest faces [facing]. */
     fun dipFacing(depth: Float, facing: V3): Skeleton = rotated(dip(depth), facing)
 

@@ -59,6 +59,23 @@ data class ExerciseDescriptor(
      */
     val sideView: SideView? = null,
     /**
+     * For a movement that brings the body to hands that stay put — a pull-up: how far the shoulders
+     * must have come toward the hands *in the picture* since the top, as a fraction of the calibrated
+     * range, before a rep counts. Null for every movement whose hands move.
+     *
+     * The primary signal and the elbow both read the gap between shoulders and wrists closing, and
+     * cannot say which end moved. Standing under nothing and bending the arms overhead closes it with
+     * the hands, and so does letting go of the bar and folding the arms on the way down; both
+     * counted. The phone is still, so the picture is the bar: a pull-up moves the shoulders, those
+     * move the hands. Asked from every view, like [SideView.minShoulderTravel] is asked side on.
+     *
+     * The pull-up's 0.15 is measured, not guessed: on the rig an honest pull has brought the
+     * shoulders 0.55-0.83 of the range by the strike from every view and placement, and the fakes
+     * 0 (arms bent overhead) and -0.37 to -0.28 (folding on the way down). The set recorded from
+     * behind went as low as 0.29 with the range left stuck too high, which 0.30 refused.
+     */
+    val shoulderTravel: Float? = null,
+    /**
      * Fix n̂'s sign once per set instead of re-deciding it every frame.
      *
      * Re-deciding is right when the far pair is far: for a pushup the wrists are most of a
@@ -586,6 +603,7 @@ object Exercises {
             topClampMin = 0.80f, topClampMax = 2.20f,
             botClampMin = 0.05f, botClampMax = 1.30f,
         ),
+        shoulderTravel = 0.15f,
         validatedOnDevice = true,
         sessionVolumeScale = 0.30f,
         streakBar = 5,

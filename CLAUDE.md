@@ -108,6 +108,10 @@ from the front and gone from the side, and a lunge filmed at an angle — as peo
 narrow to measure at all. `HangingRigTest` and `LungeRigTest` pin front, side, back and diagonal.
 The model's spine is longer against the limbs than the rig's (people stand at 0.7-0.8 of the rig's
 `h`), so a prior that only fits the rig is a prior that never arms on a phone.
+A pull-up must also bring the shoulders up *in the picture* (`ExerciseDescriptor.shoulderTravel`):
+the gap and the elbow close the same whether the body rises to the bar or the hands come down to
+the shoulders, and standing with the arms bending overhead, or folding them on the way down off the
+bar, both counted. `HangingRigTest` pins both fakes from every view.
 
 **A pushup filmed from the side is read in its side view** (`SideView`), by the owner's request.
 Side on the shoulder line projects onto itself and has no scale, so once the shoulders have been

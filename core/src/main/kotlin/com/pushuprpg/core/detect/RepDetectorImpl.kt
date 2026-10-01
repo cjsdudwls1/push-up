@@ -255,8 +255,9 @@ class RepDetectorImpl(
                 // The witness's rest position: the LEAST it has travelled while the rep was armed,
                 // not its value on the last frame before the descent. See [bodyDropAtTop].
                 if (!sample.bodyDrop.isNaN()) bodyDropAtTop = minOf(bodyDropAtTop, sample.bodyDrop)
-                // Side on, where the shoulders were in the picture at the top: the least deep armed frame.
-                if (body.sideOn && !(depth > shouldersAtTopDepth)) {
+                // Where the shoulders were in the picture at the top, side on or for a movement that
+                // brings the body to the hands: the least deep armed frame.
+                if (watchesShoulders(body) && !(depth > shouldersAtTopDepth)) {
                     shouldersAtTopDepth = depth
                     shouldersAtTopU = body.shoulderU
                     shouldersAtTopV = body.shoulderV
@@ -457,12 +458,14 @@ class RepDetectorImpl(
 
         // Side on, the shoulders themselves, in the picture: a pushup brings them down to the hands,
         // a wave brings the hands up to them. The phone is still, so the picture is the floor.
-        val sideView = config.descriptor.sideView
-        if (sideView != null && body.sideOn && shouldersAtTopDepth != Float.POSITIVE_INFINITY) {
+        // A pull-up the same way from every view: the body comes up to the bar, and standing with
+        // the arms bending overhead, or folding them on the way down, brings the hands to it instead.
+        val shoulderTravel = shoulderTravelRequired(body)
+        if (shoulderTravel != null && shouldersAtTopDepth != Float.POSITIVE_INFINITY) {
             val came = Geometry.dot(
                 body.shoulderU - shouldersAtTopU, body.shoulderV - shouldersAtTopV, body.nU, body.nV,
             ) / body.scale
-            if (came < sideView.minShoulderTravel * calibrator.range) return AbandonReason.INCONSISTENT
+            if (came < shoulderTravel * calibrator.range) return AbandonReason.INCONSISTENT
         }
 
         // A split stance, for a movement that is one. The depth signal reads a squat exactly as a
@@ -708,7 +711,16 @@ class RepDetectorImpl(
      */
     private var bodyDropAtTop = Float.POSITIVE_INFINITY
 
-    /** Side on: where the shoulders were in the picture at the top of this rep, and at what depth. */
+    /** How far the shoulders must come in the picture this frame, or null when nothing asks it. */
+    private fun shoulderTravelRequired(body: BodyFrameState): Float? {
+        val sideView = config.descriptor.sideView
+        if (sideView != null && body.sideOn) return sideView.minShoulderTravel
+        return config.descriptor.shoulderTravel
+    }
+
+    private fun watchesShoulders(body: BodyFrameState): Boolean = shoulderTravelRequired(body) != null
+
+    /** Where the shoulders were in the picture at the top of this rep, and at what depth. */
     private var shouldersAtTopDepth = Float.POSITIVE_INFINITY
     private var shouldersAtTopU = 0f
     private var shouldersAtTopV = 0f

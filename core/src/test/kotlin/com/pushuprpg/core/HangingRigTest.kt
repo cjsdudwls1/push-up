@@ -56,4 +56,22 @@ class HangingRigTest {
     @Test
     fun `a dip counts from the front, the side, the back and between`() =
         assertCounts(ExerciseType.DIP) { d, f -> Body3d.dipFacing(d, f) }
+
+    private fun assertCountsNone(what: String, pose: (Float, Body3d.V3) -> Body3d.Skeleton) {
+        for (yaw in views) for ((where, cam) in cameras) {
+            val detector = DetectorFactory.create(ExerciseType.PULL_UP)
+            Body3d.trace({ d -> pose(d, facing(yaw)) }, cam, 6).forEach { detector.onFrame(it) }
+            assertEquals(0, detector.sessionSummary().repCount, "$what at ${yaw.toInt()}° from $where counted")
+        }
+    }
+
+    /** The device report: standing and bending the arms overhead counted a pull-up every time. */
+    @Test
+    fun `bending the arms overhead while standing is not a pull-up`() =
+        assertCountsNone("arms bent overhead") { d, f -> Body3d.overheadArmBend(d, f) }
+
+    /** The device report: coming down off the bar, the arms folding on the way, counted one more. */
+    @Test
+    fun `folding the arms on the way down off the bar is not a pull-up`() =
+        assertCountsNone("folding on the way down") { d, f -> Body3d.overheadArmBend(d, f, sinkM = 0.15f) }
 }
