@@ -38,6 +38,9 @@ enum class CatLine(val priority: Int, val repeatAfterMs: Long) {
 
     /** The rest is over: the next life waits for the user, and the cat asks again. */
     AGAIN(4, 0),
+
+    /** This set has just gone past this set's best: once a life, the moment it happens. */
+    RECORD(6, 0),
 }
 
 data class CatSpeech(
@@ -91,6 +94,7 @@ class CatCompanion {
     private var nextHeartbeatMs = NEVER
     private var lastHoldSoundMs = NEVER
     private var saidRestTen = false
+    private var saidRecord = false
 
     fun view(): CatView = CatView(
         mood = mood,
@@ -102,8 +106,17 @@ class CatCompanion {
     /**
      * Folds in one frame: the state after it and the events it produced. Returns what to play.
      * Call once per frame, after [CeilingSurvival.update], with the frame's timestamp.
+     *
+     * [best] is this set's best before this session (see `SetBests`), 0 for none; [hold] says it is
+     * in seconds. Going past it is the one thing the cat says about a number.
      */
-    fun update(state: SurvivalState, events: List<SurvivalEvent>, nowMs: Long): List<SoundRequest> {
+    fun update(
+        state: SurvivalState,
+        events: List<SurvivalEvent>,
+        nowMs: Long,
+        best: Int = 0,
+        hold: Boolean = false,
+    ): List<SoundRequest> {
         this.nowMs = nowMs
         val sounds = mutableListOf<SoundRequest>()
 
@@ -167,6 +180,15 @@ class CatCompanion {
             }
         }
 
+        val value = if (hold) (state.elapsedMs / 1000L).toInt() else state.reps
+        if (best > 0 && !saidRecord && value > best) {
+            saidRecord = true
+            if (say(CatLine.RECORD, nowMs)) {
+                sounds += SoundRequest(SoundCue.CAT_HAPPY)
+                sounds += SoundRequest(SoundCue.COMBO_UP)
+            }
+        }
+
         mood = moodFor(state.height, before)
         when {
             mood.ordinal > before.ordinal -> sounds += onWorse(mood)
@@ -198,6 +220,7 @@ class CatCompanion {
                     mood = CatMood.CALM
                     lastPushMs = NEVER
                     saidRestTen = false
+                    saidRecord = false
                     // The result card of the life said nothing; this is the cat, relieved.
                     speech = null
                     if (say(CatLine.REST, event.atMs)) sounds += SoundRequest(SoundCue.CAT_HAPPY, volume = 0.8f)
@@ -218,6 +241,7 @@ class CatCompanion {
     }
 
     fun reset() {
+        saidRecord = false
         mood = CatMood.CALM
         started = false
         over = false

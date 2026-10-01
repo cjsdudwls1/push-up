@@ -31,6 +31,7 @@ class CatCompanionTest {
         val sounds = mutableListOf<Pair<Long, SoundRequest>>()
         val lines = mutableListOf<CatSpeech>()
         val moods = mutableListOf<CatMood>()
+        var best = 0
 
         fun frame(inPosition: Boolean = true, rep: RepGrade? = null, hold: Boolean = false) {
             t += 33
@@ -39,7 +40,7 @@ class CatCompanionTest {
                 if (hold) addAll(game.onHold(formScore = 80f, seconds = 0.5f, atMs = t))
                 addAll(game.update(t, inPosition))
             }
-            cat.update(game.state(), events, t).forEach { sounds += t to it }
+            cat.update(game.state(), events, t, best = best).forEach { sounds += t to it }
             val view = cat.view()
             view.speech?.let { if (lines.lastOrNull() != it) lines += it }
             if (moods.lastOrNull() != view.mood) moods += view.mood
@@ -294,5 +295,27 @@ class CatCompanionTest {
         assertEquals(CatLine.NEAR_MISS, run.cat.view().speech?.line)
         assertEquals(0, run.cat.view().hearts)
         assertTrue(events.none { it is SurvivalEvent.Pushed })
+    }
+
+    @Test
+    fun `the cat says so once when the set goes past its best, and not before`() {
+        val run = Run().apply { best = 3 }
+        run.framesFor(500)
+        repeat(3) { run.frame(rep = RepGrade.COUNTED); run.framesFor(600) }
+        assertTrue(run.lines.none { it.line == CatLine.RECORD }, "said before the best was passed")
+        run.frame(rep = RepGrade.COUNTED)
+        assertEquals(CatLine.RECORD, run.lines.last().line)
+        assertTrue(run.sounds.any { it.second.cue == SoundCue.CAT_HAPPY })
+        run.framesFor(3_000)
+        repeat(3) { run.frame(rep = RepGrade.COUNTED); run.framesFor(600) }
+        assertEquals(1, run.lines.count { it.line == CatLine.RECORD })
+    }
+
+    @Test
+    fun `a set with no best yet has no record to cheer`() {
+        val run = Run()
+        run.framesFor(500)
+        repeat(6) { run.frame(rep = RepGrade.COUNTED); run.framesFor(600) }
+        assertTrue(run.lines.none { it.line == CatLine.RECORD })
     }
 }

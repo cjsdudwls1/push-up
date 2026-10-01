@@ -6,6 +6,8 @@ import com.pushuprpg.core.progression.Gifts
 import com.pushuprpg.core.progression.RunGrowth
 import com.pushuprpg.core.progression.SessionFacts
 import kotlinx.coroutines.flow.Flow
+import com.pushuprpg.core.progression.Purse
+import com.pushuprpg.core.progression.SetBests
 
 /**
  * Everything the app persists about the player.
@@ -37,6 +39,21 @@ data class PlayerProgress(
      * is still new.
      */
     val giftsSeen: Set<String> = emptySet(),
+    /** Each movement's best per set (see [com.pushuprpg.core.progression.SetBests]); absent when never played. */
+    val setBests: Map<ExerciseType, List<Int>> = emptyMap(),
+    /** 츄르 in hand: earned by set records, spent in the shop, never otherwise lost. */
+    val churu: Int = 0,
+    /** Things bought in the shop, by [com.pushuprpg.core.progression.CatItem] name. Never taken back. */
+    val bought: Set<String> = emptySet(),
+)
+
+/** [exercise]'s best per set. */
+fun PlayerProgress.setBestsOf(exercise: ExerciseType): SetBests = SetBests(setBests[exercise].orEmpty())
+
+/** What the shop sees. */
+fun PlayerProgress.purse(): Purse = Purse(
+    churu = churu,
+    owned = bought.mapNotNullTo(mutableSetOf()) { name -> CatItem.entries.firstOrNull { it.name == name } },
 )
 
 /** The best 고냥이 score with [exercise], or 0 before its first session. */

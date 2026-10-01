@@ -228,6 +228,15 @@
     <string name="rest_refunded">카메라가 잠깐 놓쳐서, 이번 목숨은 깎지 않았어요</string>
     <string name="rest_tip">물 한 모금 마시고 숨을 골라요. 쉬어야 다음 판에 더 많이 해요.</string>
     <string name="rest_after">쉬는 시간이 끝나면, 자세를 잡을 때 다음 목숨이 시작돼요</string>
+    <string name="rest_next_best">다음 %1$d세트 최고 기록은 %2$d개예요</string>
+    <string name="rest_next_best_hold">다음 %1$d세트 최고 기록은 %2$d초예요</string>
+    <string name="rest_next_first">다음 %1$d세트는 첫 기록이에요</string>
+    <!-- The set against its own best, over the camera while a life is on. -->
+    <string name="set_now_best">%1$d세트 · 지금 %2$d / 최고 %3$d</string>
+    <string name="set_now_best_hold">%1$d세트 · 지금 %2$d초 / 최고 %3$d초</string>
+    <string name="set_now_first">%1$d세트 · 지금 %2$d · 첫 기록</string>
+    <string name="set_now_first_hold">%1$d세트 · 지금 %2$d초 · 첫 기록</string>
+    <string name="set_record_broken">기록 경신!</string>
 
     <!-- Every life spent. The cat's line goes through cat_says with its name. -->
     <string name="session_over_title">오늘의 고냥이 지키기 끝!</string>
@@ -236,6 +245,8 @@
     <string name="session_chart_title">세트별 개수 (%1$d세트)</string>
     <string name="session_chart_title_hold">세트별 지킨 시간(초) (%1$d세트)</string>
     <string name="session_total_reps">모두 %1$,d개 했어요</string>
+    <string name="session_sets_broken">세트 기록을 %1$d개 깼어요</string>
+    <string name="session_churu">츄르 %1$d개를 받았어요</string>
     <string name="session_again">한 판 더</string>
     <string name="survival_share_text">고냥이 지켜줘 %1$,d점! 운동으로 고냥이를 지켰어요 🐱💪</string>
 
@@ -279,6 +290,8 @@
     <string name="cat_line_rest_1">괜찮아요, 냥! 잠깐 쉬어요</string>
     <string name="cat_line_rest_2">휴… 잘했어요. 숨 좀 돌려요, 냥</string>
     <string name="cat_line_rest_ten">십 초 남았어요, 냥!</string>
+    <string name="cat_line_record_1">신기록이에요! 최고예요, 냥!</string>
+    <string name="cat_line_record_2">기록 깼어요, 냥! 대단해요!</string>
     <!-- The rest is over; the next life waits for the user to be in position. -->
     <string name="cat_line_again_1">다시 지켜 줄 거죠, 냥?</string>
     <string name="cat_line_again_2">준비됐어요? 또 부탁해요, 냥!</string>
@@ -349,6 +362,14 @@
     <string name="item_crown">왕관</string>
     <string name="item_snow">눈 덮인 산</string>
     <string name="item_space">우주</string>
+    <string name="item_headband">땀 머리띠</string>
+    <string name="item_bandana">반다나</string>
+    <string name="item_heart_glasses">하트 안경</string>
+    <string name="item_chef_hat">요리사 모자</string>
+    <string name="item_medal">금메달</string>
+    <string name="item_witch_hat">마녀 모자</string>
+    <string name="item_beach">바닷가</string>
+    <string name="item_gym">헬스장</string>
     <!-- Under a found gift in 꾸미기: what it was found for, said after the fact. Gifts not yet found
          say nothing about what they wait for: they are surprises, by the owner's decision. -->
     <string name="gift_why_first_run">첫 운동</string>
@@ -367,6 +388,16 @@
     <string name="wardrobe_secret">아직 비밀</string>
     <!-- %1$d is how many gifts are still to be found. -->
     <string name="wardrobe_secret_note">비밀 선물 %1$d개가 남았어요. 운동하다 보면 고냥이가 찾아 와요.</string>
+    <!-- The shop: 츄르 from set records buys what no gift brings. -->
+    <string name="shop_title">츄르 상점</string>
+    <string name="shop_churu">츄르 %1$d개</string>
+    <string name="shop_hint">세트 기록을 깰 때마다 츄르를 받아요. 처음 해 본 세트도 한 개씩 받아요.</string>
+    <string name="shop_price">츄르 %1$d</string>
+    <string name="shop_owned">가지고 있어요</string>
+    <string name="shop_buy">살게요</string>
+    <string name="shop_confirm_title">%1$s, 살까요?</string>
+    <string name="shop_confirm_body">츄르 %1$d개를 써요. 지금 %2$d개 있어요.</string>
+    <string name="action_cancel">아니요</string>
     <string name="wardrobe_new">새로</string>
     <string name="wardrobe_wearing">입는 중</string>
     <!-- The way in, over the cat on the hub; with the count of gifts not yet looked at. -->

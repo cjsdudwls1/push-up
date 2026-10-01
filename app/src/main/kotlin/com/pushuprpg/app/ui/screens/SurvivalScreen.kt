@@ -78,6 +78,8 @@ import com.pushuprpg.core.detect.Placement
 import com.pushuprpg.core.detect.RenderSkeleton
 import com.pushuprpg.core.progression.CatItem
 import com.pushuprpg.core.progression.RunGrowth
+import com.pushuprpg.core.progression.SetBests
+import com.pushuprpg.core.progression.SetOutcome
 import com.pushuprpg.core.survival.CatLine
 import com.pushuprpg.core.survival.CatMood
 import com.pushuprpg.core.survival.CatPhase
@@ -138,7 +140,12 @@ fun SurvivalScreen(
     catCoat: CatCoat = CatCoat.CREAM,
     /** What the cat has on. A scene stays at home: under the ceiling is the only place this cat is. */
     catWear: Set<CatItem> = emptySet(),
+    /** This movement's best per set before this session: what each life is played against. */
+    setBests: SetBests = SetBests(),
+    /** What the banked session did to the set bests; null until it is written. */
+    setOutcome: SetOutcome? = null,
 ) {
+    val hold = Exercises.of(exercise).kind == MovementKind.HOLD
     KeepScreenOn()
     val name = catName.ifBlank { stringResource(R.string.cat_default_name) }
 
@@ -271,6 +278,18 @@ fun SurvivalScreen(
                 }
                 Spacer(Modifier.height(4.dp))
                 LivesRow(lives = state.lives, left = state.livesLeft)
+                // The set against its own best, by the owner's decision: the number is what makes
+                // breaking it worth chasing. Once the life has started; while setting up there is
+                // nothing yet to count.
+                if (playing && life.started) {
+                    Spacer(Modifier.height(8.dp))
+                    SetCounter(
+                        set = state.ended.size + 1,
+                        now = if (hold) (life.elapsedMs / 1000L).toInt() else life.reps,
+                        best = setBests.at(state.ended.size),
+                        hold = hold,
+                    )
+                }
             }
             // The ceiling waits for the user to be in position, and says so — a still ceiling with
             // no explanation reads as a broken one. The tutorial says it in its intro.
@@ -381,6 +400,8 @@ fun SurvivalScreen(
             // The phone is across the room during a rest, so the countdown is the biggest thing here.
             RestCard(
                 state = state,
+                nextBest = setBests.at(state.ended.size),
+                hold = hold,
                 modifier = Modifier.align(Alignment.Center),
             )
         }
@@ -416,6 +437,7 @@ fun SurvivalScreen(
                     },
                     onHome = onHome,
                     onChangeExercise = onChangeExercise,
+                    setOutcome = setOutcome,
                     modifier = Modifier.align(Alignment.Center),
                 )
             }
@@ -642,6 +664,7 @@ private fun catLineText(speech: CatSpeech): String {
         CatLine.REST -> listOf(R.string.cat_line_rest_1, R.string.cat_line_rest_2)
         CatLine.REST_TEN -> listOf(R.string.cat_line_rest_ten)
         CatLine.AGAIN -> listOf(R.string.cat_line_again_1, R.string.cat_line_again_2)
+        CatLine.RECORD -> listOf(R.string.cat_line_record_1, R.string.cat_line_record_2)
     }
     val id = wordings[speech.serial % wordings.size]
     return when (speech.line) {
@@ -777,6 +800,37 @@ private fun TutorialDoneCard(
     }
 }
 
+/**
+ * The set being played against its own best: 3세트 · 지금 9 / 최고 12. Past the best it turns the
+ * record colour and says so; a set never played before has no best, and its first is the record.
+ */
+@Composable
+private fun SetCounter(set: Int, now: Int, best: Int, hold: Boolean, modifier: Modifier = Modifier) {
+    val beaten = best > 0 && now > best
+    Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
+        CameraText(
+            text = stringResource(
+                when {
+                    best <= 0 && hold -> R.string.set_now_first_hold
+                    best <= 0 -> R.string.set_now_first
+                    hold -> R.string.set_now_best_hold
+                    else -> R.string.set_now_best
+                },
+                set, now, best,
+            ),
+            style = Type.titleL,
+            color = if (beaten) Palette.Deep else Palette.TextPrimary,
+        )
+        if (beaten) {
+            CameraText(
+                text = stringResource(R.string.set_record_broken),
+                style = Type.bodyM,
+                color = Palette.Deep,
+            )
+        }
+    }
+}
+
 /** The session's lives as hearts: full for the ones left, faint for the ones spent. */
 @Composable
 private fun LivesRow(lives: Int, left: Int, modifier: Modifier = Modifier) {
@@ -804,12 +858,15 @@ private val HEART = Color(0xFFFF6F91)
  * the next one, and a game will not take it unless made to. So the countdown is the largest thing on
  * screen — the phone is across the room.
  *
- * It says no count, by the owner's decision as well: some people would rather not see a number
- * while they train, so a session's counts are shown once, all together, when it ends.
+ * It says what the next set has to beat: by the owner's later decision (2026-10-01) the numbers are
+ * shown while training, each set against its own best.
  */
 @Composable
 private fun RestCard(
     state: CatSessionState,
+    /** The next set's best, 0 for a set never played. */
+    nextBest: Int,
+    hold: Boolean,
     modifier: Modifier = Modifier,
 ) {
     val seconds = ((state.restLeftMs + 999L) / 1000L).toInt()
@@ -843,6 +900,18 @@ private fun RestCard(
         }
         Spacer(Modifier.height(12.dp))
         LivesRow(lives = state.lives, left = state.livesLeft)
+        Spacer(Modifier.height(10.dp))
+        val next = state.ended.size + 1
+        Text(
+            text = when {
+                nextBest <= 0 -> stringResource(R.string.rest_next_first, next)
+                hold -> stringResource(R.string.rest_next_best_hold, next, nextBest)
+                else -> stringResource(R.string.rest_next_best, next, nextBest)
+            },
+            style = Type.titleM,
+            color = Palette.Deep,
+            textAlign = TextAlign.Center,
+        )
         Spacer(Modifier.height(12.dp))
         Text(
             text = stringResource(R.string.rest_tip),
@@ -875,6 +944,7 @@ private fun SessionOverCard(
     onShare: () -> Unit,
     onHome: () -> Unit,
     onChangeExercise: () -> Unit,
+    setOutcome: SetOutcome?,
     modifier: Modifier = Modifier,
 ) {
     val hold = Exercises.of(exercise).kind == MovementKind.HOLD
@@ -927,7 +997,22 @@ private fun SessionOverCard(
             color = Palette.TextSecondary,
         )
         Spacer(Modifier.height(8.dp))
-        LivesChart(lives = state.ended, hold = hold)
+        LivesChart(lives = state.ended, hold = hold, broken = setOutcome?.broken.orEmpty().toSet())
+        if (setOutcome != null && setOutcome.churu > 0) {
+            Spacer(Modifier.height(8.dp))
+            if (setOutcome.broken.isNotEmpty()) {
+                Text(
+                    text = stringResource(R.string.session_sets_broken, setOutcome.broken.size),
+                    style = Type.titleM,
+                    color = Palette.Deep,
+                )
+            }
+            Text(
+                text = stringResource(R.string.session_churu, setOutcome.churu),
+                style = Type.bodyM,
+                color = Palette.TextSecondary,
+            )
+        }
         if (!hold) {
             Spacer(Modifier.height(8.dp))
             Text(
@@ -969,7 +1054,7 @@ private fun SessionOverCard(
  * is drawn faint.
  */
 @Composable
-private fun LivesChart(lives: List<LifeResult>, hold: Boolean) {
+private fun LivesChart(lives: List<LifeResult>, hold: Boolean, broken: Set<Int> = emptySet()) {
     val values = lives.map { if (hold) (it.survivedMs / 1000L).toInt() else it.reps }
     val top = (values.maxOrNull() ?: 0).coerceAtLeast(1)
     BoxWithConstraints(Modifier.fillMaxWidth()) {
@@ -987,10 +1072,11 @@ private fun LivesChart(lives: List<LifeResult>, hold: Boolean) {
                     modifier = Modifier.width(barWidth),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
+                    // A set that beat its own best is starred, in the record colour.
                     Text(
-                        text = value.toString(),
+                        text = if (i in broken) "\u2605$value" else value.toString(),
                         style = Type.labelS,
-                        color = Palette.TextSecondary,
+                        color = if (i in broken) Palette.Deep else Palette.TextSecondary,
                         maxLines = 1,
                     )
                     Spacer(Modifier.height(2.dp))

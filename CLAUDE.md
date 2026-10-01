@@ -184,10 +184,12 @@ in a dungeon stay in the session table and count everywhere (`SessionRecord.dung
 table kept its columns so there is no migration. Whether tracking works on real phones (H2) is read
 from `cat_session_finished`, which carries what `run_finished` used to (`TrackingDrops`).
 
-**A 고냥이 session shows its counts once, when it ends**, by the owner's decision: some people would
-rather not see a number while they train. Nothing on the run's screen or its rest card counts reps;
-the ending shows every set together. And a rep has no judgment sound of its own — the ding a
-counted rep makes is the feedback, and the owner judged it enough.
+**Each set is played against its own best, with the numbers on screen**, by the owner's decision
+(2026-10-01, reversing the earlier "counts only at the end"): 3세트 · 지금 9 / 최고 12 over the
+camera, the next set's best on the rest card, and the cat says it once when the best is passed
+(`CatCompanion`, `CatLine.RECORD`). A set's best is per movement and per place in the session
+(`SetBests`), only grows, and is written when the session is banked. A rep still has no judgment
+sound of its own — the ding a counted rep makes is the feedback.
 
 **Growth is shown as things that only go up.** The calories (`Growth.kt`) turn every rep into the
 energy it burned — MET × 65 kg × a movement's seconds per rep, an estimate the screen says is one,
@@ -200,7 +202,10 @@ was lost is how a return becomes a goodbye. The week is one card, its days named
 than drawn as dots, with last week summed up at the start of the next (`Weeks.recap`). There are no
 push notifications, by the owner's decision.
 
-**The cat's things are gifts it finds, never a shop or a task list**, by the owner's decision: a
+**The cat's things are gifts it finds, and beside them a shop for 츄르**, by the owner's decisions.
+The shop came later (2026-10-01): a set that beats its own best pays 츄르 (`SetOutcome.churu`), and
+`Shop` sells things no gift brings — never one a gift brings, and nothing bought is taken back. The
+gifts themselves stay as they were: a
 reward promised for doing something is one people do it for and stop when it stops, and one that
 arrives as a surprise adds to why they came. `Gifts.earned` works each gift out from what only
 grows — the runs, the best set of a counted movement, the longest streak, returns after three days
@@ -223,7 +228,9 @@ never a drill instructor. 실패 does not appear anywhere in the app; a session 
 Every user-visible string lives in `app/src/main/res/values/strings.xml`.
 
 Spoken lines play from `app/src/main/assets/voice/<id>.ogg` when a clip exists for the exact text
-(id = first 12 hex of its SHA-1) and fall back to the phone's TTS otherwise. `tools/voice_lines.py`
+(id = first 12 hex of its SHA-1); a line with no clip is not spoken at all — the phone's TTS was
+taken out by the owner's decision (2026-10-01), since a machine voice beside the cat's is worse than
+silence. `tools/voice_lines.py`
 lists every line with its file and delivery, and fails if `GameVoice` speaks a string it does not
 list — add new voiced strings there. After rewording a voiced string, `--check` shows the clip that
 went stale. Outside audio and its licence go in `docs/AUDIO_CREDITS.md`.
