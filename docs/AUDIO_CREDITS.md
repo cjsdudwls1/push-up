@@ -13,14 +13,15 @@ URL, 만든 사람, 라이선스, 가공 내용. CC0(퍼블릭 도메인)이 아
 
 ## 음성 (`app/src/main/assets/voice/`)
 
-게임 음성은 기본적으로 폰의 텍스트 음성 변환(TTS)이 읽습니다. 미리 만든 음성 파일이 있으면 그것을
-대신 틉니다 — 목록과 파일 이름은 `tools/voice_lines.py`가 만드는 `tools/voice/lines.json`에
-있습니다.
+게임 음성은 미리 만든 음성 파일로만 나옵니다. 파일이 없는 대사는 소리 없이 말풍선만 뜹니다 — 폰의
+텍스트 음성 변환(TTS)이 그런 대사를 읽던 것은 사용자의 결정으로 뺐습니다(2026-10-01). 목록과 파일
+이름은 `tools/voice_lines.py`가 만드는 `tools/voice/lines.json`에 있고, 지금은 83줄 모두 파일이
+있습니다(`--check`: `clips: 83 of 83 present`).
 
 | 음성 | 도구·모델 | 라이선스 | 비고 |
 |---|---|---|---|
 | 게임 목소리: `COACH` 18개 (자세 안내) | [Qwen3-TTS](https://github.com/QwenLM/Qwen3-TTS) [`Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice`](https://huggingface.co/Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice) (리비전 `0c0e3051`), 내장 화자 `Sohee`(한국어 여성). `qwen-tts` 0.1.1로 CPU에서 직접 생성 | Apache-2.0 (코드·가중치). 생성 음성의 상업 이용 제한, 출처 표기·워터마크 의무 없음. 계정·결제 없이 받음 | 던전의 `URGENT` 7개와 `COACH` 18개(필살기, 콤보, 직업별 안내)는 던전을 앱에서 지울 때(2026-09-30) 함께 지웠습니다. 아래 "만든 방법" |
-| 고냥이 목소리: `CAT` 57개 (58줄 중 한 줄은 뺌, 아래 "한계") | 같은 Qwen3-TTS의 [`Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign`](https://huggingface.co/Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign) (리비전 `5ecdb673`). 내장 화자가 아니라 글로 설명한 목소리(아래 "말투"). `qwen-tts` 0.1.1로 [Modal](https://modal.com) 클라우드 GPU(NVIDIA L4)에서 fp32로 생성. `53191fdb44e0` 한 줄만 2026-09-30에 CPU에서 다시 만듦(아래 "다시 만든 대사") | Apache-2.0 (코드·가중치). 조건은 위 줄과 같음. 계정·결제 없이 받음 | 게임 목소리와 다른 화자, 감정은 대사 종류마다 instruct로. 아래 "만든 방법" |
+| 고냥이 목소리: `CAT` 65개 | 같은 Qwen3-TTS의 [`Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign`](https://huggingface.co/Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign) (리비전 `5ecdb673`). 내장 화자가 아니라 글로 설명한 목소리(아래 "말투"). `qwen-tts` 0.1.1로 [Modal](https://modal.com) 클라우드 GPU(NVIDIA L4)에서 fp32로 생성. `53191fdb44e0` 한 줄만 2026-09-30에 CPU에서 다시 만듦(아래 "다시 만든 대사"). 8줄은 2026-10-01에 같은 방법으로 Modal에서 만듦(아래 "새로 만든 대사") | Apache-2.0 (코드·가중치). 조건은 위 줄과 같음. 계정·결제 없이 받음 | 게임 목소리와 다른 화자, 감정은 대사 종류마다 instruct로. 아래 "만든 방법" |
 
 ### 만든 방법
 
@@ -109,17 +110,38 @@ GPU에서 만들었습니다. 대사 글과 말투 설명을 Modal로 보내 음
   [Chatterbox](https://github.com/resemble-ai/chatterbox) 다국어 모델(MIT)로 만든 것도 있었습니다. 앱에는
   들어가지 않았습니다.
 
+**새로 만든 대사 (2026-10-01).** 폰의 TTS를 빼면서, 클립이 없던 `CAT` 8줄을 만들었습니다. 쉬는
+시간과 다음 목숨의 대사 다섯 줄, 세트 기록을 넘을 때의 새 대사 두 줄, 그리고 2026-09-25에 뺐던
+`796f104f1460`입니다.
+
+- 같은 모델·리비전·목소리 설명에 아래 문장을 붙여, [Modal](https://modal.com) L4 GPU에서 fp32로 대사마다
+  `torch.manual_seed(1)` 뒤 한 번에 5개(`796f104f1460`만 8개), 모두 43개를 만들었습니다. 대사 글과 말투
+  설명이 Modal로 갔고, 모델은 Modal 이미지에 미리 받아 넣었습니다. 이번 컨테이너는 네트워크를 막지
+  않았습니다. 받아쓰기는 Modal이 아니라 이 환경의 CPU에서 Whisper large-v3-turbo로 했습니다.
+  - `cat_line_again_1` "다시 지켜 줄 거죠, 냥?": "Hopeful and gentle, softly asking again, ending on a clearly
+    rising, questioning pitch."
+  - `cat_line_again_2`: "Cheerful and hopeful, brightly asking for help again."
+  - `cat_line_record_1`, `cat_line_record_2`: "Thrilled and amazed, cheering brightly and proudly."
+  - `cat_line_rest_1`, `cat_line_rest_2`: "Relieved and gentle, kindly telling the player to take a rest."
+  - `cat_line_rest_ten`: "Bright and cheerful, gently letting the player know."
+  - `796f104f1460`: `combo`와 같은 "Happy and proud, cheering brightly.", 읽힐 글은 `일흔 번 연속! 최고예요, 냥!`
+- 가공은 위 "다시 만든 대사"와 같습니다(libsndfile Vorbis, 24 kHz 모노, 56–70 kbps). 두 줄
+  (`d9d8d788d702`, `8d45582137ea`)은 인코딩한 뒤 트루 피크가 -0.7, -1.2 dBTP로 넘쳐서, 4배 오버샘플링 피크로
+  만든 게인 엔벨로프(60 ms 릴리스) 리미터를 걸어 다시 만들었습니다. 여덟 줄 모두 -16 LUFS(±0.3 LU 안,
+  -16.1~-15.9), 트루 피크 -1.7 dBTP 이하입니다.
+- 사용자가 페이지에서 전부 들어 보고 골랐습니다(테이크 번호): `d9d8d788d702` 2, `421b4aaddb7a` 1,
+  `796f104f1460` 8, `a6692d3b17a8` 5, `91bec2c4e8bd` 1, `8d45582137ea` 1, `26f7f6de055a` 2, `ce79b55ff6e4` 3.
+- Whisper가 대사와 다르게 받아쓴 것도 사용자가 듣고 골랐습니다. `796f104f1460`은 여덟 개 모두 "일흔"이
+  뭉개져 "이른바 녀석"처럼 받아써졌고, `91bec2c4e8bd` "기록 깼어요"는 "기록했어요"로 받아써졌습니다.
+  `ce79b55ff6e4`는 "10초"로 받아써졌는데, 숫자로 적었을 뿐 대사와 같습니다.
+
 **한계.**
 - `8d65e466cb5d` "천천히 한 개씩 세어 볼게요"는 세 시드 모두 인코딩한 뒤 "세워 볼게요"로 받아써졌습니다.
   그중 인코딩 전에는 "세어"로 들린 것을 넣었고, 사용자가 들어 보고 이상 없다고 했습니다.
-- `796f104f1460` "70번 연속! 최고예요, 냥!"은 뺐습니다. 서른 테이크 가운데 받아쓰기가 완전히 맞은 것이
-  없었습니다. `일흔 번 연속`은 소리대로 하면 [이른 번 년속]이라, Whisper가 "이른번 연속", "이른바 녀석"
-  등으로 적었습니다. 가장 나았던 시드 8을 넣었다가 사용자가 들어 보고 빼기로 했습니다(2026-09-25).
-  이 줄은 폰의 TTS가 읽습니다. `tools/voice_lines.py --check`가 이 파일을 `missing`으로 보여 주는 것은
-  이 때문입니다.
-- 검수는 Whisper 받아쓰기와 음향 측정으로 했습니다. 2026-09-25에 사용자가 직접 들어 본 뒤
-  `796f104f1460`만 빼고 나머지는 전부 이상 없다고 했습니다.
-- 쉬는 시간과 다음 목숨의 대사 다섯 줄(`cat_line_rest_1`, `cat_line_rest_2`, `cat_line_rest_ten`,
-  `cat_line_again_1`, `cat_line_again_2`)은 위 파일들을 만든 뒤에 생긴 대사라 아직 클립이 없고, 폰의 TTS가
-  읽습니다. 그래서 `--check`는 `clips: 75 of 81 present`를 출력하고 이 다섯 줄과 `796f104f1460`을
-  `missing`으로 보여 줍니다. 만들면 `CAT`으로 만듭니다.
+- `796f104f1460` "70번 연속! 최고예요, 냥!"은 받아쓰기가 완전히 맞은 테이크가 지금까지 하나도 없습니다.
+  `일흔 번 연속`은 소리대로 하면 [이른 번 년속]이라, Whisper가 "이른번 연속", "이른바 녀석" 등으로
+  적습니다. 2026-09-25에는 사용자가 들어 보고 뺐고, 2026-10-01에 새로 만든 것 가운데 하나를 사용자가 골라
+  다시 넣었습니다.
+- 검수는 Whisper 받아쓰기와 음향 측정, 그리고 사용자가 직접 들어 본 것으로 했습니다(2026-09-25, 2026-10-01).
+- 콤보는 100까지, 버틴 시간은 300초까지만 대사가 있습니다(`tools/voice_lines.py`의 `COMBOS`, `SECONDS`).
+  그보다 큰 숫자의 대사는 클립이 없어 소리 없이 말풍선만 뜹니다.

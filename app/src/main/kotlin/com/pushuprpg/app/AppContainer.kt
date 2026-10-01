@@ -60,7 +60,7 @@ class AppContainer(context: Context) {
 
     private val voiceHolder = lazy { GameVoice(appContext, music) }
 
-    /** The spoken lines. One engine for the app: binding the TTS service takes a moment. */
+    /** The spoken lines. One for the app, so two screens never talk over each other. */
     val voice: GameVoice by voiceHolder
 
     val telemetry: Telemetry by lazy { Telemetry(appContext) }
