@@ -118,6 +118,8 @@ fun SurvivalScreen(
      * it is and its ending is shown. Leaving, [onHome], is the ending's own button.
      */
     onClose: () -> Unit = onHome,
+    /** The ending's 운동 바꾸기: leaves as [onHome] does, to the picker instead of the hub. */
+    onChangeExercise: () -> Unit = onHome,
     /** The tutorial's way out before its run has started: 건너뛰기, and back, asked first, while the ceiling waits. */
     onSkip: () -> Unit = {},
     /** The pose model did not load, so nothing will ever count: the tutorial offers its skip at once. */
@@ -412,6 +414,7 @@ fun SurvivalScreen(
                         )
                     },
                     onHome = onHome,
+                    onChangeExercise = onChangeExercise,
                     modifier = Modifier.align(Alignment.Center),
                 )
             }
@@ -865,6 +868,7 @@ private fun SessionOverCard(
     onRetry: () -> Unit,
     onShare: () -> Unit,
     onHome: () -> Unit,
+    onChangeExercise: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val hold = Exercises.of(exercise).kind == MovementKind.HOLD
@@ -930,6 +934,13 @@ private fun SessionOverCard(
         RunGrowthLines(growth = growth, modifier = Modifier.fillMaxWidth())
         Spacer(Modifier.height(18.dp))
         PrimaryButton(text = stringResource(R.string.session_again), onClick = onRetry)
+        Spacer(Modifier.height(10.dp))
+        // Another movement without going home for it.
+        SecondaryButton(
+            text = stringResource(R.string.home_change_exercise),
+            onClick = onChangeExercise,
+            modifier = Modifier.fillMaxWidth(),
+        )
         Spacer(Modifier.height(10.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             SecondaryButton(

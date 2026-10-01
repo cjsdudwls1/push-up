@@ -169,6 +169,13 @@ fun PushupRpgApp(
                     OnboardingScreen(
                         themeMode = settings.themeMode,
                         onToggleTheme = toggleTheme,
+                        catName = settings.catName,
+                        catCoat = settings.catCoat,
+                        onCatChange = { name, coat ->
+                            scope.launch {
+                                container.settingsRepository.update { it.copy(catName = name, catCoat = coat) }
+                            }
+                        },
                         onContinue = {
                             // A second tap during the transition would push a second tutorial
                             // behind the first.
@@ -277,14 +284,6 @@ fun PushupRpgApp(
 
                 composable(Routes.SURVIVAL_PICK) { entry ->
                     ExercisePickScreen(
-                        catName = settings.catName,
-                        catCoat = settings.catCoat,
-                        catWear = settings.wearing(),
-                        onCatChange = { name, coat ->
-                            scope.launch {
-                                container.settingsRepository.update { it.copy(catName = name, catCoat = coat) }
-                            }
-                        },
                         initial = settings.exercise,
                         onStart = { picked ->
                             // Remembered as the last choice, which the hub's button starts. Not
@@ -367,6 +366,16 @@ fun PushupRpgApp(
                                     if (navController.isOnTop(entry) && !vm.endHere()) {
                                         vm.leave()
                                         navController.popBackStack(Routes.SURVIVAL, inclusive = true)
+                                    }
+                                },
+                                onChangeExercise = {
+                                    // The ending's 운동 바꾸기: banked like 홈으로, then straight to the
+                                    // picker, which starts the next session itself.
+                                    if (navController.isOnTop(entry)) {
+                                        vm.leave()
+                                        navController.navigate(Routes.SURVIVAL_PICK) {
+                                            popUpTo(Routes.SURVIVAL) { inclusive = true }
+                                        }
                                     }
                                 },
                                 onHome = {

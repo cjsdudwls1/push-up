@@ -28,8 +28,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.pushuprpg.app.R
-import com.pushuprpg.app.domain.CatCoat
-import com.pushuprpg.app.ui.components.CatCard
 import com.pushuprpg.app.ui.components.ExerciseNotes
 import com.pushuprpg.app.ui.components.Pill
 import com.pushuprpg.app.ui.components.PrimaryButton
@@ -41,7 +39,6 @@ import com.pushuprpg.app.ui.theme.Type
 import com.pushuprpg.core.detect.ExerciseType
 import com.pushuprpg.core.detect.Exercises
 import com.pushuprpg.core.detect.MovementKind
-import com.pushuprpg.core.progression.CatItem
 import com.pushuprpg.core.survival.CatSession
 
 /**
@@ -56,20 +53,14 @@ import com.pushuprpg.core.survival.CatSession
  * the owner's decision, since it is the same one day after another. Choosing here is done standing in
  * front of the phone, which is the moment the one-line camera placement is worth reading; the rest of
  * the placement is said live, once the phone is down. The last choice is pre-expanded, so the same
- * movement as yesterday is one tap and no reading. The cat can be named and coloured here as well as
- * in 꾸미기.
+ * movement as yesterday is one tap and no reading. The cat is not asked about here: it is chosen once,
+ * on the first screen, and changed only in 꾸미기, by the owner's decision.
  */
 @Composable
 fun ExercisePickScreen(
     initial: ExerciseType,
     onStart: (ExerciseType) -> Unit,
     modifier: Modifier = Modifier,
-    catName: String = "",
-    catCoat: CatCoat = CatCoat.CREAM,
-    /** The cat's name, as it should be stored, and its coat. Called on every change. */
-    onCatChange: (String, CatCoat) -> Unit = { _, _ -> },
-    /** What the cat has on, for its picture beside the name. */
-    catWear: Set<CatItem> = emptySet(),
 ) {
     var expanded by remember { mutableStateOf(initial) }
 
@@ -100,11 +91,6 @@ fun ExercisePickScreen(
                 color = Palette.TextSecondary,
             )
             Spacer(Modifier.height(10.dp))
-        }
-
-        item(key = "cat") {
-            CatCard(name = catName, coat = catCoat, onChange = onCatChange, wear = catWear)
-            Spacer(Modifier.height(6.dp))
         }
 
         items(ExerciseType.entries, key = { it.name }) { exercise ->

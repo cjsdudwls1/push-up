@@ -1,6 +1,8 @@
 package com.pushuprpg.app.ui.screens
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -10,7 +12,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.pushuprpg.app.R
+import com.pushuprpg.app.domain.CatCoat
 import com.pushuprpg.app.domain.ThemeMode
+import com.pushuprpg.app.ui.components.CatCard
 import com.pushuprpg.app.ui.components.PrimaryButton
 import com.pushuprpg.app.ui.components.SecondaryButton
 import com.pushuprpg.app.ui.components.ThemeToggle
@@ -32,6 +36,10 @@ fun OnboardingScreen(
     onToggleTheme: () -> Unit,
     onContinue: () -> Unit,
     modifier: Modifier = Modifier,
+    catName: String = "",
+    catCoat: CatCoat = CatCoat.CREAM,
+    /** The cat's name, as it should be stored, and its coat. Called on every change. */
+    onCatChange: (String, CatCoat) -> Unit = { _, _ -> },
 ) {
     Box(
         modifier = modifier
@@ -41,6 +49,7 @@ fun OnboardingScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .verticalScroll(rememberScrollState())
                 .padding(horizontal = 24.dp)
                 .padding(top = 80.dp, bottom = 32.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -58,7 +67,11 @@ fun OnboardingScreen(
                 color = Palette.TextSecondary,
                 textAlign = TextAlign.Center,
             )
-            Spacer(Modifier.weight(1f))
+            Spacer(Modifier.height(24.dp))
+            // The cat is chosen here, once, and kept: by the owner's decision it is not asked again
+            // before every run. 꾸미기 is where it changes.
+            CatCard(name = catName, coat = catCoat, onChange = onCatChange)
+            Spacer(Modifier.height(24.dp))
             // Before the first workout, not buried in settings: an app that tells people to exercise
             // says once, up front, that it is not medical advice and to stop if something hurts. In
             // body type and colour: as 13sp tertiary grey it read as fine print, and faintly at that.
