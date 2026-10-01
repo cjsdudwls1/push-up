@@ -79,6 +79,7 @@ import com.pushuprpg.core.detect.RenderSkeleton
 import com.pushuprpg.core.progression.CatItem
 import com.pushuprpg.core.progression.RunGrowth
 import com.pushuprpg.core.survival.CatLine
+import com.pushuprpg.core.survival.CatMood
 import com.pushuprpg.core.survival.CatPhase
 import com.pushuprpg.core.survival.CatSession
 import com.pushuprpg.core.survival.CatSessionState
@@ -494,7 +495,13 @@ private fun CeilingAndCat(
         Canvas(Modifier.fillMaxSize()) {
             val floorY = size.height * FLOOR_AT
             val topY = size.height * 0.10f
-            val travel = floorY - topY
+            val toothWidth = size.width / 14f
+            // Height 0 — the life ends — is the teeth on the cat's head, crouched as it is by then,
+            // not the slab on the floor. Drawn down to the floor, the ceiling went behind the cat
+            // and the set played on with the cat already under it, and the hearts never fell.
+            val headTop = catHeadTop(floorY, size.width / CAT_SCALE_WIDTH, CatMood.PANIC)
+            val lowest = headTop - toothWidth * 0.55f
+            val travel = lowest - topY
             val ceilingBottom = topY + travel * (1f - state.height.coerceIn(0f, 1f))
 
             val slab = Color(
@@ -510,7 +517,6 @@ private fun CeilingAndCat(
                 size = Size(size.width, ceilingBottom),
             )
             // Teeth along the underside: menace without needing a texture.
-            val toothWidth = size.width / 14f
             for (i in 0 until 14) {
                 drawPath(
                     path = Path().apply {
