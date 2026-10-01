@@ -3,7 +3,7 @@
 Turns a screen recording of the app into a pose trace that scripts/replay-trace.sh can replay.
 
 When a device report comes with a video instead of a trace, this is the next best thing: it runs
-the app's own pose model (app/src/main/assets/pose_landmarker_lite.task) over every frame, with the
+the app's own pose model (app/src/main/assets/pose_landmarker_full.task) over every frame, with the
 app's thresholds, and writes the same JSON the debug build's 동작 기록 보내기 shares. The two sets in
 core/src/test/resources/traces came from this.
 
@@ -27,7 +27,7 @@ from mediapipe.tasks import python as mpt
 from mediapipe.tasks.python import vision
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-MODEL = os.path.join(ROOT, "app/src/main/assets/pose_landmarker_lite.task")
+MODEL = os.path.join(ROOT, "app/src/main/assets/pose_landmarker_full.task")
 # PoseLandmarkerSource's thresholds: a different model or different thresholds would not be the app.
 CONFIDENCE = 0.5
 START_MS = 3_600_000

@@ -19,7 +19,7 @@ scripts/replay-trace.sh f.json  # a run recorded on a phone, replayed rep by rep
 When a device report says reps are not counting, ask for a trace rather than guessing: debug builds
 have 설정 → 테스트 → 동작 기록 남기기 / 방금 한 운동 기록 보내기, which shares the latest run's landmarks as
 JSON. `replay-trace.sh` shows which check refused each rep, and the file can become a test. A screen
-recording of the app works too: `tools/video_to_trace.py` runs the app's own lite model over it and
+recording of the app works too: `tools/video_to_trace.py` runs the app's own pose model (full, since 2026-10-01) over it and
 writes the same JSON. It runs at the recording's frame rate, not the phone's, so replay every second
 and third frame as well — a fix that held at 40 fps once failed at 20.
 
