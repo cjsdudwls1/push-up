@@ -416,7 +416,7 @@ class RepDetectorImpl(
         // separates them is that a hanging body's head does not move relative to its shoulders.
         val signal = config.descriptor.signal
 
-        if (!sample.jointDepth.isNaN()) {
+        if (!sample.jointDepth.isNaN() && signal?.jointVetoes != false) {
             // One-sided. The fake this catches is a primary signal running ahead of the body —
             // the wrists moved, the elbow did not — so only a joint reading SHALLOWER than the
             // primary is a disagreement. A deeper one is a joint bent past its reference bottom:

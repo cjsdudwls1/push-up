@@ -172,6 +172,10 @@ class RealTraceTest {
         Set("pullup-behind-camera.json.gz", ExerciseType.PULL_UP, 2, 3, "pull-ups from behind"),
         // The first dip starts 0.3 s in, inside the wait to arm; the last is cut off by the end.
         Set("dip-front.json.gz", ExerciseType.DIP, 2, 4, "dips from the front"),
+        // 2026-10-02, SM-A556S with the full model: three dips, then down off the bars, which moves
+        // the hands and is not a fourth. The elbow's 3-D angle read straighter at the bottom than at
+        // the top, and refused all three while it could veto a dip.
+        Set("dip-front-full-model.json.gz", ExerciseType.DIP, 3, 3, "dips from the front, the full model"),
     )
 
     @Test

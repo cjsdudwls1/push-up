@@ -118,6 +118,10 @@ A pull-up must also bring the shoulders up *in the picture* (`ExerciseDescriptor
 the gap and the elbow close the same whether the body rises to the bar or the hands come down to
 the shoulders, and standing with the arms bending overhead, or folding them on the way down off the
 bar, both counted. `HangingRigTest` pins both fakes from every view.
+A dip is witnessed the same way, the shoulders coming down to the hands on the bars, and its elbow's
+3-D angle may not refuse a rep (`RepSignal.jointVetoes`): on a phone with the full model, filmed from
+the front, the elbow read straighter at the bottom of honest dips than at the top and refused three
+of four (`dip-front-full-model.json.gz` in `RealTraceTest`).
 
 **A pushup filmed from the side is read in its side view** (`SideView`), by the owner's request.
 Side on the shoulder line projects onto itself and has no scale, so once the shoulders have been

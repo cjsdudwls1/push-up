@@ -57,11 +57,11 @@ class HangingRigTest {
     fun `a dip counts from the front, the side, the back and between`() =
         assertCounts(ExerciseType.DIP) { d, f -> Body3d.dipFacing(d, f) }
 
-    private fun assertCountsNone(what: String, pose: (Float, Body3d.V3) -> Body3d.Skeleton) {
+    private fun assertCountsNone(what: String, type: ExerciseType = ExerciseType.PULL_UP, pose: (Float, Body3d.V3) -> Body3d.Skeleton) {
         for (yaw in views) for ((where, cam) in cameras) {
-            val detector = DetectorFactory.create(ExerciseType.PULL_UP)
+            val detector = DetectorFactory.create(type)
             Body3d.trace({ d -> pose(d, facing(yaw)) }, cam, 6).forEach { detector.onFrame(it) }
-            assertEquals(0, detector.sessionSummary().repCount, "$what at ${yaw.toInt()}° from $where counted")
+            assertEquals(0, detector.sessionSummary().repCount, "$what as a $type at ${yaw.toInt()}° from $where counted")
         }
     }
 
@@ -74,4 +74,14 @@ class HangingRigTest {
     @Test
     fun `folding the arms on the way down off the bar is not a pull-up`() =
         assertCountsNone("folding on the way down") { d, f -> Body3d.overheadArmBend(d, f, sinkM = 0.15f) }
+
+    /**
+     * A dip is witnessed by the shoulders coming down to the hands since the elbow's 3-D angle was
+     * seen reading backwards on a phone; the fakes move the hands and leave the shoulders.
+     */
+    @Test
+    fun `waving or bending the arms while standing is not a dip`() {
+        assertCountsNone("arms waved at the lens", ExerciseType.DIP) { d, f -> Body3d.armWave(d, f) }
+        assertCountsNone("arms bent overhead", ExerciseType.DIP) { d, f -> Body3d.overheadArmBend(d, f) }
+    }
 }

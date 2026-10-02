@@ -9,6 +9,9 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.ExpandMore
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -225,22 +228,36 @@ fun HomeScreen(
         Spacer(Modifier.height(18.dp))
         PrimaryButton(
             text = stringResource(R.string.home_cat_play),
-            supportingText = stringResource(R.string.home_cat_play_sub, exerciseName, CatSession.LIVES),
+            supportingText = stringResource(R.string.home_cat_play_sub, CatSession.LIVES),
             onClick = onPlayCat,
         )
-        Text(
-            text = stringResource(R.string.home_change_exercise),
-            style = Type.labelL,
-            color = Palette.TextSecondary,
-            textAlign = TextAlign.Center,
+        Spacer(Modifier.height(6.dp))
+        val changeLabel = stringResource(R.string.home_change_exercise_label)
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
             modifier = Modifier
                 .align(Alignment.CenterHorizontally)
-                .clip(CardShape)
-                .clickable(role = Role.Button, onClick = onChangeExercise)
                 .heightIn(min = 48.dp)
                 .wrapContentHeight(Alignment.CenterVertically)
-                .padding(horizontal = 16.dp),
-        )
+                .clip(CircleShape)
+                .background(Palette.Bg2)
+                .border(1.dp, Palette.StrokeSoft, CircleShape)
+                .clickable(onClickLabel = changeLabel, role = Role.Button, onClick = onChangeExercise)
+                .padding(start = 18.dp, end = 12.dp, top = 8.dp, bottom = 8.dp),
+        ) {
+            Text(
+                text = exerciseName,
+                style = Type.labelL,
+                color = Palette.TextPrimary,
+            )
+            Icon(
+                imageVector = Icons.Rounded.ExpandMore,
+                contentDescription = null,
+                tint = Palette.TextSecondary,
+                modifier = Modifier.size(20.dp),
+            )
+        }
 
         // The start of a week, until its first workout: how the last one went, once, and only if
         // there was anything in it — an empty week is not summed up as a row of zeros.
