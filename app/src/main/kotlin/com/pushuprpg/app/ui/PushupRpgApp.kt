@@ -428,18 +428,15 @@ fun PushupRpgApp(
 
                 composable(Routes.RECORDS) {
                     // Remembered, because collectAsState keys on the flow instance: building a new
-                    // one each recomposition would cancel and restart both Room subscriptions every
+                    // one each recomposition would cancel and restart the Room subscriptions every
                     // time a run is banked.
                     val recentFlow = remember { container.sessionRepository.recent(50) }
-                    val totalsFlow = remember { container.sessionRepository.dailyTotals(91) }
                     val factsFlow = remember { container.sessionRepository.facts() }
                     val sessions by recentFlow.collectAsState(initial = emptyList())
-                    val totals by totalsFlow.collectAsState(initial = emptyList())
                     val facts by factsFlow.collectAsState(initial = emptyList())
                     RecordsScreen(
                         progress = progress,
                         sessions = sessions,
-                        dailyTotals = totals,
                         facts = facts,
                         exercise = settings.exercise,
                     )

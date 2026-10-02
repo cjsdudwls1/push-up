@@ -405,11 +405,7 @@
     <string name="home_wardrobe_new">새 선물 %1$d</string>
     <string name="home_wardrobe_open">고냥이 꾸미기 열기</string>
 
-    <!-- Records detail (heat calendar, session list) -->
-    <string name="records_heat_title">지난 13주</string>
-    <string name="records_weekday_mon">월</string>
-    <string name="records_weekday_wed">수</string>
-    <string name="records_weekday_fri">금</string>
+    <!-- Records detail: the recent workouts, grouped under the day they were done. -->
     <string-array name="weekday_short">
         <item>월</item>
         <item>화</item>
@@ -420,13 +416,11 @@
         <item>일</item>
     </string-array>
     <string name="records_recent_title">최근 운동</string>
-    <!-- A row played in a dungeon, from before the dungeons were taken out. Its reps still count. -->
-    <string name="records_session_dungeon">던전</string>
-    <string name="records_session_cleared">완료</string>
-    <string name="records_session_attempted">도전</string>
-    <string name="records_date">%1$d월 %2$d일</string>
+    <string name="records_day_today">오늘</string>
+    <string name="records_day_yesterday">어제</string>
+    <string name="records_day_date">%1$d월 %2$d일 %3$s요일</string>
+    <string name="records_day_date_year">%1$d년 %2$d월 %3$d일 %4$s요일</string>
     <string name="records_reps_value">%1$d개</string>
-    <string name="records_combo_value">×%1$d</string>
     <string name="records_days_value">%1$d일</string>
     <string name="records_minutes_value">%1$,d분</string>
     <string name="records_duration_hm">%1$d시간 %2$d분</string>

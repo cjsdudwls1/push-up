@@ -4,11 +4,14 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -112,7 +115,7 @@ fun HomeScreen(
     onSettings: () -> Unit,
     /** 꾸미기: the cat's name, coat and what it has found. */
     onWardrobe: () -> Unit,
-    /** The movement picked last: whose bar the nudge quotes, whose record shows, what the button plays. */
+    /** The movement picked last: whose bar the nudge quotes, whose record leads, what the button plays. */
     lastExercise: ExerciseType,
     catName: String,
     catCoat: CatCoat,
@@ -138,6 +141,10 @@ fun HomeScreen(
             StreakChip(days = state.streakShown)
             Spacer(Modifier.weight(1f))
             ThemeToggle(mode = themeMode, onToggle = onToggleTheme)
+            // Up here beside the theme, by the owner's decision: the bottom of the hub had a row of
+            // two buttons under everything else, and 설정 is not something to scroll for.
+            Spacer(Modifier.width(8.dp))
+            SettingsButton(onClick = onSettings)
         }
 
         Spacer(Modifier.height(12.dp))
@@ -250,27 +257,20 @@ fun HomeScreen(
             modifier = Modifier.clickable(onClick = onRecords),
         )
 
-        state.records[lastExercise]?.let { record ->
+        // Every movement's best, swiped sideways, the one picked last first; a tap opens the records,
+        // which is the only way in now that the button at the bottom is gone.
+        val records = remember(state.records, lastExercise) {
+            state.records.values.sortedWith(
+                compareByDescending<MovementRecord> { it.exercise == lastExercise }.thenByDescending { it.total }
+            )
+        }
+        if (records.isNotEmpty()) {
             Spacer(Modifier.height(12.dp))
-            RecordCard(record = record, onClick = onRecords)
+            RecordPager(records = records, onClick = onRecords)
         }
 
         Spacer(Modifier.height(12.dp))
         WeekCard(thisWeek = state.thisWeek, lastWeek = state.lastWeek, today = state.today)
-
-        Spacer(Modifier.height(24.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            SecondaryButton(
-                text = stringResource(R.string.action_view_records),
-                onClick = onRecords,
-                modifier = Modifier.weight(1f),
-            )
-            SecondaryButton(
-                text = stringResource(R.string.action_settings),
-                onClick = onSettings,
-                modifier = Modifier.weight(1f),
-            )
-        }
     }
 }
 
@@ -294,8 +294,55 @@ private fun welcomeText(welcome: Welcome, monday: Boolean): String = when (welco
 }
 
 /**
- * The best one go of the movement picked last, and how far it has come from the first: the number
- * that says the body is changing, where the calories say the work is adding up.
+ * Every movement's best one go, a card each, swiped sideways, by the owner's decision: one card for
+ * the movement picked last left the others' records a screen away. The next card peeks in at the
+ * edge, which is what says the row moves, and the dots say how many there are. A tap on any card
+ * opens the records.
+ */
+@Composable
+private fun RecordPager(records: List<MovementRecord>, onClick: () -> Unit) {
+    val pager = rememberPagerState(pageCount = { records.size })
+    Column(Modifier.fillMaxWidth()) {
+        HorizontalPager(
+            state = pager,
+            contentPadding = PaddingValues(end = if (records.size > 1) 40.dp else 0.dp),
+            pageSpacing = 10.dp,
+            verticalAlignment = Alignment.Top,
+            key = { records[it].exercise.name },
+            modifier = Modifier.fillMaxWidth(),
+        ) { page ->
+            RecordCard(record = records[page], onClick = onClick)
+        }
+        if (records.size > 1) {
+            Spacer(Modifier.height(8.dp))
+            PageDots(
+                count = records.size,
+                current = pager.currentPage,
+                modifier = Modifier.align(Alignment.CenterHorizontally),
+            )
+        }
+    }
+}
+
+/** Which of [count] cards is showing: the current one filled, the rest faint. */
+@Composable
+private fun PageDots(count: Int, current: Int, modifier: Modifier = Modifier) {
+    val colors = LocalGameColors.current
+    Row(modifier = modifier, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        repeat(count) { i ->
+            Box(
+                Modifier
+                    .size(6.dp)
+                    .clip(CircleShape)
+                    .background(if (i == current) colors.accept else Palette.Bg3),
+            )
+        }
+    }
+}
+
+/**
+ * One movement's best one go, and how far it has come from the first: the number that says the body
+ * is changing, where the calories say the work is adding up.
  */
 @Composable
 private fun RecordCard(record: MovementRecord, onClick: () -> Unit) {
@@ -306,7 +353,7 @@ private fun RecordCard(record: MovementRecord, onClick: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .cardSurface()
-            .clickable(onClick = onClick)
+            .clickable(onClickLabel = stringResource(R.string.action_view_records), onClick = onClick)
             .padding(horizontal = 20.dp, vertical = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {

@@ -24,6 +24,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.DarkMode
 import androidx.compose.material.icons.rounded.LightMode
+import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -38,6 +39,7 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
@@ -274,20 +276,40 @@ fun StreakChip(days: Int, modifier: Modifier = Modifier) {
 @Composable
 fun ThemeToggle(mode: ThemeMode, onToggle: () -> Unit, modifier: Modifier = Modifier) {
     val toLight = mode == ThemeMode.DARK
+    RoundIconButton(
+        icon = if (toLight) Icons.Rounded.LightMode else Icons.Rounded.DarkMode,
+        label = stringResource(if (toLight) R.string.theme_switch_to_light else R.string.theme_switch_to_dark),
+        onClick = onToggle,
+        modifier = modifier,
+    )
+}
+
+/** 설정, beside the theme toggle at the top of the hub: the same round button, with a gear. */
+@Composable
+fun SettingsButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
+    RoundIconButton(
+        icon = Icons.Rounded.Settings,
+        label = stringResource(R.string.action_settings),
+        onClick = onClick,
+        modifier = modifier,
+    )
+}
+
+/** A round 48dp button with one icon in it, read aloud as [label]. The top bar's buttons are all this. */
+@Composable
+fun RoundIconButton(icon: ImageVector, label: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
     Box(
         modifier = modifier
             .size(48.dp)
             .clip(CircleShape)
             .background(Palette.Bg2)
             .border(1.dp, Palette.StrokeSoft, CircleShape)
-            .clickable(role = Role.Button, onClick = onToggle),
+            .clickable(role = Role.Button, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
         Icon(
-            imageVector = if (toLight) Icons.Rounded.LightMode else Icons.Rounded.DarkMode,
-            contentDescription = stringResource(
-                if (toLight) R.string.theme_switch_to_light else R.string.theme_switch_to_dark
-            ),
+            imageVector = icon,
+            contentDescription = label,
             tint = Palette.TextPrimary,
             modifier = Modifier.size(22.dp),
         )
