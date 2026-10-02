@@ -76,6 +76,12 @@ knees in the picture, the knees' height off the floor (elbow to shoulder is up; 
 wrist is the floor) can pass the legs instead of the model's guess at the shins, which read a real
 side-on plank as bent. The arm check that tells a plank from standing is not asked of a torso past
 level: from the head on the forearms the model put the elbow behind the shoulder half the time.
+**A plank may be filmed with the phone on its side**, by the owner's decision (2026-10-02): side on,
+the upright picture needed the phone too far away, and the wide one holds the body from 1.5-2 m. For
+a plank, and only a plank, the run screen turns with the phone whatever the rotation lock says
+(`FollowPhoneRotation`; the manifest keeps everything else upright), and the camera's use cases
+follow the display's rotation (`CameraPreview`), so the model is always handed an upright picture.
+`PlankRigTest` and `PlacementCoachTest` pin it from a phone on its side (`Body3d.Camera.landscape`).
 
 **A single frame never moves the calibration.** The lite model misplaces a landmark for a frame —
 a shoulder on the neck, the shoulders swapped — often enough to matter. A scale jump is a new subject
@@ -169,9 +175,10 @@ a life that ends while the tracker has lost the user for two seconds is refunded
 forever.
 
 A session of 고냥이 지켜줘 is **ten lives with a rest between them**, by the owner's decision: a
-life is a set, and the rest (a minute by default; the settings offer 90 s and 2 min) is fully
-forced — no skip, no extend, no button — and the next life's ceiling does not come back until it
-is over, and then waits, as the first did, for the user to be in position. Each life is a fresh
+life is a set, and the rest (a minute by default; the settings offer 90 s and 2 min) runs its length
+unless the user skips it — the rest card's one button, added by the owner's later decision
+(2026-10-02, `CatSession.skipRest`); there is no extend — and the next life's ceiling does not come
+back until it is over or skipped, and then waits, as the first did, for the user to be in position. Each life is a fresh
 `CeilingSurvival` and keeps the sprint rule above. The close button and back end the session where
 it is and show its ending, since with ten lives that is how most sessions end. The tutorial is one
 life and no rest. `CatSessionTest` pins all of it.

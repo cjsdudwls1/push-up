@@ -114,6 +114,34 @@ class CatSessionTest {
     }
 
     @Test
+    fun `a skipped rest ends on the next frame, and the next life still waits for the user`() {
+        val s = session()
+        var t = s.runUntil(0) { s.state().phase == CatPhase.RESTING }
+        s.skipRest()
+        t += 33
+        // Nobody in position yet: walking back from the phone after tapping it.
+        val step = s.onTick(tick(t, quality = PoseQuality.NO_SUBJECT))
+        assertTrue(step.session.any { it is CatSessionEvent.RestOver }, "the skipped rest did not end")
+        assertEquals(CatPhase.PLAYING, s.state().phase)
+        assertEquals(2, s.state().livesLeft, "skipping the rest cost a life")
+        assertFalse(s.state().life.started, "the skipped rest started the ceiling without the user")
+        s.onTick(tick(t + 33))
+        assertTrue(s.state().life.started)
+    }
+
+    @Test
+    fun `a skip asked while a life is on does nothing, and the next rest is a full one`() {
+        val s = session()
+        s.onTick(tick(33))
+        s.skipRest()
+        s.onTick(tick(66))
+        assertEquals(CatPhase.PLAYING, s.state().phase)
+        val died = s.runUntil(66) { s.state().phase == CatPhase.RESTING }
+        s.onTick(tick(died + 30_000))
+        assertEquals(CatPhase.RESTING, s.state().phase, "an old skip cut the next rest short")
+    }
+
+    @Test
     fun `reps done during the rest are not played into anything`() {
         val s = session()
         var t = s.runUntil(0) { s.state().phase == CatPhase.RESTING }

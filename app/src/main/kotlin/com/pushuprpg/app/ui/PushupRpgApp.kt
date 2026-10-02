@@ -46,6 +46,7 @@ import com.pushuprpg.core.detect.ExerciseType
 import com.pushuprpg.app.pose.PoseFrameSink
 import com.pushuprpg.app.share.ShareCardData
 import com.pushuprpg.app.pose.PoseLandmarkerSource
+import com.pushuprpg.app.ui.components.FollowPhoneRotation
 import com.pushuprpg.app.ui.components.ModelErrorBanner
 import com.pushuprpg.app.ui.components.RunMusic
 import com.pushuprpg.app.ui.screens.*
@@ -332,6 +333,8 @@ fun PushupRpgApp(
                         ?: ExerciseType.PUSHUP
                     val vm: SurvivalViewModel =
                         viewModel(factory = SurvivalViewModel.factory(container, exercise, isTutorial))
+                    // A plank may be filmed with the phone on its side; nothing else turns.
+                    if (exercise == ExerciseType.PLANK && !isTutorial) FollowPhoneRotation()
                     val state by vm.state.collectAsState()
                     val best by vm.bestScore.collectAsState()
                     val cat by vm.catView.collectAsState()
@@ -370,6 +373,7 @@ fun PushupRpgApp(
                                 exercise = exercise,
                                 isTutorial = isTutorial,
                                 onRetry = vm::restart,
+                                onSkipRest = vm::skipRest,
                                 onShare = onShare,
                                 modelFailed = poseError != null,
                                 nearMisses = nearMisses,

@@ -55,8 +55,8 @@ with the objection that kills installs for a camera app.
 
 ▶ 목숨 열 개, 세트 열 번
 목숨 하나가 한 세트예요. 천장에 눌리면 1분 쉬고 다음 목숨으로 이어 가요.
-쉬는 시간은 건너뛸 수 없어요. 쉬는 것까지가 운동이에요.
-하는 동안엔 개수를 보여 주지 않고, 끝나면 세트마다 몇 개였는지 한 번에 보여 줘요.
+쉬는 것까지가 운동이에요. 급한 날엔 건너뛸 수도 있어요.
+세트마다 지금 개수와 그 세트의 지난 최고 기록을 나란히 보여 줘요. 기록을 깨면 츄르를 받아요.
 
 ▶ 카메라가 세는 맨몸운동
 팔굽혀펴기(푸쉬업), 스쿼트, 플랭크, 턱걸이, 런지, 딥스. 폰을 어디에 두면 되는지는
@@ -73,7 +73,8 @@ with the objection that kills installs for a camera app.
 
 ▶ 고냥이가 선물을 찾아와요
 꾸준히 하다 보면 고냥이가 리본, 밀짚모자, 안경, 왕관 같은 선물을 찾아와요.
-코인도 상점도 없어요. 이름과 털 색도 내 고양이처럼 정할 수 있어요.
+츄르로는 머리띠, 하트 안경, 헬스장 배경처럼 선물로 안 나오는 걸 살 수 있어요.
+이름과 털 색도 내 고양이처럼 정할 수 있어요.
 
 ▶ 카메라 영상은 저장되지 않아요
 동작 인식은 전부 폰 안에서 일어나요. 촬영된 화면도, 관절 좌표도 저장되거나
@@ -132,7 +133,7 @@ Caption text is burned into the image above the screenshot, in the app's own typ
    First — it is the most legible frame in the app and needs no fitness context.
 2. **The cat waiting for the first rep**, its line in the bubble. Caption: `팔굽혀펴기 한 번에 천장이 올라가요.`
 3. **The rest between lives**, the countdown large. Caption: `목숨 하나가 한 세트예요.`
-4. **The session's ending**, every set's count together. Caption: `개수는 끝나고 한 번에 보여 줘요.`
+4. **A set past its best**, 지금 13 / 최고 12 in the record colour. Caption: `세트마다 내 기록을 깨 봐요.`
 5. **The hub** with the calories card and a food. Caption: `태운 칼로리는 음식으로 보여 줘요.`
 6. **Records**, one movement's best against its first. Caption: `운동마다 내 기록이 남아요.`
 7. **꾸미기**, the cat wearing something it found. Caption: `고냥이가 선물을 찾아와요.`

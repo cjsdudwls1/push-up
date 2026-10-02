@@ -129,6 +129,22 @@ class PlacementCoachTest {
     }
 
     @Test
+    fun `a plank side on to a phone on its side holds, and the coach says ready without objecting`() {
+        // The owner's report: upright, side on, the phone had to go too far back. On its side the
+        // picture is wide, and the coach must read it as well as the detector does.
+        val plank = Body3d.pushup(0f, Body3d.V3(-1f, 0f, 0f), Body3d.V3(-0.65f, 0f, 0f))
+        for (camera in listOf(Camera.onFloor(1.5f, 5f).landscape(), Camera.onFloor(1.8f, 10f).landscape())) {
+            val heard = listen(ExerciseType.PLANK, still(plank, camera, seconds = 6))
+            assertTrue(heard.reps > 0, "a side-on plank never held from a phone on its side at ${camera.position}")
+            assertTrue(PlacementAdvice.READY in heard.said, "never said ready from ${camera.position}: ${heard.distinct}")
+            val objections = heard.said.filterNotNull().filter {
+                it != PlacementAdvice.READY && it != PlacementAdvice.GET_IN_POSITION
+            }
+            assertTrue(objections.isEmpty(), "objected to a plank that held from ${camera.position}: ${objections.distinct()}")
+        }
+    }
+
+    @Test
     fun `a plank from in front of the head holds, and the coach says so and goes quiet`() {
         val heard = listen(ExerciseType.PLANK, still(floorBody(0f)(0f), Camera.onFloor(2.0f, 10f), seconds = 6))
         assertTrue(heard.reps > 0, "the plank never held")

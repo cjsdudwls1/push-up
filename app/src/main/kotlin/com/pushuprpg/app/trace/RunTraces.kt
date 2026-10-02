@@ -24,6 +24,8 @@ class RunTraces(private val device: String) {
     private val lock = Any()
     private var recorder: TraceRecorder? = null
     private var notes: String = ""
+    /** The picture size the current recording is in: a trace has one. */
+    private var size = 0 to 0
 
     /**
      * Starts a new recording, dropping the last one. [notes] must say what is needed to replay it:
@@ -45,8 +47,17 @@ class RunTraces(private val device: String) {
     fun record(frame: PoseFrame) {
         if (!enabled) return
         synchronized(lock) {
-            val r = recorder
-                ?: TraceRecorder(frame.imageWidth, frame.imageHeight, device).also { recorder = it }
+            val frameSize = frame.imageWidth to frame.imageHeight
+            // A trace is in one picture size. A plank's phone turned on its side part way hands over
+            // wide pictures after narrow ones, and recorded under the first size the rest would
+            // replay squeezed, so the recording starts again from the turn: the part after it is the
+            // part a plank on its side is about.
+            val r = recorder?.takeIf { size == frameSize }
+                ?: TraceRecorder(frame.imageWidth, frame.imageHeight, device).also {
+                    if (recorder != null) notes = "$notes turned=${frame.imageWidth}x${frame.imageHeight}"
+                    recorder = it
+                    size = frameSize
+                }
             r.record(frame)
         }
     }

@@ -185,6 +185,10 @@ class SurvivalViewModel(
     @Volatile
     private var restartRequested = false
 
+    /** The rest card's 건너뛰기, asked on the main thread and done on the pose thread: see [skipRest]. */
+    @Volatile
+    private var skipRestRequested = false
+
     /** The screen is on its way out; see [stopPlaying]. */
     @Volatile
     private var left = false
@@ -221,6 +225,10 @@ class SurvivalViewModel(
                     _nearMisses.value = _nearMisses.value + 1
                 }
             }
+        }
+        if (skipRestRequested) {
+            skipRestRequested = false
+            session.skipRest()
         }
         // Reps, near misses and holds, then the clock, which never stops once a life has started:
         // resting is not a pause. Between lives, the rest's own clock. See CatSession.onTick.
@@ -295,6 +303,15 @@ class SurvivalViewModel(
     }
 
     /**
+     * Ends the rest now, by the owner's decision (2026-10-02): the rest card's 건너뛰기. Asked rather
+     * than done, as [restart] is, because the session belongs to the pose thread; the next frame ends
+     * the rest the way running out would, so the cat asks again and the ceiling waits for the user.
+     */
+    fun skipRest() {
+        skipRestRequested = true
+    }
+
+    /**
      * Ends the session here — the close button, or back — and shows its ending, rather than leaving
      * the screen: with ten lives most sessions end this way, and the ending is where a session says
      * what it did. Nothing played at all has nothing to show, so that leaves; see [leave].
@@ -325,6 +342,7 @@ class SurvivalViewModel(
         coach.reset()
         announcer.reset()
         maxCombo = 0
+        skipRestRequested = false
         tracking = TrackingDrops()
         lastReportedQuality = null
         startedWallMs = 0L

@@ -141,4 +141,49 @@ class PlankRigTest {
         assertNeverHolds("a knee plank, legs hidden", legsSeen = false) { h -> Body3d.kneePlank(h, h * 0.4f) }
         assertNeverHolds("standing, legs hidden", legsSeen = false) { _ -> Body3d.standing() }
     }
+
+    // The owner's report: filmed from the side with the phone upright, a plank needed the phone so
+    // far away that it was not worth it. Turned on its side, the picture is wide, and the body fits
+    // across it from about half the distance. The detector reads the 3-D skeleton, so nothing in it
+    // should mind which way the picture is long; this says so.
+
+    /** On its side on the floor, side on to the body and a little off it, at the distances a room allows. */
+    private val sideways = listOf(
+        "1.5m, tilted 5°" to Camera.onFloor(1.5f, 5f).landscape(),
+        "1.8m, tilted 10°" to Camera.onFloor(1.8f, 10f).landscape(),
+        "2.2m, tilted 20°" to Camera.onFloor(2.2f, 20f).landscape(),
+    )
+    private val sidewaysViews = listOf(60f, 90f, 120f, 270f)
+
+    @Test
+    fun `with the phone on its side, a plank holds side on and the fakes do not`() {
+        for (yaw in sidewaysViews) for ((where, cam) in sideways) {
+            val h = heading(yaw)
+            assertTrue(ticks(Body3d.forearmPlank(h, h * 0.65f), cam, legsSeen = true) > 0,
+                "a forearm plank at ${yaw.toInt()}° from a phone on its side $where never held")
+            assertTrue(ticks(Body3d.pushup(0f, h, h * 0.65f), cam, legsSeen = true) > 0,
+                "a high plank at ${yaw.toInt()}° from a phone on its side $where never held")
+            assertTrue(ticks(Body3d.kneePlank(h, h * 0.4f), cam, legsSeen = true) == 0,
+                "a knee plank at ${yaw.toInt()}° from a phone on its side $where held")
+            assertTrue(ticks(Body3d.allFours(h, h * 0.3f), cam, legsSeen = true) == 0,
+                "all fours at ${yaw.toInt()}° from a phone on its side $where held")
+            assertTrue(ticks(Body3d.standing(), cam, legsSeen = true) == 0,
+                "standing from a phone on its side $where held")
+        }
+    }
+
+    @Test
+    fun `with the phone on its side the whole plank is in the picture where upright it is not`() {
+        // What the owner saw, as geometry: side on at 1.8 m the portrait picture cuts the body off,
+        // the landscape one holds all of it.
+        val side = heading(90f)
+        val plank = Body3d.forearmPlank(side, side * 0.65f)
+        val upright = Camera.onFloor(1.8f, 10f)
+        val joints = plank.joints.keys
+        fun inside(cam: Camera) = joints.count { i ->
+            val (x, y) = cam.project(plank[i]); x in 0f..1f && y in 0f..1f
+        }
+        assertTrue(inside(upright) < joints.size, "the upright phone at 1.8 m already sees the whole plank")
+        assertTrue(inside(upright.landscape()) == joints.size, "the phone on its side at 1.8 m does not see the whole plank")
+    }
 }

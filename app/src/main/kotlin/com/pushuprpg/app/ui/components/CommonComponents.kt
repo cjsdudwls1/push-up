@@ -1,5 +1,9 @@
 package com.pushuprpg.app.ui.components
 
+import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
+import android.content.pm.ActivityInfo
 import android.view.View
 import androidx.annotation.StringRes
 import androidx.compose.foundation.BorderStroke
@@ -35,6 +39,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -329,6 +334,31 @@ fun Pill(text: String, tint: Color, modifier: Modifier = Modifier) {
             .background(tint.copy(alpha = 0.16f))
             .padding(horizontal = 10.dp, vertical = 5.dp),
     )
+}
+
+/**
+ * Lets the screen turn with the phone while this is in the tree, whatever the rotation lock says,
+ * and stands it back upright when it leaves.
+ *
+ * For a plank, by the owner's decision (2026-10-02): filmed side on, the upright picture needed the
+ * phone too far away, and turned on its side it holds the whole body from about half the distance.
+ * The camera turns its pictures with the screen (CameraPreview), so the pose model is always handed
+ * an upright body and the overlay lands on it. Everything else stays upright: the manifest locks the
+ * app to portrait, and only this lets go of it.
+ */
+@Composable
+fun FollowPhoneRotation() {
+    val activity = LocalContext.current.findActivity() ?: return
+    DisposableEffect(activity) {
+        activity.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR
+        onDispose { activity.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT }
+    }
+}
+
+private tailrec fun Context.findActivity(): Activity? = when (this) {
+    is Activity -> this
+    is ContextWrapper -> baseContext.findActivity()
+    else -> null
 }
 
 /**
