@@ -17,9 +17,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.text.style.TextAlign
@@ -54,31 +51,10 @@ fun CatPortrait(
         label = "portrait-phase",
     )
     Canvas(if (scene != null) modifier.clip(SCENE_SHAPE) else modifier) {
-        val baseY = size.height * 0.90f
-        scene?.let { drawCatScene(it, floorY = baseY) }
-        // The cat is 1.95 heads of 30 units tall from its paws to its ear tips, plus room for the tail.
-        // A party hat's pompom, the tallest thing it wears, is under a third of a head above them.
-        val scale = minOf(size.height / 175f, size.width / 260f)
-        val cushionW = 150f * scale
-        drawRoundRect(
-            color = CUSHION,
-            topLeft = Offset(size.width / 2f - cushionW / 2f, baseY - 10f * scale),
-            size = Size(cushionW, 22f * scale),
-            cornerRadius = CornerRadius(11f * scale),
-        )
-        drawCat(
-            centerX = size.width / 2f - 8f * scale,
-            baseY = baseY,
-            scale = scale,
-            coat = coat,
-            cheer = cheer,
-            phase = if (reduceMotion) 0f else phase,
-            wear = wear,
-        )
+        drawCatPortrait(coat = coat, wear = wear, cheer = cheer, phase = if (reduceMotion) 0f else phase)
     }
 }
 
-private val CUSHION = Color(0xFFE58A7B)
 private val SCENE_SHAPE = RoundedCornerShape(24.dp)
 
 /**

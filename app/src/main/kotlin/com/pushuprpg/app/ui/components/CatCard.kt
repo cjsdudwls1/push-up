@@ -69,6 +69,8 @@ fun CatCard(
                         scale = size.minDimension / 132f,
                         coat = picked,
                         wear = wear,
+                        // Framed close around the cat: a toy would sit outside the picture.
+                        toy = false,
                     )
                 }
                 Spacer(Modifier.width(12.dp))

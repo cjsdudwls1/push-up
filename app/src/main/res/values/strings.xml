@@ -351,7 +351,7 @@
     <!-- What the cat found on this run, %1$s the things by name. Said as its find, never as a task done. -->
     <string name="growth_gift">🎁 선물을 찾아 왔어요: %1$s</string>
 
-    <!-- The cat's things: what it wears, and the places it can sit. -->
+    <!-- The cat's things: what it wears, its toys, and the places it can sit. -->
     <string name="item_bell">방울</string>
     <string name="item_ribbon">리본</string>
     <string name="item_flower">꽃핀</string>
@@ -367,6 +367,23 @@
     <string name="item_crown">왕관</string>
     <string name="item_snow">눈 덮인 산</string>
     <string name="item_space">우주</string>
+    <string name="item_yarn">털실 뭉치</string>
+    <string name="item_cap">야구 모자</string>
+    <string name="item_fish_toy">물고기 인형</string>
+    <string name="item_whistle">호루라기</string>
+    <string name="item_pirate_hat">해적 모자</string>
+    <string name="item_goggles">물안경</string>
+    <string name="item_flower_crown">꽃 화관</string>
+    <string name="item_blush">발그레 볼</string>
+    <string name="item_necktie">넥타이</string>
+    <string name="item_trophy">트로피</string>
+    <string name="item_pearls">진주 목걸이</string>
+    <string name="item_grad_cap">학사모</string>
+    <string name="item_aurora">오로라</string>
+    <string name="item_cherry_blossom">벚꽃길</string>
+    <string name="item_monocle">외알 안경</string>
+    <string name="item_halo">천사 링</string>
+    <string name="item_undersea">바닷속</string>
     <string name="item_headband">땀 머리띠</string>
     <string name="item_bandana">반다나</string>
     <string name="item_heart_glasses">하트 안경</string>
@@ -375,6 +392,18 @@
     <string name="item_witch_hat">마녀 모자</string>
     <string name="item_beach">바닷가</string>
     <string name="item_gym">헬스장</string>
+    <string name="item_ball">탱탱볼</string>
+    <string name="item_mustache">콧수염</string>
+    <string name="item_mouse_toy">쥐돌이</string>
+    <string name="item_sports_towel">운동 수건</string>
+    <string name="item_lei">꽃목걸이</string>
+    <string name="item_box">택배 상자</string>
+    <string name="item_star_glasses">별 안경</string>
+    <string name="item_frog_hat">개구리 모자</string>
+    <string name="item_headphones">헤드폰</string>
+    <string name="item_park">공원</string>
+    <string name="item_cat_tower">캣타워</string>
+    <string name="item_stage">무대</string>
     <!-- Under a found gift in 꾸미기: what it was found for, said after the fact. Gifts not yet found
          say nothing about what they wait for: they are surprises, by the owner's decision. -->
     <string name="gift_why_first_run">첫 운동</string>
@@ -383,6 +412,9 @@
     <string name="gift_why_comeback">다시 와 준 날</string>
     <string name="gift_why_full_session">%1$d세트 끝까지</string>
     <string name="gift_why_records">신기록 %1$d번</string>
+    <!-- Runs with something done in them, and different movements done. -->
+    <string name="gift_why_runs">운동 %1$d번</string>
+    <string name="gift_why_movements">운동 %1$d가지</string>
     <!-- %1$s is a food on the calorie ladder. -->
     <string name="gift_why_burn">%1$s만큼</string>
 

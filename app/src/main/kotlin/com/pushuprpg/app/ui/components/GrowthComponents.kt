@@ -67,6 +67,23 @@ fun itemNameRes(item: CatItem): Int = when (item) {
     CatItem.CROWN -> R.string.item_crown
     CatItem.SNOW -> R.string.item_snow
     CatItem.SPACE -> R.string.item_space
+    CatItem.YARN -> R.string.item_yarn
+    CatItem.CAP -> R.string.item_cap
+    CatItem.FISH_TOY -> R.string.item_fish_toy
+    CatItem.WHISTLE -> R.string.item_whistle
+    CatItem.PIRATE_HAT -> R.string.item_pirate_hat
+    CatItem.GOGGLES -> R.string.item_goggles
+    CatItem.FLOWER_CROWN -> R.string.item_flower_crown
+    CatItem.BLUSH -> R.string.item_blush
+    CatItem.NECKTIE -> R.string.item_necktie
+    CatItem.TROPHY -> R.string.item_trophy
+    CatItem.PEARLS -> R.string.item_pearls
+    CatItem.GRAD_CAP -> R.string.item_grad_cap
+    CatItem.AURORA -> R.string.item_aurora
+    CatItem.CHERRY_BLOSSOM -> R.string.item_cherry_blossom
+    CatItem.MONOCLE -> R.string.item_monocle
+    CatItem.HALO -> R.string.item_halo
+    CatItem.UNDERSEA -> R.string.item_undersea
     CatItem.HEADBAND -> R.string.item_headband
     CatItem.BANDANA -> R.string.item_bandana
     CatItem.HEART_GLASSES -> R.string.item_heart_glasses
@@ -75,6 +92,18 @@ fun itemNameRes(item: CatItem): Int = when (item) {
     CatItem.WITCH_HAT -> R.string.item_witch_hat
     CatItem.BEACH -> R.string.item_beach
     CatItem.GYM -> R.string.item_gym
+    CatItem.BALL -> R.string.item_ball
+    CatItem.MUSTACHE -> R.string.item_mustache
+    CatItem.MOUSE_TOY -> R.string.item_mouse_toy
+    CatItem.SPORTS_TOWEL -> R.string.item_sports_towel
+    CatItem.LEI -> R.string.item_lei
+    CatItem.BOX -> R.string.item_box
+    CatItem.STAR_GLASSES -> R.string.item_star_glasses
+    CatItem.FROG_HAT -> R.string.item_frog_hat
+    CatItem.HEADPHONES -> R.string.item_headphones
+    CatItem.PARK -> R.string.item_park
+    CatItem.CAT_TOWER -> R.string.item_cat_tower
+    CatItem.STAGE -> R.string.item_stage
 }
 
 /** What a gift was found for, said after the fact. */
@@ -87,6 +116,8 @@ fun giftWhyText(gift: Gift): String = when (gift.kind) {
     Gift.Kind.FULL_SESSION -> stringResource(R.string.gift_why_full_session, CatSession.LIVES)
     Gift.Kind.RECORDS -> stringResource(R.string.gift_why_records, gift.count)
     Gift.Kind.BURN -> gift.food?.let { stringResource(R.string.gift_why_burn, stringResource(foodNameRes(it))) }.orEmpty()
+    Gift.Kind.RUNS -> stringResource(R.string.gift_why_runs, gift.count)
+    Gift.Kind.MOVEMENTS -> stringResource(R.string.gift_why_movements, gift.count)
 }
 
 /** Calories as people say them: 1.9kcal under ten, whole ones with separators after. */

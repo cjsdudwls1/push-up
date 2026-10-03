@@ -3,8 +3,11 @@ package com.pushuprpg.core.progression
 import com.pushuprpg.core.detect.Exercises
 import com.pushuprpg.core.detect.MovementKind
 
-/** Where on the cat a thing goes. One of each at a time. */
-enum class WearSlot { HEAD, FACE, NECK, SCENE }
+/**
+ * Where a thing goes. One of each at a time. A [TOY] is not worn: it sits on the floor beside the cat,
+ * its own to play with, and a [SCENE] is the place it all sits in.
+ */
+enum class WearSlot { HEAD, FACE, NECK, SCENE, TOY }
 
 /** Something 고양이 can wear, or a place it can sit. */
 enum class CatItem(val slot: WearSlot) {
@@ -23,6 +26,24 @@ enum class CatItem(val slot: WearSlot) {
     CROWN(WearSlot.HEAD),
     SNOW(WearSlot.SCENE),
     SPACE(WearSlot.SCENE),
+    // Found since the owner asked for twice as many (2026-10-03).
+    YARN(WearSlot.TOY),
+    CAP(WearSlot.HEAD),
+    FISH_TOY(WearSlot.TOY),
+    WHISTLE(WearSlot.NECK),
+    PIRATE_HAT(WearSlot.HEAD),
+    GOGGLES(WearSlot.FACE),
+    FLOWER_CROWN(WearSlot.HEAD),
+    BLUSH(WearSlot.FACE),
+    NECKTIE(WearSlot.NECK),
+    TROPHY(WearSlot.TOY),
+    PEARLS(WearSlot.NECK),
+    GRAD_CAP(WearSlot.HEAD),
+    AURORA(WearSlot.SCENE),
+    CHERRY_BLOSSOM(WearSlot.SCENE),
+    MONOCLE(WearSlot.FACE),
+    HALO(WearSlot.HEAD),
+    UNDERSEA(WearSlot.SCENE),
 
     // Sold for 츄르 rather than found: see [Shop]. Never a gift, so nothing found is ever for sale.
     HEADBAND(WearSlot.HEAD),
@@ -33,13 +54,25 @@ enum class CatItem(val slot: WearSlot) {
     WITCH_HAT(WearSlot.HEAD),
     BEACH(WearSlot.SCENE),
     GYM(WearSlot.SCENE),
+    BALL(WearSlot.TOY),
+    MUSTACHE(WearSlot.FACE),
+    MOUSE_TOY(WearSlot.TOY),
+    SPORTS_TOWEL(WearSlot.NECK),
+    LEI(WearSlot.NECK),
+    BOX(WearSlot.TOY),
+    STAR_GLASSES(WearSlot.FACE),
+    FROG_HAT(WearSlot.HEAD),
+    HEADPHONES(WearSlot.HEAD),
+    PARK(WearSlot.SCENE),
+    CAT_TOWER(WearSlot.TOY),
+    STAGE(WearSlot.SCENE),
 }
 
 /**
  * A gift the cat finds, and the thing it brings.
  *
- * Each one is earned by something that only ever grows — runs banked, the best set, the longest
- * streak, returns, records broken, the calories burned — so a gift is never taken back, and nothing
+ * Each one is earned by something that only ever grows — runs banked, movements tried, the best set,
+ * the longest streak, returns, records broken, the calories burned — so a gift is never taken back, and nothing
  * a bad week does can cost one. They are given as the cat's finds, not listed as tasks: a reward
  * promised for doing something is one people come to do it for, and stop when it stops; one that
  * arrives as a surprise adds to why they came. They stay that way beside the [Shop], which the owner
@@ -48,7 +81,7 @@ enum class CatItem(val slot: WearSlot) {
 enum class Gift(
     val item: CatItem,
     val kind: Kind,
-    /** The count a [Kind.SET], [Kind.STREAK] or [Kind.RECORDS] gift waits for. */
+    /** The count a [Kind.SET], [Kind.STREAK], [Kind.RECORDS], [Kind.RUNS] or [Kind.MOVEMENTS] gift waits for. */
     val count: Int = 0,
     /** The food a [Kind.BURN] gift waits for: the calories burned in all, as much as it holds. */
     val food: Food? = null,
@@ -57,19 +90,36 @@ enum class Gift(
     FIRST_RUN(CatItem.BELL, Kind.FIRST_RUN),
     SET_10(CatItem.RIBBON, Kind.SET, count = 10),
     STREAK_3(CatItem.FLOWER, Kind.STREAK, count = 3),
-    BURN_RICE(CatItem.CITY, Kind.BURN, food = Food.RICE),
-    SET_20(CatItem.BEANIE, Kind.SET, count = 20),
-    /** Back after [Gifts.COMEBACK_DAYS] days or more away: the return is what is celebrated. */
-    COMEBACK(CatItem.STRAW_HAT, Kind.COMEBACK),
+    RUNS_5(CatItem.YARN, Kind.RUNS, count = 5),
+    SET_15(CatItem.CAP, Kind.SET, count = 15),
+    BURN_CHOCO_PIE(CatItem.FISH_TOY, Kind.BURN, food = Food.CHOCO_PIE),
+    MOVEMENTS_3(CatItem.WHISTLE, Kind.MOVEMENTS, count = 3),
     /** A 고양이 session played to its last life. */
     FULL_SESSION(CatItem.SCARF, Kind.FULL_SESSION),
+    SET_20(CatItem.BEANIE, Kind.SET, count = 20),
+    BURN_RICE(CatItem.CITY, Kind.BURN, food = Food.RICE),
+    /** Back after [Gifts.COMEBACK_DAYS] days or more away: the return is what is celebrated. */
+    COMEBACK(CatItem.STRAW_HAT, Kind.COMEBACK),
     STREAK_7(CatItem.BOW_TIE, Kind.STREAK, count = 7),
     RECORDS_3(CatItem.GLASSES, Kind.RECORDS, count = 3),
+    SET_25(CatItem.PIRATE_HAT, Kind.SET, count = 25),
+    BURN_RAMEN(CatItem.GOGGLES, Kind.BURN, food = Food.RAMEN),
+    STREAK_14(CatItem.FLOWER_CROWN, Kind.STREAK, count = 14),
+    RUNS_25(CatItem.BLUSH, Kind.RUNS, count = 25),
     SET_30(CatItem.SUNGLASSES, Kind.SET, count = 30),
+    BURN_JJAJANGMYEON(CatItem.NECKTIE, Kind.BURN, food = Food.JJAJANGMYEON),
+    RECORDS_10(CatItem.TROPHY, Kind.RECORDS, count = 10),
+    SET_40(CatItem.PEARLS, Kind.SET, count = 40),
     BURN_CHICKEN(CatItem.MOUNTAIN, Kind.BURN, food = Food.CHICKEN),
     STREAK_30(CatItem.PARTY_HAT, Kind.STREAK, count = 30),
     SET_50(CatItem.CROWN, Kind.SET, count = 50),
+    RECORDS_30(CatItem.GRAD_CAP, Kind.RECORDS, count = 30),
+    STREAK_60(CatItem.AURORA, Kind.STREAK, count = 60),
+    RUNS_100(CatItem.CHERRY_BLOSSOM, Kind.RUNS, count = 100),
+    SET_70(CatItem.MONOCLE, Kind.SET, count = 70),
     BURN_FIVE_CHICKENS(CatItem.SNOW, Kind.BURN, food = Food.FIVE_CHICKENS),
+    STREAK_100(CatItem.HALO, Kind.STREAK, count = 100),
+    BURN_RAMEN_BOX(CatItem.UNDERSEA, Kind.BURN, food = Food.RAMEN_BOX),
     BURN_RICE_SACK(CatItem.SPACE, Kind.BURN, food = Food.RICE_SACK),
     ;
 
@@ -86,6 +136,10 @@ enum class Gift(
         RECORDS,
         /** As many calories burned, in all, as [food] holds. */
         BURN,
+        /** [count] runs with something done in them: a rep, or a second held. */
+        RUNS,
+        /** [count] different movements done. */
+        MOVEMENTS,
     }
 }
 
@@ -101,6 +155,8 @@ object Gifts {
         val bestSet = facts.filter { Exercises.of(it.exercise).kind != MovementKind.HOLD }.maxOfOrNull { it.bestSet } ?: 0
         val kcal = Calories.of(facts)
         val records = Records.broken(facts).size
+        val worked = facts.filter(::didWork)
+        val movements = worked.map { it.exercise }.distinct().size
         return Gift.entries.filterTo(mutableSetOf()) { gift ->
             when (gift.kind) {
                 Gift.Kind.FIRST_RUN -> facts.any { it.reps > 0 || it.durationMs >= 1_000L }
@@ -110,9 +166,18 @@ object Gifts {
                 Gift.Kind.FULL_SESSION -> facts.any { it.fullSession }
                 Gift.Kind.RECORDS -> records >= gift.count
                 Gift.Kind.BURN -> gift.food != null && kcal >= gift.food.kcal
+                Gift.Kind.RUNS -> worked.size >= gift.count
+                Gift.Kind.MOVEMENTS -> movements >= gift.count
             }
         }
     }
+
+    /**
+     * Whether a run had something done in it: a rep, or for a hold, a second held. A session opened
+     * and left, or played without a rep while the ceiling came down, is banked but is not a run here.
+     */
+    private fun didWork(run: SessionFacts): Boolean =
+        run.reps > 0 || (Exercises.of(run.exercise).kind == MovementKind.HOLD && run.durationMs >= 1_000L)
 
     /** The things [gifts] brought. */
     fun items(gifts: Set<Gift>): Set<CatItem> = gifts.mapTo(mutableSetOf()) { it.item }
