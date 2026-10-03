@@ -17,6 +17,7 @@ import com.pushuprpg.app.domain.CatCoat
 import com.pushuprpg.app.ui.components.catHeadTop
 import com.pushuprpg.app.ui.components.drawCat
 import com.pushuprpg.app.ui.components.drawCatPortrait
+import com.pushuprpg.app.ui.components.drawCatToyBeside
 import com.pushuprpg.app.ui.components.drawItemPicture
 import com.pushuprpg.core.progression.CatItem
 import com.pushuprpg.core.survival.CatMood
@@ -33,22 +34,40 @@ import java.io.File
  * drawing code the app runs ([drawItemPicture], [drawCatPortrait], [drawCat]), on a plain JVM.
  *
  * One sheet per thing — the wardrobe tile on a light and a dark coat, the hub's portrait, and the run's
- * cat calm and in a panic, which is when a face or a hat has the most to cover — and, when no thing is
- * named, all of them together.
+ * cat calm and in a panic under the ceiling, which is when a face or a hat has the most to cover and a
+ * tall toy meets the slab — and, when no thing is named, all of them together.
  */
 fun main(args: Array<String>) {
     val out = File(args.firstOrNull() ?: "build/cat-preview").apply { mkdirs() }
-    val wanted = args.drop(1).map { it.uppercase() }.toSet()
+    // --parts also writes each sheet's hub portrait and run picture on their own, as WebP, for a page.
+    val parts = "--parts" in args
+    val wanted = args.drop(1).filter { it != "--parts" }.map { it.uppercase() }.toSet()
     val unknown = wanted - CatItem.entries.map { it.name }.toSet()
     require(unknown.isEmpty()) { "no such thing: $unknown" }
     val items = CatItem.entries.filter { wanted.isEmpty() || it.name in wanted }
-    for (item in items) sheet(item, File(out, item.name.lowercase() + ".png"))
+    for (item in items) {
+        sheet(item, File(out, item.name.lowercase() + ".png"))
+        if (parts) parts(item, File(out, "parts").apply { mkdirs() })
+    }
     if (wanted.isEmpty()) overview(CatItem.entries, File(out, "all.png"))
     println("wrote ${items.size} sheet(s) to ${out.path}")
 }
 
-private val PAGE = Color(0xFF15141A)
-private val TILE = Color(0xFF26242E)
+private fun parts(item: CatItem, dir: File) {
+    val name = item.name.lowercase()
+    render(720, 380, File(dir, "$name-hub.webp"), webp = true) {
+        drawRect(PAGE)
+        drawCatPortrait(CatCoat.CREAM, wear = setOf(item), cheer = 0f, phase = 0.1f)
+    }
+    render(360, 360, File(dir, "$name-tile.webp"), webp = true) {
+        drawRect(TILE)
+        drawItemPicture(item, CatCoat.CHEESE)
+    }
+}
+
+// The dark theme's own surfaces: the screen, and the wardrobe tile's card.
+private val PAGE = Color(0xFF0E1117)
+private val TILE = Color(0xFF161A23)
 private val CAMERA = Color(0xFF3B4250)
 private val FLOOR = Color(0xFF3A2A18)
 
@@ -73,28 +92,29 @@ private fun sheet(item: CatItem, file: File) {
         panel(x, top, portraitW, portraitH, PAGE) {
             drawCatPortrait(CatCoat.CREAM, wear = setOf(item), cheer = 0f, phase = 0.1f)
         }
-        // The run's cat, over the camera: calm, then with the ceiling on its head.
+        // The run's cat, over the camera, layered as the run layers it: the toy, then the ceiling,
+        // then the cat. Calm, and then in a panic with the ceiling at its lowest, on its head.
         x += portraitW + GAP
         for (mood in listOf(CatMood.CALM, CatMood.PANIC)) {
             panel(x, top, run, portraitH, CAMERA) {
                 val floor = size.height * 0.82f
                 val scale = 1.55f
+                val centerX = size.width * 0.6f
+                val wear = setOf(item)
+                drawCatToyBeside(wear, centerX, floor, scale)
+                if (mood == CatMood.PANIC) ceiling(catHeadTop(floor, scale, CatMood.PANIC))
                 drawCat(
-                    centerX = size.width * 0.6f,
+                    centerX = centerX,
                     baseY = floor,
                     scale = scale,
                     coat = CatCoat.MACKEREL,
                     mood = mood,
                     alarm = if (mood == CatMood.PANIC) 1f else 0f,
                     phase = 0.13f,
-                    wear = setOf(item),
+                    wear = wear,
+                    toy = false,
                 )
                 drawRect(FLOOR, topLeft = Offset(0f, floor), size = Size(size.width, size.height - floor))
-                if (mood == CatMood.PANIC) {
-                    // Where the ceiling's teeth stop: what is worn may poke above, never far.
-                    val lowest = catHeadTop(floor, scale, CatMood.PANIC)
-                    drawLine(Color(0x99FF5A5A), Offset(0f, lowest), Offset(size.width, lowest), strokeWidth = 2f)
-                }
             }
             x += run + GAP
         }
@@ -113,6 +133,25 @@ private fun overview(items: List<CatItem>, file: File) {
             tile(x, y) { drawItemPicture(item, CatCoat.CREAM) }
             label(item.name.lowercase(), x + 4f, y + TILE_PX + 24f)
         }
+    }
+}
+
+/** The slab with its teeth on [headTop], as the run draws it at the end of a life, danger full. */
+private fun DrawScope.ceiling(headTop: Float) {
+    val tooth = size.width / 14f
+    val bottom = headTop - tooth * 0.55f
+    val slab = Color(red = 0.92f, green = 0.16f, blue = 0.12f)
+    drawRect(slab, size = Size(size.width, bottom))
+    for (i in 0 until 14) {
+        drawPath(
+            Path().apply {
+                moveTo(i * tooth, bottom)
+                lineTo((i + 0.5f) * tooth, bottom + tooth * 0.55f)
+                lineTo((i + 1f) * tooth, bottom)
+                close()
+            },
+            color = slab,
+        )
     }
 }
 
@@ -143,7 +182,13 @@ private fun DrawScope.panel(
     }
 }
 
-private fun render(width: Int, height: Int, file: File, draw: DrawScope.(label: (String, Float, Float) -> Unit) -> Unit) {
+private fun render(
+    width: Int,
+    height: Int,
+    file: File,
+    webp: Boolean = false,
+    draw: DrawScope.(label: (String, Float, Float) -> Unit) -> Unit,
+) {
     val surface = Surface.makeRasterN32Premul(width, height)
     val skia = surface.canvas
     val canvas: Canvas = skia.asComposeCanvas()
@@ -154,6 +199,7 @@ private fun render(width: Int, height: Int, file: File, draw: DrawScope.(label: 
     CanvasDrawScope().draw(Density(1f), LayoutDirection.Ltr, canvas, Size(width.toFloat(), height.toFloat())) {
         draw(label)
     }
-    val png = surface.makeImageSnapshot().encodeToData(EncodedImageFormat.PNG) ?: error("could not encode ${file.name}")
-    file.writeBytes(png.bytes)
+    val image = surface.makeImageSnapshot()
+    val data = if (webp) image.encodeToData(EncodedImageFormat.WEBP, 82) else image.encodeToData(EncodedImageFormat.PNG)
+    file.writeBytes((data ?: error("could not encode ${file.name}")).bytes)
 }

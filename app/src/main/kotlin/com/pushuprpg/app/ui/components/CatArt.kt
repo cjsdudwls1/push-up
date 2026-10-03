@@ -92,7 +92,8 @@ fun coatColors(coat: CatCoat): CoatColors = when (coat) {
  *   floor at its left, [TOY_OFFSET] heads from its middle, and stays put while the cat trembles.
  * - [tail] false leaves the tail off, for a picture framed from the chest up: all of the tail it
  *   would show is its tip, poking in from the edge on its own.
- * - [toy] false leaves the toy out, for a picture framed close around the cat with no room beside it.
+ * - [toy] false leaves the toy out, for a picture framed close around the cat with no room beside it,
+ *   or one that draws it itself with [drawCatToyBeside], behind something else.
  */
 fun DrawScope.drawCat(
     centerX: Float,
@@ -111,11 +112,7 @@ fun DrawScope.drawCat(
     val tau = 2f * PI.toFloat()
 
     // The toy first, behind everything: where it meets the cat's side, the cat is in front.
-    if (toy) {
-        wear.firstOrNull { it.slot == WearSlot.TOY }?.let {
-            drawCatToy(it, centerX - TOY_OFFSET * 30f * scale, baseY, 30f * scale)
-        }
-    }
+    if (toy) drawCatToyBeside(wear, centerX, baseY, scale)
 
     val tremble = when (mood) {
         CatMood.SCARED -> 1.2f
@@ -421,6 +418,17 @@ fun DrawScope.drawCat(
     wear.firstOrNull { it.slot == WearSlot.NECK }?.let { drawNeckItem(it, cx, headY + head * 0.98f, head) }
     wear.firstOrNull { it.slot == WearSlot.FACE }?.let { drawFaceItem(it, cx, eyeY, head) }
     wear.firstOrNull { it.slot == WearSlot.HEAD }?.let { drawHeadItem(it, cx, headY, head) }
+}
+
+/**
+ * The toy among [wear], if there is one, on the floor at the left of a cat drawn at [centerX], [baseY]
+ * and [scale]. [drawCat] draws it first, behind the cat. The run draws it in a layer behind the
+ * ceiling instead, so the slab comes down over it, and tells [drawCat] to leave it out.
+ */
+fun DrawScope.drawCatToyBeside(wear: Set<CatItem>, centerX: Float, baseY: Float, scale: Float) {
+    val toy = wear.firstOrNull { it.slot == WearSlot.TOY } ?: return
+    val head = 30f * scale
+    drawCatToy(toy, centerX - TOY_OFFSET * head, baseY, head)
 }
 
 /**

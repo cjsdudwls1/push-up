@@ -13,6 +13,8 @@
 scripts/test-core.sh          # no Android SDK needed; ~20s
 scripts/check-resources.sh    # duplicate/missing/misused <string>s; <1s
 scripts/replay-trace.sh f.json  # a run recorded on a phone, replayed rep by rep; no SDK needed
+scripts/render-cat.sh out/ [ITEM...]  # the cat and its things as PNG, Compose's own Skia; no SDK needed
+scripts/install-android-sdk.sh [dir]  # the SDK :app needs, if Google's servers are reachable
 ./gradlew :app:assembleDebug  # needs the SDK
 ```
 
@@ -225,6 +227,11 @@ away, records broken, the calories burned — so nothing is stored but which wer
 back. A run says what it found (`RunGrowth.gifts`, read after the streak is written) and puts it on
 where nothing is worn; something the user chose is never taken off for it. 꾸미기 shows what each
 found gift was for, after the fact, and nothing about the ones still wrapped. `GiftsTest` pins it.
+There are 32 gifts and 20 things on the shelf, more than twice the 15 and 8 there were, by the owner's
+request (2026-10-03); runs with something done in them and movements tried are ways to find one too.
+A toy (`WearSlot.TOY`) is not worn: it sits on the floor at the cat's left, `TOY_OFFSET` heads from
+its middle, and every picture that draws it leaves room there — the one that does not (the name
+card's) passes `toy = false`.
 
 The cat's fear, its lines and its sounds are decided by `CatCompanion` in `:core`, from the run's
 state and events — the rest's lines included; the screen draws the `CatView` it is given and plays
@@ -255,10 +262,18 @@ whole mode does, the curve's constants.
 
 ## Before claiming something works
 
-`:app` cannot be compiled in this environment — Google's Maven is unreachable here — so any change
-to it is unverified until CI runs. CI does build it and is green; that is the verification, not a
-local check. Say which of the two you have, rather than implying otherwise.
+`:app` compiles here only when the environment's network reaches Google's servers:
+`scripts/install-android-sdk.sh` then installs the SDK and points `local.properties` at it, and
+`./gradlew :app:assembleDebug` runs (about four minutes the first time; Maven Central sometimes
+answers 429 to the first burst, and a second try goes through). Under a policy that blocks Google's
+Maven it cannot, and a change to `:app` is unverified until CI runs. Either way a build is a compile
+check, not a phone: say which you have — a local build, CI, or neither — rather than implying more.
 
-`scripts/render-art.sh` is the exception that proves it: it renders the share cards and the Play
-feature graphic on a plain JVM against a Java2D shim, so artwork can be reviewed by looking at it
-here. Layout, clipping and hierarchy are real; fonts and hinting are not.
+`scripts/render-art.sh` renders the share cards and the Play feature graphic on a plain JVM against a
+Java2D shim, so artwork can be reviewed by looking at it here. Layout, clipping and hierarchy are
+real; fonts and hinting are not. `scripts/render-cat.sh` does the same for the cat and each of its
+things, and more faithfully: the cat is Compose drawing, and Compose's desktop build draws it through
+the same Skia a phone does. A new or changed thing for the cat is not done until its sheet has been
+looked at — the wardrobe tile on a light and a dark coat, the hub, and the run's cat in a panic, when
+the eyes are widest and the ceiling is on its head. The pictures the screens frame are plain drawing
+in `CatPictures.kt` for this reason: the renderer has the UI graphics and nothing above them.

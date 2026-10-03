@@ -60,6 +60,7 @@ import com.pushuprpg.app.ui.components.SecondaryButton
 import com.pushuprpg.app.ui.components.cardSurface
 import com.pushuprpg.app.ui.components.catHeadTop
 import com.pushuprpg.app.ui.components.drawCat
+import com.pushuprpg.app.ui.components.drawCatToyBeside
 import com.pushuprpg.app.ui.components.drawHearts
 import com.pushuprpg.app.ui.components.rememberModelStalled
 import com.pushuprpg.app.ui.theme.LocalReduceMotion
@@ -80,6 +81,7 @@ import com.pushuprpg.core.progression.CatItem
 import com.pushuprpg.core.progression.RunGrowth
 import com.pushuprpg.core.progression.SetBests
 import com.pushuprpg.core.progression.SetOutcome
+import com.pushuprpg.core.progression.WearSlot
 import com.pushuprpg.core.survival.CatLine
 import com.pushuprpg.core.survival.CatMood
 import com.pushuprpg.core.survival.CatPhase
@@ -517,6 +519,14 @@ private fun CeilingAndCat(
     val danger = state.intensity
 
     Box(modifier) {
+        // The toy behind the ceiling, so that the slab comes down over it as it would over a real one;
+        // the cat, drawn in front, keeps its ears and raised paws over the teeth. Faint with the cat.
+        if (wear.any { it.slot == WearSlot.TOY }) {
+            Canvas(Modifier.fillMaxSize().alpha(if (faded) SETUP_ALPHA else 1f)) {
+                drawCatToyBeside(wear, size.width / 2f, size.height * FLOOR_AT, catScale(size.width, size.height))
+            }
+        }
+
         Canvas(Modifier.fillMaxSize()) {
             val floorY = size.height * FLOOR_AT
             val topY = size.height * 0.10f
@@ -569,6 +579,7 @@ private fun CeilingAndCat(
                 cheer = cat.cheer,
                 phase = if (reduceMotion) 0f else phase,
                 wear = wear,
+                toy = false,
             )
             drawHearts(
                 centerX = size.width / 2f,
