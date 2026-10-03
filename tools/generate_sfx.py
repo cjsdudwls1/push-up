@@ -144,14 +144,14 @@ def go():
 
 
 def ceiling_push():
-    """고냥이. Warm and round, a push rather than a blow."""
+    """고양이. Warm and round, a push rather than a blow."""
     n = secs(0.26)
     a = sweep(240, 460, n) * env(n, decay=0.08)
     b = tone(700, n, "sine") * env(n, decay=0.05) * 0.4
     return normalise(a + b, 0.8)
 
 
-# --- 고냥이 and its room ---------------------------------------------------------------------
+# --- 고양이 and its room ---------------------------------------------------------------------
 #
 # The cat's band sits between the other two (roughly 300 Hz-1.4 kHz) because that is where a voice
 # lives, and because a phone speaker reproduces almost nothing below 200 Hz: a purr synthesised at

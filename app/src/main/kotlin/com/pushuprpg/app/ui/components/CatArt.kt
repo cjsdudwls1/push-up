@@ -73,7 +73,7 @@ fun coatColors(coat: CatCoat): CoatColors = when (coat) {
 }
 
 /**
- * 고냥이.
+ * 고양이.
  *
  * The same cat the share card draws, and that is the reason it is not just three circles: this is
  * the mascot, and the first thing anyone who has not installed the app ever sees. The parts that

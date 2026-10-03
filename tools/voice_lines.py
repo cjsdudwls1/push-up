@@ -14,7 +14,7 @@ Usage:
 
 lines.json is a list of {"file", "text", "style", "key"}:
   style  COACH   a training partner's plain encouragement, 해요체
-         CAT     고냥이, the survival mode's cat: small, cute, frightened or relieved
+         CAT     고양이, the survival mode's cat: small, cute, frightened or relieved
   key    the string resource and argument it came from, for people
 """
 import hashlib
@@ -78,7 +78,7 @@ def lines(s):
                  "placement_start_lunge", "placement_start_pull_up", "placement_start_dip"):
         add(name, "COACH")
 
-    # 고냥이.
+    # 고양이.
     for name in sorted(k for k in s if k.startswith("cat_line_")):
         if "milestone" in name:
             for sec in SECONDS:

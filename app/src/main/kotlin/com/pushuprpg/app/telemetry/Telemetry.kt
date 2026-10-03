@@ -142,7 +142,7 @@ sealed class Event(val name: String, val params: Map<String, Any> = emptyMap()) 
         Event("quality_lost", mapOf("reason" to quality.name, "at_rep" to atRep, "armed" to armed))
 
     /**
-     * A session of 고냥이 지켜줘 ended, every life lost or left part way; the tutorial's is
+     * A session of 고양이 지켜줘 ended, every life lost or left part way; the tutorial's is
      * [TutorialCompleted]. [lives] and [completed] say whether people play all ten sets, and
      * [tracking] and [plausibility] whether the tracker works on their phone (H2).
      */

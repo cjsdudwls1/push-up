@@ -21,7 +21,7 @@ URL, 만든 사람, 라이선스, 가공 내용. CC0(퍼블릭 도메인)이 아
 | 음성 | 도구·모델 | 라이선스 | 비고 |
 |---|---|---|---|
 | 게임 목소리: `COACH` 18개 (자세 안내) | [Qwen3-TTS](https://github.com/QwenLM/Qwen3-TTS) [`Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice`](https://huggingface.co/Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice) (리비전 `0c0e3051`), 내장 화자 `Sohee`(한국어 여성). `qwen-tts` 0.1.1로 CPU에서 직접 생성 | Apache-2.0 (코드·가중치). 생성 음성의 상업 이용 제한, 출처 표기·워터마크 의무 없음. 계정·결제 없이 받음 | 던전의 `URGENT` 7개와 `COACH` 18개(필살기, 콤보, 직업별 안내)는 던전을 앱에서 지울 때(2026-09-30) 함께 지웠습니다. 아래 "만든 방법" |
-| 고냥이 목소리: `CAT` 65개 | 같은 Qwen3-TTS의 [`Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign`](https://huggingface.co/Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign) (리비전 `5ecdb673`). 내장 화자가 아니라 글로 설명한 목소리(아래 "말투"). `qwen-tts` 0.1.1로 [Modal](https://modal.com) 클라우드 GPU(NVIDIA L4)에서 fp32로 생성. `53191fdb44e0` 한 줄만 2026-09-30에 CPU에서 다시 만듦(아래 "다시 만든 대사"). 8줄은 2026-10-01에 같은 방법으로 Modal에서 만듦(아래 "새로 만든 대사") | Apache-2.0 (코드·가중치). 조건은 위 줄과 같음. 계정·결제 없이 받음 | 게임 목소리와 다른 화자, 감정은 대사 종류마다 instruct로. 아래 "만든 방법" |
+| 고양이 목소리: `CAT` 65개 | 같은 Qwen3-TTS의 [`Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign`](https://huggingface.co/Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign) (리비전 `5ecdb673`). 내장 화자가 아니라 글로 설명한 목소리(아래 "말투"). `qwen-tts` 0.1.1로 [Modal](https://modal.com) 클라우드 GPU(NVIDIA L4)에서 fp32로 생성. `53191fdb44e0` 한 줄만 2026-09-30에 CPU에서 다시 만듦(아래 "다시 만든 대사"). 8줄은 2026-10-01에 같은 방법으로 Modal에서 만듦(아래 "새로 만든 대사") | Apache-2.0 (코드·가중치). 조건은 위 줄과 같음. 계정·결제 없이 받음 | 게임 목소리와 다른 화자, 감정은 대사 종류마다 instruct로. 아래 "만든 방법" |
 
 ### 만든 방법
 
@@ -40,7 +40,7 @@ GPU에서 만들었습니다. 대사 글과 말투 설명을 Modal로 보내 음
 
 **읽힐 글.** `lines.json`의 `text`(파일 이름이 여기서 나옵니다)는 그대로 두고, TTS에 넣는 글에서만 숫자를
 한국어로 풀어 썼습니다. 규칙에서 벗어난 것은 한 줄입니다. `50번 연속! 최고예요, 냥!`(`fe42de3de27e`)은
-`쉰 번` 대신 `오십 번`으로 읽혔습니다. 고냥이 목소리가 `쉰`을 열다섯 번 모두 `신`이나 `심`으로 읽었기
+`쉰 번` 대신 `오십 번`으로 읽혔습니다. 고양이 목소리가 `쉰`을 열다섯 번 모두 `신`이나 `심`으로 읽었기
 때문입니다. 숫자 말고 발음 때문에 바꾼 대사는 없습니다.
 
 | 원문 | TTS에 넣은 글 | 규칙 |
@@ -106,7 +106,7 @@ GPU에서 만들었습니다. 대사 글과 말투 설명을 Modal로 보내 음
   이것으로 정했습니다.
 - 가공은 위와 같습니다(쉼 0.4초 이하, 앞뒤 무음 50 ms 이하, -15.9 LUFS, 트루 피크 -2.7 dBTP). 인코딩은 이
   환경에 ffmpeg가 없어 libsndfile의 Vorbis로 했습니다(24 kHz 모노, 약 62 kbps, 다른 클립은 56–59 kbps).
-- 후보 중에는 지금 녹음의 끝만 Praat로 올린 것, Qwen3-TTS Base로 고냥이 목소리를 복제한 것,
+- 후보 중에는 지금 녹음의 끝만 Praat로 올린 것, Qwen3-TTS Base로 고양이 목소리를 복제한 것,
   [Chatterbox](https://github.com/resemble-ai/chatterbox) 다국어 모델(MIT)로 만든 것도 있었습니다. 앱에는
   들어가지 않았습니다.
 

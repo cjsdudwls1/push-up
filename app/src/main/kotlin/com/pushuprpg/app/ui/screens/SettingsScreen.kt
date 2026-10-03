@@ -309,7 +309,7 @@ private fun musicLabelRes(track: MusicTrack): Int = when (track) {
 }
 
 /**
- * Rest between two lives of 고냥이 지켜줘, in seconds. A minute is the owner's default; more suits a
+ * Rest between two lives of 고양이 지켜줘, in seconds. A minute is the owner's default; more suits a
  * set taken to the edge of failure, which recovers better with two.
  */
 private val CAT_REST_OPTIONS = listOf(60, 90, 120)

@@ -58,7 +58,7 @@ import com.pushuprpg.core.progression.ShopItem
 import com.pushuprpg.core.progression.WearSlot
 
 /**
- * 고냥이 꾸미기: the cat's name and coat, and everything it has found.
+ * 고양이 꾸미기: the cat's name and coat, and everything it has found.
  *
  * A found thing shows what it was found for, after the fact. The rest are 아직 비밀, with nothing
  * said about what they wait for: they are the cat's surprises, by the owner's decision, and a gift

@@ -31,7 +31,7 @@ import com.pushuprpg.core.progression.CatItem
 import com.pushuprpg.core.progression.WearSlot
 
 /**
- * 고냥이 at rest, on a cushion: the hub's face.
+ * 고양이 at rest, on a cushion: the hub's face.
  *
  * The same drawing the run uses, calm and smiling, with the tail swaying on its own clock — still
  * under reduced motion. [cheer] above a third closes the eyes into a smile. It wears [wear], and

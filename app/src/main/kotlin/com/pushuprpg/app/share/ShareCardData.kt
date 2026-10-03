@@ -9,7 +9,7 @@ package com.pushuprpg.app.share
  */
 sealed interface ShareCardData {
 
-    /** 고냥이 지켜줘. The card that has to travel. */
+    /** 고양이 지켜줘. The card that has to travel. */
     data class Survival(
         /**
          * The movement the session was played with, as the app names it: 푸쉬업. The card's chip,

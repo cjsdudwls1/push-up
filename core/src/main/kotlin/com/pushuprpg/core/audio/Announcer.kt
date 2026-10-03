@@ -3,7 +3,7 @@ package com.pushuprpg.core.audio
 import com.pushuprpg.core.detect.PlacementAdvice
 import com.pushuprpg.core.survival.CatSpeech
 
-/** How a line is spoken: [COACH] plain, [CAT] as 고냥이. */
+/** How a line is spoken: [COACH] plain, [CAT] as 고양이. */
 enum class VoiceStyle { COACH, CAT }
 
 /** One thing to say out loud. Exactly one of [placement] or [cat] is set; the app turns it into words. */

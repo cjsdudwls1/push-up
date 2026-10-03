@@ -190,7 +190,7 @@ private fun DayGroup(day: LocalDate, sessions: List<SessionRecord>, today: Local
 /**
  * One workout, under its day: the movement and how much of it, and the time it began.
  *
- * Nothing names the mode, by the owner's decision: with the dungeons gone every workout is 고냥이
+ * Nothing names the mode, by the owner's decision: with the dungeons gone every workout is 고양이
  * 지켜줘, and a row played in a dungeon before then reads and counts like any other. A hold is told in
  * how long it was held, which the table keeps as the row's length.
  */

@@ -3,7 +3,7 @@ package com.pushuprpg.core.survival
 import com.pushuprpg.core.detect.PoseQuality
 import com.pushuprpg.core.detect.PoseTick
 
-/** Where a 고냥이 session is: a life being played, the rest after one, or the whole session over. */
+/** Where a 고양이 session is: a life being played, the rest after one, or the whole session over. */
 enum class CatPhase { PLAYING, RESTING, OVER }
 
 /** One life, as it ended. */
@@ -81,7 +81,7 @@ data class CatStep(
 )
 
 /**
- * 고냥이 지켜줘 as a workout: [lives] lives, each one a set, with a rest between them.
+ * 고양이 지켜줘 as a workout: [lives] lives, each one a set, with a rest between them.
  *
  * A single run of [CeilingSurvival] is a test — as many as you can, until the ceiling wins — and a
  * test is not a workout. Several of them with a rest between is several sets to the edge of failure,

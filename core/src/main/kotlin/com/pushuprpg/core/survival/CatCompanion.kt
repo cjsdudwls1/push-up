@@ -64,7 +64,7 @@ data class CatView(
 )
 
 /**
- * 고냥이 itself: its face, its lines and its voice, derived from the run.
+ * 고양이 itself: its face, its lines and its voice, derived from the run.
  *
  * The mode works because the user is protecting something, and something that does not react is
  * not something anyone protects. So the cat has four stages of fear read from the ceiling's height,

@@ -98,7 +98,7 @@ private val EMPTY_WEEK = WeekSummary(start = 0, days = List(7) { false }, reps =
 /**
  * The hub, built around the cat.
  *
- * One question leads it — "am I doing this today?" — and one button answers it: 고냥이 지키기, the
+ * One question leads it — "am I doing this today?" — and one button answers it: 고양이 지키기, the
  * mode the tutorial already taught, which starts the movement it names at once; the picker is the
  * link under it, since the movement is the same one day after another. Under that, the answer to
  * the other question a habit needs,
@@ -110,7 +110,7 @@ fun HomeScreen(
     state: HomeUiState,
     themeMode: ThemeMode,
     onToggleTheme: () -> Unit,
-    /** Starts 고냥이 지켜줘 with [lastExercise], the movement the button names. */
+    /** Starts 고양이 지켜줘 with [lastExercise], the movement the button names. */
     onPlayCat: () -> Unit,
     /** The picker, for another movement. */
     onChangeExercise: () -> Unit,

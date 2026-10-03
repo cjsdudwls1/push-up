@@ -50,7 +50,7 @@ object ShareCardRenderer {
     private const val ACCEPT = 0xFF35E08A.toInt()
     private const val INFO = 0xFF35C3FF.toInt()
 
-    // 고냥이's warm set.
+    // 고양이's warm set.
     private const val CAT_BG = 0xFF1A1208.toInt()
     private const val CAT_PANEL = 0xFF241809.toInt()
     private const val CAT_FUR = 0xFFF3D9A8.toInt()
@@ -70,7 +70,7 @@ object ShareCardRenderer {
         return bitmap
     }
 
-    // ---------------------------------------------------------------- 고냥이
+    // ---------------------------------------------------------------- 고양이
 
     private fun drawSurvival(res: Resources, canvas: Canvas, data: ShareCardData.Survival) {
         background(canvas, top = CAT_BG, bottom = 0xFF120C05.toInt(), glow = DEEP)
@@ -156,7 +156,7 @@ object ShareCardRenderer {
     }
 
     /**
-     * 고냥이.
+     * 고양이.
      *
      * The mascot, and the only drawing in the app a stranger judges before deciding whether to
      * install anything. Circles alone came out as a snowman, so the parts that actually say "cat" —

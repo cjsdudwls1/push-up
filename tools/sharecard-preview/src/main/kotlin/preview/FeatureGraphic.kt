@@ -25,7 +25,7 @@ object FeatureGraphic {
     const val WIDTH = 1024
     const val HEIGHT = 500
 
-    // 고냥이's warm set, as on the share card.
+    // 고양이's warm set, as on the share card.
     private const val CAT_BG = 0xFF1A1208.toInt()
     private const val CAT_BG_LOW = 0xFF120C05.toInt()
     private const val CAT_PANEL = 0xFF241809.toInt()
@@ -64,7 +64,7 @@ object FeatureGraphic {
         val lines = listOf("팔굽혀펴기 한 번에", "천장이 올라가요")
         val headline = fit(lines, TEXT_RIGHT - left, 64f, bold)
 
-        text(canvas, "고냥이 지켜줘", left, 150f, 40f, DEEP, bold, spacing = 0.04f)
+        text(canvas, "고양이 지켜줘", left, 150f, 40f, DEEP, bold, spacing = 0.04f)
         text(canvas, lines[0], left, 246f, headline, TEXT, bold)
         text(canvas, lines[1], left, 246f + headline * 1.24f, headline, TEXT, bold)
         text(canvas, "카메라가 세는 홈트 · 영상은 저장되지 않아요", left, 404f, 24f, TEXT_2, Typeface.SANS_SERIF)

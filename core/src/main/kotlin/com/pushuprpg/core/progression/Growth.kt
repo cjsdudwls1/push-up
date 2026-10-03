@@ -20,7 +20,7 @@ data class SessionFacts(
     val deepReps: Int,
     /** For a hold, how long it was held; for anything else, how long the run took. */
     val durationMs: Long,
-    /** A 고냥이 session played to its last life: every set done. */
+    /** A 고양이 session played to its last life: every set done. */
     val fullSession: Boolean = false,
 )
 

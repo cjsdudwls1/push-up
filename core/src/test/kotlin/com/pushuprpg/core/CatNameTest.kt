@@ -9,7 +9,7 @@ class CatNameTest {
     @Test
     fun `the particle follows how the name ends`() {
         assertEquals("가", CatName.subjectParticle("치즈"))
-        assertEquals("가", CatName.subjectParticle("고냥이"))
+        assertEquals("가", CatName.subjectParticle("고양이"))
         assertEquals("이", CatName.subjectParticle("호박"))
         assertEquals("이", CatName.subjectParticle("까망"))
         assertEquals("를", CatName.objectParticle("나비"))

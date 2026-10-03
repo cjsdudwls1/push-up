@@ -6,7 +6,7 @@ import com.pushuprpg.core.detect.MovementKind
 /** Where on the cat a thing goes. One of each at a time. */
 enum class WearSlot { HEAD, FACE, NECK, SCENE }
 
-/** Something 고냥이 can wear, or a place it can sit. */
+/** Something 고양이 can wear, or a place it can sit. */
 enum class CatItem(val slot: WearSlot) {
     BELL(WearSlot.NECK),
     RIBBON(WearSlot.HEAD),
@@ -61,7 +61,7 @@ enum class Gift(
     SET_20(CatItem.BEANIE, Kind.SET, count = 20),
     /** Back after [Gifts.COMEBACK_DAYS] days or more away: the return is what is celebrated. */
     COMEBACK(CatItem.STRAW_HAT, Kind.COMEBACK),
-    /** A 고냥이 session played to its last life. */
+    /** A 고양이 session played to its last life. */
     FULL_SESSION(CatItem.SCARF, Kind.FULL_SESSION),
     STREAK_7(CatItem.BOW_TIE, Kind.STREAK, count = 7),
     RECORDS_3(CatItem.GLASSES, Kind.RECORDS, count = 3),

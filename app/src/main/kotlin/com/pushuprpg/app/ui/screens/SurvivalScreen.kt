@@ -92,7 +92,7 @@ import com.pushuprpg.core.survival.SurvivalState
 import kotlinx.coroutines.delay
 
 /**
- * 고냥이 지켜줘.
+ * 고양이 지켜줘.
  *
  * A deliberately warm, round register: no skeleton, no numbers on the run, no depth gauge — the
  * descending ceiling *is* the gauge. This is the mode people are shown first and

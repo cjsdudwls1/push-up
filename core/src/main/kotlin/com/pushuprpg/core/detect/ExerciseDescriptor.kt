@@ -93,7 +93,7 @@ data class ExerciseDescriptor(
      */
     val validatedOnDevice: Boolean = false,
     /**
-     * Reps of *this* movement that make up the same session as one pushup: what 고냥이 지켜줘's
+     * Reps of *this* movement that make up the same session as one pushup: what 고양이 지켜줘's
      * ceiling converts a rep into (see [com.pushuprpg.core.survival.CeilingSurvival]).
      *
      * A session's worth, not one rep's effort. A pull-up is far harder than a pushup as one rep, but

@@ -42,7 +42,7 @@ import com.pushuprpg.core.detect.MovementKind
 import com.pushuprpg.core.survival.CatSession
 
 /**
- * Picks the movement for 고냥이 지켜줘.
+ * Picks the movement for 고양이 지켜줘.
  *
  * A run has one movement, and it is declared, not inferred. An early build worked the exercise out
  * from the camera: it identified the movement correctly and was still wrong, because nine detectors

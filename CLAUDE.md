@@ -2,7 +2,7 @@
 
 ## Layout
 
-- `core/` — pure Kotlin/JVM. Rep detection, calibration, 고냥이 지켜줘 (the ceiling, the session
+- `core/` — pure Kotlin/JVM. Rep detection, calibration, 고양이 지켜줘 (the ceiling, the session
   of ten lives, the cat), progression (streaks, calories, records, gifts). **No Android imports,
   ever.** If something can be expressed as a rule rather than a screen, it belongs here.
 - `app/` — Android. CameraX, MediaPipe, Compose, Room, DataStore.
@@ -170,7 +170,7 @@ button, back, or the screen going (`SurvivalViewModel.save` and `leave`) — and
 calories, the streak and the gifts are all worked out from what was banked.
 
 **Never punish a tracking failure.** Nothing counts while `PoseQuality != OK`, and nothing may be
-lost for it either. 고냥이 지켜줘's ceiling does not pause for it, by the owner's decision: being in
+lost for it either. 고양이 지켜줘's ceiling does not pause for it, by the owner's decision: being in
 position only *starts* a life, and after that the ceiling never stops — resting, standing up and
 stepping out of view all let it keep coming. It is a sprint, and a sprint you can pause by sitting
 up is not one. Do not "fix" it back to pausing. What keeps the rule instead is the life given back:
@@ -178,7 +178,7 @@ a life that ends while the tracker has lost the user for two seconds is refunded
 (`CatSession.REFUND_LOST_MS`, `REFUNDS`), without stepping out of view becoming a way to live
 forever.
 
-A session of 고냥이 지켜줘 is **ten lives with a rest between them**, by the owner's decision: a
+A session of 고양이 지켜줘 is **ten lives with a rest between them**, by the owner's decision: a
 life is a set, and the rest (a minute by default; the settings offer 90 s and 2 min) runs its length
 unless the user skips it — the rest card's one button, added by the owner's later decision
 (2026-10-02, `CatSession.skipRest`); there is no extend — and the next life's ceiling does not come
@@ -188,7 +188,7 @@ it is and show its ending, since with ten lives that is how most sessions end. T
 life and no rest. `CatSessionTest` pins all of it.
 
 **The cat is the whole app; the dungeons were taken out** (2026-09-30), by the owner's decision.
-The hub's one big button is 고냥이 지키기, and it starts the movement it names at once — the picker
+The hub's one big button is 고양이 지키기, and it starts the movement it names at once — the picker
 is the 운동 바꾸기 link under it. There are no classes, levels, XP, difficulty or dungeon unlocks any
 more. What they stored is left where it was and not read, so a downgrade still finds it; rows played
 in a dungeon stay in the session table and count everywhere (`SessionRecord.dungeonIndex`), and the
@@ -235,7 +235,7 @@ the sounds, and decides nothing about how the cat feels. It never changes the ga
 
 Korean is the default locale, not a translation. Voice is 해요체 — an encouraging training partner,
 never a drill instructor. 실패 does not appear anywhere in the app; a session ends as
-고냥이를 지켰어요, however it ended.
+고양이를 지켰어요, however it ended.
 Every user-visible string lives in `app/src/main/res/values/strings.xml`.
 
 Spoken lines play from `app/src/main/assets/voice/<id>.ogg` when a clip exists for the exact text

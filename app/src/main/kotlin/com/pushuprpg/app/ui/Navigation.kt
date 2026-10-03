@@ -16,7 +16,7 @@ object Routes {
     const val RECORDS = "records"
     const val SETTINGS = "settings"
 
-    /** 고냥이 꾸미기: the cat's name and coat, and what it has found. Reached from the cat on the hub. */
+    /** 고양이 꾸미기: the cat's name and coat, and what it has found. Reached from the cat on the hub. */
     const val WARDROBE = "wardrobe"
 
     private const val SURVIVAL_BASE = "survival"
@@ -32,7 +32,7 @@ object Routes {
         "$SURVIVAL_BASE/$tutorial/${exercise.name}"
 
     /**
-     * Choosing the movement for 고냥이 지켜줘, on its own destination rather than inside the run:
+     * Choosing the movement for 고양이 지켜줘, on its own destination rather than inside the run:
      * the camera is not live while somebody reads a safety note.
      */
     const val SURVIVAL_PICK = "survival_pick"

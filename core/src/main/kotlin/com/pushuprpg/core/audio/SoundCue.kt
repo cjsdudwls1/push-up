@@ -10,7 +10,7 @@ import kotlin.math.pow
  * counted rep does fire both, because they answer different questions: "did that one count?" and
  * "did it push the ceiling?".
  *
- * CAT is 고냥이 and its room, in the gap between them (roughly 300 Hz–1.4 kHz): a voice sits there
+ * CAT is 고양이 and its room, in the gap between them (roughly 300 Hz–1.4 kHz): a voice sits there
  * naturally, and it is the one band that never vibrates — a phone buzzing every time the cat purrs
  * would teach the user to ignore the buzz.
  */
