@@ -14,11 +14,12 @@ import com.pushuprpg.core.progression.WearSlot
 
 /**
  * The hub's cat at rest on its cushion, wearing [wear], in the scene among them if there is one:
- * [CatPortrait]'s picture.
+ * [CatPortrait]'s picture. [scene] false leaves the scene to [drawCatPortraitScene], for a screen that
+ * draws it in a layer of its own.
  */
-fun DrawScope.drawCatPortrait(coat: CatCoat, wear: Set<CatItem>, cheer: Float, phase: Float) {
-    val baseY = size.height * 0.90f
-    wear.firstOrNull { it.slot == WearSlot.SCENE }?.let { drawCatScene(it, floorY = baseY) }
+fun DrawScope.drawCatPortrait(coat: CatCoat, wear: Set<CatItem>, cheer: Float, phase: Float, scene: Boolean = true) {
+    val baseY = size.height * PORTRAIT_FLOOR
+    if (scene) drawCatPortraitScene(wear)
     // The cat is 1.95 heads of 30 units tall from its paws to its ear tips, plus room for the tail.
     // A party hat's pompom, the tallest thing it wears, is under a third of a head above them; the cat
     // tower, the tallest toy, stands 4.4 heads from the floor. Its toy reaches 3.4 heads to the left.
@@ -40,6 +41,18 @@ fun DrawScope.drawCatPortrait(coat: CatCoat, wear: Set<CatItem>, cheer: Float, p
         wear = wear,
     )
 }
+
+/**
+ * The scene among [wear], if there is one, behind the hub's cat. It never moves, so the hub draws it
+ * apart from the cat, whose tail sways on every frame: the richer scenes are a couple of hundred
+ * shapes, and drawn with the cat they were drawn again sixty times a second.
+ */
+fun DrawScope.drawCatPortraitScene(wear: Set<CatItem>) {
+    wear.firstOrNull { it.slot == WearSlot.SCENE }?.let { drawCatScene(it, floorY = size.height * PORTRAIT_FLOOR) }
+}
+
+/** Where the hub's cat sits, as a fraction of the picture's height. */
+private const val PORTRAIT_FLOOR = 0.90f
 
 private val CUSHION = Color(0xFFE58A7B)
 

@@ -7,6 +7,7 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -19,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.pushuprpg.app.domain.CatCoat
@@ -50,8 +52,13 @@ fun CatPortrait(
         animationSpec = infiniteRepeatable(tween(durationMillis = 4_000, easing = LinearEasing)),
         label = "portrait-phase",
     )
-    Canvas(if (scene != null) modifier.clip(SCENE_SHAPE) else modifier) {
-        drawCatPortrait(coat = coat, wear = wear, cheer = cheer, phase = if (reduceMotion) 0f else phase)
+    Box(if (scene != null) modifier.clip(SCENE_SHAPE) else modifier) {
+        if (scene != null) Canvas(Modifier.matchParentSize()) { drawCatPortraitScene(wear) }
+        // The cat in a layer of its own: the tail's sway redraws it on every frame, and in the same
+        // layer as the scene it redrew the scene with it, a couple of hundred shapes that never move.
+        Canvas(Modifier.matchParentSize().graphicsLayer()) {
+            drawCatPortrait(coat = coat, wear = wear, cheer = cheer, phase = if (reduceMotion) 0f else phase, scene = false)
+        }
     }
 }
 

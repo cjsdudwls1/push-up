@@ -395,8 +395,8 @@ fun DrawScope.drawCat(
         drawPath(
             Path().apply {
                 moveTo(sx, sy - head * 0.22f)
-                quadraticBezierTo(sx + head * 0.14f, sy, sx, sy + head * 0.08f)
-                quadraticBezierTo(sx - head * 0.14f, sy, sx, sy - head * 0.22f)
+                quadraticTo(sx + head * 0.14f, sy, sx, sy + head * 0.08f)
+                quadraticTo(sx - head * 0.14f, sy, sx, sy - head * 0.22f)
                 close()
             },
             color = Color(0xFF9FD3F5),
