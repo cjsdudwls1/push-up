@@ -337,7 +337,7 @@ def focus():
 
 
 def calm():
-    """잔잔. F major pentatonic, 104 BPM: a marimba tune over a soft pad — 고냥이's room."""
+    """잔잔. F major pentatonic, 104 BPM: a marimba tune over a soft pad — 고양이's room."""
     tr = Track(104, 16)
     prog = [("F3", "maj"), ("D3", "min"), ("A#2", "maj"), ("C3", "maj"),
             ("F3", "maj"), ("D3", "min"), ("A#2", "maj"), ("C3", "maj"),

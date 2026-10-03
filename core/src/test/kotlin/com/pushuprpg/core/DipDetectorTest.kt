@@ -11,9 +11,10 @@ import kotlin.test.assertTrue
  * The tenth movement, and the first added after the project learned how these fail.
  *
  * The movement is declared on the way into the run, so the detector no longer has to tell a dip
- * from a curl; what it has to refuse is a wave — shoulders dropping toward the hands with the
- * elbows never bending — and the elbow angle is the one witness that does that from any camera
- * position. It is mandatory, and it is tested here by being defeated.
+ * from a curl; what it has to refuse is the hands coming to the shoulders instead of the shoulders
+ * going down to the hands — a wave or a curl. The elbow angle was that witness until a phone showed
+ * it reading backwards from the front; the shoulders' own travel in the picture is, now
+ * (`ExerciseDescriptor.shoulderTravel`), and `HangingRigTest` defeats it with the fakes.
  */
 class DipDetectorTest {
 
@@ -45,38 +46,25 @@ class DipDetectorTest {
     }
 
     @Test
-    fun `a wave with straight arms is refused, because the elbow never bends`() {
-        // The fake the mandatory joint check exists for: the shoulders sink toward the hands as in
-        // a dip — the primary signal reads a textbook rep — but the elbow angle stays locked out.
-        // There is no travel witness any more (the elbow's projected travel reverses from a phone
-        // on the floor, and refused every honest dip from there), so this is the only second
-        // opinion, and it has to be enough on its own.
+    fun `a dip whose elbow the model reads as straight still counts`() {
+        // The phone's report (2026-10-02, SM-A556S): filmed from the front, the model read the elbow
+        // straighter at the bottom of honest dips than at the top, and the elbow check refused three
+        // of four. The shoulders coming down to the hands witness a dip now; this fixture is that
+        // phone's reading — the body sinking, the 3-D elbow locked — and it is a dip.
         val frames = PoseFixtures.dipTrace(count = 6, startMs = 3_600_000L) { t, d ->
             val moving = PoseFixtures.dipFrame(t, d)
             val locked = PoseFixtures.dipFrame(t, 0f)
             moving.copy(worldLandmarks = locked.worldLandmarks)
         }
-        val (reps, events) = run(frames)
-        assertEquals(0, reps, "a straight-armed wave was counted as a dip")
-        assertTrue(
-            events.filterIsInstance<RepEvent.Abandoned>().any { it.reason == AbandonReason.INCONSISTENT },
-            "the wave was refused silently — it must surface as INCONSISTENT",
-        )
+        assertEquals(6, run(frames).first)
     }
 
     @Test
-    fun `no world landmarks means a loud refusal, not a silent zero`() {
-        // JOINT_REQUIRED: without the elbow angle there is no second opinion, and the primary
-        // signal alone is exactly what a curl fakes.
+    fun `without world landmarks the shoulders still witness a dip`() {
         val frames = PoseFixtures.dipTrace(count = 6, startMs = 3_600_000L) { t, d ->
             PoseFixtures.dipFrame(t, d, world = false)
         }
-        val (reps, events) = run(frames)
-        assertEquals(0, reps)
-        assertTrue(
-            events.filterIsInstance<RepEvent.Abandoned>().any { it.reason == AbandonReason.INCONSISTENT },
-            "a missing joint check must refuse out loud",
-        )
+        assertEquals(6, run(frames).first)
     }
 
     @Test

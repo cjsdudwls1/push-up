@@ -56,7 +56,7 @@ sealed interface SurvivalEvent {
 }
 
 /**
- * 고냥이 지켜줘 — the casual survival mode.
+ * 고양이 지켜줘 — the casual survival mode.
  *
  * A ceiling descends toward a cat and every pushup shoves it back up. The reason this works where
  * a more elaborate design would not is that the mapping is literal: the physical act of a pushup

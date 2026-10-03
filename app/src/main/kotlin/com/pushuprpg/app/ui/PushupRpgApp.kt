@@ -46,6 +46,7 @@ import com.pushuprpg.core.detect.ExerciseType
 import com.pushuprpg.app.pose.PoseFrameSink
 import com.pushuprpg.app.share.ShareCardData
 import com.pushuprpg.app.pose.PoseLandmarkerSource
+import com.pushuprpg.app.ui.components.FollowPhoneRotation
 import com.pushuprpg.app.ui.components.ModelErrorBanner
 import com.pushuprpg.app.ui.components.RunMusic
 import com.pushuprpg.app.ui.screens.*
@@ -332,6 +333,8 @@ fun PushupRpgApp(
                         ?: ExerciseType.PUSHUP
                     val vm: SurvivalViewModel =
                         viewModel(factory = SurvivalViewModel.factory(container, exercise, isTutorial))
+                    // A plank may be filmed with the phone on its side; nothing else turns.
+                    if (exercise == ExerciseType.PLANK && !isTutorial) FollowPhoneRotation()
                     val state by vm.state.collectAsState()
                     val best by vm.bestScore.collectAsState()
                     val cat by vm.catView.collectAsState()
@@ -370,6 +373,7 @@ fun PushupRpgApp(
                                 exercise = exercise,
                                 isTutorial = isTutorial,
                                 onRetry = vm::restart,
+                                onSkipRest = vm::skipRest,
                                 onShare = onShare,
                                 modelFailed = poseError != null,
                                 nearMisses = nearMisses,
@@ -428,18 +432,15 @@ fun PushupRpgApp(
 
                 composable(Routes.RECORDS) {
                     // Remembered, because collectAsState keys on the flow instance: building a new
-                    // one each recomposition would cancel and restart both Room subscriptions every
+                    // one each recomposition would cancel and restart the Room subscriptions every
                     // time a run is banked.
                     val recentFlow = remember { container.sessionRepository.recent(50) }
-                    val totalsFlow = remember { container.sessionRepository.dailyTotals(91) }
                     val factsFlow = remember { container.sessionRepository.facts() }
                     val sessions by recentFlow.collectAsState(initial = emptyList())
-                    val totals by totalsFlow.collectAsState(initial = emptyList())
                     val facts by factsFlow.collectAsState(initial = emptyList())
                     RecordsScreen(
                         progress = progress,
                         sessions = sessions,
-                        dailyTotals = totals,
                         facts = facts,
                         exercise = settings.exercise,
                     )

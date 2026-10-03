@@ -1,5 +1,8 @@
 package com.pushuprpg.app.pose
 
+import android.hardware.display.DisplayManager
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import android.util.Size
 import androidx.camera.core.CameraSelector
@@ -74,6 +77,28 @@ fun CameraPreview(
             }
         }
 
+        // The use cases turn with the screen. The app is upright everywhere but a plank, which may be
+        // filmed with the phone on its side (FollowPhoneRotation); the activity handles the turn
+        // itself rather than being recreated, so nothing rebinds, and CameraX has to be told. Turned
+        // and not told, the analysis would keep handing over the upright picture's buffer, with the
+        // body lying across it, and the overlay would draw it a quarter turn off. A listener rather
+        // than the configuration, because a half turn from one side to the other changes no
+        // configuration at all.
+        var preview: Preview? = null
+        var analysis: ImageAnalysis? = null
+        val displays = context.getSystemService(DisplayManager::class.java)
+        val rotationListener = object : DisplayManager.DisplayListener {
+            override fun onDisplayAdded(displayId: Int) = Unit
+            override fun onDisplayRemoved(displayId: Int) = Unit
+            override fun onDisplayChanged(displayId: Int) {
+                val display = previewView.display ?: return
+                if (display.displayId != displayId) return
+                preview?.targetRotation = display.rotation
+                analysis?.targetRotation = display.rotation
+            }
+        }
+        displays?.registerDisplayListener(rotationListener, Handler(Looper.getMainLooper()))
+
         providerFuture.addListener({
             // CameraX initialisation takes a few hundred milliseconds on the first call of a
             // process. Leaving the screen before it completes would otherwise run this listener
@@ -90,9 +115,14 @@ fun CameraPreview(
             }
             provider = cameraProvider
 
-            val preview = Preview.Builder().build().also {
+            // Set from the view's display when it has one; before it is attached, CameraX takes the
+            // default display's, which is the same screen.
+            val rotation = previewView.display?.rotation
+            val boundPreview = Preview.Builder().build().also {
+                if (rotation != null) it.targetRotation = rotation
                 it.setSurfaceProvider(previewView.surfaceProvider)
             }
+            preview = boundPreview
 
             // 640x480 is plenty: the landmarker downsamples to its own input size regardless, and a
             // larger capture buys nothing but heat and dropped frames.
@@ -109,7 +139,7 @@ fun CameraPreview(
                 )
                 .build()
 
-            val analysis = ImageAnalysis.Builder()
+            val boundAnalysis = ImageAnalysis.Builder()
                 .setResolutionSelector(resolution)
                 .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                 .setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_RGBA_8888)
@@ -127,13 +157,19 @@ fun CameraPreview(
                 //
                 // With this on, imageInfo.rotationDegrees becomes 0, so the value handed to
                 // MediaPipe below is 0 and nothing rotates twice.
+                //
+                // Upright means upright for the screen as it is turned now: the target rotation
+                // follows the display (see rotationListener), so a phone on its side hands over a
+                // wide upright picture rather than a narrow one with the body lying across it.
                 .setOutputImageRotationEnabled(true)
                 .build()
                 .also {
+                    if (rotation != null) it.targetRotation = rotation
                     it.setAnalyzer(analysisExecutor) { image ->
                         source.analyze(image, image.imageInfo.rotationDegrees)
                     }
                 }
+            analysis = boundAnalysis
 
             val selector = if (frontCamera) {
                 CameraSelector.DEFAULT_FRONT_CAMERA
@@ -145,7 +181,7 @@ fun CameraPreview(
             source.cameraStarting()
             val camera = try {
                 cameraProvider.unbindAll()
-                cameraProvider.bindToLifecycle(lifecycleOwner, selector, preview, analysis)
+                cameraProvider.bindToLifecycle(lifecycleOwner, selector, boundPreview, boundAnalysis)
                     .also { onCameraBound(frontCamera) }
             } catch (_: IllegalArgumentException) {
                 // No front camera on this device, or it is held by another app. Falling back is
@@ -154,7 +190,7 @@ fun CameraPreview(
                 // would otherwise mirror a back-camera image.
                 try {
                     cameraProvider.bindToLifecycle(
-                        lifecycleOwner, CameraSelector.DEFAULT_BACK_CAMERA, preview, analysis
+                        lifecycleOwner, CameraSelector.DEFAULT_BACK_CAMERA, boundPreview, boundAnalysis
                     ).also { onCameraBound(false) }
                 } catch (e: Exception) {
                     Log.w(TAG, "no camera would bind", e)
@@ -176,6 +212,7 @@ fun CameraPreview(
 
         onDispose {
             disposed = true
+            displays?.unregisterDisplayListener(rotationListener)
             cameraState?.removeObserver(stateObserver)
             provider?.unbindAll()
             analysisExecutor.shutdown()

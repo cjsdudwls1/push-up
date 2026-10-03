@@ -60,6 +60,7 @@ import com.pushuprpg.app.ui.components.SecondaryButton
 import com.pushuprpg.app.ui.components.cardSurface
 import com.pushuprpg.app.ui.components.catHeadTop
 import com.pushuprpg.app.ui.components.drawCat
+import com.pushuprpg.app.ui.components.drawCatToyBeside
 import com.pushuprpg.app.ui.components.drawHearts
 import com.pushuprpg.app.ui.components.rememberModelStalled
 import com.pushuprpg.app.ui.theme.LocalReduceMotion
@@ -80,6 +81,7 @@ import com.pushuprpg.core.progression.CatItem
 import com.pushuprpg.core.progression.RunGrowth
 import com.pushuprpg.core.progression.SetBests
 import com.pushuprpg.core.progression.SetOutcome
+import com.pushuprpg.core.progression.WearSlot
 import com.pushuprpg.core.survival.CatLine
 import com.pushuprpg.core.survival.CatMood
 import com.pushuprpg.core.survival.CatPhase
@@ -92,7 +94,7 @@ import com.pushuprpg.core.survival.SurvivalState
 import kotlinx.coroutines.delay
 
 /**
- * 고냥이 지켜줘.
+ * 고양이 지켜줘.
  *
  * A deliberately warm, round register: no skeleton, no numbers on the run, no depth gauge — the
  * descending ceiling *is* the gauge. This is the mode people are shown first and
@@ -123,6 +125,8 @@ fun SurvivalScreen(
     onClose: () -> Unit = onHome,
     /** The ending's 운동 바꾸기: leaves as [onHome] does, to the picker instead of the hub. */
     onChangeExercise: () -> Unit = onHome,
+    /** The rest card's 건너뛰기: the next life now, waiting for the user as after a full rest. */
+    onSkipRest: () -> Unit = {},
     /** The tutorial's way out before its run has started: 건너뛰기, and back, asked first, while the ceiling waits. */
     onSkip: () -> Unit = {},
     /** The pose model did not load, so nothing will ever count: the tutorial offers its skip at once. */
@@ -240,7 +244,7 @@ fun SurvivalScreen(
 
         // Above the cat's head, where a speech bubble belongs. The canvas places the cat by the same
         // proportions, so this lands on it at any screen size.
-        val bubbleBottom = catHeadTop(baseY = maxHeight.value * FLOOR_AT, scale = maxWidth.value / CAT_SCALE_WIDTH, mood = cat.mood)
+        val bubbleBottom = catHeadTop(baseY = maxHeight.value * FLOOR_AT, scale = catScale(maxWidth.value, maxHeight.value), mood = cat.mood)
         CatBubbleSlot(
             speech = cat.speech.takeUnless { settingUp },
             name = name,
@@ -402,6 +406,7 @@ fun SurvivalScreen(
                 state = state,
                 nextBest = setBests.at(state.ended.size),
                 hold = hold,
+                onSkip = onSkipRest,
                 modifier = Modifier.align(Alignment.Center),
             )
         }
@@ -514,6 +519,14 @@ private fun CeilingAndCat(
     val danger = state.intensity
 
     Box(modifier) {
+        // The toy behind the ceiling, so that the slab comes down over it as it would over a real one;
+        // the cat, drawn in front, keeps its ears and raised paws over the teeth. Faint with the cat.
+        if (wear.any { it.slot == WearSlot.TOY }) {
+            Canvas(Modifier.fillMaxSize().alpha(if (faded) SETUP_ALPHA else 1f)) {
+                drawCatToyBeside(wear, size.width / 2f, size.height * FLOOR_AT, catScale(size.width, size.height))
+            }
+        }
+
         Canvas(Modifier.fillMaxSize()) {
             val floorY = size.height * FLOOR_AT
             val topY = size.height * 0.10f
@@ -521,7 +534,7 @@ private fun CeilingAndCat(
             // Height 0 — the life ends — is the teeth on the cat's head, crouched as it is by then,
             // not the slab on the floor. Drawn down to the floor, the ceiling went behind the cat
             // and the set played on with the cat already under it, and the hearts never fell.
-            val headTop = catHeadTop(floorY, size.width / CAT_SCALE_WIDTH, CatMood.PANIC)
+            val headTop = catHeadTop(floorY, catScale(size.width, size.height), CatMood.PANIC)
             val lowest = headTop - toothWidth * 0.55f
             val travel = lowest - topY
             val ceilingBottom = topY + travel * (1f - state.height.coerceIn(0f, 1f))
@@ -555,7 +568,7 @@ private fun CeilingAndCat(
         // A layer of its own, so faint is one alpha over the whole cat rather than each shape of it.
         Canvas(Modifier.fillMaxSize().alpha(if (faded) SETUP_ALPHA else 1f)) {
             val floorY = size.height * FLOOR_AT
-            val scale = size.width / CAT_SCALE_WIDTH
+            val scale = catScale(size.width, size.height)
             drawCat(
                 centerX = size.width / 2f,
                 baseY = floorY,
@@ -566,6 +579,7 @@ private fun CeilingAndCat(
                 cheer = cat.cheer,
                 phase = if (reduceMotion) 0f else phase,
                 wear = wear,
+                toy = false,
             )
             drawHearts(
                 centerX = size.width / 2f,
@@ -592,6 +606,18 @@ private const val SETUP_ALPHA = 0.4f
 
 /** The screen width, in the cat's own units, that draws it at scale 1. */
 private const val CAT_SCALE_WIDTH = 420f
+
+/**
+ * The screen height that draws it at scale 1. Never the tighter of the two on an upright phone, where
+ * the cat is sized by the width as it always was; on a phone on its side — a plank's, see
+ * FollowPhoneRotation — sized by the width the cat would fill half the height and leave the ceiling
+ * nowhere to come down.
+ */
+private const val CAT_SCALE_HEIGHT = 600f
+
+/** How large to draw the cat on a [width] by [height] screen: the canvas and the bubble agree on it. */
+private fun catScale(width: Float, height: Float): Float =
+    minOf(width / CAT_SCALE_WIDTH, height / CAT_SCALE_HEIGHT)
 
 /** How long the tutorial waits for its run to start before it offers 건너뛰기. */
 private const val SKIP_OFFERED_AFTER_MS = 10_000L
@@ -859,7 +885,9 @@ private val HEART = Color(0xFFFF6F91)
  * screen — the phone is across the room.
  *
  * It says what the next set has to beat: by the owner's later decision (2026-10-01) the numbers are
- * shown while training, each set against its own best.
+ * shown while training, each set against its own best. And it can be skipped, by the owner's decision
+ * of 2026-10-02 — the button is last, under the advice to rest, so it is there without being the
+ * first thing the card offers.
  */
 @Composable
 private fun RestCard(
@@ -867,12 +895,17 @@ private fun RestCard(
     /** The next set's best, 0 for a set never played. */
     nextBest: Int,
     hold: Boolean,
+    onSkip: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val seconds = ((state.restLeftMs + 999L) / 1000L).toInt()
     Column(
+        // Narrowed on a phone on its side (a plank's), where full width is a banner, not a card; and
+        // kept off the cutout, which is at the side there.
         modifier = modifier
+            .windowInsetsPadding(WindowInsets.safeDrawing)
             .padding(horizontal = 28.dp)
+            .widthIn(max = 480.dp)
             .fillMaxWidth()
             .cardSurface(shape = RoundedCornerShape(22.dp), color = Palette.Bg1)
             .verticalScroll(rememberScrollState())
@@ -926,6 +959,12 @@ private fun RestCard(
             color = Palette.TextTertiary,
             textAlign = TextAlign.Center,
         )
+        Spacer(Modifier.height(14.dp))
+        SecondaryButton(
+            text = stringResource(R.string.rest_skip),
+            onClick = onSkip,
+            modifier = Modifier.fillMaxWidth(),
+        )
     }
 }
 
@@ -952,6 +991,7 @@ private fun SessionOverCard(
         modifier = modifier
             .windowInsetsPadding(WindowInsets.safeDrawing)
             .padding(horizontal = 24.dp)
+            .widthIn(max = 520.dp)
             .fillMaxWidth()
             .cardSurface(shape = RoundedCornerShape(22.dp), color = Palette.Bg1)
             .verticalScroll(rememberScrollState())

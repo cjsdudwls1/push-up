@@ -22,7 +22,9 @@ import com.pushuprpg.core.detect.ExerciseType
  *
  * Shown only while setting up. The ghost is the pose as the phone should see it for [exercise]:
  * standing square for a squat or a lunge, hanging for a pull-up, on the bars for a dip, and for a
- * pushup or a plank the body from the head end, receding up the picture.
+ * pushup or a plank the body from the head end, receding up the picture. On a phone on its side —
+ * which only a plank's screen follows (FollowPhoneRotation) — the frame is wide and low, and the
+ * plank lies across it side on, on its forearms.
  */
 @Composable
 fun FramingGuide(exercise: ExerciseType, modifier: Modifier = Modifier) {
@@ -31,8 +33,10 @@ fun FramingGuide(exercise: ExerciseType, modifier: Modifier = Modifier) {
     // No caption: the top of the screen is the HUD's, the bottom the placement line's, and that
     // line — spoken as well as shown — already says what to do. The frame and the ghost are the how.
     Canvas(modifier.fillMaxSize()) {
-        val box = Size(size.width * 0.72f, size.height * 0.80f)
-        val topLeft = Offset((size.width - box.width) / 2f, size.height * 0.10f)
+        val sideways = size.width > size.height
+        // Sideways, under the HUD and down to the floor of the picture, where a plank is.
+        val box = if (sideways) Size(size.width * 0.84f, size.height * 0.60f) else Size(size.width * 0.72f, size.height * 0.80f)
+        val topLeft = Offset((size.width - box.width) / 2f, size.height * if (sideways) 0.32f else 0.10f)
         drawRoundRect(
             color = frameColor.copy(alpha = 0.85f),
             topLeft = topLeft,
@@ -43,17 +47,36 @@ fun FramingGuide(exercise: ExerciseType, modifier: Modifier = Modifier) {
                 pathEffect = PathEffect.dashPathEffect(floatArrayOf(18.dp.toPx(), 12.dp.toPx())),
             ),
         )
-        drawGhost(exercise, topLeft, box)
+        drawGhost(exercise, topLeft, box, sideways)
     }
 }
 
-/** The starting pose, as a stick figure in the guide box: fractions of its width and height. */
-private fun DrawScope.drawGhost(exercise: ExerciseType, topLeft: Offset, box: Size) {
+/**
+ * The starting pose, as a stick figure in the guide box: fractions of its width and height. Line and
+ * head are sized from the box's shorter side, which upright is its width, as it always was.
+ */
+private fun DrawScope.drawGhost(exercise: ExerciseType, topLeft: Offset, box: Size, sideways: Boolean) {
     val ink = Color.White.copy(alpha = 0.55f)
-    val stroke = box.width * 0.035f
+    val stroke = box.minDimension * 0.035f
     fun p(x: Float, y: Float) = Offset(topLeft.x + box.width * x, topLeft.y + box.height * y)
     fun bone(a: Offset, b: Offset) = drawLine(ink, a, b, strokeWidth = stroke, cap = StrokeCap.Round)
-    fun head(c: Offset, r: Float) = drawCircle(ink, radius = box.width * r, center = c, style = Stroke(stroke))
+    fun head(c: Offset, r: Float) = drawCircle(ink, radius = box.minDimension * r, center = c, style = Stroke(stroke))
+
+    if (sideways && exercise == ExerciseType.PLANK) {
+        // Side on, head to the left, on the forearms: the body one straight line from the shoulders
+        // to the feet on the floor.
+        head(p(0.11f, 0.47f), 0.075f)
+        val shoulder = p(0.20f, 0.55f)
+        val elbow = p(0.20f, 0.92f)
+        bone(shoulder, elbow)
+        bone(elbow, p(0.34f, 0.92f))
+        val hip = p(0.56f, 0.73f)
+        val knee = p(0.75f, 0.825f)
+        bone(shoulder, hip)
+        bone(hip, knee)
+        bone(knee, p(0.93f, 0.92f))
+        return
+    }
 
     when (exercise) {
         ExerciseType.PUSHUP, ExerciseType.PLANK -> {

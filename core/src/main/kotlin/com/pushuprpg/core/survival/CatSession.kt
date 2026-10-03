@@ -3,7 +3,7 @@ package com.pushuprpg.core.survival
 import com.pushuprpg.core.detect.PoseQuality
 import com.pushuprpg.core.detect.PoseTick
 
-/** Where a 고냥이 session is: a life being played, the rest after one, or the whole session over. */
+/** Where a 고양이 session is: a life being played, the rest after one, or the whole session over. */
 enum class CatPhase { PLAYING, RESTING, OVER }
 
 /** One life, as it ended. */
@@ -81,14 +81,15 @@ data class CatStep(
 )
 
 /**
- * 고냥이 지켜줘 as a workout: [lives] lives, each one a set, with a rest between them.
+ * 고양이 지켜줘 as a workout: [lives] lives, each one a set, with a rest between them.
  *
  * A single run of [CeilingSurvival] is a test — as many as you can, until the ceiling wins — and a
  * test is not a workout. Several of them with a rest between is several sets to the edge of failure,
  * which is what builds muscle: several sets do clearly more than one, and a set taken close to its
  * limit is the one that counts. By the owner's decision there are ten lives — ten sets, as in the
- * old ten-by-ten volume programmes — and the rest between them is not optional: the ceiling does
- * not come back until it is over. The session can be ended after any of them, and keeps what was
+ * old ten-by-ten volume programmes — and the rest between them is the default between sets: the
+ * ceiling does not come back until it is over, or until the user skips it ([skipRest]), which the
+ * owner added later (2026-10-02). The session can be ended after any of them, and keeps what was
  * done.
  *
  * Each life is a fresh [CeilingSurvival] — a fresh ceiling and a fresh ramp, as a new set starts
@@ -158,6 +159,16 @@ class CatSession(
         if (phase == CatPhase.PLAYING && game.state().started) ended += resultOf(game.state(), refunded = false)
         phase = CatPhase.OVER
         return listOf(CatSessionEvent.Over(atMs))
+    }
+
+    /**
+     * Ends the rest now. The next life comes on the next frame, through [onTick], exactly as when the
+     * rest runs out: the cat asks again, and the ceiling waits for the user to be in position. Asked
+     * while a life is on or once the session is over, it does nothing, and leaves nothing behind to
+     * cut the next rest short.
+     */
+    fun skipRest() {
+        if (phase == CatPhase.RESTING) restLengthMs = 0L
     }
 
     /** Back to the first life, as a new session. */

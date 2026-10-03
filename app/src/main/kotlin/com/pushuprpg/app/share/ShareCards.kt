@@ -17,7 +17,7 @@ import java.io.FileOutputStream
  * Turns a result into something a person can post.
  *
  * A text-only share is a line that disappears in a chat scroll; an image is the only format that
- * survives being forwarded, and 고냥이 모드 exists to be forwarded. If anything here fails — no disk,
+ * survives being forwarded, and 고양이 모드 exists to be forwarded. If anything here fails — no disk,
  * no provider, a device that has never heard of PNG — the share still happens, as text. Losing the
  * picture is annoying; losing the share is the whole point.
  */

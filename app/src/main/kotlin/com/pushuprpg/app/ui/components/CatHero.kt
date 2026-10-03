@@ -7,6 +7,7 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -17,11 +18,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.pushuprpg.app.domain.CatCoat
@@ -31,7 +30,7 @@ import com.pushuprpg.core.progression.CatItem
 import com.pushuprpg.core.progression.WearSlot
 
 /**
- * 고냥이 at rest, on a cushion: the hub's face.
+ * 고양이 at rest, on a cushion: the hub's face.
  *
  * The same drawing the run uses, calm and smiling, with the tail swaying on its own clock — still
  * under reduced motion. [cheer] above a third closes the eyes into a smile. It wears [wear], and
@@ -53,32 +52,16 @@ fun CatPortrait(
         animationSpec = infiniteRepeatable(tween(durationMillis = 4_000, easing = LinearEasing)),
         label = "portrait-phase",
     )
-    Canvas(if (scene != null) modifier.clip(SCENE_SHAPE) else modifier) {
-        val baseY = size.height * 0.90f
-        scene?.let { drawCatScene(it, floorY = baseY) }
-        // The cat is 1.95 heads of 30 units tall from its paws to its ear tips, plus room for the tail.
-        // A party hat's pompom, the tallest thing it wears, is under a third of a head above them.
-        val scale = minOf(size.height / 175f, size.width / 260f)
-        val cushionW = 150f * scale
-        drawRoundRect(
-            color = CUSHION,
-            topLeft = Offset(size.width / 2f - cushionW / 2f, baseY - 10f * scale),
-            size = Size(cushionW, 22f * scale),
-            cornerRadius = CornerRadius(11f * scale),
-        )
-        drawCat(
-            centerX = size.width / 2f - 8f * scale,
-            baseY = baseY,
-            scale = scale,
-            coat = coat,
-            cheer = cheer,
-            phase = if (reduceMotion) 0f else phase,
-            wear = wear,
-        )
+    Box(if (scene != null) modifier.clip(SCENE_SHAPE) else modifier) {
+        if (scene != null) Canvas(Modifier.matchParentSize()) { drawCatPortraitScene(wear) }
+        // The cat in a layer of its own: the tail's sway redraws it on every frame, and in the same
+        // layer as the scene it redrew the scene with it, a couple of hundred shapes that never move.
+        Canvas(Modifier.matchParentSize().graphicsLayer()) {
+            drawCatPortrait(coat = coat, wear = wear, cheer = cheer, phase = if (reduceMotion) 0f else phase, scene = false)
+        }
     }
 }
 
-private val CUSHION = Color(0xFFE58A7B)
 private val SCENE_SHAPE = RoundedCornerShape(24.dp)
 
 /**

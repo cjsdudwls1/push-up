@@ -1,19 +1,18 @@
 package com.pushuprpg.app.ui.screens
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.pushuprpg.app.R
-import com.pushuprpg.app.domain.DailyTotal
 import com.pushuprpg.app.domain.PlayerProgress
 import com.pushuprpg.app.domain.SessionRecord
 import com.pushuprpg.app.ui.components.CalorieCard
@@ -34,7 +33,10 @@ import com.pushuprpg.core.progression.Records
 import com.pushuprpg.core.progression.SessionFacts
 import androidx.compose.runtime.remember
 import java.text.NumberFormat
+import java.time.Instant
 import java.time.LocalDate
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 /**
@@ -43,12 +45,15 @@ import java.util.Locale
  * One rule shapes all of it: a lost run is displayed exactly as prominently as a won one. Greying
  * out defeats, or marking them with a failure icon, would quietly contradict the promise the app
  * makes at the end of every run, and the promise is the reason people come back after a bad day.
+ * So a workout says what was done and how much, and nothing about how it ended.
+ *
+ * The thirteen-week grid that stood above the recent workouts was taken out, by the owner's decision
+ * (2026-10-02); the week card on the hub says the week.
  */
 @Composable
 fun RecordsScreen(
     progress: PlayerProgress,
     sessions: List<SessionRecord>,
-    dailyTotals: List<DailyTotal>,
     /** Every run, for the calories, each movement's records and the days trained. */
     facts: List<SessionFacts>,
     /** The movement picked last, whose count to the next food the calorie card quotes. */
@@ -61,6 +66,12 @@ fun RecordsScreen(
     // Most done first: the movement someone actually trains leads.
     val records = remember(facts) { Records.of(facts).values.sortedByDescending { it.total } }
     val daysTrained = remember(facts) { facts.map { it.epochDay }.distinct().size }
+    // Newest day first and newest first within it, as the list comes: groupBy keeps the order.
+    val days = remember(sessions) {
+        val zone = ZoneId.systemDefault()
+        sessions.groupBy { Instant.ofEpochMilli(it.startedAtMs).atZone(zone).toLocalDate() }.toList()
+    }
+    val today = LocalDate.now()
 
     LazyColumn(
         modifier = modifier
@@ -119,12 +130,6 @@ fun RecordsScreen(
             items(records, key = { "record-" + it.exercise.name }) { record -> MovementRecordRow(record) }
         }
 
-        item {
-            SectionHeader(text = stringResource(R.string.records_heat_title))
-            Spacer(Modifier.height(10.dp))
-            ActivityGrid(dailyTotals)
-        }
-
         item { SectionHeader(text = stringResource(R.string.records_recent_title)) }
 
         if (sessions.isEmpty()) {
@@ -136,143 +141,98 @@ fun RecordsScreen(
                 )
             }
         } else {
-            items(sessions, key = { it.id }) { session -> SessionRow(session) }
+            items(days, key = { "day-" + it.first.toEpochDay() }) { (day, rows) -> DayGroup(day, rows, today) }
         }
     }
 }
 
 /**
- * A contribution-style grid: thirteen weeks of volume, read as a shape rather than as numbers.
- *
- * A day is lit by reps or by time: a plank counts no reps, and a day spent holding one used to
- * stay dark.
+ * One day's workouts under the day they were done, by the owner's decision: 오늘, 어제, or the date
+ * and its weekday as the heading, and each workout a line in the card under it. The day is read once,
+ * not on every card, and a day of three sets of one movement reads as one day.
  */
 @Composable
-private fun ActivityGrid(totals: List<DailyTotal>) {
-    val colors = LocalGameColors.current
-    val byDay = totals.associateBy { it.epochDay }
-    val todayDate = LocalDate.now()
-    val today = todayDate.toEpochDay()
-    val weeks = 13
-    // Every other row, as the calendar apps do: seven one-letter labels crowd a 13dp row.
-    val weekdays = listOf(
-        stringResource(R.string.records_weekday_mon), "",
-        stringResource(R.string.records_weekday_wed), "",
-        stringResource(R.string.records_weekday_fri), "", "",
-    )
-
-    // Each column must be one real week, so the grid starts on a Monday rather than on whatever
-    // weekday happens to fall 90 days ago. Epoch day 0 was a Thursday, which is why the offset is
-    // 3: (epochDay + 3) mod 7 gives 0 for a Monday.
-    val mondayOffset = ((today + 3) % 7).toInt()
-    val start = today - mondayOffset - (weeks - 1) * 7L
-    val peakReps = totals.maxOfOrNull { it.reps }?.coerceAtLeast(1) ?: 1
-    val peakMs = totals.maxOfOrNull { it.activeMs }?.coerceAtLeast(1L) ?: 1L
-
-    Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
-        for (weekday in 0 until 7) {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(3.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    text = weekdays[weekday],
-                    style = Type.labelS,
-                    color = Palette.TextTertiary,
-                    modifier = Modifier.width(18.dp),
-                )
-                for (week in 0 until weeks) {
-                    val day = start + week * 7 + weekday
-                    val total = byDay[day]
-                    val worked = total != null && (total.reps > 0 || total.activeMs > 0L)
-                    // The larger of the day's two shares, so a long hold reads as much as its reps would.
-                    val share = if (total == null) 0f else maxOf(
-                        total.reps.toFloat() / peakReps,
-                        total.activeMs.toFloat() / peakMs,
-                    )
-                    val intensity = if (!worked) 0f else (0.25f + 0.75f * share).coerceAtMost(1f)
-                    Box(
-                        Modifier
-                            .size(13.dp)
-                            .clip(RoundedCornerShape(3.dp))
-                            .background(
-                                if (day > today) Palette.Bg1
-                                else if (!worked) Palette.Bg3
-                                else colors.accept.copy(alpha = intensity)
-                            )
+private fun DayGroup(day: LocalDate, sessions: List<SessionRecord>, today: LocalDate) {
+    val weekdays = stringArrayResource(R.array.weekday_short)
+    val weekday = weekdays.getOrElse(day.dayOfWeek.value - 1) { "" }
+    val label = when {
+        day == today -> stringResource(R.string.records_day_today)
+        day == today.minusDays(1) -> stringResource(R.string.records_day_yesterday)
+        day.year == today.year -> stringResource(R.string.records_day_date, day.monthValue, day.dayOfMonth, weekday)
+        else -> stringResource(R.string.records_day_date_year, day.year, day.monthValue, day.dayOfMonth, weekday)
+    }
+    Column(Modifier.fillMaxWidth()) {
+        Text(
+            text = label,
+            style = Type.labelL,
+            color = Palette.TextSecondary,
+            modifier = Modifier.padding(start = 4.dp, bottom = 6.dp),
+        )
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .cardSurface(shape = RoundedCornerShape(16.dp)),
+        ) {
+            sessions.forEachIndexed { i, session ->
+                if (i > 0) {
+                    HorizontalDivider(
+                        thickness = 1.dp,
+                        color = Palette.StrokeSoft,
+                        modifier = Modifier.padding(horizontal = 16.dp),
                     )
                 }
+                SessionRow(session)
             }
         }
     }
 }
 
 /**
- * One session: what was done, when, and how much.
+ * One workout, under its day: the movement and how much of it, and the time it began.
  *
- * A row from before the dungeons were taken out says so, and counts like any other. A hold is told
- * in seconds, which is what it counts. The table keeps no hold time, so the seconds are the row's
- * length, which for a hold is written as the time it was held.
+ * Nothing names the mode, by the owner's decision: with the dungeons gone every workout is 고양이
+ * 지켜줘, and a row played in a dungeon before then reads and counts like any other. A hold is told in
+ * how long it was held, which the table keeps as the row's length.
  */
 @Composable
 private fun SessionRow(session: SessionRecord) {
-    val colors = LocalGameColors.current
-    val day = java.time.Instant.ofEpochMilli(session.startedAtMs)
-        .atZone(java.time.ZoneId.systemDefault())
-        .toLocalDate()
-    val date = stringResource(R.string.records_date, day.monthValue, day.dayOfMonth)
     val hold = Exercises.of(session.exercise).kind == MovementKind.HOLD
-    val seconds = session.durationMs / 1000
-    val meta = listOfNotNull(
-        stringResource(exerciseLabelRes(session.exercise)),
-        date,
-        if (hold) null else durationText(seconds),
-        if (hold) null else stringResource(R.string.records_combo_value, session.maxCombo),
-    ).joinToString(" · ")
-
+    val time = remember(session.startedAtMs) {
+        Instant.ofEpochMilli(session.startedAtMs).atZone(ZoneId.systemDefault()).format(TIME_OF_DAY)
+    }
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .cardSurface(shape = RoundedCornerShape(16.dp))
-            .padding(14.dp),
+            .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(Modifier.weight(1f)) {
             Text(
-                text = stringResource(
-                    if (session.dungeonIndex != null) R.string.records_session_dungeon else R.string.survival_title
-                ),
+                text = stringResource(exerciseLabelRes(session.exercise)),
                 style = Type.titleM,
                 color = Palette.TextPrimary,
             )
-            Spacer(Modifier.height(3.dp))
+            Spacer(Modifier.height(2.dp))
             Text(
-                text = meta,
+                text = time,
                 style = Type.labelM,
                 color = Palette.TextTertiary,
             )
         }
-        Column(horizontalAlignment = Alignment.End) {
-            Text(
-                text = if (hold) {
-                    stringResource(R.string.records_duration_s, seconds)
-                } else {
-                    stringResource(R.string.records_reps_value, session.reps)
-                },
-                style = Type.numeralL,
-                color = Palette.TextPrimary,
-            )
-            // 완료 / 도전, never 성공 / 실패. The run happened either way.
-            Text(
-                text = stringResource(
-                    if (session.cleared) R.string.records_session_cleared else R.string.records_session_attempted
-                ),
-                style = Type.labelM,
-                color = if (session.cleared) colors.accept else Palette.TextSecondary,
-            )
-        }
+        Text(
+            text = if (hold) {
+                durationText(session.durationMs / 1000)
+            } else {
+                stringResource(R.string.records_reps_value, session.reps)
+            },
+            style = Type.numeralL,
+            color = Palette.TextPrimary,
+        )
     }
 }
+
+/** 오후 3:12. */
+private val TIME_OF_DAY: DateTimeFormatter = DateTimeFormatter.ofPattern("a h:mm", Locale.KOREAN)
 
 /** One movement's records: its best one go, its first, and everything done with it. */
 @Composable

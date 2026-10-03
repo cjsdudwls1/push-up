@@ -6,7 +6,7 @@
   any correction.
 -->
 <resources>
-    <string name="app_name">고냥이 지켜줘</string>
+    <string name="app_name">고양이 지켜줘</string>
 
     <!-- Navigation / common -->
     <string name="action_start">시작하기</string>
@@ -17,8 +17,8 @@
     <string name="action_settings">설정</string>
 
     <!-- Onboarding & permission -->
-    <string name="onboarding_title">고냥이를 지켜 주세요</string>
-    <string name="onboarding_body">천장이 내려와요. 푸쉬업 한 번에 천장이 올라가요.\n고냥이를 지키는 사이에 운동이 쌓여요.</string>
+    <string name="onboarding_title">고양이를 지켜 주세요</string>
+    <string name="onboarding_body">천장이 내려와요. 푸쉬업 한 번에 천장이 올라가요.\n고양이를 지키는 사이에 운동이 쌓여요.</string>
     <!-- The health notice, where everyone sees it once before the first workout. Same words as the store listing and terms. -->
     <string name="onboarding_health">의료기기가 아니에요. 운동 중에 아프면 바로 멈추고, 지병이나 부상이 있다면 먼저 의사와 상의해 주세요.</string>
     <string name="permission_headline">카메라 권한이 필요해요</string>
@@ -63,9 +63,10 @@
 
     <!-- Home -->
     <string name="home_today_reps">오늘 %1$d개</string>
-    <!-- The hub's one big button, and under it the movement it plays and how many lives. -->
-    <string name="home_cat_play">고냥이 지키기</string>
-    <string name="home_cat_play_sub">%1$s · 목숨 %2$d개</string>
+    <!-- The hub's one big button, and under it how many lives; the movement is the pill under it, which opens the picker. -->
+    <string name="home_cat_play">고양이 지키기</string>
+    <string name="home_cat_play_sub">목숨 %1$d개</string>
+    <string name="home_change_exercise_label">운동 바꾸기</string>
     <!-- Under it: the picker, for a movement other than the one the button starts. -->
     <string name="home_change_exercise">운동 바꾸기</string>
     <!-- What the cat says as the hub opens, by how long it has been. Glad, never reproachful. -->
@@ -111,7 +112,7 @@
 
     <!-- Records -->
     <string name="records_title">기록</string>
-    <string name="records_empty">아직 기록이 없어요. 고냥이를 지키러 가요!</string>
+    <string name="records_empty">아직 기록이 없어요. 고양이를 지키러 가요!</string>
     <string name="records_lifetime_reps">누적 개수</string>
     <string name="records_total_time">총 운동 시간</string>
     <string name="records_best_streak">최고 연속</string>
@@ -125,7 +126,7 @@
     <string name="settings_sfx">효과음</string>
     <string name="settings_rest_minutes">%1$d분</string>
     <string name="settings_rest_minutes_seconds">%1$d분 %2$d초</string>
-    <string name="settings_cat_rest">고냥이 쉬는 시간</string>
+    <string name="settings_cat_rest">고양이 쉬는 시간</string>
     <string name="settings_cat_rest_sub">목숨이 하나 줄면 이만큼 쉬고 다음 목숨을 시작해요. 쉬어야 다음 판에 더 많이 해요.</string>
     <string name="result_rest_title">쉬는 시간</string>
     <string name="result_rest_time">%1$d:%2$02d</string>
@@ -155,7 +156,7 @@
     <string name="settings_record_traces_sub">방금 한 운동 하나의 관절 위치만 폰 메모리에 남겨요. 영상은 없고, 보내기를 눌러야만 밖으로 나가요.</string>
     <string name="settings_send_trace">방금 한 운동 기록 보내기</string>
     <string name="trace_share_title">동작 기록 보내기</string>
-    <string name="trace_share_subject">고냥이 지켜줘 동작 기록</string>
+    <string name="trace_share_subject">고양이 지켜줘 동작 기록</string>
     <string name="trace_none">보낼 기록이 없어요. 동작 기록을 켜고 운동을 한 번 해 주세요.</string>
     <string name="trace_write_failed">기록 파일을 만들지 못했어요. 저장 공간을 확인해 주세요.</string>
     <string name="settings_cvd_none">없음</string>
@@ -178,10 +179,13 @@
     <!-- Camera placement, in one line: the rest is said live by the placement banner. A pushup is
          read across the shoulders from the head and along the torso from the side. A plank is
          read from the 3-D skeleton, so from the head and from the side both work, and the legs are
-         taken from the skeleton whether the camera sees them or not: the hint does not ask for them. -->
+         taken from the skeleton whether the camera sees them or not: the hint does not ask for them.
+         Its hint says the phone on its side, by the owner's decision: the screen turns with the phone
+         for a plank, and side on the wide picture holds the body from 1.5-2 m where upright needed
+         much more (PlankRigTest). -->
     <string name="exercise_hint_pushup">폰은 바닥에, 머리 앞쪽이나 옆으로 1m쯤 떨어뜨려 세워 두세요</string>
     <string name="exercise_hint_squat">폰은 정면에, 무릎까지 보이게 두세요</string>
-    <string name="exercise_hint_plank">폰은 바닥에 세워 두세요 (머리 쪽·옆 다 돼요)</string>
+    <string name="exercise_hint_plank">폰을 가로로 눕혀 바닥에 세우고, 옆으로 1.5~2m 떨어져요</string>
     <string name="exercise_hint_pull_up">폰은 멀리, 바부터 발까지 보이게 두세요 (앞·옆·뒤 다 돼요)</string>
     <string name="exercise_hint_lunge">폰은 바닥에 세워 두세요 (앞·옆 다 돼요)</string>
     <string name="exercise_hint_dip">폰은 평행봉 앞이나 옆, 온몸이 보이게 두세요</string>
@@ -190,7 +194,7 @@
     <string name="exercise_unvalidated">시험 중</string>
 
     <!-- Survival mode -->
-    <string name="survival_title">고냥이 지켜줘</string>
+    <string name="survival_title">고양이 지켜줘</string>
     <string name="survival_score">%1$,d점</string>
     <!-- %1$s is the movement: each has its own best, since a pull-up is not a pushup. -->
     <string name="survival_best_of">%1$s 최고 %2$,d점</string>
@@ -200,7 +204,7 @@
     <!-- %1$d is how many lives a session has. -->
     <string name="pick_survival_sub">한 번 할 때마다 천장이 올라가요. 목숨은 %1$d개, 하나 줄면 잠깐 쉬었다 이어 가요.</string>
     <!-- Under the pushup placement hint, before the tutorial's ceiling starts. -->
-    <string name="tutorial_intro_body">푸쉬업 자세를 잡으면 천장이 내려와요. 밀어 올려서 고냥이를 지켜 주세요.</string>
+    <string name="tutorial_intro_body">푸쉬업 자세를 잡으면 천장이 내려와요. 밀어 올려서 고양이를 지켜 주세요.</string>
     <!-- The tutorial's ending, by what it counted: reps; none, but reps refused as not deep enough;
          none at all. Only the first is 준비 끝. -->
     <string name="tutorial_done_title">준비 끝!</string>
@@ -228,6 +232,7 @@
     <string name="rest_refunded">카메라가 잠깐 놓쳐서, 이번 목숨은 깎지 않았어요</string>
     <string name="rest_tip">물 한 모금 마시고 숨을 골라요. 쉬어야 다음 판에 더 많이 해요.</string>
     <string name="rest_after">쉬는 시간이 끝나면, 자세를 잡을 때 다음 목숨이 시작돼요</string>
+    <string name="rest_skip">쉬는 시간 건너뛰기</string>
     <string name="rest_next_best">다음 %1$d세트 최고 기록은 %2$d개예요</string>
     <string name="rest_next_best_hold">다음 %1$d세트 최고 기록은 %2$d초예요</string>
     <string name="rest_next_first">다음 %1$d세트는 첫 기록이에요</string>
@@ -239,7 +244,7 @@
     <string name="set_record_broken">기록 경신!</string>
 
     <!-- Every life spent. The cat's line goes through cat_says with its name. -->
-    <string name="session_over_title">오늘의 고냥이 지키기 끝!</string>
+    <string name="session_over_title">오늘의 고양이 지키기 끝!</string>
     <string name="session_over_cat">지켜 줘서 고마워요, 냥!</string>
     <!-- Over the bars: one per life, %1$d of them. -->
     <string name="session_chart_title">세트별 개수 (%1$d세트)</string>
@@ -248,10 +253,10 @@
     <string name="session_sets_broken">세트 기록을 %1$d개 깼어요</string>
     <string name="session_churu">츄르 %1$d개를 받았어요</string>
     <string name="session_again">한 판 더</string>
-    <string name="survival_share_text">고냥이 지켜줘 %1$,d점! 운동으로 고냥이를 지켰어요 🐱💪</string>
+    <string name="survival_share_text">고양이 지켜줘 %1$,d점! 운동으로 고양이를 지켰어요 🐱💪</string>
 
     <!-- The cat. Its default name is the mode's; the user can rename it on the survival picker and in 꾸미기. -->
-    <string name="cat_default_name">고냥이</string>
+    <string name="cat_default_name">고양이</string>
     <string name="cat_card_title">우리 고양이</string>
     <string name="cat_card_sub">이름과 털 색을 정해 주세요. 천장 아래에서 이 아이가 기다려요.</string>
     <string name="cat_name_label">이름</string>
@@ -346,7 +351,7 @@
     <!-- What the cat found on this run, %1$s the things by name. Said as its find, never as a task done. -->
     <string name="growth_gift">🎁 선물을 찾아 왔어요: %1$s</string>
 
-    <!-- The cat's things: what it wears, and the places it can sit. -->
+    <!-- The cat's things: what it wears, its toys, and the places it can sit. -->
     <string name="item_bell">방울</string>
     <string name="item_ribbon">리본</string>
     <string name="item_flower">꽃핀</string>
@@ -362,6 +367,23 @@
     <string name="item_crown">왕관</string>
     <string name="item_snow">눈 덮인 산</string>
     <string name="item_space">우주</string>
+    <string name="item_yarn">털실 뭉치</string>
+    <string name="item_cap">야구 모자</string>
+    <string name="item_fish_toy">물고기 인형</string>
+    <string name="item_whistle">호루라기</string>
+    <string name="item_pirate_hat">해적 모자</string>
+    <string name="item_goggles">물안경</string>
+    <string name="item_flower_crown">꽃 화관</string>
+    <string name="item_blush">발그레 볼</string>
+    <string name="item_necktie">넥타이</string>
+    <string name="item_trophy">트로피</string>
+    <string name="item_pearls">진주 목걸이</string>
+    <string name="item_grad_cap">학사모</string>
+    <string name="item_aurora">오로라</string>
+    <string name="item_cherry_blossom">벚꽃길</string>
+    <string name="item_monocle">외알 안경</string>
+    <string name="item_halo">천사 링</string>
+    <string name="item_undersea">바닷속</string>
     <string name="item_headband">땀 머리띠</string>
     <string name="item_bandana">반다나</string>
     <string name="item_heart_glasses">하트 안경</string>
@@ -370,6 +392,18 @@
     <string name="item_witch_hat">마녀 모자</string>
     <string name="item_beach">바닷가</string>
     <string name="item_gym">헬스장</string>
+    <string name="item_ball">탱탱볼</string>
+    <string name="item_mustache">콧수염</string>
+    <string name="item_mouse_toy">쥐돌이</string>
+    <string name="item_sports_towel">운동 수건</string>
+    <string name="item_lei">꽃목걸이</string>
+    <string name="item_box">택배 상자</string>
+    <string name="item_star_glasses">별 안경</string>
+    <string name="item_frog_hat">개구리 모자</string>
+    <string name="item_headphones">헤드폰</string>
+    <string name="item_park">공원</string>
+    <string name="item_cat_tower">캣타워</string>
+    <string name="item_stage">무대</string>
     <!-- Under a found gift in 꾸미기: what it was found for, said after the fact. Gifts not yet found
          say nothing about what they wait for: they are surprises, by the owner's decision. -->
     <string name="gift_why_first_run">첫 운동</string>
@@ -378,16 +412,19 @@
     <string name="gift_why_comeback">다시 와 준 날</string>
     <string name="gift_why_full_session">%1$d세트 끝까지</string>
     <string name="gift_why_records">신기록 %1$d번</string>
+    <!-- Runs with something done in them, and different movements done. -->
+    <string name="gift_why_runs">운동 %1$d번</string>
+    <string name="gift_why_movements">운동 %1$d가지</string>
     <!-- %1$s is a food on the calorie ladder. -->
     <string name="gift_why_burn">%1$s만큼</string>
 
     <!-- 꾸미기: the cat's name and coat, and what it has found. -->
-    <string name="wardrobe_title">고냥이 꾸미기</string>
+    <string name="wardrobe_title">고양이 꾸미기</string>
     <string name="wardrobe_found">찾은 선물 %1$d개</string>
     <string name="wardrobe_hint">누르면 입고, 한 번 더 누르면 벗어요.</string>
     <string name="wardrobe_secret">아직 비밀</string>
     <!-- %1$d is how many gifts are still to be found. -->
-    <string name="wardrobe_secret_note">비밀 선물 %1$d개가 남았어요. 운동하다 보면 고냥이가 찾아 와요.</string>
+    <string name="wardrobe_secret_note">비밀 선물 %1$d개가 남았어요. 운동하다 보면 고양이가 찾아 와요.</string>
     <!-- The shop: 츄르 from set records buys what no gift brings. -->
     <string name="shop_title">츄르 상점</string>
     <string name="shop_churu">츄르 %1$d개</string>
@@ -403,13 +440,9 @@
     <!-- The way in, over the cat on the hub; with the count of gifts not yet looked at. -->
     <string name="home_wardrobe">꾸미기</string>
     <string name="home_wardrobe_new">새 선물 %1$d</string>
-    <string name="home_wardrobe_open">고냥이 꾸미기 열기</string>
+    <string name="home_wardrobe_open">고양이 꾸미기 열기</string>
 
-    <!-- Records detail (heat calendar, session list) -->
-    <string name="records_heat_title">지난 13주</string>
-    <string name="records_weekday_mon">월</string>
-    <string name="records_weekday_wed">수</string>
-    <string name="records_weekday_fri">금</string>
+    <!-- Records detail: the recent workouts, grouped under the day they were done. -->
     <string-array name="weekday_short">
         <item>월</item>
         <item>화</item>
@@ -420,13 +453,11 @@
         <item>일</item>
     </string-array>
     <string name="records_recent_title">최근 운동</string>
-    <!-- A row played in a dungeon, from before the dungeons were taken out. Its reps still count. -->
-    <string name="records_session_dungeon">던전</string>
-    <string name="records_session_cleared">완료</string>
-    <string name="records_session_attempted">도전</string>
-    <string name="records_date">%1$d월 %2$d일</string>
+    <string name="records_day_today">오늘</string>
+    <string name="records_day_yesterday">어제</string>
+    <string name="records_day_date">%1$d월 %2$d일 %3$s요일</string>
+    <string name="records_day_date_year">%1$d년 %2$d월 %3$d일 %4$s요일</string>
     <string name="records_reps_value">%1$d개</string>
-    <string name="records_combo_value">×%1$d</string>
     <string name="records_days_value">%1$d일</string>
     <string name="records_minutes_value">%1$,d분</string>
     <string name="records_duration_hm">%1$d시간 %2$d분</string>
@@ -439,9 +470,9 @@
     <string name="settings_section_exercise">운동</string>
     <string name="settings_reduce_motion_sub">화면 흔들림과 번쩍임을 줄여요.</string>
     <string name="settings_cvd_sub">초록·빨강 대신 파랑·노랑으로 구분해요.</string>
-    <string name="settings_voice_sub">고냥이의 말과 자세 안내를 목소리로 알려줘요. 폰이 멀리 있어도 들려요.</string>
+    <string name="settings_voice_sub">고양이의 말과 자세 안내를 목소리로 알려줘요. 폰이 멀리 있어도 들려요.</string>
     <!-- Share card -->
-    <string name="share_card_survival_headline">고냥이를 지켰어요</string>
+    <string name="share_card_survival_headline">고양이를 지켰어요</string>
     <string name="share_card_survival_hero_label">천장을 밀어 올린 점수</string>
     <string name="share_card_point_suffix">점</string>
     <string name="share_card_stat_reps">밀어 올린 횟수</string>

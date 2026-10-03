@@ -24,7 +24,7 @@ data class PlayerProgress(
     /** Epoch day of the most recent day that met the streak bar. */
     val lastActiveEpochDay: Long = 0,
     /**
-     * 고냥이 지켜줘's best score per movement, by the owner's decision: a pull-up and a plank are
+     * 고양이 지켜줘's best score per movement, by the owner's decision: a pull-up and a plank are
      * not the same effort, so one best across all of them only ever said what the easiest one
      * scored. Read it through [bestSurvivalScoreOf]; a movement never played is absent.
      */
@@ -56,7 +56,7 @@ fun PlayerProgress.purse(): Purse = Purse(
     owned = bought.mapNotNullTo(mutableSetOf()) { name -> CatItem.entries.firstOrNull { it.name == name } },
 )
 
-/** The best 고냥이 score with [exercise], or 0 before its first session. */
+/** The best 고양이 score with [exercise], or 0 before its first session. */
 fun PlayerProgress.bestSurvivalScoreOf(exercise: ExerciseType): Int = bestSurvivalScores[exercise] ?: 0
 
 /** [score] kept as [exercise]'s best if it beats the one there. */
@@ -80,7 +80,7 @@ data class SessionRecord(
     val meanDepth: Float,
     /**
      * The dungeon a row was played in, for rows written while the app had dungeons; null for every
-     * 고냥이 session. Their reps still count everywhere, and [cleared] means something else on them.
+     * 고양이 session. Their reps still count everywhere, and [cleared] means something else on them.
      */
     val dungeonIndex: Int? = null,
     /** Every life played out; on a dungeon row, the dungeon cleared. */
@@ -141,7 +141,7 @@ data class AppSettings(
      */
     val recordTraces: Boolean = false,
     /**
-     * What the user calls the cat in 고냥이 지켜줘. Blank means the default, which is a string
+     * What the user calls the cat in 고양이 지켜줘. Blank means the default, which is a string
      * resource rather than a literal here, so it follows the locale like every other word.
      */
     val catName: String = "",
@@ -152,7 +152,7 @@ data class AppSettings(
      */
     val catWear: Set<String> = emptySet(),
     /**
-     * The rest between two lives of 고냥이 지켜줘, in seconds. A minute by the owner's decision;
+     * The rest between two lives of 고양이 지켜줘, in seconds. A minute by the owner's decision;
      * the settings offer longer, since a set to failure recovers better with more.
      */
     val catRestSeconds: Int = 60,
@@ -169,7 +169,7 @@ enum class MusicTrack {
     BATTLE,
     /** 집중 — lo-fi, for a long steady set. */
     FOCUS,
-    /** 잔잔 — soft marimba; 고냥이's room. */
+    /** 잔잔 — soft marimba; 고양이's room. */
     CALM,
 }
 

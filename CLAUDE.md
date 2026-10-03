@@ -2,7 +2,7 @@
 
 ## Layout
 
-- `core/` — pure Kotlin/JVM. Rep detection, calibration, 고냥이 지켜줘 (the ceiling, the session
+- `core/` — pure Kotlin/JVM. Rep detection, calibration, 고양이 지켜줘 (the ceiling, the session
   of ten lives, the cat), progression (streaks, calories, records, gifts). **No Android imports,
   ever.** If something can be expressed as a rule rather than a screen, it belongs here.
 - `app/` — Android. CameraX, MediaPipe, Compose, Room, DataStore.
@@ -13,6 +13,8 @@
 scripts/test-core.sh          # no Android SDK needed; ~20s
 scripts/check-resources.sh    # duplicate/missing/misused <string>s; <1s
 scripts/replay-trace.sh f.json  # a run recorded on a phone, replayed rep by rep; no SDK needed
+scripts/render-cat.sh out/ [ITEM...]  # the cat and its things as PNG, Compose's own Skia; no SDK needed
+scripts/install-android-sdk.sh [dir]  # the SDK :app needs, if Google's servers are reachable
 ./gradlew :app:assembleDebug  # needs the SDK
 ```
 
@@ -76,6 +78,12 @@ knees in the picture, the knees' height off the floor (elbow to shoulder is up; 
 wrist is the floor) can pass the legs instead of the model's guess at the shins, which read a real
 side-on plank as bent. The arm check that tells a plank from standing is not asked of a torso past
 level: from the head on the forearms the model put the elbow behind the shoulder half the time.
+**A plank may be filmed with the phone on its side**, by the owner's decision (2026-10-02): side on,
+the upright picture needed the phone too far away, and the wide one holds the body from 1.5-2 m. For
+a plank, and only a plank, the run screen turns with the phone whatever the rotation lock says
+(`FollowPhoneRotation`; the manifest keeps everything else upright), and the camera's use cases
+follow the display's rotation (`CameraPreview`), so the model is always handed an upright picture.
+`PlankRigTest` and `PlacementCoachTest` pin it from a phone on its side (`Body3d.Camera.landscape`).
 
 **A single frame never moves the calibration.** The lite model misplaces a landmark for a frame —
 a shoulder on the neck, the shoulders swapped — often enough to matter. A scale jump is a new subject
@@ -112,6 +120,10 @@ A pull-up must also bring the shoulders up *in the picture* (`ExerciseDescriptor
 the gap and the elbow close the same whether the body rises to the bar or the hands come down to
 the shoulders, and standing with the arms bending overhead, or folding them on the way down off the
 bar, both counted. `HangingRigTest` pins both fakes from every view.
+A dip is witnessed the same way, the shoulders coming down to the hands on the bars, and its elbow's
+3-D angle may not refuse a rep (`RepSignal.jointVetoes`): on a phone with the full model, filmed from
+the front, the elbow read straighter at the bottom of honest dips than at the top and refused three
+of four (`dip-front-full-model.json.gz` in `RealTraceTest`).
 
 **A pushup filmed from the side is read in its side view** (`SideView`), by the owner's request.
 Side on the shoulder line projects onto itself and has no scale, so once the shoulders have been
@@ -160,7 +172,7 @@ button, back, or the screen going (`SurvivalViewModel.save` and `leave`) — and
 calories, the streak and the gifts are all worked out from what was banked.
 
 **Never punish a tracking failure.** Nothing counts while `PoseQuality != OK`, and nothing may be
-lost for it either. 고냥이 지켜줘's ceiling does not pause for it, by the owner's decision: being in
+lost for it either. 고양이 지켜줘's ceiling does not pause for it, by the owner's decision: being in
 position only *starts* a life, and after that the ceiling never stops — resting, standing up and
 stepping out of view all let it keep coming. It is a sprint, and a sprint you can pause by sitting
 up is not one. Do not "fix" it back to pausing. What keeps the rule instead is the life given back:
@@ -168,16 +180,17 @@ a life that ends while the tracker has lost the user for two seconds is refunded
 (`CatSession.REFUND_LOST_MS`, `REFUNDS`), without stepping out of view becoming a way to live
 forever.
 
-A session of 고냥이 지켜줘 is **ten lives with a rest between them**, by the owner's decision: a
-life is a set, and the rest (a minute by default; the settings offer 90 s and 2 min) is fully
-forced — no skip, no extend, no button — and the next life's ceiling does not come back until it
-is over, and then waits, as the first did, for the user to be in position. Each life is a fresh
+A session of 고양이 지켜줘 is **ten lives with a rest between them**, by the owner's decision: a
+life is a set, and the rest (a minute by default; the settings offer 90 s and 2 min) runs its length
+unless the user skips it — the rest card's one button, added by the owner's later decision
+(2026-10-02, `CatSession.skipRest`); there is no extend — and the next life's ceiling does not come
+back until it is over or skipped, and then waits, as the first did, for the user to be in position. Each life is a fresh
 `CeilingSurvival` and keeps the sprint rule above. The close button and back end the session where
 it is and show its ending, since with ten lives that is how most sessions end. The tutorial is one
 life and no rest. `CatSessionTest` pins all of it.
 
 **The cat is the whole app; the dungeons were taken out** (2026-09-30), by the owner's decision.
-The hub's one big button is 고냥이 지키기, and it starts the movement it names at once — the picker
+The hub's one big button is 고양이 지키기, and it starts the movement it names at once — the picker
 is the 운동 바꾸기 link under it. There are no classes, levels, XP, difficulty or dungeon unlocks any
 more. What they stored is left where it was and not read, so a downgrade still finds it; rows played
 in a dungeon stay in the session table and count everywhere (`SessionRecord.dungeonIndex`), and the
@@ -214,6 +227,11 @@ away, records broken, the calories burned — so nothing is stored but which wer
 back. A run says what it found (`RunGrowth.gifts`, read after the streak is written) and puts it on
 where nothing is worn; something the user chose is never taken off for it. 꾸미기 shows what each
 found gift was for, after the fact, and nothing about the ones still wrapped. `GiftsTest` pins it.
+There are 32 gifts and 20 things on the shelf, more than twice the 15 and 8 there were, by the owner's
+request (2026-10-03); runs with something done in them and movements tried are ways to find one too.
+A toy (`WearSlot.TOY`) is not worn: it sits on the floor at the cat's left, `TOY_OFFSET` heads from
+its middle, and every picture that draws it leaves room there — the one that does not (the name
+card's) passes `toy = false`.
 
 The cat's fear, its lines and its sounds are decided by `CatCompanion` in `:core`, from the run's
 state and events — the rest's lines included; the screen draws the `CatView` it is given and plays
@@ -224,7 +242,7 @@ the sounds, and decides nothing about how the cat feels. It never changes the ga
 
 Korean is the default locale, not a translation. Voice is 해요체 — an encouraging training partner,
 never a drill instructor. 실패 does not appear anywhere in the app; a session ends as
-고냥이를 지켰어요, however it ended.
+고양이를 지켰어요, however it ended.
 Every user-visible string lives in `app/src/main/res/values/strings.xml`.
 
 Spoken lines play from `app/src/main/assets/voice/<id>.ogg` when a clip exists for the exact text
@@ -244,10 +262,18 @@ whole mode does, the curve's constants.
 
 ## Before claiming something works
 
-`:app` cannot be compiled in this environment — Google's Maven is unreachable here — so any change
-to it is unverified until CI runs. CI does build it and is green; that is the verification, not a
-local check. Say which of the two you have, rather than implying otherwise.
+`:app` compiles here only when the environment's network reaches Google's servers:
+`scripts/install-android-sdk.sh` then installs the SDK and points `local.properties` at it, and
+`./gradlew :app:assembleDebug` runs (about four minutes the first time; Maven Central sometimes
+answers 429 to the first burst, and a second try goes through). Under a policy that blocks Google's
+Maven it cannot, and a change to `:app` is unverified until CI runs. Either way a build is a compile
+check, not a phone: say which you have — a local build, CI, or neither — rather than implying more.
 
-`scripts/render-art.sh` is the exception that proves it: it renders the share cards and the Play
-feature graphic on a plain JVM against a Java2D shim, so artwork can be reviewed by looking at it
-here. Layout, clipping and hierarchy are real; fonts and hinting are not.
+`scripts/render-art.sh` renders the share cards and the Play feature graphic on a plain JVM against a
+Java2D shim, so artwork can be reviewed by looking at it here. Layout, clipping and hierarchy are
+real; fonts and hinting are not. `scripts/render-cat.sh` does the same for the cat and each of its
+things, and more faithfully: the cat is Compose drawing, and Compose's desktop build draws it through
+the same Skia a phone does. A new or changed thing for the cat is not done until its sheet has been
+looked at — the wardrobe tile on a light and a dark coat, the hub, and the run's cat in a panic, when
+the eyes are widest and the ceiling is on its head. The pictures the screens frame are plain drawing
+in `CatPictures.kt` for this reason: the renderer has the UI graphics and nothing above them.

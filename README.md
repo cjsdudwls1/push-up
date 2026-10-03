@@ -1,4 +1,4 @@
-# 고냥이 지켜줘
+# 고양이 지켜줘
 
 An Android fitness game. The phone's camera watches you do pushups; every rep pushes up a ceiling
 that is coming down on a cat. Rest, and it keeps coming.
@@ -83,7 +83,7 @@ life that ends while the camera had lost them is given back, once a session.
 ## Project layout
 
 ```
-core/     Pure Kotlin/JVM. Rep detection, calibration, 고냥이 지켜줘 (the ceiling, the session of
+core/     Pure Kotlin/JVM. Rep detection, calibration, 고양이 지켜줘 (the ceiling, the session of
           ten lives, the cat), and progression. No Android imports anywhere.
 app/      Android. CameraX, MediaPipe, Compose UI, Room, DataStore.
 ```

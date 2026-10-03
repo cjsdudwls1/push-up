@@ -93,7 +93,7 @@ data class ExerciseDescriptor(
      */
     val validatedOnDevice: Boolean = false,
     /**
-     * Reps of *this* movement that make up the same session as one pushup: what 고냥이 지켜줘's
+     * Reps of *this* movement that make up the same session as one pushup: what 고양이 지켜줘's
      * ceiling converts a rep into (see [com.pushuprpg.core.survival.CeilingSurvival]).
      *
      * A session's worth, not one rep's effort. A pull-up is far harder than a pushup as one rep, but
@@ -409,6 +409,13 @@ data class RepSignal(
     val allowJointFallback: Boolean,
     /** For a split-stance movement: how far apart front to back the feet must be. See [StanceCheck]. */
     val stance: StanceCheck? = null,
+    /**
+     * Whether the joint angle may refuse a rep that the primary signal counted. False where the
+     * model's 3-D angle for the joint cannot be trusted to agree — a dip filmed from the front, see
+     * [Exercises.DIP] — and something else witnesses the body instead. The angle is still read for
+     * what it is good for: a lockout at the top, and how deep a rep went.
+     */
+    val jointVetoes: Boolean = true,
 ) {
     init {
         require(scale == ScaleReference.SHOULDER_WIDTH) { "only shoulder width is implemented" }
@@ -732,8 +739,9 @@ object Exercises {
             scale = ScaleReference.SHOULDER_WIDTH,
             jointCheck = JointAngleCheck(ELBOWS, SHOULDERS, WRISTS, DIP_TOP_DEG, DIP_BOTTOM_DEG, confirmsFullDepth = true),
             bodyTravel = null,
-            crossCheck = CrossCheckPolicy.JOINT_REQUIRED,
+            crossCheck = CrossCheckPolicy.BEST_AVAILABLE,
             allowJointFallback = true,
+            jointVetoes = false,
         ),
         config = DetectorConfig(
             exercise = ExerciseType.DIP,
@@ -755,6 +763,13 @@ object Exercises {
             topClampMin = 0.80f, topClampMax = 2.20f,
             botClampMin = 0.30f, botClampMax = 1.60f,
         ),
+        // The witness is the body, not the elbow, since 2026-10-02: on a phone (SM-A556S, the full
+        // model) the elbow's 3-D angle read 157-166 degrees at the bottom of honest dips and 135-147
+        // at the top — straighter at the bottom — and refused three of four. Filmed from the front
+        // the forearm and the upper arm overlap in depth, which is the one direction the model has
+        // to guess. The hands are on the bars, so the shoulders come down in the picture to meet
+        // them, as a pull-up's go up; a wave or a curl moves the hands and leaves the shoulders.
+        shoulderTravel = 0.15f,
         validatedOnDevice = true,
         // Between a pushup and a pull-up, nearer the pull-up: a dip is near-max for most people but
         // the hands carry less than a full hang.

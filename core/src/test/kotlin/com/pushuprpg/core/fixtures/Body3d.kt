@@ -117,7 +117,19 @@ object Body3d {
             /** Standing on something [height] metres up, level, [distance] metres away. */
             fun level(distance: Float, height: Float): Camera =
                 Camera(position = V3(0f, height, distance), target = V3(0f, height, 0f))
+
+            /**
+             * The portrait camera's vertical field of view across the short side: what a phone turned
+             * on its side sees from top to bottom. 2·atan(tan(31°)·480/640).
+             */
+            const val LANDSCAPE_VFOV_DEG = 48.5f
         }
+
+        /**
+         * The same phone turned on its side: 640x480 upright, the long side across. A plank seen side
+         * on fits across it at a fraction of the distance the narrow portrait picture needs.
+         */
+        fun landscape(): Camera = copy(vfovDeg = LANDSCAPE_VFOV_DEG, width = height, height = width)
     }
 
     /**

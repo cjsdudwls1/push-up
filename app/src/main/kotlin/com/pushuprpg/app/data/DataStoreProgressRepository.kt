@@ -62,7 +62,7 @@ private val KEY_STREAK_DAYS = intPreferencesKey("streak_days")
 private val KEY_BEST_STREAK_DAYS = intPreferencesKey("best_streak_days")
 private val KEY_LAST_ACTIVE_DAY = longPreferencesKey("last_active_epoch_day")
 /**
- * The best 고냥이 score, one key per movement. The single key before it ("best_survival_score") is
+ * The best 고양이 score, one key per movement. The single key before it ("best_survival_score") is
  * neither read nor deleted: nothing says which movement its score came from, so each movement's
  * best starts over rather than inheriting another's, and a downgrade still finds the old value.
  */

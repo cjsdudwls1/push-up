@@ -1,5 +1,9 @@
 package com.pushuprpg.app.ui.components
 
+import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
+import android.content.pm.ActivityInfo
 import android.view.View
 import androidx.annotation.StringRes
 import androidx.compose.foundation.BorderStroke
@@ -24,6 +28,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.DarkMode
 import androidx.compose.material.icons.rounded.LightMode
+import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -34,10 +39,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
@@ -274,20 +281,40 @@ fun StreakChip(days: Int, modifier: Modifier = Modifier) {
 @Composable
 fun ThemeToggle(mode: ThemeMode, onToggle: () -> Unit, modifier: Modifier = Modifier) {
     val toLight = mode == ThemeMode.DARK
+    RoundIconButton(
+        icon = if (toLight) Icons.Rounded.LightMode else Icons.Rounded.DarkMode,
+        label = stringResource(if (toLight) R.string.theme_switch_to_light else R.string.theme_switch_to_dark),
+        onClick = onToggle,
+        modifier = modifier,
+    )
+}
+
+/** 설정, beside the theme toggle at the top of the hub: the same round button, with a gear. */
+@Composable
+fun SettingsButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
+    RoundIconButton(
+        icon = Icons.Rounded.Settings,
+        label = stringResource(R.string.action_settings),
+        onClick = onClick,
+        modifier = modifier,
+    )
+}
+
+/** A round 48dp button with one icon in it, read aloud as [label]. The top bar's buttons are all this. */
+@Composable
+fun RoundIconButton(icon: ImageVector, label: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
     Box(
         modifier = modifier
             .size(48.dp)
             .clip(CircleShape)
             .background(Palette.Bg2)
             .border(1.dp, Palette.StrokeSoft, CircleShape)
-            .clickable(role = Role.Button, onClick = onToggle),
+            .clickable(role = Role.Button, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
         Icon(
-            imageVector = if (toLight) Icons.Rounded.LightMode else Icons.Rounded.DarkMode,
-            contentDescription = stringResource(
-                if (toLight) R.string.theme_switch_to_light else R.string.theme_switch_to_dark
-            ),
+            imageVector = icon,
+            contentDescription = label,
             tint = Palette.TextPrimary,
             modifier = Modifier.size(22.dp),
         )
@@ -307,6 +334,31 @@ fun Pill(text: String, tint: Color, modifier: Modifier = Modifier) {
             .background(tint.copy(alpha = 0.16f))
             .padding(horizontal = 10.dp, vertical = 5.dp),
     )
+}
+
+/**
+ * Lets the screen turn with the phone while this is in the tree, whatever the rotation lock says,
+ * and stands it back upright when it leaves.
+ *
+ * For a plank, by the owner's decision (2026-10-02): filmed side on, the upright picture needed the
+ * phone too far away, and turned on its side it holds the whole body from about half the distance.
+ * The camera turns its pictures with the screen (CameraPreview), so the pose model is always handed
+ * an upright body and the overlay lands on it. Everything else stays upright: the manifest locks the
+ * app to portrait, and only this lets go of it.
+ */
+@Composable
+fun FollowPhoneRotation() {
+    val activity = LocalContext.current.findActivity() ?: return
+    DisposableEffect(activity) {
+        activity.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR
+        onDispose { activity.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT }
+    }
+}
+
+private tailrec fun Context.findActivity(): Activity? = when (this) {
+    is Activity -> this
+    is ContextWrapper -> baseContext.findActivity()
+    else -> null
 }
 
 /**

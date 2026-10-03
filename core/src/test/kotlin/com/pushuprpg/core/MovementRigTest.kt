@@ -143,7 +143,7 @@ class MovementRigTest {
     }
 
     /**
-     * The device report this answers: 고냥이 지켜줘 starts and stops on the pose, but pushups never
+     * The device report this answers: 고양이 지켜줘 starts and stops on the pose, but pushups never
      * push the ceiling back. From in front of the head and from a diagonal the first rep counted
      * and every one after it was refused as INCONSISTENT — alternately by the elbow check, for an
      * elbow bent past 82 degrees, and by the nose witness, which a head held in line with the body

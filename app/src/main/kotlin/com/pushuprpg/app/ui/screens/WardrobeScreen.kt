@@ -45,8 +45,7 @@ import com.pushuprpg.app.ui.components.CatCard
 import com.pushuprpg.app.ui.components.CatPortrait
 import com.pushuprpg.app.ui.components.Pill
 import com.pushuprpg.app.ui.components.cardSurface
-import com.pushuprpg.app.ui.components.drawCat
-import com.pushuprpg.app.ui.components.drawCatScene
+import com.pushuprpg.app.ui.components.drawItemPicture
 import com.pushuprpg.app.ui.components.giftWhyText
 import com.pushuprpg.app.ui.components.itemNameRes
 import com.pushuprpg.app.ui.theme.LocalGameColors
@@ -58,7 +57,7 @@ import com.pushuprpg.core.progression.ShopItem
 import com.pushuprpg.core.progression.WearSlot
 
 /**
- * 고냥이 꾸미기: the cat's name and coat, and everything it has found.
+ * 고양이 꾸미기: the cat's name and coat, and everything it has found.
  *
  * A found thing shows what it was found for, after the fact. The rest are 아직 비밀, with nothing
  * said about what they wait for: they are the cat's surprises, by the owner's decision, and a gift
@@ -331,29 +330,10 @@ private fun GiftTile(
     }
 }
 
-/**
- * A found thing, on the user's own cat: a scene with the cat small in it, anything worn on the cat
- * from the chest up, so a ribbon is big enough to see.
- */
+/** A found thing, on the user's own cat: see [drawItemPicture]. */
 @Composable
 private fun ItemPicture(item: CatItem, coat: CatCoat, modifier: Modifier = Modifier) {
-    Canvas(modifier.clip(RoundedCornerShape(10.dp))) {
-        if (item.slot == WearSlot.SCENE) {
-            val floor = size.height * 0.92f
-            drawCatScene(item, floorY = floor)
-            drawCat(centerX = size.width * 0.45f, baseY = floor, scale = size.minDimension / 160f, coat = coat)
-        } else {
-            // Paws below the frame; a party hat's pompom, the tallest thing worn, just inside the top.
-            drawCat(
-                centerX = size.width * 0.5f,
-                baseY = size.height * 1.22f,
-                scale = size.minDimension / 105f,
-                coat = coat,
-                wear = setOf(item),
-                tail = false,
-            )
-        }
-    }
+    Canvas(modifier.clip(RoundedCornerShape(10.dp))) { drawItemPicture(item, coat) }
 }
 
 /** A gift still wrapped: what a secret looks like. */

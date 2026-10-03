@@ -18,7 +18,7 @@ import java.time.ZoneId
  * the streak would break for a user who trains in the morning.
  *
  * [dungeonIndex] and [xpEarned] are the dungeons' and stay as columns, so the table needs no
- * migration and a dungeon row is still told from a 고냥이 one; new rows leave them null and zero.
+ * migration and a dungeon row is still told from a 고양이 one; new rows leave them null and zero.
  */
 @Entity(
     tableName = "sessions",

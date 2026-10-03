@@ -31,12 +31,14 @@ class GiftsTest {
     }
 
     @Test
-    fun `a best set brings a gift at ten, twenty, thirty and fifty`() {
+    fun `a best set brings a gift at 10, 15, 20, 25, 30, 40, 50 and 70`() {
         fun at(best: Int) = Gifts.earned(listOf(run(1, reps = best)), 0)
+        fun sets(best: Int) = at(best).filter { it.kind == Gift.Kind.SET }.map { it.count }.toSet()
         assertFalse(Gift.SET_10 in at(9))
         assertTrue(Gift.SET_10 in at(10))
-        assertEquals(setOf(Gift.SET_10, Gift.SET_20), at(29).filter { it.name.startsWith("SET_") }.toSet())
-        assertTrue(Gift.SET_50 in at(50))
+        assertEquals(setOf(10, 15, 20, 25), sets(29))
+        assertEquals(setOf(10, 15, 20, 25, 30, 40, 50), sets(69))
+        assertTrue(Gift.SET_70 in at(70))
     }
 
     @Test
@@ -66,6 +68,30 @@ class GiftsTest {
     fun `a session played to its last life brings the scarf`() {
         assertFalse(Gift.FULL_SESSION in Gifts.earned(listOf(run(1)), 1))
         assertTrue(Gift.FULL_SESSION in Gifts.earned(listOf(run(1, full = true)), 1))
+    }
+
+    @Test
+    fun `runs with something done in them bring gifts at five, twenty-five and a hundred`() {
+        val four = (1L..4L).map { run(it) }
+        assertFalse(Gift.RUNS_5 in Gifts.earned(four, 1))
+        assertTrue(Gift.RUNS_5 in Gifts.earned(four + run(5), 1))
+        // Played with no rep while the ceiling came down: banked, but nothing was done in it.
+        assertFalse(Gift.RUNS_5 in Gifts.earned(four + run(5, reps = 0, bestSet = 0), 1))
+        // A hold counts by the seconds held.
+        assertTrue(Gift.RUNS_5 in Gifts.earned(four + run(5, reps = 0, bestSet = 30, exercise = ExerciseType.PLANK), 1))
+        val many = (1L..100L).map { run(it) }
+        assertTrue(Gift.RUNS_25 in Gifts.earned(many.take(25), 1))
+        assertFalse(Gift.RUNS_100 in Gifts.earned(many.dropLast(1), 1))
+        assertTrue(Gift.RUNS_100 in Gifts.earned(many, 1))
+    }
+
+    @Test
+    fun `three different movements bring the whistle`() {
+        val two = listOf(run(1), run(2, exercise = ExerciseType.SQUAT), run(3, exercise = ExerciseType.SQUAT))
+        assertFalse(Gift.MOVEMENTS_3 in Gifts.earned(two, 1))
+        // Opened and left is not tried.
+        assertFalse(Gift.MOVEMENTS_3 in Gifts.earned(two + run(4, reps = 0, bestSet = 0, exercise = ExerciseType.LUNGE), 1))
+        assertTrue(Gift.MOVEMENTS_3 in Gifts.earned(two + run(4, exercise = ExerciseType.LUNGE), 1))
     }
 
     @Test
@@ -102,7 +128,7 @@ class GiftsTest {
     fun `a run reports only the gifts it brought`() {
         val before = listOf(run(1, reps = 12))
         val growth = RunGrowth.of(before, listOf(run(2, reps = 21)), bestStreakBefore = 1, bestStreakAfter = 2)
-        assertEquals(listOf(Gift.SET_20), growth.gifts)
+        assertEquals(listOf(Gift.SET_15, Gift.SET_20), growth.gifts)
         val streak = RunGrowth.of(before, listOf(run(2, reps = 5)), bestStreakBefore = 2, bestStreakAfter = 3)
         assertEquals(listOf(Gift.STREAK_3), streak.gifts)
     }
@@ -127,10 +153,19 @@ class GiftsTest {
     }
 
     @Test
+    fun `every gift brings a thing of its own, and there are twice as many as there were`() {
+        assertEquals(Gift.entries.size, Gift.entries.map { it.item }.distinct().size)
+        // Fifteen gifts and eight on the shelf, until the owner asked for at least twice as many.
+        assertTrue(Gift.entries.size >= 30, "${Gift.entries.size} gifts")
+        assertTrue(com.pushuprpg.core.progression.ShopItem.entries.size >= 16, "${com.pushuprpg.core.progression.ShopItem.entries.size} on the shelf")
+    }
+
+    @Test
     fun `every gift says what it waits for`() {
         for (gift in Gift.entries) {
             when (gift.kind) {
-                Gift.Kind.SET, Gift.Kind.STREAK, Gift.Kind.RECORDS -> assertTrue(gift.count > 0, "$gift")
+                Gift.Kind.SET, Gift.Kind.STREAK, Gift.Kind.RECORDS, Gift.Kind.RUNS, Gift.Kind.MOVEMENTS ->
+                    assertTrue(gift.count > 0, "$gift")
                 Gift.Kind.BURN -> assertTrue(gift.food != null, "$gift")
                 else -> Unit
             }
