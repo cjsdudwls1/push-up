@@ -15,6 +15,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
@@ -42,9 +43,8 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.coerceIn
 import androidx.compose.ui.unit.dp
 import com.pushuprpg.app.R
 import com.pushuprpg.app.domain.CatCoat
@@ -85,9 +85,8 @@ import com.pushuprpg.core.progression.WearSlot
 import com.pushuprpg.core.survival.CatLine
 import com.pushuprpg.core.survival.CatMood
 import com.pushuprpg.core.survival.CatPhase
-import com.pushuprpg.core.survival.CatSession
 import com.pushuprpg.core.survival.CatSessionState
-import com.pushuprpg.core.survival.LifeResult
+import com.pushuprpg.core.survival.SetResult
 import com.pushuprpg.core.survival.CatSpeech
 import com.pushuprpg.core.survival.CatView
 import com.pushuprpg.core.survival.SurvivalState
@@ -100,8 +99,9 @@ import kotlinx.coroutines.delay
  * descending ceiling *is* the gauge. This is the mode people are shown first and
  * the one they send to a friend, so it must not look like sports science.
  *
- * A session is ten lives — ten sets — with a rest between them that the screen counts down; the
- * tutorial is one life. See [com.pushuprpg.core.survival.CatSession].
+ * A session is as many sets as the user wants, with a rest between them that the screen counts
+ * down, until they end it with the close button or back; the tutorial is one set. See
+ * [com.pushuprpg.core.survival.CatSession].
  */
 @Composable
 fun SurvivalScreen(
@@ -125,7 +125,7 @@ fun SurvivalScreen(
     onClose: () -> Unit = onHome,
     /** The ending's 운동 바꾸기: leaves as [onHome] does, to the picker instead of the hub. */
     onChangeExercise: () -> Unit = onHome,
-    /** The rest card's 건너뛰기: the next life now, waiting for the user as after a full rest. */
+    /** The rest card's 건너뛰기: the next set now, waiting for the user as after a full rest. */
     onSkipRest: () -> Unit = {},
     /** The tutorial's way out before its run has started: 건너뛰기, and back, asked first, while the ceiling waits. */
     onSkip: () -> Unit = {},
@@ -144,7 +144,7 @@ fun SurvivalScreen(
     catCoat: CatCoat = CatCoat.CREAM,
     /** What the cat has on. A scene stays at home: under the ceiling is the only place this cat is. */
     catWear: Set<CatItem> = emptySet(),
-    /** This movement's best per set before this session: what each life is played against. */
+    /** This movement's best per set before this session: what each set is played against. */
     setBests: SetBests = SetBests(),
     /** What the banked session did to the set bests; null until it is written. */
     setOutcome: SetOutcome? = null,
@@ -268,9 +268,8 @@ fun SurvivalScreen(
                 style = Type.numeralL,
                 color = Palette.TextPrimary,
             )
-            // Not in the tutorial: a best of 0 says nothing to someone who has never played, and it
-            // has one life, which hearts would only count down. The best is this movement's own, and
-            // says so — a pull-up's score is not a pushup's.
+            // Not in the tutorial: a best of 0 says nothing to someone who has never played. The best
+            // is this movement's own, and says so — a pull-up's score is not a pushup's.
             if (!isTutorial) {
                 if (bestScore > 0) {
                     Spacer(Modifier.height(2.dp))
@@ -280,10 +279,8 @@ fun SurvivalScreen(
                         color = Palette.TextSecondary,
                     )
                 }
-                Spacer(Modifier.height(4.dp))
-                LivesRow(lives = state.lives, left = state.livesLeft)
                 // The set against its own best, by the owner's decision: the number is what makes
-                // breaking it worth chasing. Once the life has started; while setting up there is
+                // breaking it worth chasing. Once the set has started; while setting up there is
                 // nothing yet to count.
                 if (playing && life.started) {
                     Spacer(Modifier.height(8.dp))
@@ -751,8 +748,8 @@ private fun TutorialIntro(
  * The tutorial's ending.
  *
  * It reports the reps rather than the score, because telling a beginner their score before they
- * know what a good one is invites the wrong comparison — and then what comes next: three lives,
- * with a rest between them.
+ * know what a good one is invites the wrong comparison — and then what comes next: as many sets as
+ * they like, with a rest between them.
  *
  * Nothing counted is one of two runs, and only the card for a counted one says 준비 끝. Reps the
  * detector refused as not deep enough ([nearMisses]) were seen by the camera: the phone was fine and
@@ -816,7 +813,7 @@ private fun TutorialDoneCard(
         )
         Spacer(Modifier.height(8.dp))
         Text(
-            text = stringResource(R.string.tutorial_done_next, CatSession.LIVES),
+            text = stringResource(R.string.tutorial_done_next),
             style = Type.bodyL,
             color = Palette.TextSecondary,
             textAlign = TextAlign.Center,
@@ -857,28 +854,8 @@ private fun SetCounter(set: Int, now: Int, best: Int, hold: Boolean, modifier: M
     }
 }
 
-/** The session's lives as hearts: full for the ones left, faint for the ones spent. */
-@Composable
-private fun LivesRow(lives: Int, left: Int, modifier: Modifier = Modifier) {
-    val description = stringResource(R.string.survival_lives_left, left)
-    Row(
-        modifier = modifier.semantics { contentDescription = description },
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
-    ) {
-        repeat(lives) { i ->
-            CameraText(
-                text = "\u2665",
-                style = Type.titleM,
-                color = if (i < left) HEART else Palette.TextDisabled,
-            )
-        }
-    }
-}
-
-private val HEART = Color(0xFFFF6F91)
-
 /**
- * The rest between two lives.
+ * The rest between two sets.
  *
  * It is not optional, by the owner's decision: a set to the edge of failure needs the rest before
  * the next one, and a game will not take it unless made to. So the countdown is the largest thing on
@@ -922,17 +899,6 @@ private fun RestCard(
             style = Type.displayM,
             color = Palette.TextPrimary,
         )
-        if (state.ended.lastOrNull()?.refunded == true) {
-            Spacer(Modifier.height(6.dp))
-            Text(
-                text = stringResource(R.string.rest_refunded),
-                style = Type.bodyM,
-                color = Palette.TextSecondary,
-                textAlign = TextAlign.Center,
-            )
-        }
-        Spacer(Modifier.height(12.dp))
-        LivesRow(lives = state.lives, left = state.livesLeft)
         Spacer(Modifier.height(10.dp))
         val next = state.ended.size + 1
         Text(
@@ -1037,7 +1003,7 @@ private fun SessionOverCard(
             color = Palette.TextSecondary,
         )
         Spacer(Modifier.height(8.dp))
-        LivesChart(lives = state.ended, hold = hold, broken = setOutcome?.broken.orEmpty().toSet())
+        SetsChart(sets = state.ended, hold = hold, broken = setOutcome?.broken.orEmpty().toSet())
         if (setOutcome != null && setOutcome.churu > 0) {
             Spacer(Modifier.height(8.dp))
             if (setOutcome.broken.isNotEmpty()) {
@@ -1089,24 +1055,25 @@ private fun SessionOverCard(
 }
 
 /**
- * What each life made, as bars: ten sets read at a glance, the fade across them included — which is
- * what sets taken to the edge look like, and nothing to apologise for. A life the camera gave back
- * is drawn faint.
+ * What each set made, as bars: the sets read at a glance, the fade across them included — which is
+ * what sets taken to the edge look like, and nothing to apologise for. A session has as many as the
+ * user played; past what fits with a number over each bar, the bars scroll rather than shrink.
  */
 @Composable
-private fun LivesChart(lives: List<LifeResult>, hold: Boolean, broken: Set<Int> = emptySet()) {
-    val values = lives.map { if (hold) (it.survivedMs / 1000L).toInt() else it.reps }
+private fun SetsChart(sets: List<SetResult>, hold: Boolean, broken: Set<Int> = emptySet()) {
+    val values = sets.map { if (hold) (it.survivedMs / 1000L).toInt() else it.reps }
     val top = (values.maxOrNull() ?: 0).coerceAtLeast(1)
     BoxWithConstraints(Modifier.fillMaxWidth()) {
         val gap = 4.dp
-        val count = lives.size.coerceAtLeast(1)
-        val barWidth = minOf(36.dp, (maxWidth - gap * (count - 1)) / count)
+        val count = sets.size.coerceAtLeast(1)
+        val fit = (maxWidth - gap * (count - 1)) / count
+        val barWidth = fit.coerceIn(MIN_BAR_WIDTH, 36.dp)
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = if (fit < MIN_BAR_WIDTH) Modifier.horizontalScroll(rememberScrollState()) else Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(gap, Alignment.CenterHorizontally),
             verticalAlignment = Alignment.Bottom,
         ) {
-            lives.forEachIndexed { i, life ->
+            sets.forEachIndexed { i, _ ->
                 val value = values[i]
                 Column(
                     modifier = Modifier.width(barWidth),
@@ -1125,7 +1092,7 @@ private fun LivesChart(lives: List<LifeResult>, hold: Boolean, broken: Set<Int> 
                             .fillMaxWidth()
                             .height((CHART_HEIGHT * value / top).coerceAtLeast(3f).dp)
                             .clip(RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp))
-                            .background(if (life.refunded) Palette.Bg3 else Palette.Deep),
+                            .background(Palette.Deep),
                     )
                     Spacer(Modifier.height(4.dp))
                     Text(
@@ -1142,3 +1109,6 @@ private fun LivesChart(lives: List<LifeResult>, hold: Boolean, broken: Set<Int> 
 
 /** The tallest bar, in dp. */
 private const val CHART_HEIGHT = 64f
+
+/** The narrowest a bar is drawn: a three-figure count over it still reads. */
+private val MIN_BAR_WIDTH = 22.dp

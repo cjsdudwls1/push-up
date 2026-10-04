@@ -130,33 +130,32 @@ sealed class Event(val name: String, val params: Map<String, Any> = emptyMap()) 
     data object TutorialSkipped : Event("tutorial_skipped")
 
     /**
-     * Tracking dropped while a life was on.
+     * Tracking dropped while a set was on.
      *
      * How "it stopped counting my last three reps" turns into something anyone can act on, broken
      * down by reason and by device. It is one event per drop with no session to sum it over, and it
      * fires as readily for the user getting up to quit, so how often sessions lose the user is read
      * from [CatSessionFinished]; this is for why. [armed] says whether the movement had armed before
-     * it, and [atRep] is the life's reps so far.
+     * it, and [atRep] is the set's reps so far.
      */
     data class QualityLost(val quality: PoseQuality, val atRep: Int, val armed: Boolean) :
         Event("quality_lost", mapOf("reason" to quality.name, "at_rep" to atRep, "armed" to armed))
 
     /**
-     * A session of 고양이 지켜줘 ended, every life lost or left part way; the tutorial's is
-     * [TutorialCompleted]. [lives] and [completed] say whether people play all ten sets, and
-     * [tracking] and [plausibility] whether the tracker works on their phone (H2).
+     * A session of 고양이 지켜줘 ended — by the user, since a session has no lives to run out of
+     * (2026-10-04); the tutorial's is [TutorialCompleted]. [sets] says how many sets people play
+     * when the number is theirs, and [tracking] and [plausibility] whether the tracker works on
+     * their phone (H2).
      */
     data class CatSessionFinished(
         val exercise: ExerciseType,
-        /** Lives played, the one left part way included. */
-        val lives: Int,
+        /** Sets played, the one left part way included. */
+        val sets: Int,
         val reps: Int,
         val score: Int,
-        /** Time the lives were played, rests left out. */
+        /** Time the sets were played, rests left out. */
         val durationMs: Long,
-        /** A life was given back because the camera had lost the user. */
-        val refunded: Boolean,
-        /** Every life was played out, rather than the session left part way. */
+        /** [com.pushuprpg.core.progression.Gifts.FULL_SESSION_SETS] sets or more: what was ten lives played out. */
         val completed: Boolean,
         val plausibility: Float,
         /** How often tracking lost the user once they were in position; see [TrackingDrops]. */
@@ -165,18 +164,17 @@ sealed class Event(val name: String, val params: Map<String, Any> = emptyMap()) 
         "cat_session_finished",
         mapOf(
             "exercise" to exercise.name,
-            "lives" to lives,
+            "sets" to sets,
             "reps" to reps,
             "score" to score,
             "duration_ms" to durationMs,
-            "refunded" to refunded,
             "completed" to completed,
             // Below 0.85 the detector itself flagged the session. A population of these is the
             // first hint that the thresholds are wrong for some device or some body.
             "plausibility" to plausibility,
             // H2, per session: whether the user was ever in position, and after that how often the
             // tracker lost them, how often it found them again and for how long in all. Rests and
-            // each life's last seconds are left out: that is the user stepping away.
+            // each set's last seconds are left out: that is the user stepping away.
             "armed" to tracking.armed,
             "lost_count" to tracking.drops,
             "lost_recovered" to tracking.recovered,

@@ -55,8 +55,8 @@ with the objection that kills installs for a camera app.
 폰을 바닥에 세워 두고 엎드리면 카메라가 자세를 봐요. 개수를 손으로 세지 않아도 되고,
 얕게 하면 세지 않으니 대충 할 수도 없어요. 깊게 내려갈수록 천장이 더 높이 올라가요.
 
-▶ 목숨 열 개, 세트 열 번
-목숨 하나가 한 세트예요. 천장에 눌리면 1분 쉬고 다음 목숨으로 이어 가요.
+▶ 세트는 원하는 만큼
+천장에 눌리면 한 세트가 끝나요. 1분 쉬고 다음 세트로, 그만하고 싶을 때까지 이어 가요.
 쉬는 것까지가 운동이에요. 급한 날엔 건너뛸 수도 있어요.
 세트마다 지금 개수와 그 세트의 지난 최고 기록을 나란히 보여 줘요. 기록을 깨면 츄르를 받아요.
 
@@ -66,12 +66,12 @@ with the objection that kills installs for a camera app.
 어깨와 손목의 위치로 깊이를 재서, 카메라가 멀든 가깝든 같은 기준으로 세요.
 
 ▶ 카메라가 놓쳐도 괜찮아요
-카메라가 2초 넘게 놓친 채 끝난 목숨은 한 판에 한 번 돌려받아요.
+잃을 목숨이 없어요. 천장에 눌려도 그 세트의 개수는 그대로 남고, 쉬었다가 다음 세트로 이어 가요.
 
 ▶ 올라가기만 하는 기록
 지금까지 태운 칼로리를 음식으로 보여 줘요. 블루베리 한 알에서 시작해 치킨 한 마리,
 쌀 한 가마니까지. 운동마다 한 번에 가장 많이 한 기록을 처음 기록과 나란히 보여 주고,
-최고 점수도 운동마다 따로 남아요. 목숨을 잃어도, 며칠 쉬어도 줄지 않아요.
+최고 점수도 운동마다 따로 남아요. 천장에 눌려도, 며칠 쉬어도 줄지 않아요.
 
 ▶ 고양이가 선물을 찾아와요
 꾸준히 하다 보면 고양이가 리본, 털실 뭉치, 왕관, 오로라 배경 같은 선물을 30가지 넘게 찾아와요.
@@ -88,7 +88,7 @@ with the objection that kills installs for a camera app.
 · 고양이를 좋아하는 분
 
 전부 무료예요
-· 모든 운동과 목숨 열 개
+· 모든 운동, 세트는 원하는 만큼
 · 운동 기록, 연속 일수, 태운 칼로리
 · 고양이 이름·털 색·선물
 · 광고 없음
@@ -134,7 +134,7 @@ Caption text is burned into the image above the screenshot, in the app's own typ
 1. **고양이, mid-set.** Ceiling low, cat alarmed. Caption: `천장이 내려와요. 밀어 올리세요.`
    First — it is the most legible frame in the app and needs no fitness context.
 2. **The cat waiting for the first rep**, its line in the bubble. Caption: `팔굽혀펴기 한 번에 천장이 올라가요.`
-3. **The rest between lives**, the countdown large. Caption: `목숨 하나가 한 세트예요.`
+3. **The rest between sets**, the countdown large. Caption: `쉬고 나서 원하는 만큼 이어 가요.`
 4. **A set past its best**, 지금 13 / 최고 12 in the record colour. Caption: `세트마다 내 기록을 깨 봐요.`
 5. **The hub** with the calories card and a food. Caption: `태운 칼로리는 음식으로 보여 줘요.`
 6. **Records**, one movement's best against its first. Caption: `운동마다 내 기록이 남아요.`
@@ -165,7 +165,7 @@ Shoot all eight in one session on the real device. Do not mock them.
 첫 출시예요.
 
 · 천장이 내려와요. 팔굽혀펴기, 스쿼트, 플랭크 같은 맨몸운동 한 번에 천장이 올라가요
-· 목숨 열 개, 세트 열 번. 모든 기능이 무료예요
+· 세트는 원하는 만큼. 모든 기능이 무료예요
 · 카메라 영상은 저장되지 않아요
 
 이상한 점이 있으면 알려주세요. 어떤 폰에서 인식이 잘 안 되는지가 특히 궁금해요.

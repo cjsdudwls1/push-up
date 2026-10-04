@@ -92,7 +92,8 @@ private fun FactsRow.toFacts(): SessionFacts? {
         bestSet = maxCombo,
         deepReps = deepReps,
         durationMs = durationMs,
-        // A 고양이 session is the row with no dungeon, and its clear is every life played out.
+        // A 고양이 session is the row with no dungeon, and its clear is a full session: ten sets, which
+        // was every life played out before there were no lives (Gifts.FULL_SESSION_SETS).
         fullSession = dungeonIndex == null && cleared,
     )
 }

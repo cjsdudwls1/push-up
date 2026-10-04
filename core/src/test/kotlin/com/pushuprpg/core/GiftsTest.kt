@@ -65,7 +65,7 @@ class GiftsTest {
     }
 
     @Test
-    fun `a session played to its last life brings the scarf`() {
+    fun `a session of ten sets brings the scarf`() {
         assertFalse(Gift.FULL_SESSION in Gifts.earned(listOf(run(1)), 1))
         assertTrue(Gift.FULL_SESSION in Gifts.earned(listOf(run(1, full = true)), 1))
     }

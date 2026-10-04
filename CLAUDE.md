@@ -3,7 +3,7 @@
 ## Layout
 
 - `core/` — pure Kotlin/JVM. Rep detection, calibration, 고양이 지켜줘 (the ceiling, the session
-  of ten lives, the cat), progression (streaks, calories, records, gifts). **No Android imports,
+  of sets, the cat), progression (streaks, calories, records, gifts). **No Android imports,
   ever.** If something can be expressed as a rule rather than a screen, it belongs here.
 - `app/` — Android. CameraX, MediaPipe, Compose, Room, DataStore.
 
@@ -177,27 +177,29 @@ The weighted ones were removed; stored names that point at them read back tolera
 **A line drawn for the user to aim at reads its value from `DetectorConfig`.** It must be the same
 value the rep counter uses. Never hardcode 70 or 88 in a composable.
 
-**Reps survive a loss.** A session's reps are banked however it ends — every life lost, the close
-button, back, or the screen going (`SurvivalViewModel.save` and `leave`) — and the records, the
+**Reps survive a loss.** A session's reps are banked however it ends — the close button, back, or
+the screen going (`SurvivalViewModel.save` and `leave`) — and the records, the
 calories, the streak and the gifts are all worked out from what was banked.
 
 **Never punish a tracking failure.** Nothing counts while `PoseQuality != OK`, and nothing may be
 lost for it either. 고양이 지켜줘's ceiling does not pause for it, by the owner's decision: being in
-position only *starts* a life, and after that the ceiling never stops — resting, standing up and
+position only *starts* a set, and after that the ceiling never stops — resting, standing up and
 stepping out of view all let it keep coming. It is a sprint, and a sprint you can pause by sitting
-up is not one. Do not "fix" it back to pausing. What keeps the rule instead is the life given back:
-a life that ends while the tracker has lost the user for two seconds is refunded, once a session
-(`CatSession.REFUND_LOST_MS`, `REFUNDS`), without stepping out of view becoming a way to live
-forever.
+up is not one. Do not "fix" it back to pausing. What keeps the rule instead is that there is nothing
+to lose: the ceiling winning ends the set and keeps its reps, and the next set comes after the rest.
+(While a session was ten lives, a life the tracker lost was given back once a session; with no lives
+there is nothing to give back.)
 
-A session of 고양이 지켜줘 is **ten lives with a rest between them**, by the owner's decision: a
-life is a set, and the rest (a minute by default; the settings offer 90 s and 2 min) runs its length
-unless the user skips it — the rest card's one button, added by the owner's later decision
-(2026-10-02, `CatSession.skipRest`); there is no extend — and the next life's ceiling does not come
-back until it is over or skipped, and then waits, as the first did, for the user to be in position. Each life is a fresh
-`CeilingSurvival` and keeps the sprint rule above. The close button and back end the session where
-it is and show its ending, since with ten lives that is how most sessions end. The tutorial is one
-life and no rest. `CatSessionTest` pins all of it.
+A session of 고양이 지켜줘 is **as many sets as the user wants, with a rest between them**, by the
+owner's decision (2026-10-04; it was ten lives, ten sets, and over when they were). A set is one run
+of the ceiling — a life, in `CeilingSurvival`'s words — and the rest (a minute by default; the
+settings offer 90 s and 2 min) runs its length unless the user skips it — the rest card's one button,
+added by the owner's decision of 2026-10-02 (`CatSession.skipRest`); there is no extend — and the
+next set's ceiling does not come back until it is over or skipped, and then waits, as the first did,
+for the user to be in position. Each set is a fresh `CeilingSurvival` and keeps the sprint rule
+above. The close button and back are the only way a session ends: they end it where it is and show
+its ending. The tutorial is one set and no rest (`CatSession.oneSet`). Ten sets in one session is
+still a full one, which a gift is for (`Gifts.FULL_SESSION_SETS`). `CatSessionTest` pins all of it.
 
 **The cat is the whole app; the dungeons were taken out** (2026-09-30), by the owner's decision.
 The hub's one big button is 고양이 지키기, and it starts the movement it names at once — the picker
@@ -218,8 +220,8 @@ sound of its own — the ding a counted rep makes is the feedback.
 energy it burned — MET × 65 kg × a movement's seconds per rep, an estimate the screen says is one,
 since the app does not ask anyone's weight — and name the foods it would take to put back; each
 movement's record is its best one go against its first, and each movement keeps its own best score,
-by the owner's decision, since a pull-up is not a pushup. None of them ever falls, and a lost life or
-a week away subtracts nothing. The hub's cat greets by how long it has been (`Welcome`), glad
+by the owner's decision, since a pull-up is not a pushup. None of them ever falls, and a set the
+ceiling won or a week away subtracts nothing. The hub's cat greets by how long it has been (`Welcome`), glad
 whatever the answer, and a broken streak is never said — by the owner's decision, pointing at what
 was lost is how a return becomes a goodbye. The week is one card, its days named 월 to 일 rather
 than drawn as dots, with last week summed up at the start of the next (`Weeks.recap`). There are no

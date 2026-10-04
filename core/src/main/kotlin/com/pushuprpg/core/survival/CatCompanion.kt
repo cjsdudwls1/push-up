@@ -30,16 +30,16 @@ enum class CatLine(val priority: Int, val repeatAfterMs: Long) {
     /** A push that lifted the ceiling out of the frightening part. The line the mode is built for. */
     SAVED(7, 4_000),
 
-    /** A life is over and a rest begins: the cat is fine, and says so. See [CatSession]. */
+    /** A set is over and a rest begins: the cat is fine, and says so. See [CatSession]. */
     REST(5, 0),
 
     /** Ten seconds of the rest left. */
     REST_TEN(4, 0),
 
-    /** The rest is over: the next life waits for the user, and the cat asks again. */
+    /** The rest is over: the next set waits for the user, and the cat asks again. */
     AGAIN(4, 0),
 
-    /** This set has just gone past this set's best: once a life, the moment it happens. */
+    /** This set has just gone past this set's best: once a set, the moment it happens. */
     RECORD(6, 0),
 }
 
@@ -205,23 +205,25 @@ class CatCompanion {
     }
 
     /**
-     * Folds in one frame of the rest between lives: what the session did on it and how long is left.
+     * Folds in one frame of the rest between sets: what the session did on it and how long is left.
      *
      * The ceiling has gone back up, so the cat is calm again. It says it is fine as the rest begins —
      * never that the user let it down — says when ten seconds are left, and when the rest is over
-     * starts again from waiting, as a new life does.
+     * starts again from waiting, as a new set does. A set that ends the session — the tutorial's one
+     * — has no rest after it, and the cat says nothing of one.
      */
     fun rest(restLeftMs: Long, events: List<CatSessionEvent>, nowMs: Long): List<SoundRequest> {
         this.nowMs = nowMs
         val sounds = mutableListOf<SoundRequest>()
+        val over = events.any { it is CatSessionEvent.Over }
         for (event in events) {
             when (event) {
-                is CatSessionEvent.LifeLost -> if (event.livesLeft > 0 || event.result.refunded) {
+                is CatSessionEvent.SetOver -> if (!over) {
                     mood = CatMood.CALM
                     lastPushMs = NEVER
                     saidRestTen = false
                     saidRecord = false
-                    // The result card of the life said nothing; this is the cat, relieved.
+                    // The result card of the set said nothing; this is the cat, relieved.
                     speech = null
                     if (say(CatLine.REST, event.atMs)) sounds += SoundRequest(SoundCue.CAT_HAPPY, volume = 0.8f)
                 }

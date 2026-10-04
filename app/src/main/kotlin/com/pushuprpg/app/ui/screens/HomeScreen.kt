@@ -42,7 +42,6 @@ import com.pushuprpg.core.progression.Gift
 import com.pushuprpg.core.progression.MovementRecord
 import com.pushuprpg.core.progression.Streak
 import com.pushuprpg.core.progression.StreakState
-import com.pushuprpg.core.survival.CatSession
 import com.pushuprpg.core.progression.Weeks
 import com.pushuprpg.core.progression.Welcome
 import com.pushuprpg.core.progression.WeekRecap
@@ -228,7 +227,7 @@ fun HomeScreen(
         Spacer(Modifier.height(18.dp))
         PrimaryButton(
             text = stringResource(R.string.home_cat_play),
-            supportingText = stringResource(R.string.home_cat_play_sub, CatSession.LIVES),
+            supportingText = stringResource(R.string.home_cat_play_sub),
             onClick = onPlayCat,
         )
         Spacer(Modifier.height(6.dp))
