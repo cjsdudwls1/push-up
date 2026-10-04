@@ -159,6 +159,8 @@ class RepDetectorImpl(
             tLastGoodPose = tMs
             tQualityLostSince = Long.MIN_VALUE
             if (tQualityOkSince == Long.MIN_VALUE) tQualityOkSince = tMs
+            // Hands by the sides, for a movement done hanging from them: not at rest, not at a top.
+            val hanging = !config.descriptor.hangsFromBar || body.farPastShoulders
 
             // The slew cap is reasoned about in depth points per second, then expressed in the
             // units this filter actually sees, so recalibration cannot silently change how hard
@@ -173,7 +175,7 @@ class RepDetectorImpl(
             // top band entirely, and because the calibrator only learns from completed reps, that
             // lockout can never resolve itself. Filtered h, not raw, so a single bad frame cannot
             // drag the anchor.
-            calibrator.observeRest(h, tMs, exact = body.sideOn)
+            if (hanging) calibrator.observeRest(h, tMs, exact = body.sideOn)
 
             prevDepth = if (tLastTracked == Long.MIN_VALUE) Float.NaN else depth
             prevDepthMs = tLastTracked
@@ -186,8 +188,10 @@ class RepDetectorImpl(
             confidenceSamples++
             depthSum += depth
 
-            advance(tMs, h, sample, body, events)
-            watchArming(h, sample)
+            advance(tMs, h, sample, body, hanging, events)
+            // Skipped rather than restarted: the frame at the top of a pull whose wrists read below
+            // the shoulders is in the middle of the very swing the watchdog is following.
+            if (hanging) watchArming(h, sample)
         } else {
             // Never punish the user for a tracking failure: the reading freezes rather than
             // falling, and nothing counts until quality is OK again.
@@ -235,7 +239,17 @@ class RepDetectorImpl(
         )
     }
 
-    private fun advance(tMs: Long, h: Float, sample: DepthSample, body: BodyFrameState, events: MutableList<RepEvent>) {
+    private fun advance(
+        tMs: Long, h: Float, sample: DepthSample, body: BodyFrameState, hanging: Boolean, events: MutableList<RepEvent>,
+    ) {
+        // Nothing arms with the hands down, for a movement done hanging from them: by the sides the
+        // gap reads a dead hang, and raising them to the bar would read as a pull. A rep under way is
+        // left alone — filmed from behind, the wrists read below the shoulders for a frame at the top
+        // of an honest pull.
+        if (!hanging) {
+            if (phase == RepPhase.READY_TOP) phase = RepPhase.IDLE
+            if (phase == RepPhase.IDLE || phase == RepPhase.LOST) return
+        }
         when (phase) {
             RepPhase.IDLE, RepPhase.LOST -> {
                 val settled = tQualityOkSince != Long.MIN_VALUE && tMs - tQualityOkSince >= ARM_SETTLE_MS
@@ -261,6 +275,8 @@ class RepDetectorImpl(
                     shouldersAtTopDepth = depth
                     shouldersAtTopU = body.shoulderU
                     shouldersAtTopV = body.shoulderV
+                    shouldersAtTopNU = body.nU
+                    shouldersAtTopNV = body.nV
                 }
                 if (depth > config.topExit) {
                     phase = RepPhase.DESCENDING
@@ -286,11 +302,15 @@ class RepDetectorImpl(
                         val reason = strikeBlockedReason(tMs, sample, body)
                         phase = RepPhase.BOTTOM
                         tBottom = tMs
-                        if (reason == null) {
-                            strike(tMs, events)
-                        } else {
-                            events += RepEvent.Abandoned(tMs, reason)
-                            refusedFastThisRep = reason == AbandonReason.TOO_FAST
+                        when {
+                            reason != null -> {
+                                events += RepEvent.Abandoned(tMs, reason)
+                                refusedFastThisRep = reason == AbandonReason.TOO_FAST
+                            }
+                            // Everything else holds; the shoulders have not got there yet.
+                            config.descriptor.hangsFromBar && shoulderDepth(body) < calibrator.countEnter() ->
+                                strikeAwaitsShoulders = true
+                            else -> strike(tMs, events)
                         }
                     }
 
@@ -319,6 +339,11 @@ class RepDetectorImpl(
                 hBotThisRep = minOf(hBotThisRep, h)
                 if (!sample.jointDepth.isNaN() && !(sample.jointDepth <= maxJointThisRep)) maxJointThisRep = sample.jointDepth
 
+                if (strikeAwaitsShoulders && shoulderDepth(body) >= calibrator.countEnter()) {
+                    strikeAwaitsShoulders = false
+                    strike(tMs, events)
+                }
+
                 if (!deepFiredThisRep && struckThisRep && depth >= calibrator.deepEnter()) {
                     deepFiredThisRep = true
                     events += RepEvent.DeepUpgrade(tMs, repCount, depth, loweringMs(tMs))
@@ -332,11 +357,17 @@ class RepDetectorImpl(
                         // from the frame after the crossing it read too quick to be a rep.
                         tCountExit = crossedAt(config.countExit, tMs)
                         topReachedThisAscent = false
+                        // The gap closed and the shoulders never came: the hands came down instead.
+                        if (strikeAwaitsShoulders) {
+                            strikeAwaitsShoulders = false
+                            events += RepEvent.Abandoned(tMs, AbandonReason.INCONSISTENT)
+                        }
                     }
 
                     tMs - tBottom > config.maxBottomMs -> {
                         events += RepEvent.Abandoned(tMs, AbandonReason.STALLED_BOTTOM)
                         phase = RepPhase.LOST
+                        strikeAwaitsShoulders = false
                     }
                 }
             }
@@ -458,8 +489,8 @@ class RepDetectorImpl(
 
         // Side on, the shoulders themselves, in the picture: a pushup brings them down to the hands,
         // a wave brings the hands up to them. The phone is still, so the picture is the floor.
-        // A pull-up the same way from every view: the body comes up to the bar, and standing with
-        // the arms bending overhead, or folding them on the way down, brings the hands to it instead.
+        // A dip the same way from every view: the body comes down to the bars, and waving or bending
+        // the arms brings the hands to it instead. A pull-up asks more, after this: see [shoulderDepth].
         val shoulderTravel = shoulderTravelRequired(body)
         if (shoulderTravel != null && shouldersAtTopDepth != Float.POSITIVE_INFINITY) {
             val came = Geometry.dot(
@@ -718,17 +749,39 @@ class RepDetectorImpl(
         return config.descriptor.shoulderTravel
     }
 
-    private fun watchesShoulders(body: BodyFrameState): Boolean = shoulderTravelRequired(body) != null
+    private fun watchesShoulders(body: BodyFrameState): Boolean =
+        config.descriptor.hangsFromBar || shoulderTravelRequired(body) != null
 
-    /** Where the shoulders were in the picture at the top of this rep, and at what depth. */
+    /** Where the shoulders were in the picture at the top of this rep, at what depth, and the normal there. */
     private var shouldersAtTopDepth = Float.POSITIVE_INFINITY
     private var shouldersAtTopU = 0f
     private var shouldersAtTopV = 0f
+    private var shouldersAtTopNU = 0f
+    private var shouldersAtTopNV = 0f
+
+    /**
+     * How deep this rep is by the shoulders alone, for a movement done hanging from a bar: the depth
+     * at the top, plus their rise in the picture since, along the normal they had there. As if the
+     * hands had stayed where they held the bar — which for a pull they do. The top's normal rather
+     * than this frame's: filmed from behind, the wrists read below the shoulders for a frame at the
+     * top of a pull, and this frame's normal turns over with them. See [ExerciseDescriptor.hangsFromBar].
+     */
+    private fun shoulderDepth(body: BodyFrameState): Float {
+        if (shouldersAtTopDepth == Float.POSITIVE_INFINITY) return Float.NEGATIVE_INFINITY
+        val came = Geometry.dot(
+            body.shoulderU - shouldersAtTopU, body.shoulderV - shouldersAtTopV, shouldersAtTopNU, shouldersAtTopNV,
+        ) / body.scale
+        return shouldersAtTopDepth + 100f * came / calibrator.range
+    }
+
+    /** The rep reached the count line with everything holding but the shoulders; they have until it turns back. */
+    private var strikeAwaitsShoulders = false
 
     private fun arm(h: Float) {
         phase = RepPhase.READY_TOP
         bodyDropAtTop = Float.POSITIVE_INFINITY
         shouldersAtTopDepth = Float.POSITIVE_INFINITY
+        strikeAwaitsShoulders = false
         hTopThisRep = h
         hBotThisRep = Float.POSITIVE_INFINITY
         maxDepthThisRep = 0f
@@ -741,6 +794,7 @@ class RepDetectorImpl(
             events += RepEvent.Abandoned(tMs, reason)
         }
         struckThisRep = false
+        strikeAwaitsShoulders = false
         maxDepthThisRep = 0f
         hTopThisRep = Float.NEGATIVE_INFINITY
         hBotThisRep = Float.POSITIVE_INFINITY
@@ -825,6 +879,7 @@ class RepDetectorImpl(
         topReachedThisAscent = false
         bodyDropAtTop = Float.POSITIVE_INFINITY
         shouldersAtTopDepth = Float.POSITIVE_INFINITY
+        strikeAwaitsShoulders = false
         repCount = 0
         combo = 0
         maxCombo = 0

@@ -93,20 +93,17 @@ class PullUpDetectorTest {
     }
 
     @Test
-    fun `the elbow angle is required, and its absence rejects out loud rather than in silence`() {
+    fun `the shoulders witness a pull-up, so the elbow cannot refuse one`() {
         // A hanging body is rigid below the shoulders: the nose, hips and ankles all move exactly
-        // with the shoulders, so no body-travel check can ever disagree with the primary signal.
-        // The descriptor therefore makes the elbow angle mandatory. Without world landmarks the
-        // reps must be refused — and must SAY they were refused, because "counted nothing and said
-        // nothing" is the failure mode this project has shipped twice.
+        // with the shoulders, so no body-travel check can ever disagree with the primary signal. The
+        // elbow used to be required instead. It is not any more: the hands stay on the bar, so the
+        // shoulders rising to them is the witness, and the elbow is the one reading the model has to
+        // guess when the arms point at the lens — from the front, a dip's elbow read straighter at
+        // the bottom than at the top. Without world landmarks at all, a pull-up still counts.
         val (detector, events) = run(
             PoseFixtures.pullUpTrace(count = 6) { t, d -> PoseFixtures.pullUpFrame(t, d, world = false) }
         )
-        assertEquals(0, detector.sessionSummary().repCount)
-        assertTrue(
-            events.of<RepEvent.Abandoned>().any { it.reason == AbandonReason.INCONSISTENT },
-            "a refused pull-up must surface as an Abandoned event, not as silence",
-        )
+        assertEquals(6, detector.sessionSummary().repCount, "refused as ${events.of<RepEvent.Abandoned>().map { it.reason }}")
     }
 
     @Test
@@ -114,7 +111,7 @@ class PullUpDetectorTest {
         // Pinning the reasoning, not the code: if someone later "improves" the pull-up by copying
         // the pushup's nose check across, this states why the copy is wrong.
         assertEquals(null, Exercises.PULL_UP.signal?.bodyTravel)
-        assertEquals(CrossCheckPolicy.JOINT_REQUIRED, Exercises.PULL_UP.signal?.crossCheck)
+        assertTrue(Exercises.PULL_UP.hangsFromBar, "the shoulders against the bar are the witness instead")
 
         val hang = PoseFixtures.pullUpFrame(0L, 0f)
         val top = PoseFixtures.pullUpFrame(1000L, 1f)

@@ -85,10 +85,11 @@ class ExerciseDirectionTest {
     fun `every rep exercise keeps at least one cross-check`() {
         reps.forEach { d ->
             val s = assertNotNull(d.signal)
-            assertTrue(s.jointCheck != null || s.bodyTravel != null || d.shoulderTravel != null,
+            assertTrue(s.jointCheck != null || s.bodyTravel != null || d.shoulderTravel != null || d.hangsFromBar,
                 "${d.type} has no independent witness at all")
-            // The shoulders' travel in the picture is a witness of its own (a pull-up's, a dip's).
-            if (s.bodyTravel == null && d.shoulderTravel == null) {
+            // The shoulders' travel in the picture is a witness of its own (a dip's), and so is their
+            // rise to a bar the hands hold (a pull-up's).
+            if (s.bodyTravel == null && d.shoulderTravel == null && !d.hangsFromBar) {
                 assertEquals(CrossCheckPolicy.JOINT_REQUIRED, s.crossCheck,
                     "${d.type} has only a joint check, so it must be mandatory rather than optional")
             }

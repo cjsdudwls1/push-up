@@ -150,8 +150,8 @@ object DepthSignal {
      * This must come from world landmarks, never from the projected 2-D angle: in this camera
      * geometry the working limb swings away from the lens as the user descends, so the projected
      * angle can barely move across a full-depth rep. Useful as a cross-check, unusable as the gauge.
-     * The one movement where it is strong rather than marginal is the pull-up, where the subject
-     * hangs side-on to the flexing elbow — which is why the pull-up is allowed to require it.
+     * Its depth along the lens is the model's guess: when the arm points at or away from the lens —
+     * a dip or a pull-up filmed from the front — it can read straighter at the bottom than the top.
      */
     fun jointDepth(
         frame: PoseFrame,

@@ -31,6 +31,12 @@ data class BodyFrameState(
     val sideOn: Boolean = false,
     /** The view changed on this frame; [scaleReset] is set too. See [ExerciseDescriptor.sideView]. */
     val viewChanged: Boolean = false,
+    /**
+     * The end the normal points at lies past the shoulders, on the side away from the hips: for a
+     * pull-up, the hands above the head. True when the hips are not seen to say otherwise. See
+     * [ExerciseDescriptor.hangsFromBar].
+     */
+    val farPastShoulders: Boolean = true,
 )
 
 /**
@@ -363,6 +369,15 @@ class BodyFrameTracker(private val config: DetectorConfig) {
             }
         }
 
+        // Which side of the shoulders the normal points: toward the hips, or away from them.
+        val hipL = confidence[Lm.LEFT_HIP]
+        val hipR = confidence[Lm.RIGHT_HIP]
+        val farPastShoulders = hipL + hipR <= 0f || Geometry.dot(
+            (frame.u(Lm.LEFT_HIP) * hipL + frame.u(Lm.RIGHT_HIP) * hipR) / (hipL + hipR) - shoulderU,
+            (frame.v(Lm.LEFT_HIP) * hipL + frame.v(Lm.RIGHT_HIP) * hipR) / (hipL + hipR) - shoulderV,
+            nU, nV,
+        ) < 0f
+
         // A rolled torso foreshortens the projected shoulder width, which would inflate the depth
         // ratio and hand out depth for a twist. Flagging it lets the state machine refuse to count.
         // Read along the spine there is no shoulder width to foreshorten, and turning is allowed.
@@ -393,6 +408,7 @@ class BodyFrameTracker(private val config: DetectorConfig) {
             torsoRotated = torsoRotated,
             sideOn = sideOn,
             viewChanged = viewChanged,
+            farPastShoulders = farPastShoulders,
         )
     }
 }
