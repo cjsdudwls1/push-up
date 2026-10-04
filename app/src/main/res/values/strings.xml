@@ -475,7 +475,7 @@
     <string name="share_card_survival_headline">고양이를 지켰어요</string>
     <string name="share_card_survival_hero_label">천장을 밀어 올린 점수</string>
     <string name="share_card_point_suffix">점</string>
-    <string name="share_card_stat_reps">밀어 올린 횟수</string>
+    <string name="share_card_stat_reps">횟수</string>
     <string name="share_card_stat_time">버틴 시간</string>
     <string name="share_card_stat_best">최고 기록</string>
     <string name="share_card_new_record">신기록</string>
