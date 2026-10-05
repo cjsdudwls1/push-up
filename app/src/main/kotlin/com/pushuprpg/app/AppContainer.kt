@@ -28,7 +28,11 @@ import kotlinx.coroutines.launch
  */
 class AppContainer(context: Context) {
 
-    private val appContext = context.applicationContext
+    internal val appContext: Context = context.applicationContext
+
+    /** The phone and build, as a recorded trace names them. */
+    val deviceName: String =
+        "${Build.MANUFACTURER} ${Build.MODEL}, Android ${Build.VERSION.RELEASE}, " + BuildConfig.VERSION_NAME
 
     /**
      * Outlives any screen. A finished run is written here: the screen that ended it is popped
@@ -70,10 +74,7 @@ class AppContainer(context: Context) {
      * the Play build must keep the privacy policy's promise that pose data is never stored.
      */
     val traces: RunTraces by lazy {
-        RunTraces(
-            device = "${Build.MANUFACTURER} ${Build.MODEL}, Android ${Build.VERSION.RELEASE}, " +
-                BuildConfig.VERSION_NAME,
-        ).also { recorder ->
+        RunTraces(device = deviceName).also { recorder ->
             if (BuildConfig.DEBUG) {
                 appScope.launch { settingsRepository.settings.collect { recorder.enabled = it.recordTraces } }
             }

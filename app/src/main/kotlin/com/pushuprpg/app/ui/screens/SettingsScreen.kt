@@ -36,6 +36,8 @@ fun SettingsScreen(
     /** Debug builds only: the recorder behind a bug report. See [com.pushuprpg.app.trace.RunTraces]. */
     traceTools: Boolean = false,
     onSendTrace: () -> Unit = {},
+    /** Debug builds only, with [traceTools]: the phone's motion sensors through a set. */
+    onSensorRecord: () -> Unit = {},
     /** One buzz at the strength just picked, so the choice is made by feel. */
     onPreviewHaptic: (HapticStrength) -> Unit = {},
 ) {
@@ -163,6 +165,11 @@ fun SettingsScreen(
             ActionSetting(
                 title = stringResource(R.string.settings_send_trace),
                 onClick = onSendTrace,
+            )
+            ActionSetting(
+                title = stringResource(R.string.settings_sensor_record),
+                subtitle = stringResource(R.string.settings_sensor_record_sub),
+                onClick = onSensorRecord,
             )
         }
 

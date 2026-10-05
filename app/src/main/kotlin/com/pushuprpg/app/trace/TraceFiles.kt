@@ -7,10 +7,12 @@ import android.net.Uri
 import android.util.Log
 import androidx.core.content.FileProvider
 import com.pushuprpg.app.R
+import com.pushuprpg.core.sensor.SensorTrace
 import com.pushuprpg.core.trace.PoseTrace
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.io.OutputStream
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -27,37 +29,47 @@ object TraceFiles {
     private const val TAG = "TraceFiles"
     private const val DIRECTORY = "share"
     private const val PREFIX = "pushup-trace-"
+    private const val SENSOR_PREFIX = "pushup-sensors-"
     private const val SUFFIX = ".json"
 
     /** Old traces, once a receiving app has had ten minutes to read them. */
     private const val STALE_MS = 10 * 60 * 1000L
 
     /** Off the main thread, and null rather than a throw: the caller says so in a toast. */
-    suspend fun write(context: Context, trace: PoseTrace): Uri? = withContext(Dispatchers.IO) {
-        try {
-            val directory = File(context.cacheDir, DIRECTORY)
-            directory.mkdirs()
-            val cutoff = System.currentTimeMillis() - STALE_MS
-            directory.listFiles()?.forEach { file ->
-                if (file.name.startsWith(PREFIX) && file.lastModified() < cutoff) file.delete()
+    suspend fun write(context: Context, trace: PoseTrace): Uri? =
+        // Streamed: four minutes of frames is more than ten megabytes of text.
+        write(context, PREFIX) { PoseTrace.encodeTo(trace.quantized(), it) }
+
+    /** A set from the phone's motion sensors, the same way. */
+    suspend fun write(context: Context, trace: SensorTrace): Uri? =
+        write(context, SENSOR_PREFIX) { SensorTrace.encodeTo(trace.quantized(), it) }
+
+    private suspend fun write(context: Context, prefix: String, encode: (OutputStream) -> Unit): Uri? =
+        withContext(Dispatchers.IO) {
+            try {
+                val directory = File(context.cacheDir, DIRECTORY)
+                directory.mkdirs()
+                val cutoff = System.currentTimeMillis() - STALE_MS
+                directory.listFiles()?.forEach { file ->
+                    val ours = file.name.startsWith(PREFIX) || file.name.startsWith(SENSOR_PREFIX)
+                    if (ours && file.lastModified() < cutoff) file.delete()
+                }
+
+                val stamp = SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US).format(Date())
+                val file = File(directory, prefix + stamp + SUFFIX)
+                file.outputStream().buffered().use(encode)
+                FileProvider.getUriForFile(context, context.packageName + ".fileprovider", file)
+            } catch (e: Exception) {
+                Log.w(TAG, "Could not write the trace", e)
+                null
             }
-
-            val stamp = SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US).format(Date())
-            val file = File(directory, PREFIX + stamp + SUFFIX)
-            // Streamed: four minutes of frames is more than ten megabytes of text.
-            file.outputStream().buffered().use { PoseTrace.encodeTo(trace.quantized(), it) }
-            FileProvider.getUriForFile(context, context.packageName + ".fileprovider", file)
-        } catch (e: Exception) {
-            Log.w(TAG, "Could not write the trace", e)
-            null
         }
-    }
 
-    fun chooser(context: Context, uri: Uri): Intent {
+    fun chooser(context: Context, uri: Uri, subject: Int = R.string.trace_share_subject): Intent {
         val send = Intent(Intent.ACTION_SEND).apply {
             type = "application/json"
             putExtra(Intent.EXTRA_STREAM, uri)
-            putExtra(Intent.EXTRA_SUBJECT, context.getString(R.string.trace_share_subject))
+            putExtra(Intent.EXTRA_SUBJECT, context.getString(subject))
             // Both the flag and the ClipData, for the same reason as the share card: targets read
             // the grant from one or the other.
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)

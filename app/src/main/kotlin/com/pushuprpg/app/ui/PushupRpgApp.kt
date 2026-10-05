@@ -38,6 +38,7 @@ import androidx.core.net.toUri
 import com.pushuprpg.app.AppContainer
 import com.pushuprpg.app.BuildConfig
 import com.pushuprpg.app.trace.TraceFiles
+import com.pushuprpg.app.sensor.SensorRecordViewModel
 import com.pushuprpg.app.domain.AppSettings
 import com.pushuprpg.app.domain.ThemeMode
 import com.pushuprpg.app.domain.wearing
@@ -446,7 +447,7 @@ fun PushupRpgApp(
                     )
                 }
 
-                composable(Routes.SETTINGS) {
+                composable(Routes.SETTINGS) { entry ->
                     SettingsScreen(
                         settings = settings,
                         onChange = { transform ->
@@ -456,6 +457,7 @@ fun PushupRpgApp(
                         onOpenTerms = { openUrl(context, context.getString(R.string.terms_url)) },
                         onPreviewHaptic = container.audio::previewHaptic,
                         traceTools = BuildConfig.DEBUG,
+                        onSensorRecord = { navController.navigateFrom(entry, Routes.SENSOR_RECORD) },
                         onSendTrace = {
                             scope.launch {
                                 val trace = container.traces.latest()
@@ -472,6 +474,32 @@ fun PushupRpgApp(
                             }
                         },
                     )
+                }
+
+                if (BuildConfig.DEBUG) {
+                    composable(Routes.SENSOR_RECORD) {
+                        val vm: SensorRecordViewModel = viewModel(factory = SensorRecordViewModel.factory(container))
+                        SensorRecordScreen(
+                            vm = vm,
+                            onSend = {
+                                scope.launch {
+                                    val trace = vm.latest() ?: return@launch
+                                    val uri = TraceFiles.write(context, trace)
+                                    if (uri == null) {
+                                        toast(context, R.string.trace_write_failed)
+                                    } else {
+                                        try {
+                                            context.startActivity(
+                                                TraceFiles.chooser(context, uri, R.string.sensor_trace_share_subject)
+                                            )
+                                        } catch (e: ActivityNotFoundException) {
+                                            toast(context, R.string.share_unavailable)
+                                        }
+                                    }
+                                }
+                            },
+                        )
+                    }
                 }
             }
 

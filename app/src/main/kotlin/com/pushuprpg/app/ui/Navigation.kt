@@ -16,6 +16,9 @@ object Routes {
     const val RECORDS = "records"
     const val SETTINGS = "settings"
 
+    /** Debug builds only: 설정 → 테스트 → 센서 기록하기. */
+    const val SENSOR_RECORD = "sensor_record"
+
     /** 고양이 꾸미기: the cat's name and coat, and what it has found. Reached from the cat on the hub. */
     const val WARDROBE = "wardrobe"
 
