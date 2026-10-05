@@ -152,7 +152,7 @@ data class AppSettings(
      */
     val catWear: Set<String> = emptySet(),
     /**
-     * The rest between two lives of 고양이 지켜줘, in seconds. A minute by the owner's decision;
+     * The rest between two sets of 고양이 지켜줘, in seconds. A minute by the owner's decision;
      * the settings offer longer, since a set to failure recovers better with more.
      */
     val catRestSeconds: Int = 60,

@@ -1,9 +1,9 @@
 package com.pushuprpg.core.progression
 
-import com.pushuprpg.core.survival.LifeResult
+import com.pushuprpg.core.survival.SetResult
 
 /**
- * Each life's best, by its place in the session: the most a first set has ever done, the most a
+ * Each set's best, by its place in the session: the most a first set has ever done, the most a
  * second has, and so on, for one movement. Reps, or whole seconds for a hold.
  *
  * By the owner's decision a set is played against its own past best — 3세트 against every 3세트
@@ -14,10 +14,10 @@ import com.pushuprpg.core.survival.LifeResult
  * Only grows. A set short of its best changes nothing and costs nothing.
  */
 data class SetBests(
-    /** Index 0 is the first life. Missing or 0 is a set never played. */
+    /** Index 0 is the first set. Missing or 0 is a set never played. */
     val bests: List<Int> = emptyList(),
 ) {
-    /** The best for the life at [index], or 0 when there is none to beat yet. */
+    /** The best for the set at [index], or 0 when there is none to beat yet. */
     fun at(index: Int): Int = bests.getOrNull(index) ?: 0
 
     companion object {
@@ -27,32 +27,32 @@ data class SetBests(
         /** A set that beat its best. */
         const val CHURU_BROKEN = 3
 
-        /** What a life counts for its best: its reps, or for a hold the whole seconds it lasted. */
-        fun valueOf(life: LifeResult, hold: Boolean): Int =
-            if (hold) (life.survivedMs / 1000L).toInt() else life.reps
+        /** What a set counts for its best: its reps, or for a hold the whole seconds it lasted. */
+        fun valueOf(set: SetResult, hold: Boolean): Int =
+            if (hold) (set.survivedMs / 1000L).toInt() else set.reps
     }
 }
 
 /** What a session did to its movement's [SetBests]. */
 data class SetOutcome(
     val bests: SetBests,
-    /** Lives, by index, that beat a best there was. */
+    /** Sets, by index, that beat a best there was. */
     val broken: List<Int>,
-    /** Lives, by index, that set a best where there was none. */
+    /** Sets, by index, that set a best where there was none. */
     val firsts: List<Int>,
 ) {
     /** 츄르 earned. */
     val churu: Int get() = broken.size * SetBests.CHURU_BROKEN + firsts.size * SetBests.CHURU_FIRST
 
     companion object {
-        /** [lives] played against [previous]. A life that did nothing sets nothing. */
-        fun of(previous: SetBests, lives: List<LifeResult>, hold: Boolean): SetOutcome {
-            val size = maxOf(previous.bests.size, lives.size)
+        /** [sets] played against [previous]. A set that did nothing sets nothing. */
+        fun of(previous: SetBests, sets: List<SetResult>, hold: Boolean): SetOutcome {
+            val size = maxOf(previous.bests.size, sets.size)
             val out = MutableList(size) { previous.at(it) }
             val broken = mutableListOf<Int>()
             val firsts = mutableListOf<Int>()
-            lives.forEachIndexed { i, life ->
-                val value = SetBests.valueOf(life, hold)
+            sets.forEachIndexed { i, set ->
+                val value = SetBests.valueOf(set, hold)
                 val before = previous.at(i)
                 if (value <= 0 || value <= before) return@forEachIndexed
                 out[i] = value

@@ -34,6 +34,7 @@ import com.pushuprpg.core.detect.RepDetector
 import com.pushuprpg.core.detect.RepEvent
 import com.pushuprpg.core.detect.RenderSkeleton
 import com.pushuprpg.core.detect.SkeletonMode
+import com.pushuprpg.core.progression.Gifts
 import com.pushuprpg.core.progression.RunGrowth
 import com.pushuprpg.core.progression.SetBests
 import com.pushuprpg.core.progression.SetOutcome
@@ -73,17 +74,16 @@ class SurvivalViewModel(
     private val appScope: CoroutineScope,
 ) : ViewModel() {
 
-    // Ten lives with a rest between them — ten sets — and the tutorial one life with none: it is
-    // somebody's first minute, and what it measures is one go. Each life is worth what the movement
-    // is worth everywhere else: a pull-up moves the ceiling about as far as three pushups. See
-    // CeilingSurvival.forExercise and CatSession.
+    // As many sets as the user wants, with a rest between them, by the owner's decision (2026-10-04),
+    // and the tutorial one set with none: it is somebody's first minute, and what it measures is one
+    // go. Each set is worth what the movement is worth everywhere else: a pull-up moves the ceiling
+    // about as far as three pushups. See CeilingSurvival.forExercise and CatSession.
     private val session = CatSession(
         newLife = { CeilingSurvival.forExercise(exercise) },
-        lives = if (tutorial) 1 else CatSession.LIVES,
-        refunds = if (tutorial) 0 else CatSession.REFUNDS,
+        oneSet = tutorial,
     )
 
-    /** The rest between lives, from the settings; handed to the session on its own thread. */
+    /** The rest between sets, from the settings; handed to the session on its own thread. */
     @Volatile
     private var restMs = CatSession.REST_MS
 
@@ -100,7 +100,7 @@ class SurvivalViewModel(
     val bestScore: StateFlow<Int> = _bestScore.asStateFlow()
 
     /**
-     * This movement's best per set, as it stood before this session: what each life is played
+     * This movement's best per set, as it stood before this session: what each set is played
      * against, on screen and by the cat. Moves on only when a session is banked, for the next one.
      */
     private val _setBests = MutableStateFlow(SetBests())
@@ -166,14 +166,14 @@ class SurvivalViewModel(
 
     /**
      * How often tracking lost the user once in position, for cat_session_finished: H2, whether the
-     * tracker works on real phones. Fed on the pose thread, only while a life is on.
+     * tracker works on real phones. Fed on the pose thread, only while a set is on.
      */
     @Volatile private var tracking = TrackingDrops()
 
-    /** Null, not OK, outside a life: see the quality_lost log in [onPoseFrame]. Pose thread. */
+    /** Null, not OK, outside a set: see the quality_lost log in [onPoseFrame]. Pose thread. */
     private var lastReportedQuality: PoseQuality? = null
 
-    /** When the first life started, by the phone's clock: the day the session is filed under. */
+    /** When the first set started, by the phone's clock: the day the session is filed under. */
     @Volatile private var startedWallMs = 0L
 
     /** A session is banked by its end or by [leave], from two threads, and exactly once. */
@@ -194,8 +194,8 @@ class SurvivalViewModel(
     private var left = false
 
     /**
-     * Ended from the screen with lives still left: [endHere] has published the ending, and frames
-     * are no longer played until a restart. Set on the main thread, read on the pose thread.
+     * Ended from the screen: [endHere] has published the ending, and frames are no longer played
+     * until a restart. Set on the main thread, read on the pose thread.
      */
     @Volatile
     private var endedHere = false
@@ -212,7 +212,7 @@ class SurvivalViewModel(
         _placement.value = coach.update(frame, tick)
         session.restMs = restMs
 
-        // What is banked is what the detector counted while a life was on: its strikes, and nothing
+        // What is banked is what the detector counted while a set was on: its strikes, and nothing
         // it refused. Reps done while resting are not played into anything.
         val before = session.state()
         if (before.phase == CatPhase.PLAYING) {
@@ -230,15 +230,15 @@ class SurvivalViewModel(
             skipRestRequested = false
             session.skipRest()
         }
-        // Reps, near misses and holds, then the clock, which never stops once a life has started:
-        // resting is not a pause. Between lives, the rest's own clock. See CatSession.onTick.
+        // Reps, near misses and holds, then the clock, which never stops once a set has started:
+        // resting is not a pause. Between sets, the rest's own clock. See CatSession.onTick.
         val step = session.onTick(tick)
         val now = session.state()
         if (startedWallMs == 0L && now.started) startedWallMs = System.currentTimeMillis()
         reportTracking(before.phase, now, tick)
 
         // Straight from this thread: a push has to be heard as it lands. The cat decides what it
-        // says about a rest as well as about a life.
+        // says about a rest as well as about a set.
         val best = if (now.phase == CatPhase.PLAYING) _setBests.value.at(now.ended.size) else 0
         audio.play(
             cat.update(now.life, step.life, tick.tMs, best = best, hold = hold) +
@@ -267,12 +267,12 @@ class SurvivalViewModel(
     }
 
     /**
-     * Tracking health for H2, read only while a life is on: a rest is for stepping away, and losing
-     * the user then is not the tracker's doing. The end of a life is a changeover, as switching
-     * movement once was — its last seconds are left out, and the next life has to arm again.
+     * Tracking health for H2, read only while a set is on: a rest is for stepping away, and losing
+     * the user then is not the tracker's doing. The end of a set is a changeover, as switching
+     * movement once was — its last seconds are left out, and the next set has to arm again.
      *
      * Every drop is also sent on its own, with its reason: that is what says why. Only once tracking
-     * has been OK, since a life starts with nobody in position yet. The tutorial sends neither, as it
+     * has been OK, since a set starts with nobody in position yet. The tutorial sends neither, as it
      * sends no cat_session_finished.
      */
     private fun reportTracking(was: CatPhase, now: CatSessionState, tick: PoseTick) {
@@ -313,8 +313,8 @@ class SurvivalViewModel(
 
     /**
      * Ends the session here — the close button, or back — and shows its ending, rather than leaving
-     * the screen: with ten lives most sessions end this way, and the ending is where a session says
-     * what it did. Nothing played at all has nothing to show, so that leaves; see [leave].
+     * the screen: with no lives to run out of, this is how every session ends, and the ending is
+     * where a session says what it did. Nothing played at all has nothing to show, so that leaves; see [leave].
      *
      * Published from the last state the screen had, without touching the session, which belongs to
      * the pose thread: the frames after this are not played.
@@ -327,7 +327,7 @@ class SurvivalViewModel(
         if (!now.started) return false
         endedHere = true
         voice.stop()
-        val over = now.copy(phase = CatPhase.OVER, ended = now.played, restLeftMs = 0L, lifeDeepReps = 0)
+        val over = now.copy(phase = CatPhase.OVER, ended = now.played, restLeftMs = 0L, setDeepReps = 0)
         if (over.totalScore > _bestScore.value) _bestScore.value = over.totalScore
         _state.value = over
         save(over)
@@ -355,9 +355,9 @@ class SurvivalViewModel(
     }
 
     /**
-     * Banks a session left before its lives ran out: the close button, the back gesture, or the
-     * screen going any other way. Leaving keeps what was done, exactly as an ending does — the life
-     * in progress included, as far as it got.
+     * Banks a session left without its ending: the screen going any other way than the close button
+     * or back. Leaving keeps what was done, exactly as an ending does — the set in progress included,
+     * as far as it got.
      *
      * There is no confirm to answer first. The ceiling never pauses, by the owner's decision, so it
      * would keep falling while the question was on screen.
@@ -440,40 +440,38 @@ class SurvivalViewModel(
      * quietly break the app's central promise that every rep is kept. Left out of the streak, the
      * quickest mode to play could never start one.
      *
-     * One row for the whole session, its lives together: a life is a set, and the session is the
-     * workout. Its best set is its best life, which is what the records compare.
+     * One row for the whole session, its sets together: the session is the workout, and its best
+     * set is what the records compare.
      */
     private fun save(snapshot: CatSessionState) {
         if (!saved.compareAndSet(false, true)) return
-        val lives = snapshot.played
-        if (lives.isEmpty()) return
-        val repsDone = lives.sumOf { it.reps }
-        val score = lives.sumOf { it.score }
-        val playedMs = lives.sumOf { it.survivedMs }
-        val deep = lives.sumOf { it.deepReps }
-        val bestSet = maxOf(lives.maxOf { it.reps }, 0)
+        val played = snapshot.played
+        if (played.isEmpty()) return
+        val repsDone = played.sumOf { it.reps }
+        val score = played.sumOf { it.score }
+        val playedMs = played.sumOf { it.survivedMs }
+        val deep = played.sumOf { it.deepReps }
+        val bestSet = maxOf(played.maxOf { it.reps }, 0)
         val combo = maxCombo
         // Read now rather than inside the write, which runs later on a thread of its own.
         val summary = detector.sessionSummary()
         val plausibility = summary.plausibility
         val work = mapOf(exercise to Streak.amount(exercise, repsDone, summary.holdMs))
         // A hold's row is as long as it was held, which is what the records screen and the day's
-        // streak bar read off it. Otherwise the time the lives were played: a rest is not activity.
+        // streak bar read off it. Otherwise the time the sets were played: a rest is not activity.
         val durationMs = if (hold) summary.holdMs else playedMs
         val startedAt = startedWallMs.takeIf { it > 0L } ?: (System.currentTimeMillis() - playedMs)
-        // Every life played out. Never the tutorial's one life: its row must not read as a session
-        // finished, which is what the gifts count.
-        val completed = !tutorial && snapshot.phase == CatPhase.OVER && snapshot.livesLeft == 0
+        // A full session's sets, which is what the gifts count. Never the tutorial's one set.
+        val completed = !tutorial && played.size >= Gifts.FULL_SESSION_SETS
 
         if (!tutorial) {
             telemetry.log(
                 Event.CatSessionFinished(
                     exercise = exercise,
-                    lives = lives.size,
+                    sets = played.size,
                     reps = repsDone,
                     score = score,
                     durationMs = playedMs,
-                    refunded = lives.any { it.refunded },
                     completed = completed,
                     plausibility = plausibility,
                     tracking = tracking.summary(),
@@ -516,7 +514,7 @@ class SurvivalViewModel(
                 bestStreakAfter = maxOf(current.bestStreakDays, streak.days)
                 // Against what is stored now, not what this session started from: a session banked
                 // meanwhile from another screen must not have its records written over.
-                val setsNow = if (tutorial) null else SetOutcome.of(current.setBestsOf(exercise), lives, hold)
+                val setsNow = if (tutorial) null else SetOutcome.of(current.setBestsOf(exercise), played, hold)
                 sets = setsNow
                 current.withSurvivalScore(exercise, score).copy(
                     setBests = if (setsNow == null) current.setBests else current.setBests + (exercise to setsNow.bests.bests),

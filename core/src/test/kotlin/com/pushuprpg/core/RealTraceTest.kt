@@ -101,6 +101,30 @@ class RealTraceTest {
         ),
     )
 
+    /**
+     * 2026-10-04, SM-A556S with the full model, filmed from behind: two stretches of one session,
+     * each a set that starts by reaching up to the bar and ends by letting go of it — the first
+     * stretch twice, once from a last pull given up half way. Every one of those counted as a pull,
+     * three in the first stretch and two in the second, on top of the five pulls each really holds.
+     * Read along the spine the arms by the sides are a dead hang, and the hands coming down to the
+     * shoulders close the gap as a pull does; only the shoulders tell them apart.
+     */
+    @Test
+    fun `reaching up to the bar and letting go of it are not pulls`() {
+        for (file in listOf("pullup-reach-and-let-go-a.json.gz", "pullup-reach-and-let-go-b.json.gz")) {
+            assertCounts(
+                "pull-ups from behind, $file", load(file),
+                done = 5,
+                scenarios = scenarios(
+                    ExerciseType.PULL_UP,
+                    stuck = CalibrationSnapshot(ExerciseType.PULL_UP, 1.60f, 0.50f, 0.50f, CalibrationState.CONVERGED, 1, 70f, 88f),
+                    stale = UserProfile(1.6f, 0.5f, 3),
+                ),
+                least = mapOf("fresh" to listOf(5, 5, 5), "left stuck" to listOf(5, 5, 5), "stale profile" to listOf(5, 5, 5)),
+            )
+        }
+    }
+
     @Test
     fun `pushups filmed from the head keep counting past a stray frame`() = assertCounts(
         "pushups from the head", pushups,

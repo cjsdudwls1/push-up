@@ -70,13 +70,13 @@ best score is kept per movement for the same reason.
 
 ### "Your reps are kept"
 
-A session's reps are banked however it ends — every life lost, the close button, back, or the app
-closed mid-set — and the records, the calories, the streak and the gifts are worked out from what was
-banked, so nothing is ever taken back.
+A session is as many sets as you want, with a rest between them, and its reps are banked however it
+ends — the close button, back, or the app closed mid-set — and the records, the calories, the streak
+and the gifts are worked out from what was banked, so nothing is ever taken back.
 
 Nothing counts while tracking is lost. The ceiling does not pause for it, on purpose: a sprint you can
-pause by sitting up is not one. What keeps the user from paying for the tracker instead is that a
-life that ends while the camera had lost them is given back, once a session.
+pause by sitting up is not one. There are no lives to lose to it either: the ceiling winning ends the
+set, keeps its reps, and the next set comes after the rest.
 
 ---
 
@@ -84,7 +84,7 @@ life that ends while the camera had lost them is given back, once a session.
 
 ```
 core/     Pure Kotlin/JVM. Rep detection, calibration, 고양이 지켜줘 (the ceiling, the session of
-          ten lives, the cat), and progression. No Android imports anywhere.
+          sets, the cat), and progression. No Android imports anywhere.
 app/      Android. CameraX, MediaPipe, Compose UI, Room, DataStore.
 ```
 

@@ -5,6 +5,9 @@ import com.pushuprpg.core.detect.ExerciseType
 import com.pushuprpg.core.detect.RepEvent
 import com.pushuprpg.core.fixtures.Body3d
 import com.pushuprpg.core.fixtures.Body3d.Camera
+import com.pushuprpg.core.pose.Landmark
+import com.pushuprpg.core.pose.PoseFrame
+import com.pushuprpg.core.pose.PoseLandmarks as Lm
 import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.test.Test
@@ -36,11 +39,15 @@ class HangingRigTest {
         "a chair 2.5m back at 1m" to Camera.level(2.5f, 1.0f),
     )
 
-    private fun assertCounts(type: ExerciseType, pose: (Float, Body3d.V3) -> Body3d.Skeleton) {
+    private fun assertCounts(
+        type: ExerciseType,
+        seen: (PoseFrame) -> PoseFrame = { it },
+        pose: (Float, Body3d.V3) -> Body3d.Skeleton,
+    ) {
         for (yaw in views) for ((where, cam) in cameras) {
             val detector = DetectorFactory.create(type)
             val events = mutableListOf<RepEvent>()
-            Body3d.trace({ d -> pose(d, facing(yaw)) }, cam, 6).forEach { events += detector.onFrame(it).events }
+            Body3d.trace({ d -> pose(d, facing(yaw)) }, cam, 6).forEach { events += detector.onFrame(seen(it)).events }
             assertEquals(
                 6, detector.sessionSummary().repCount,
                 "$type at ${yaw.toInt()}° from $where: refused as " +
@@ -52,6 +59,29 @@ class HangingRigTest {
     @Test
     fun `a pull-up counts from the front, the side, the back and between`() =
         assertCounts(ExerciseType.PULL_UP) { d, f -> Body3d.pullUp(d, f) }
+
+    /**
+     * Filmed from the front the elbows point at the lens, the one direction the model has to guess:
+     * a dip's elbow read straighter at the bottom than at the top there, and refused three of four.
+     * A pull-up is witnessed by the shoulders against the bar, so an elbow the model reads straight
+     * through every pull — the worst it could do — costs none of them.
+     */
+    @Test
+    fun `a pull-up counts with the elbows read straight all the way`() =
+        assertCounts(ExerciseType.PULL_UP, seen = ::elbowsReadStraight) { d, f -> Body3d.pullUp(d, f) }
+
+    /** The frame with each world elbow put on the line from its shoulder to its wrist. */
+    private fun elbowsReadStraight(frame: PoseFrame): PoseFrame {
+        if (!frame.hasWorld) return frame
+        val w = frame.worldLandmarks.toMutableList()
+        for ((s, e, h) in listOf(
+            Triple(Lm.LEFT_SHOULDER, Lm.LEFT_ELBOW, Lm.LEFT_WRIST),
+            Triple(Lm.RIGHT_SHOULDER, Lm.RIGHT_ELBOW, Lm.RIGHT_WRIST),
+        )) {
+            w[e] = Landmark((w[s].x + w[h].x) / 2f, (w[s].y + w[h].y) / 2f, (w[s].z + w[h].z) / 2f)
+        }
+        return frame.copy(worldLandmarks = w)
+    }
 
     @Test
     fun `a dip counts from the front, the side, the back and between`() =
@@ -74,6 +104,26 @@ class HangingRigTest {
     @Test
     fun `folding the arms on the way down off the bar is not a pull-up`() =
         assertCountsNone("folding on the way down") { d, f -> Body3d.overheadArmBend(d, f, sinkM = 0.15f) }
+
+    /**
+     * The device report (2026-10-04): reaching up to the bar from standing counted the first pull of
+     * a set. Read along the spine, the arms by the sides read as a dead hang. On the phone the user
+     * also stepped in under the bar, which moved the shoulders in the picture; that set is replayed
+     * in [RealTraceTest].
+     */
+    @Test
+    fun `reaching up to the bar is not a pull-up`() =
+        assertCountsNone("reaching up to the bar") { d, f -> Body3d.reachUp(d, f) }
+
+    /**
+     * The same report: letting go of the bar and lowering the arms counted one more at the end of
+     * every set — from a dead hang, and after a last pull given up half way.
+     */
+    @Test
+    fun `letting go of the bar is not a pull-up, from a hang or half way up`() {
+        assertCountsNone("letting go from a hang") { d, f -> Body3d.letGo(d, f) }
+        assertCountsNone("letting go half way up") { d, f -> Body3d.letGo(d, f, pull = 0.5f) }
+    }
 
     /**
      * A dip is witnessed by the shoulders coming down to the hands since the elbow's 3-D angle was

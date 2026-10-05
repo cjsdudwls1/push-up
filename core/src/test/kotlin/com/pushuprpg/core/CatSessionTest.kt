@@ -47,9 +47,7 @@ class CatSessionTest {
 
     private fun strike(t: Long, index: Int) = RepEvent.Strike(t, index, RepGrade.COUNTED, depth = 75f, combo = index)
 
-    /** Three lives unless said otherwise: enough to see every transition, quicker than the real ten. */
-    private fun session(lives: Int = 3, refunds: Int = CatSession.REFUNDS) =
-        CatSession(newLife = { CeilingSurvival() }, lives = lives, refunds = refunds)
+    private fun session(oneSet: Boolean = false) = CatSession(newLife = { CeilingSurvival() }, oneSet = oneSet)
 
     /** Frames every 33 ms from [from] until [until] holds or [limitMs] passes; returns the last time. */
     private fun CatSession.runUntil(
@@ -66,39 +64,39 @@ class CatSessionTest {
         return t
     }
 
+    /** By the owner's decision (2026-10-04) there are no lives: the session ends when the user ends it. */
     @Test
-    fun `a session is ten lives, by the owner's number`() {
-        val s = CatSession(newLife = { CeilingSurvival() })
-        assertEquals(10, s.lives)
-        assertEquals(10, s.state().livesLeft)
+    fun `a session goes on for as many sets as the user wants`() {
+        val s = session()
         var t = 0L
-        var lost = 0
-        while (s.state().phase != CatPhase.OVER && t < 3_000_000) {
+        var sets = 0
+        while (sets < 15 && t < 6_000_000) {
             t += 33
-            lost += s.onTick(tick(t)).session.count { it is CatSessionEvent.LifeLost }
+            val step = s.onTick(tick(t))
+            sets += step.session.count { it is CatSessionEvent.SetOver }
+            assertTrue(step.session.none { it is CatSessionEvent.Over }, "the session ended by itself after $sets sets")
         }
-        assertEquals(10, lost)
-        assertEquals(10, s.state().ended.size)
+        assertEquals(15, sets)
+        assertEquals(15, s.state().ended.size)
+        assertTrue(s.finish(t).single() is CatSessionEvent.Over)
+        assertEquals(CatPhase.OVER, s.state().phase)
     }
 
     @Test
-    fun `three lives, each a fresh ceiling, with a rest between them`() {
+    fun `each set is a fresh ceiling, with a rest between them`() {
         val s = session()
         var t = s.runUntil(0) { s.state().phase == CatPhase.RESTING }
-        assertEquals(2, s.state().livesLeft)
         assertEquals(1, s.state().ended.size)
 
         t = s.runUntil(t) { s.state().phase == CatPhase.PLAYING }
         val fresh = s.state().life
-        assertEquals(1f, fresh.height, "the next life started under a lowered ceiling")
-        assertEquals(0L, fresh.elapsedMs, "the next life inherited the last one's ramp")
+        assertEquals(1f, fresh.height, "the next set started under a lowered ceiling")
+        assertEquals(0L, fresh.elapsedMs, "the next set inherited the last one's ramp")
 
         t = s.runUntil(t) { s.state().phase == CatPhase.RESTING }
-        assertEquals(1, s.state().livesLeft)
-        t = s.runUntil(t) { s.state().phase == CatPhase.PLAYING }
-        s.runUntil(t) { s.state().phase == CatPhase.OVER }
-        assertEquals(0, s.state().livesLeft)
-        assertEquals(3, s.state().ended.size)
+        assertEquals(2, s.state().ended.size)
+        s.runUntil(t) { s.state().phase == CatPhase.PLAYING }
+        assertEquals(2, s.state().ended.size)
     }
 
     @Test
@@ -114,7 +112,7 @@ class CatSessionTest {
     }
 
     @Test
-    fun `a skipped rest ends on the next frame, and the next life still waits for the user`() {
+    fun `a skipped rest ends on the next frame, and the next set still waits for the user`() {
         val s = session()
         var t = s.runUntil(0) { s.state().phase == CatPhase.RESTING }
         s.skipRest()
@@ -123,21 +121,21 @@ class CatSessionTest {
         val step = s.onTick(tick(t, quality = PoseQuality.NO_SUBJECT))
         assertTrue(step.session.any { it is CatSessionEvent.RestOver }, "the skipped rest did not end")
         assertEquals(CatPhase.PLAYING, s.state().phase)
-        assertEquals(2, s.state().livesLeft, "skipping the rest cost a life")
+        assertEquals(1, s.state().ended.size, "skipping the rest counted as a set")
         assertFalse(s.state().life.started, "the skipped rest started the ceiling without the user")
         s.onTick(tick(t + 33))
         assertTrue(s.state().life.started)
     }
 
     @Test
-    fun `a skip asked while a life is on does nothing, and the next rest is a full one`() {
+    fun `a skip asked while a set is on does nothing, and the next rest is a full one`() {
         val s = session()
         s.onTick(tick(33))
         s.skipRest()
         s.onTick(tick(66))
         assertEquals(CatPhase.PLAYING, s.state().phase)
-        val died = s.runUntil(66) { s.state().phase == CatPhase.RESTING }
-        s.onTick(tick(died + 30_000))
+        val ended = s.runUntil(66) { s.state().phase == CatPhase.RESTING }
+        s.onTick(tick(ended + 30_000))
         assertEquals(CatPhase.RESTING, s.state().phase, "an old skip cut the next rest short")
     }
 
@@ -161,18 +159,18 @@ class CatSessionTest {
         // Gone for water: the rest runs out while nobody is there.
         t = s.runUntil(t, frame = { tick(it, quality = PoseQuality.NO_SUBJECT) }) { s.state().phase == CatPhase.PLAYING }
         repeat(600) { t += 33; s.onTick(tick(t, quality = PoseQuality.NO_SUBJECT)) }
-        assertFalse(s.state().life.started, "the next life started without the user")
+        assertFalse(s.state().life.started, "the next set started without the user")
         assertEquals(1f, s.state().life.height)
         s.onTick(tick(t + 33))
         assertTrue(s.state().life.started)
     }
 
     @Test
-    fun `every life's reps and points add up`() {
+    fun `every set's reps and points add up`() {
         val s = session()
         var t = 0L
         var index = 0
-        // Five reps, then nothing until the ceiling wins, three times.
+        // Five reps, then nothing until the ceiling wins, three times; then the user ends it.
         repeat(3) {
             s.onTick(tick(t))
             repeat(5) {
@@ -180,68 +178,60 @@ class CatSessionTest {
                 s.onTick(tick(t, events = listOf(strike(t, ++index))))
             }
             t = s.runUntil(t) { s.state().phase != CatPhase.PLAYING }
-            if (s.state().phase == CatPhase.RESTING) t = s.runUntil(t) { s.state().phase == CatPhase.PLAYING }
+            t = s.runUntil(t) { s.state().phase == CatPhase.PLAYING }
         }
+        s.finish(t)
         val state = s.state()
         assertEquals(CatPhase.OVER, state.phase)
         assertEquals(listOf(5, 5, 5), state.ended.map { it.reps })
         assertEquals(15, state.totalReps)
         assertEquals(state.ended.sumOf { it.score }, state.totalScore)
-        assertEquals(5, state.bestLifeReps)
+        assertEquals(5, state.bestSetReps)
     }
 
+    /**
+     * With no lives there is nothing for the camera's failure to cost: a set whose ceiling comes down
+     * while the tracker has lost the user ends like any other, keeps its reps, and the session rests
+     * and goes on.
+     */
     @Test
-    fun `a life the camera lost is given back, once a session`() {
+    fun `a set the camera lost ends like any other, and the session goes on`() {
         val s = session()
         var t = 0L
         s.onTick(tick(t))
-        // In position, then the tracker loses the user and the ceiling comes down meanwhile.
+        repeat(3) {
+            t += 1_000
+            s.onTick(tick(t, events = listOf(strike(t, it + 1))))
+        }
         t = s.runUntil(t, frame = { tick(it, quality = PoseQuality.LOW_CONFIDENCE) }) {
             s.state().phase != CatPhase.PLAYING
         }
-        val first = s.state()
-        assertTrue(first.ended.single().refunded, "a life lost to the tracker cost a life")
-        assertEquals(3, first.livesLeft)
-        assertEquals(CatPhase.RESTING, first.phase)
-
-        t = s.runUntil(t) { s.state().phase == CatPhase.PLAYING }
-        s.onTick(tick(t))
-        s.runUntil(t, frame = { tick(it, quality = PoseQuality.LOW_CONFIDENCE) }) {
-            s.state().phase != CatPhase.PLAYING
-        }
-        assertFalse(s.state().ended.last().refunded, "the camera's excuse was given twice")
-        assertEquals(2, s.state().livesLeft)
+        assertEquals(CatPhase.RESTING, s.state().phase)
+        assertEquals(3, s.state().ended.single().reps)
+        s.runUntil(t) { s.state().phase == CatPhase.PLAYING }
+        assertEquals(CatPhase.PLAYING, s.state().phase)
     }
 
     @Test
-    fun `a blink before the ceiling lands is not the camera's doing`() {
-        val s = session()
-        var t = 0L
-        s.onTick(tick(t))
-        var over: CatSessionEvent.LifeLost? = null
-        while (over == null && t < 120_000) {
-            t += 33
-            // Lost for the last half second or so of every two: never two seconds on end.
-            val blink = t % 2_000 > 1_500
-            val step = s.onTick(tick(t, quality = if (blink) PoseQuality.LOW_CONFIDENCE else PoseQuality.OK))
-            over = step.session.filterIsInstance<CatSessionEvent.LifeLost>().firstOrNull()
-        }
-        assertNotNull(over)
-        assertFalse(over.result.refunded)
-        assertEquals(2, over.livesLeft)
-    }
-
-    @Test
-    fun `the tutorial is one life and ends with it`() {
-        val s = session(lives = 1, refunds = 0)
+    fun `the tutorial is one set and ends with it`() {
+        val s = session(oneSet = true)
+        val cat = CatCompanion()
         s.onTick(tick(0))
-        s.runUntil(0, frame = { tick(it, quality = PoseQuality.NO_SUBJECT) }) { s.state().phase != CatPhase.PLAYING }
+        var t = 0L
+        var last = emptyList<CatSessionEvent>()
+        while (s.state().phase == CatPhase.PLAYING && t < 600_000) {
+            t += 33
+            last = s.onTick(tick(t, quality = PoseQuality.NO_SUBJECT)).session
+        }
         assertEquals(CatPhase.OVER, s.state().phase)
-        assertFalse(s.state().ended.single().refunded)
+        assertEquals(1, s.state().ended.size)
+        assertTrue(last.first() is CatSessionEvent.SetOver && last.last() is CatSessionEvent.Over, "ended as $last")
+        cat.rest(0L, last, t)
+        assertEquals(null, cat.view().speech?.line, "the cat spoke of a rest that does not come")
     }
 
     @Test
-    fun `ending the session keeps the life in progress`() {
+    fun `ending the session keeps the set in progress`() {
         val s = session()
         var t = 0L
         s.onTick(tick(t))
@@ -258,7 +248,7 @@ class CatSessionTest {
     }
 
     @Test
-    fun `what a session left part way banks is every life so far and the one in progress`() {
+    fun `what a session banks is every set so far and the one in progress`() {
         val s = session()
         var t = 0L
         s.onTick(tick(t))
@@ -290,7 +280,7 @@ class CatSessionTest {
     }
 
     @Test
-    fun `deep reps are counted per life`() {
+    fun `deep reps are counted per set`() {
         val s = session()
         var t = 0L
         s.onTick(tick(t))
@@ -307,7 +297,7 @@ class CatSessionTest {
     }
 
     @Test
-    fun `the cat is fine when a life ends, says when ten seconds are left, and asks again`() {
+    fun `the cat is fine when a set ends, says when ten seconds are left, and asks again`() {
         val s = session()
         val cat = CatCompanion()
         var t = 0L

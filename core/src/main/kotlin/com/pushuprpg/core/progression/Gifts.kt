@@ -94,7 +94,7 @@ enum class Gift(
     SET_15(CatItem.CAP, Kind.SET, count = 15),
     BURN_CHOCO_PIE(CatItem.FISH_TOY, Kind.BURN, food = Food.CHOCO_PIE),
     MOVEMENTS_3(CatItem.WHISTLE, Kind.MOVEMENTS, count = 3),
-    /** A 고양이 session played to its last life. */
+    /** A 고양이 session of [Gifts.FULL_SESSION_SETS] sets or more. */
     FULL_SESSION(CatItem.SCARF, Kind.FULL_SESSION),
     SET_20(CatItem.BEANIE, Kind.SET, count = 20),
     BURN_RICE(CatItem.CITY, Kind.BURN, food = Food.RICE),
@@ -147,6 +147,13 @@ object Gifts {
 
     /** Days away that make coming back a comeback. The window where a nudge helps most is three or four. */
     const val COMEBACK_DAYS = 3
+
+    /**
+     * Sets in one session that make it a full one. A session was ten lives, ten sets, and this gift
+     * was for playing them all; with no lives (2026-10-04) it is for the same ten sets, and a row
+     * banked as a session played to its last life still counts.
+     */
+    const val FULL_SESSION_SETS = 10
 
     /** Every gift earned by [facts] and the longest streak ever, [bestStreak]. */
     fun earned(facts: List<SessionFacts>, bestStreak: Int): Set<Gift> {

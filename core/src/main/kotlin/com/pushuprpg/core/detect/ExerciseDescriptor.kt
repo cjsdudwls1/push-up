@@ -59,22 +59,47 @@ data class ExerciseDescriptor(
      */
     val sideView: SideView? = null,
     /**
-     * For a movement that brings the body to hands that stay put — a pull-up: how far the shoulders
-     * must have come toward the hands *in the picture* since the top, as a fraction of the calibrated
-     * range, before a rep counts. Null for every movement whose hands move.
+     * For a movement that brings the body to hands that stay put — a dip: how far the shoulders must
+     * have come toward the hands *in the picture* since the top, as a fraction of the calibrated
+     * range, before a rep counts. Null for every movement whose hands move. A pull-up asks more than
+     * this; see [hangsFromBar].
      *
      * The primary signal and the elbow both read the gap between shoulders and wrists closing, and
-     * cannot say which end moved. Standing under nothing and bending the arms overhead closes it with
-     * the hands, and so does letting go of the bar and folding the arms on the way down; both
-     * counted. The phone is still, so the picture is the bar: a pull-up moves the shoulders, those
-     * move the hands. Asked from every view, like [SideView.minShoulderTravel] is asked side on.
+     * cannot say which end moved. Waving or bending the arms closes it with the hands. The phone is
+     * still, so the picture is the bars: a dip moves the shoulders, those move the hands. Asked from
+     * every view, like [SideView.minShoulderTravel] is asked side on.
      *
-     * The pull-up's 0.15 is measured, not guessed: on the rig an honest pull has brought the
-     * shoulders 0.55-0.83 of the range by the strike from every view and placement, and the fakes
-     * 0 (arms bent overhead) and -0.37 to -0.28 (folding on the way down). The set recorded from
-     * behind went as low as 0.29 with the range left stuck too high, which 0.30 refused.
+     * 0.15 is measured, not guessed: on the rig an honest pull-up — which this used to guard too —
+     * brought the shoulders 0.55-0.83 of the range by the strike from every view and placement, and
+     * the fakes 0 (arms bent overhead) and -0.37 to -0.28 (folding on the way down).
      */
     val shoulderTravel: Float? = null,
+    /**
+     * A movement done hanging from a bar by the hands — a pull-up. Two things follow.
+     *
+     * **It arms only with the hands past the head** ([BodyFrameState.farPastShoulders]). Read along
+     * the spine, the gap from the shoulders to the wrists is an arm's length whether the arms hang
+     * from a bar or by the sides, so standing with them down read as a dead hang, raising them to the
+     * bar as a pull, and letting go of the bar and lowering them as another.
+     *
+     * **A rep counts when the shoulders reach the count line**, not the gap: their own rise in the
+     * picture since the top, along the top's normal, read on the calibrated range. The hands on the
+     * bar stay put, so for a pull the two are the same number; letting go of the bar is the hands
+     * coming down, and the gap closes with no rise at all. The strike waits for the shoulders — so a
+     * pull filmed from behind, whose wrists are lost behind the head and read as falling, lands a
+     * frame or two later rather than early — and a rep they never bring to the line is refused as
+     * [AbandonReason.INCONSISTENT] as it turns back.
+     *
+     * Measured on a set filmed from behind on a phone (2026-10-04, SM-A556S, the full model): the
+     * fourteen pulls brought the shoulders 67-89 by the strike and 83-124 at their deepest; the six
+     * fakes that counted — reaching up to the bar twice, letting go of it four times, once from a
+     * half pull — 22-55 at their deepest.
+     *
+     * With the hands held still, the shoulders cannot rise toward them unless the elbows bend, so the
+     * elbow's 3-D angle is no longer needed as a witness and does not refuse a pull-up
+     * ([RepSignal.jointVetoes]).
+     */
+    val hangsFromBar: Boolean = false,
     /**
      * Fix n̂'s sign once per set instead of re-deciding it every frame.
      *
@@ -148,6 +173,7 @@ data class ExerciseDescriptor(
         require(sideView == null || (kind == MovementKind.REP && axisSource == AxisSource.SHOULDER_PAIR)) {
             "$type has a side view, which only a movement read across the shoulder line needs"
         }
+        require(!hangsFromBar || kind == MovementKind.REP) { "$type hangs from a bar but counts no reps" }
         require(sessionVolumeScale > 0f) { "$type needs a session volume scale or a rep moves nothing" }
         require(streakBar > 0) { "$type needs a streak bar" }
     }
@@ -558,20 +584,20 @@ object Exercises {
      * A pull-up is a pushup with the hands above instead of below: the hands are fixed, the
      * shoulders travel toward them, and `h` is the same shrinking shoulder-to-wrist gap. The normal
      * is sign-forced toward the wrists exactly as for a pushup — it simply points up the image
-     * instead of down, and the reading falls with effort either way. Nothing in the state machine
-     * or the calibrator needed a special case.
+     * instead of down, and the reading falls with effort either way.
      *
-     * **There is deliberately no body-travel check, and the joint angle is mandatory.** A hanging
-     * body is rigid below the shoulders, so every candidate is degenerate:
+     * **There is deliberately no body-travel check.** A hanging body is rigid below the shoulders,
+     * so every candidate is degenerate:
      *
      *  - nose-vs-shoulders never moves — the squat's dead cross-check, again;
      *  - ankles-vs-wrists is the primary signal plus a constant for a strict rep, so it can never
      *    disagree, and for anyone hanging with bent knees it drifts and rejects honest reps.
      *
-     * The elbow is the one thing that genuinely moves independently, and for a hanging subject it
-     * flexes almost in the image plane and through a huge range, which makes it a strong check
-     * rather than the marginal one it is for a squat. So it is required: no world landmarks, no
-     * strike — surfaced as [AbandonReason.INCONSISTENT] rather than silently counted as nothing.
+     * The witness is the shoulders themselves, against hands that stay on the bar ([hangsFromBar]).
+     * The elbow used to be required instead, and it let through every fake that also bends the
+     * elbow — reaching up to the bar, letting go of it — while it is the one reading the model has
+     * to guess when the arms point at the lens: filmed from the front, a dip's elbow read straighter
+     * at the bottom than at the top. It is still read for a lockout and for how deep a pull went.
      */
     val PULL_UP = ExerciseDescriptor(
         type = ExerciseType.PULL_UP,
@@ -586,8 +612,9 @@ object Exercises {
             scale = ScaleReference.SHOULDER_WIDTH,
             jointCheck = JointAngleCheck(ELBOWS, SHOULDERS, WRISTS, HANG_TOP_DEG, HANG_BOTTOM_DEG, confirmsFullDepth = true),
             bodyTravel = null,
-            crossCheck = CrossCheckPolicy.JOINT_REQUIRED,
+            crossCheck = CrossCheckPolicy.BEST_AVAILABLE,
             allowJointFallback = true,
+            jointVetoes = false,
         ),
         config = DetectorConfig(
             exercise = ExerciseType.PULL_UP,
@@ -610,7 +637,7 @@ object Exercises {
             topClampMin = 0.80f, topClampMax = 2.20f,
             botClampMin = 0.05f, botClampMax = 1.30f,
         ),
-        shoulderTravel = 0.15f,
+        hangsFromBar = true,
         validatedOnDevice = true,
         sessionVolumeScale = 0.30f,
         streakBar = 5,

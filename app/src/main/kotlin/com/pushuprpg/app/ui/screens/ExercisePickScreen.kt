@@ -39,7 +39,6 @@ import com.pushuprpg.app.ui.theme.Type
 import com.pushuprpg.core.detect.ExerciseType
 import com.pushuprpg.core.detect.Exercises
 import com.pushuprpg.core.detect.MovementKind
-import com.pushuprpg.core.survival.CatSession
 
 /**
  * Picks the movement for 고양이 지켜줘.
@@ -86,7 +85,7 @@ fun ExercisePickScreen(
             )
             Spacer(Modifier.height(6.dp))
             Text(
-                text = stringResource(R.string.pick_survival_sub, CatSession.LIVES),
+                text = stringResource(R.string.pick_survival_sub),
                 style = Type.bodyM,
                 color = Palette.TextSecondary,
             )

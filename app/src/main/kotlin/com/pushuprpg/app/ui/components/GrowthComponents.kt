@@ -28,7 +28,7 @@ import com.pushuprpg.core.progression.CatItem
 import com.pushuprpg.core.progression.Food
 import com.pushuprpg.core.progression.Gift
 import com.pushuprpg.core.progression.RunGrowth
-import com.pushuprpg.core.survival.CatSession
+import com.pushuprpg.core.progression.Gifts
 import java.util.Locale
 
 /** A food on the calorie ladder, by name. */
@@ -113,7 +113,7 @@ fun giftWhyText(gift: Gift): String = when (gift.kind) {
     Gift.Kind.SET -> stringResource(R.string.gift_why_set, gift.count)
     Gift.Kind.STREAK -> stringResource(R.string.gift_why_streak, gift.count)
     Gift.Kind.COMEBACK -> stringResource(R.string.gift_why_comeback)
-    Gift.Kind.FULL_SESSION -> stringResource(R.string.gift_why_full_session, CatSession.LIVES)
+    Gift.Kind.FULL_SESSION -> stringResource(R.string.gift_why_full_session, Gifts.FULL_SESSION_SETS)
     Gift.Kind.RECORDS -> stringResource(R.string.gift_why_records, gift.count)
     Gift.Kind.BURN -> gift.food?.let { stringResource(R.string.gift_why_burn, stringResource(foodNameRes(it))) }.orEmpty()
     Gift.Kind.RUNS -> stringResource(R.string.gift_why_runs, gift.count)

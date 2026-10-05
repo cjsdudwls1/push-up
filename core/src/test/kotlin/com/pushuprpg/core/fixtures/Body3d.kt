@@ -4,6 +4,7 @@ import com.pushuprpg.core.pose.Landmark
 import com.pushuprpg.core.pose.PoseFrame
 import com.pushuprpg.core.pose.PoseLandmarks as Lm
 import kotlin.math.PI
+import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.math.sqrt
@@ -380,6 +381,57 @@ object Body3d {
             s[elbow] = midJoint(s[shoulder], s[wrist], UPPER_ARM, FOREARM, left * side + f * 0.3f)
         }
         s[Lm.NOSE] = shoulderMid + V3(0f, NOSE_ABOVE_SHOULDER, 0f) + f * NOSE_FORWARD
+        return s
+    }
+
+    /**
+     * Reaching up to the bar: standing, the arms swing forward and up from the sides to a pull-up's
+     * grip overhead, the elbows bending on the way as arms do. [depth] 0 is the arms by the sides,
+     * 1 the hands at the bar. Read along the spine the gap from the shoulders to the wrists is an
+     * arm's length at both ends and closes through the middle: a pull-up's shape, with no pull.
+     */
+    fun reachUp(depth: Float, facing: V3 = V3(0f, 0f, 1f), gripHalfWidth: Float = 0.30f): Skeleton {
+        val s = Skeleton()
+        standingLegs(s)
+        uprightTorso(s, V3(0f, STANDING_HIP_Y, 0f))
+        val swing = deg(180f * depth)
+        val theta = deg(172f - 60f * sin(PI.toFloat() * depth))
+        val reach = sqrt(UPPER_ARM * UPPER_ARM + FOREARM * FOREARM - 2f * UPPER_ARM * FOREARM * cos(theta))
+        for ((side, shoulder, elbow, wrist) in SIDES_ARM) {
+            val out = V3(side * (gripHalfWidth - SHOULDER_WIDTH / 2f) * depth, 0f, 0f)
+            s[wrist] = s[shoulder] + V3(0f, -cos(swing), sin(swing)) * reach + out
+            s[elbow] = midJoint(s[shoulder], s[wrist], UPPER_ARM, FOREARM, V3(side, 0f, 0.3f))
+        }
+        return rotated(s, facing)
+    }
+
+    /**
+     * Letting go of the bar: the hands leave it and the arms swing down through the front to the
+     * sides, as the feet find the floor [dropM] below. [depth] 0 is hanging, 1 standing with the arms
+     * down. With [pull] the body first goes that far up a pull — the first half of [depth] — and the
+     * hands let go from there, the shoulders staying where the pull left them: a pull given up half
+     * way. Facing [facing].
+     */
+    fun letGo(depth: Float, facing: V3 = V3(0f, 0f, 1f), pull: Float = 0f, dropM: Float = 0.05f): Skeleton {
+        val split = if (pull > 0f) 0.5f else 0f
+        if (depth < split) return pullUp(pull * depth / split, facing)
+        val u = if (split == 0f) depth else (depth - split) / (1f - split)
+        val f = facing.unit()
+        val held = pullUp(pull, facing)
+        val down = V3(0f, -dropM * u, 0f)
+        val s = Skeleton()
+        for ((i, p) in held.joints) s[i] = p + down
+        for ((side, shoulder, elbow, wrist) in SIDES_ARM) {
+            val from = held[wrist] - held[shoulder]
+            // How far from straight down, toward the front, the arm points as the hands leave the bar.
+            val start = atan2(from.dot(f), -from.y)
+            val swing = start * (1f - u)
+            val lateral = from - f * from.dot(f) - V3(0f, from.y, 0f)
+            val reach = from.length + (UPPER_ARM + FOREARM - 0.02f - from.length) * u
+            val dir = V3(0f, -cos(swing), 0f) + f * sin(swing)
+            s[wrist] = s[shoulder] + dir * reach + lateral * (1f - u)
+            s[elbow] = midJoint(s[shoulder], s[wrist], UPPER_ARM, FOREARM, V3(f.z, 0f, -f.x) * side + f * 0.3f)
+        }
         return s
     }
 

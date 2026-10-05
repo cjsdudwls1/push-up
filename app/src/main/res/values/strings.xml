@@ -63,9 +63,9 @@
 
     <!-- Home -->
     <string name="home_today_reps">오늘 %1$d개</string>
-    <!-- The hub's one big button, and under it how many lives; the movement is the pill under it, which opens the picker. -->
+    <!-- The hub's one big button, and under it that a session goes on as long as the user likes; the movement is the pill under it, which opens the picker. -->
     <string name="home_cat_play">고양이 지키기</string>
-    <string name="home_cat_play_sub">목숨 %1$d개</string>
+    <string name="home_cat_play_sub">원하는 만큼 이어 가요</string>
     <string name="home_change_exercise_label">운동 바꾸기</string>
     <!-- Under it: the picker, for a movement other than the one the button starts. -->
     <string name="home_change_exercise">운동 바꾸기</string>
@@ -127,7 +127,7 @@
     <string name="settings_rest_minutes">%1$d분</string>
     <string name="settings_rest_minutes_seconds">%1$d분 %2$d초</string>
     <string name="settings_cat_rest">고양이 쉬는 시간</string>
-    <string name="settings_cat_rest_sub">목숨이 하나 줄면 이만큼 쉬고 다음 목숨을 시작해요. 쉬어야 다음 판에 더 많이 해요.</string>
+    <string name="settings_cat_rest_sub">천장에 눌리면 이만큼 쉬고 다음 세트를 시작해요. 쉬어야 다음 세트에 더 많이 해요.</string>
     <string name="result_rest_title">쉬는 시간</string>
     <string name="result_rest_time">%1$d:%2$02d</string>
     <string name="voice_ready">좋아요, 시작해요!</string>
@@ -201,8 +201,7 @@
     <!-- Before the first armed frame. The ceiling does not move until the user is in position. -->
     <string name="survival_waiting_with">%1$s 자세를 잡으면 천장이 내려오기 시작해요</string>
     <string name="pick_survival_title">뭐로 밀어 올릴까요?</string>
-    <!-- %1$d is how many lives a session has. -->
-    <string name="pick_survival_sub">한 번 할 때마다 천장이 올라가요. 목숨은 %1$d개, 하나 줄면 잠깐 쉬었다 이어 가요.</string>
+    <string name="pick_survival_sub">한 번 할 때마다 천장이 올라가요. 천장에 눌리면 잠깐 쉬었다가 원하는 만큼 이어 가요.</string>
     <!-- Under the pushup placement hint, before the tutorial's ceiling starts. -->
     <string name="tutorial_intro_body">푸쉬업 자세를 잡으면 천장이 내려와요. 밀어 올려서 고양이를 지켜 주세요.</string>
     <!-- The tutorial's ending, by what it counted: reps; none, but reps refused as not deep enough;
@@ -217,36 +216,32 @@
     <string name="tutorial_done_shallow">조금만 더 내려가면 세져요. 힘들면 무릎 대고 해도 괜찮아요.</string>
     <!-- The camera's miss, followed by the pushup placement hint. -->
     <string name="tutorial_done_zero">카메라가 아직 한 개도 못 셌어요.</string>
-    <!-- What comes after the tutorial's one life: a session is %1$d lives, with a rest between them. -->
-    <string name="tutorial_done_next">이제부터는 목숨 %1$d개로 지켜요. 목숨이 하나 줄면 1분 쉬고 이어 가요.</string>
+    <!-- What comes after the tutorial's one set: as many sets as the user likes, with a rest between them. -->
+    <string name="tutorial_done_next">이제부터는 원하는 만큼 지켜요. 천장에 눌리면 1분 쉬고 다음 세트를 이어 가요.</string>
     <string name="tutorial_continue">홈으로 가기</string>
     <!-- Back while the tutorial's ceiling waits. Answered with 계속하기 or 건너뛰기; skipped, it does not come back. -->
     <string name="tutorial_skip_confirm">튜토리얼을 건너뛸까요?</string>
     <string name="survival_share">자랑하기</string>
-    <!-- The hearts' spoken label: lives not yet lost, the one being played included. -->
-    <string name="survival_lives_left">남은 목숨 %1$d개</string>
 
-    <!-- The rest between two lives. It is not optional; the countdown is result_rest_time. It quotes
-         no count, by the owner's decision: a session's counts are shown together when it ends. -->
-    <!-- The life ended while the camera had lost the user, so it was given back. Said as the camera's miss. -->
-    <string name="rest_refunded">카메라가 잠깐 놓쳐서, 이번 목숨은 깎지 않았어요</string>
+    <!-- The rest between two sets; the countdown is result_rest_time. It can be skipped (rest_skip),
+         and the next set's best is quoted (rest_next_*). -->
     <string name="rest_tip">물 한 모금 마시고 숨을 골라요. 쉬어야 다음 판에 더 많이 해요.</string>
-    <string name="rest_after">쉬는 시간이 끝나면, 자세를 잡을 때 다음 목숨이 시작돼요</string>
+    <string name="rest_after">쉬는 시간이 끝나면, 자세를 잡을 때 다음 세트가 시작돼요</string>
     <string name="rest_skip">쉬는 시간 건너뛰기</string>
     <string name="rest_next_best">다음 %1$d세트 최고 기록은 %2$d개예요</string>
     <string name="rest_next_best_hold">다음 %1$d세트 최고 기록은 %2$d초예요</string>
     <string name="rest_next_first">다음 %1$d세트는 첫 기록이에요</string>
-    <!-- The set against its own best, over the camera while a life is on. -->
+    <!-- The set against its own best, over the camera while a set is on. -->
     <string name="set_now_best">%1$d세트 · 지금 %2$d / 최고 %3$d</string>
     <string name="set_now_best_hold">%1$d세트 · 지금 %2$d초 / 최고 %3$d초</string>
     <string name="set_now_first">%1$d세트 · 지금 %2$d · 첫 기록</string>
     <string name="set_now_first_hold">%1$d세트 · 지금 %2$d초 · 첫 기록</string>
     <string name="set_record_broken">기록 경신!</string>
 
-    <!-- Every life spent. The cat's line goes through cat_says with its name. -->
+    <!-- The session ended by the user. The cat's line goes through cat_says with its name. -->
     <string name="session_over_title">오늘의 고양이 지키기 끝!</string>
     <string name="session_over_cat">지켜 줘서 고마워요, 냥!</string>
-    <!-- Over the bars: one per life, %1$d of them. -->
+    <!-- Over the bars: one per set, %1$d of them. -->
     <string name="session_chart_title">세트별 개수 (%1$d세트)</string>
     <string name="session_chart_title_hold">세트별 지킨 시간(초) (%1$d세트)</string>
     <string name="session_total_reps">모두 %1$,d개 했어요</string>
@@ -410,7 +405,7 @@
     <string name="gift_why_set">한 번에 %1$d개</string>
     <string name="gift_why_streak">%1$d일 연속</string>
     <string name="gift_why_comeback">다시 와 준 날</string>
-    <string name="gift_why_full_session">%1$d세트 끝까지</string>
+    <string name="gift_why_full_session">한 번에 %1$d세트</string>
     <string name="gift_why_records">신기록 %1$d번</string>
     <!-- Runs with something done in them, and different movements done. -->
     <string name="gift_why_runs">운동 %1$d번</string>
@@ -475,7 +470,7 @@
     <string name="share_card_survival_headline">고양이를 지켰어요</string>
     <string name="share_card_survival_hero_label">천장을 밀어 올린 점수</string>
     <string name="share_card_point_suffix">점</string>
-    <string name="share_card_stat_reps">밀어 올린 횟수</string>
+    <string name="share_card_stat_reps">횟수</string>
     <string name="share_card_stat_time">버틴 시간</string>
     <string name="share_card_stat_best">최고 기록</string>
     <string name="share_card_new_record">신기록</string>
