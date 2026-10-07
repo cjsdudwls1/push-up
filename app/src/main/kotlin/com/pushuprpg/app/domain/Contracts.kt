@@ -156,6 +156,18 @@ data class AppSettings(
      * the settings offer longer, since a set to failure recovers better with more.
      */
     val catRestSeconds: Int = 60,
+    /**
+     * Film as wide as the phone's camera goes: the widest front camera, zoomed out to its least.
+     * For a small room, where at 1x the body does not fit from as far back as there is space for.
+     * A phone whose front camera goes no wider than 1x films as before. Off by default, since a
+     * wider picture draws the body smaller from where people already stand.
+     */
+    val wideCamera: Boolean = false,
+    /**
+     * How wide 광각으로 찍기 films, as the ratio a camera app shows (0.6 for 0.6x): set on the run
+     * screen's slider. 0 is as wide as the camera goes, whatever that is on this phone.
+     */
+    val wideZoom: Float = 0f,
 )
 
 enum class HapticStrength { OFF, LIGHT, MEDIUM, STRONG }
