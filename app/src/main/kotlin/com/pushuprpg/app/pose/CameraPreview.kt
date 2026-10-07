@@ -5,17 +5,23 @@ import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import android.util.Size
+import androidx.camera.core.Camera
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.CameraState
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.Preview
+import androidx.camera.core.ZoomState
 import androidx.camera.core.resolutionselector.ResolutionSelector
 import androidx.camera.core.resolutionselector.ResolutionStrategy
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
@@ -44,6 +50,13 @@ fun CameraPreview(
      * A phone with nothing wider than 1x films as it would without it.
      */
     wide: Boolean = false,
+    /**
+     * How wide, as the ratio a camera app shows (0.6 for 0.6x), or 0 for as wide as it goes. Applied
+     * to the camera that is open, so moving it changes the picture without opening the camera again.
+     */
+    wideZoom: Float = 0f,
+    /** The widest ratio the open camera allows, once known: what the run screen's slider runs from. */
+    onWideRange: (Float) -> Unit = {},
     /** Which camera actually bound. The overlay mirrors only for the front one. */
     onCameraBound: (Boolean) -> Unit = {},
     /**
@@ -63,6 +76,11 @@ fun CameraPreview(
         }
     }
 
+    // The camera that is open and the zoom it allows, for the zoom to be set on it from outside the
+    // bind: a new ratio is a request to the open camera, not a reason to open it again.
+    var boundCamera by remember { mutableStateOf<Camera?>(null) }
+    var limits by remember { mutableStateOf<ZoomLimits?>(null) }
+
     DisposableEffect(frontCamera, attempt, wide) {
         // Owned by this effect rather than remembered across it, so a rebind cannot leave an
         // orphaned executor running behind the new one.
@@ -75,6 +93,11 @@ fun CameraPreview(
         // policy, shows only in the camera's own state, and it used to show as a black preview with
         // nothing said. CameraX retries a recoverable error by itself, so OPEN clears it again.
         var cameraState: LiveData<CameraState>? = null
+        var zoomState: LiveData<ZoomState>? = null
+        // Every zoom change posts a new state; the limits in it do not change, so this settles at once.
+        val zoomObserver = Observer<ZoomState> { z ->
+            limits = ZoomLimits(z.minZoomRatio, z.maxZoomRatio)
+        }
         val stateObserver = Observer<CameraState> { state ->
             when {
                 state.error != null -> onCameraError(true)
@@ -216,13 +239,8 @@ fun CameraPreview(
                 onCameraError(true)
                 return@addListener
             }
-            // Zoomed out to the least the camera allows, which on a phone with a wide selfie or an
-            // ultra-wide behind one logical camera is below 1x; 0 on the linear scale is that least,
-            // whatever it is. The zoom crops the sensor before any stream is made, so the preview, the
-            // analysis and the overlay all see the same wider picture and nothing is mapped twice.
-            // The detector reads ratios inside the body and the model's 3-D skeleton, which a wider
-            // lens does not change: WideAngleRigTest runs every movement down to 0.5x.
-            if (wide) camera.cameraControl.setLinearZoom(0f)
+            boundCamera = camera
+            zoomState = camera.cameraInfo.zoomState.also { it.observe(lifecycleOwner, zoomObserver) }
             cameraState = camera.cameraInfo.cameraState.also {
                 it.observe(lifecycleOwner, stateObserver)
             }
@@ -232,12 +250,40 @@ fun CameraPreview(
             disposed = true
             displays?.unregisterDisplayListener(rotationListener)
             cameraState?.removeObserver(stateObserver)
+            zoomState?.removeObserver(zoomObserver)
+            boundCamera = null
+            limits = null
             provider?.unbindAll()
             analysisExecutor.shutdown()
         }
     }
 
+    // The zoom crops the sensor before any stream is made, so the preview, the analysis and the
+    // overlay all see the same wider picture and nothing is mapped twice. The detector reads ratios
+    // inside the body and the model's 3-D skeleton, which a wider lens does not change:
+    // WideAngleRigTest runs every movement down to 0.5x, and switched mid-set.
+    //
+    // Ratios here are the camera's own, which start at 1 for whichever camera opened; a phone that
+    // lists its wide selfie as a camera of its own says how much wider it is by its intrinsic zoom.
+    // What the user picks and sees is that times the camera's ratio, as a camera app shows it.
+    LaunchedEffect(boundCamera, limits, wide, wideZoom) {
+        val camera = boundCamera ?: return@LaunchedEffect
+        val range = limits ?: return@LaunchedEffect
+        val intrinsic = camera.cameraInfo.intrinsicZoomRatio
+        onWideRange(intrinsic * range.min)
+        // Off is 1x, said rather than assumed: a camera can be bound again without closing in between.
+        val ratio = when {
+            !wide -> 1f
+            wideZoom <= 0f -> range.min
+            else -> (wideZoom / intrinsic).coerceIn(range.min, range.max)
+        }
+        // A newer request cancels the one before it, which is what dragging the slider wants.
+        camera.cameraControl.setZoomRatio(ratio)
+    }
+
     AndroidView(factory = { previewView }, modifier = modifier)
 }
+
+private data class ZoomLimits(val min: Float, val max: Float)
 
 private const val TAG = "CameraPreview"

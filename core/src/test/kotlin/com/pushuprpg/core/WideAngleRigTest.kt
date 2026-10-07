@@ -178,4 +178,68 @@ class WideAngleRigTest {
         }
         assertAll(failures)
     }
+
+    // ---------------------------------------------------------------- switched mid-set
+
+    /**
+     * The run screen switches 광각 and moves its slider while a set is on, so the zoom can change under
+     * the detector between two frames, or across a second while the slider is dragged. The phone does
+     * not move; the body is drawn smaller or larger. [zoomAt] is the zoom at a frame's time.
+     *
+     * Not pinned, because the hand is on the phone for it: a drag spread across a rep's descent loses
+     * that rep (and at 15 fps the one after it). The body's size changing on every frame is what a
+     * tracking glitch looks like, and the tracker refuses to follow it on one frame by design.
+     */
+    private fun repsWithZoom(
+        type: ExerciseType,
+        camera: Camera,
+        pose: (Float) -> Body3d.Skeleton,
+        fps: Int,
+        zoomAt: (Long) -> Float,
+    ): Pair<Int, String> {
+        val detector = DetectorFactory.create(type)
+        val events = mutableListOf<RepEvent>()
+        com.pushuprpg.core.fixtures.PoseFixtures.trace(
+            count = 8, startMs = START_MS, descentMs = 1000, bottomMs = 200, ascentMs = 1000, restMs = REST_MS,
+            fps = fps, settleMs = 800,
+            frameOf = { t, d -> Body3d.frame(t, pose(d), camera.copy(vfovDeg = vfov(zoomAt(t)))) },
+        ).forEach { events += detector.onFrame(it).events }
+        val why = "refused as ${events.filterIsInstance<RepEvent.Abandoned>().map { it.reason }.distinct()}, " +
+            "shallow ${events.count { it is RepEvent.Shallow }}"
+        return detector.sessionSummary().repCount to why
+    }
+
+    @Test
+    fun `switching 광각 or dragging its slider in a pause mid-set loses no rep`() {
+        // In the pause after the fourth rep, at the top, where someone reaching for the phone is.
+        val pauseAfterFourth = START_MS + 800 + 4 * REP_MS - REST_MS
+        val changes = listOf<Pair<String, (Long, Float, Float) -> Float>>(
+            "switched in a pause" to { t, from, to -> if (t < pauseAfterFourth + REST_MS / 2) from else to },
+            "dragged over a second in a pause" to { t, from, to ->
+                val f = ((t - pauseAfterFourth - 500) / 1000f).coerceIn(0f, 1f)
+                from + (to - from) * f
+            },
+        )
+        val sets = listOf<Triple<String, ExerciseType, (Float) -> Body3d.Skeleton>>(
+            Triple("a pushup from the head", ExerciseType.PUSHUP) { d -> Body3d.pushup(d, heading(0f), Body3d.V3(0f, 0f, 0f)) },
+            Triple("a pushup side on", ExerciseType.PUSHUP) { d -> Body3d.pushup(d, heading(90f), Body3d.V3(0f, 0f, 0f)) },
+            Triple("a squat", ExerciseType.SQUAT) { d -> Body3d.squat(d) },
+            Triple("a lunge", ExerciseType.LUNGE) { d -> Body3d.lunge(d) },
+        )
+        val failures = mutableListOf<String>()
+        for ((what, type, pose) in sets) {
+            val camera = if (type == ExerciseType.PUSHUP) Camera.onFloor(1.3f, 12f) else Camera.onFloor(1.6f, 30f)
+            for ((how, change) in changes) for ((from, to) in listOf(1f to 0.6f, 0.6f to 1f)) for (fps in listOf(30, 15)) {
+                val (n, why) = repsWithZoom(type, camera, pose, fps) { t -> change(t, from, to) }
+                if (n != 8) failures += "$what, ${from}x to ${to}x $how, at $fps fps: counted $n of 8; $why"
+            }
+        }
+        assertAll(failures)
+    }
+
+    private companion object {
+        const val START_MS = 3_600_000L
+        const val REST_MS = 2500
+        const val REP_MS = 1000 + 200 + 1000 + REST_MS
+    }
 }

@@ -368,6 +368,13 @@ fun PushupRpgApp(
                                 catCoat = settings.catCoat,
                                 catWear = settings.wearing(),
                                 wideCamera = settings.wideCamera,
+                                wideZoom = settings.wideZoom,
+                                onWideCameraChange = { on ->
+                                    scope.launch { container.settingsRepository.update { it.copy(wideCamera = on) } }
+                                },
+                                onWideZoomChange = { zoom ->
+                                    scope.launch { container.settingsRepository.update { it.copy(wideZoom = zoom) } }
+                                },
                                 setBests = setBests,
                                 setOutcome = setOutcome,
                                 poseSource = poseSource,
