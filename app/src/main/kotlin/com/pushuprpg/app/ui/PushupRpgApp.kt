@@ -367,6 +367,7 @@ fun PushupRpgApp(
                                 catName = settings.catName,
                                 catCoat = settings.catCoat,
                                 catWear = settings.wearing(),
+                                wideCamera = settings.wideCamera,
                                 setBests = setBests,
                                 setOutcome = setOutcome,
                                 poseSource = poseSource,

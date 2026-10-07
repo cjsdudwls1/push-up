@@ -110,6 +110,14 @@ phone — from nothing, from the stuck calibration the phone was left with, and 
 at the recording's rate and at every second and third frame. A detector change that passes the rig
 and fails there is not done. New recordings go in `core/src/test/resources/traces/`.
 
+**광각으로 찍기 zooms the camera out; it never changes the detector**, by the owner's request
+(2026-10-07, for a small room). It picks the widest camera facing that way (`intrinsicZoomRatio`) and
+sets linear zoom 0, which CameraX applies before any stream, so the preview, the analysis and the
+overlay see the same wider picture. A phone with nothing under 1x films as before; it is off by
+default. `WideAngleRigTest` runs every movement at 0.8x, 0.6x and 0.5x from the usual placements
+brought closer by the zoom. A wider lens draws the body smaller from where it stood, and under a
+movement's `minScale` it is not read — the coach says COME_CLOSER. Its KDoc lists the limits found.
+
 **Pull-ups, dips and lunges are read along the spine** (`AxisSource.TORSO`), not across the
 shoulder line: at the distance a pull-up needs, the shoulder line is barely over the minimum scale
 from the front and gone from the side, and a lunge filmed at an angle — as people film it — was too

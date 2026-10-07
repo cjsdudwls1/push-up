@@ -144,6 +144,8 @@ fun SurvivalScreen(
     catCoat: CatCoat = CatCoat.CREAM,
     /** What the cat has on. A scene stays at home: under the ceiling is the only place this cat is. */
     catWear: Set<CatItem> = emptySet(),
+    /** 설정의 광각으로 찍기: the widest front camera, zoomed out as far as it goes. */
+    wideCamera: Boolean = false,
     /** This movement's best per set before this session: what each set is played against. */
     setBests: SetBests = SetBests(),
     /** What the banked session did to the set bests; null until it is written. */
@@ -195,6 +197,7 @@ fun SurvivalScreen(
             source = poseSource,
             modifier = Modifier.fillMaxSize(),
             attempt = cameraAttempt,
+            wide = wideCamera,
             onCameraError = { failed -> cameraFailed = failed },
         )
 

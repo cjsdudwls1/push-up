@@ -52,6 +52,7 @@ private val KEY_CAT_NAME = stringPreferencesKey("cat_name")
 private val KEY_CAT_COAT = stringPreferencesKey("cat_coat")
 private val KEY_CAT_REST = intPreferencesKey("cat_rest_seconds")
 private val KEY_CAT_WEAR = stringSetPreferencesKey("cat_wear")
+private val KEY_WIDE_CAMERA = booleanPreferencesKey("wide_camera")
 
 private fun Preferences.toSettings(): AppSettings = AppSettings(
     sfxEnabled = this[KEY_SFX] ?: SETTINGS_DEFAULT.sfxEnabled,
@@ -69,6 +70,7 @@ private fun Preferences.toSettings(): AppSettings = AppSettings(
     catCoat = enumOrDefault(this[KEY_CAT_COAT], SETTINGS_DEFAULT.catCoat),
     catRestSeconds = (this[KEY_CAT_REST] ?: SETTINGS_DEFAULT.catRestSeconds).coerceIn(10, 600),
     catWear = this[KEY_CAT_WEAR] ?: SETTINGS_DEFAULT.catWear,
+    wideCamera = this[KEY_WIDE_CAMERA] ?: SETTINGS_DEFAULT.wideCamera,
 )
 
 private fun MutablePreferences.writeSettings(s: AppSettings) {
@@ -87,6 +89,7 @@ private fun MutablePreferences.writeSettings(s: AppSettings) {
     this[KEY_CAT_COAT] = s.catCoat.name
     this[KEY_CAT_REST] = s.catRestSeconds
     this[KEY_CAT_WEAR] = s.catWear
+    this[KEY_WIDE_CAMERA] = s.wideCamera
 }
 
 /**

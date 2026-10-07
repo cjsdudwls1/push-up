@@ -39,6 +39,11 @@ fun CameraPreview(
     frontCamera: Boolean = true,
     /** Changed to bind the camera again: the retry after [onCameraError] said it would not open. */
     attempt: Int = 0,
+    /**
+     * 광각으로 찍기: the widest camera facing that way, zoomed out as far as it goes. For a small room.
+     * A phone with nothing wider than 1x films as it would without it.
+     */
+    wide: Boolean = false,
     /** Which camera actually bound. The overlay mirrors only for the front one. */
     onCameraBound: (Boolean) -> Unit = {},
     /**
@@ -58,7 +63,7 @@ fun CameraPreview(
         }
     }
 
-    DisposableEffect(frontCamera, attempt) {
+    DisposableEffect(frontCamera, attempt, wide) {
         // Owned by this effect rather than remembered across it, so a rebind cannot leave an
         // orphaned executor running behind the new one.
         val analysisExecutor = Executors.newSingleThreadExecutor()
@@ -171,10 +176,16 @@ fun CameraPreview(
                 }
             analysis = boundAnalysis
 
-            val selector = if (frontCamera) {
-                CameraSelector.DEFAULT_FRONT_CAMERA
-            } else {
-                CameraSelector.DEFAULT_BACK_CAMERA
+            val facing = if (frontCamera) CameraSelector.LENS_FACING_FRONT else CameraSelector.LENS_FACING_BACK
+            val selector = when {
+                // A phone with more than one camera on a side lists them all; the one with the lowest
+                // intrinsic zoom sees the most. Most front sides have one, and it is chosen as before.
+                wide -> CameraSelector.Builder()
+                    .requireLensFacing(facing)
+                    .addCameraFilter { infos -> listOfNotNull(infos.minByOrNull { it.intrinsicZoomRatio }) }
+                    .build()
+                frontCamera -> CameraSelector.DEFAULT_FRONT_CAMERA
+                else -> CameraSelector.DEFAULT_BACK_CAMERA
             }
 
             // The landmarker outlives the screens; whether it has answered is asked of this camera.
@@ -205,6 +216,13 @@ fun CameraPreview(
                 onCameraError(true)
                 return@addListener
             }
+            // Zoomed out to the least the camera allows, which on a phone with a wide selfie or an
+            // ultra-wide behind one logical camera is below 1x; 0 on the linear scale is that least,
+            // whatever it is. The zoom crops the sensor before any stream is made, so the preview, the
+            // analysis and the overlay all see the same wider picture and nothing is mapped twice.
+            // The detector reads ratios inside the body and the model's 3-D skeleton, which a wider
+            // lens does not change: WideAngleRigTest runs every movement down to 0.5x.
+            if (wide) camera.cameraControl.setLinearZoom(0f)
             cameraState = camera.cameraInfo.cameraState.also {
                 it.observe(lifecycleOwner, stateObserver)
             }

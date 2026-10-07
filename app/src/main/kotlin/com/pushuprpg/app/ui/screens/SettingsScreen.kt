@@ -148,6 +148,12 @@ fun SettingsScreen(
             selected = settings.catRestSeconds.takeIf { it in CAT_REST_OPTIONS } ?: CAT_REST_OPTIONS.first(),
             onSelect = { v -> onChange { it.copy(catRestSeconds = v) } },
         )
+        SwitchSetting(
+            title = stringResource(R.string.settings_wide_camera),
+            subtitle = stringResource(R.string.settings_wide_camera_sub),
+            checked = settings.wideCamera,
+            onCheckedChange = { v -> onChange { it.copy(wideCamera = v) } },
+        )
         // No exercise picker here. It is the hub's 운동 바꾸기, where the choice is actually being
         // made and where the per-exercise camera placement is worth reading.
 
