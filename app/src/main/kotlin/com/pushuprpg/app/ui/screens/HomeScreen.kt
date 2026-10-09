@@ -1,5 +1,11 @@
 package com.pushuprpg.app.ui.screens
 
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -10,14 +16,22 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.ExpandMore
+import androidx.compose.material.icons.rounded.BarChart
+import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material.icons.rounded.SwapHoriz
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -30,6 +44,7 @@ import com.pushuprpg.app.domain.PlayerProgress
 import com.pushuprpg.app.domain.ThemeMode
 import com.pushuprpg.app.ui.components.*
 import com.pushuprpg.app.ui.theme.LocalGameColors
+import com.pushuprpg.app.ui.theme.LocalReduceMotion
 import com.pushuprpg.app.ui.theme.Palette
 import com.pushuprpg.app.ui.theme.Type
 import com.pushuprpg.core.detect.ExerciseType
@@ -131,161 +146,167 @@ fun HomeScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .windowInsetsPadding(WindowInsets.safeDrawing)
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 20.dp)
-            .padding(top = 20.dp, bottom = 32.dp),
+            .windowInsetsPadding(WindowInsets.safeDrawing),
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 20.dp)
+                .padding(top = 20.dp, bottom = 16.dp),
         ) {
-            StreakChip(days = state.streakShown)
-            Spacer(Modifier.weight(1f))
-            ThemeToggle(mode = themeMode, onToggle = onToggleTheme)
-            // Up here beside the theme, by the owner's decision: the bottom of the hub had a row of
-            // two buttons under everything else, and 설정 is not something to scroll for.
-            Spacer(Modifier.width(8.dp))
-            SettingsButton(onClick = onSettings)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                StreakChip(days = state.streakShown)
+                Spacer(Modifier.weight(1f))
+                // The way into 꾸미기 besides the cat itself, lit with how many finds are new.
+                WardrobePill(newGifts = state.newGifts, onClick = onWardrobe)
+                Spacer(Modifier.width(8.dp))
+                ThemeToggle(mode = themeMode, onToggle = onToggleTheme)
+                // Up here beside the theme, by the owner's decision: the bottom of the hub had a row of
+                // two buttons under everything else, and 설정 is not something to scroll for.
+                Spacer(Modifier.width(8.dp))
+                SettingsButton(onClick = onSettings)
+            }
+
+            Spacer(Modifier.height(12.dp))
+            CatSpeechBubble(
+                name = name,
+                // Once today's workout is in, a find not yet looked at is the news; a return is said first.
+                text = if (state.newGifts > 0 && state.welcome == Welcome.Today) {
+                    stringResource(R.string.home_welcome_gift)
+                } else {
+                    welcomeText(state.welcome, monday = Weeks.mondayOf(state.today) == state.today)
+                },
+                modifier = Modifier
+                    .align(Alignment.CenterHorizontally)
+                    .padding(horizontal = 12.dp),
+            )
+
+            // The day's bar for the movement the button plays, as a ring round the cat (concept C,
+            // 2026-10-09): full once today has kept the streak, whichever movement kept it.
+            val bar = Exercises.of(lastExercise)
+            val left = state.leftToday(lastExercise)
+            TodayRing(
+                fraction = if (left == 0) 1f else (bar.streakBar - left).toFloat() / bar.streakBar,
+                modifier = Modifier.align(Alignment.CenterHorizontally),
+            ) {
+                CatPortrait(
+                    coat = catCoat,
+                    wear = catWear,
+                    modifier = Modifier
+                        .size(width = 176.dp, height = 124.dp)
+                        .clickable(onClickLabel = stringResource(R.string.home_wardrobe_open), onClick = onWardrobe),
+                )
+                if (left > 0) {
+                    Row(verticalAlignment = Alignment.Bottom) {
+                        Text(
+                            text = "${bar.streakBar - left}",
+                            style = Type.displayM,
+                            color = Palette.TextPrimary,
+                        )
+                        Text(
+                            text = " / ${bar.streakBar}",
+                            style = Type.numeralM,
+                            color = Palette.TextTertiary,
+                            modifier = Modifier.padding(bottom = 6.dp),
+                        )
+                    }
+                    Text(
+                        text = if (bar.kind == MovementKind.HOLD) {
+                            stringResource(R.string.home_ring_caption_hold, exerciseName)
+                        } else {
+                            stringResource(R.string.home_ring_caption, exerciseName)
+                        },
+                        style = Type.labelL,
+                        color = Palette.TextSecondary,
+                    )
+                } else {
+                    Text(
+                        text = stringResource(R.string.home_today_reps, state.todayReps),
+                        style = Type.titleL,
+                        color = Palette.TextPrimary,
+                    )
+                    Text(
+                        text = stringResource(R.string.home_ring_done),
+                        style = Type.labelL,
+                        color = Palette.Brand400,
+                    )
+                }
+            }
+
+            // The nudge only when there is something to nudge about. Saying it every day would make the
+            // encouragement worthless, and saying it after a plank tells someone who held one for
+            // minutes that they have not started. A day begun short of the bar says what is left of it.
+            //
+            // A broken streak is never said, by the owner's decision: pointing at what was lost is how
+            // a return turns into a goodbye. The cat says it is glad instead, and the chip shows what
+            // the streak goes on from.
+            val notStarted = state.todayReps == 0 && state.todayActiveMs == 0L
+            if (notStarted || left > 0) {
+                Spacer(Modifier.height(10.dp))
+                Text(
+                    text = when {
+                        notStarted && bar.kind == MovementKind.HOLD -> stringResource(R.string.home_nudge_hold, exerciseName, bar.streakBar)
+                        notStarted -> stringResource(R.string.home_nudge, exerciseName, bar.streakBar)
+                        state.streakShown == 0 && bar.kind == MovementKind.HOLD ->
+                            stringResource(R.string.home_left_first_hold, exerciseName, left)
+                        state.streakShown == 0 -> stringResource(R.string.home_left_first, exerciseName, left)
+                        bar.kind == MovementKind.HOLD -> stringResource(R.string.home_left_hold, exerciseName, left)
+                        else -> stringResource(R.string.home_left, exerciseName, left)
+                    },
+                    style = Type.bodyL,
+                    color = Palette.TextSecondary,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+
+            // The start of a week, until its first workout: how the last one went, once, and only if
+            // there was anything in it — an empty week is not summed up as a row of zeros.
+            val recap = state.lastWeekRecap
+            if (recap != null && !recap.empty && state.thisWeek.activeDays == 0) {
+                Spacer(Modifier.height(16.dp))
+                RecapCard(recap = recap)
+            }
+
+            Spacer(Modifier.height(22.dp))
+            CalorieCard(
+                progress = state.burn,
+                exercise = lastExercise,
+                modifier = Modifier.clickable(onClick = onRecords),
+            )
+
+            // Every movement's best, swiped sideways, the one picked last first; a tap opens the records,
+            // which is the only way in now that the button at the bottom is gone.
+            val records = remember(state.records, lastExercise) {
+                state.records.values.sortedWith(
+                    compareByDescending<MovementRecord> { it.exercise == lastExercise }.thenByDescending { it.total }
+                )
+            }
+            if (records.isNotEmpty()) {
+                Spacer(Modifier.height(12.dp))
+                RecordPager(records = records, onClick = onRecords)
+            }
+
+            Spacer(Modifier.height(12.dp))
+            WeekCard(thisWeek = state.thisWeek, lastWeek = state.lastWeek, today = state.today)
         }
 
-        Spacer(Modifier.height(12.dp))
-        CatSpeechBubble(
-            name = name,
-            // Once today's workout is in, a find not yet looked at is the news; a return is said first.
-            text = if (state.newGifts > 0 && state.welcome == Welcome.Today) {
-                stringResource(R.string.home_welcome_gift)
-            } else {
-                welcomeText(state.welcome, monday = Weeks.mondayOf(state.today) == state.today)
-            },
-            modifier = Modifier
-                .align(Alignment.CenterHorizontally)
-                .padding(horizontal = 12.dp),
-        )
-        // The cat is the way into 꾸미기: tapped, or by the pill beside it that counts what is new.
-        val openWardrobe = stringResource(R.string.home_wardrobe_open)
-        Box(
+        // The one big button, pinned under everything else so it never scrolls away, between the
+        // two things a session is chosen with: which movement, and how the last ones went.
+        StartBar(
+            exerciseName = exerciseName,
+            onPlay = onPlayCat,
+            onChangeExercise = onChangeExercise,
+            onRecords = onRecords,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(150.dp),
-        ) {
-            CatPortrait(
-                coat = catCoat,
-                wear = catWear,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .clickable(onClickLabel = openWardrobe, onClick = onWardrobe),
-            )
-            WardrobePill(
-                newGifts = state.newGifts,
-                onClick = onWardrobe,
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(8.dp),
-            )
-        }
-
-        Spacer(Modifier.height(6.dp))
-        Text(
-            text = stringResource(R.string.home_today_reps, state.todayReps),
-            style = Type.headline,
-            color = Palette.TextPrimary,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth(),
+                .padding(horizontal = 20.dp)
+                .padding(top = 4.dp, bottom = 16.dp),
         )
-
-        // The nudge only when there is something to nudge about. Saying it every day would make the
-        // encouragement worthless, and saying it after a plank tells someone who held one for
-        // minutes that they have not started. A day begun short of the bar says what is left of it.
-        //
-        // A broken streak is never said, by the owner's decision: pointing at what was lost is how
-        // a return turns into a goodbye. The cat says it is glad instead, and the chip shows what
-        // the streak goes on from.
-        val notStarted = state.todayReps == 0 && state.todayActiveMs == 0L
-        val left = state.leftToday(lastExercise)
-        if (notStarted || left > 0) {
-            // The bar quoted is the real one, for the movement the user reaches for.
-            val bar = Exercises.of(lastExercise)
-            Spacer(Modifier.height(6.dp))
-            Text(
-                text = when {
-                    notStarted && bar.kind == MovementKind.HOLD -> stringResource(R.string.home_nudge_hold, exerciseName, bar.streakBar)
-                    notStarted -> stringResource(R.string.home_nudge, exerciseName, bar.streakBar)
-                    state.streakShown == 0 && bar.kind == MovementKind.HOLD ->
-                        stringResource(R.string.home_left_first_hold, exerciseName, left)
-                    state.streakShown == 0 -> stringResource(R.string.home_left_first, exerciseName, left)
-                    bar.kind == MovementKind.HOLD -> stringResource(R.string.home_left_hold, exerciseName, left)
-                    else -> stringResource(R.string.home_left, exerciseName, left)
-                },
-                style = Type.bodyL,
-                color = Palette.TextSecondary,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth(),
-            )
-        }
-
-        Spacer(Modifier.height(18.dp))
-        PrimaryButton(
-            text = stringResource(R.string.home_cat_play),
-            onClick = onPlayCat,
-        )
-        Spacer(Modifier.height(6.dp))
-        val changeLabel = stringResource(R.string.home_change_exercise_label)
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-            modifier = Modifier
-                .align(Alignment.CenterHorizontally)
-                .heightIn(min = 48.dp)
-                .wrapContentHeight(Alignment.CenterVertically)
-                .clip(CircleShape)
-                .background(Palette.Bg2)
-                .border(1.dp, Palette.StrokeSoft, CircleShape)
-                .clickable(onClickLabel = changeLabel, role = Role.Button, onClick = onChangeExercise)
-                .padding(start = 18.dp, end = 12.dp, top = 8.dp, bottom = 8.dp),
-        ) {
-            Text(
-                text = exerciseName,
-                style = Type.labelL,
-                color = Palette.TextPrimary,
-            )
-            Icon(
-                imageVector = Icons.Rounded.ExpandMore,
-                contentDescription = null,
-                tint = Palette.TextSecondary,
-                modifier = Modifier.size(20.dp),
-            )
-        }
-
-        // The start of a week, until its first workout: how the last one went, once, and only if
-        // there was anything in it — an empty week is not summed up as a row of zeros.
-        val recap = state.lastWeekRecap
-        if (recap != null && !recap.empty && state.thisWeek.activeDays == 0) {
-            Spacer(Modifier.height(16.dp))
-            RecapCard(recap = recap)
-        }
-
-        Spacer(Modifier.height(22.dp))
-        CalorieCard(
-            progress = state.burn,
-            exercise = lastExercise,
-            modifier = Modifier.clickable(onClick = onRecords),
-        )
-
-        // Every movement's best, swiped sideways, the one picked last first; a tap opens the records,
-        // which is the only way in now that the button at the bottom is gone.
-        val records = remember(state.records, lastExercise) {
-            state.records.values.sortedWith(
-                compareByDescending<MovementRecord> { it.exercise == lastExercise }.thenByDescending { it.total }
-            )
-        }
-        if (records.isNotEmpty()) {
-            Spacer(Modifier.height(12.dp))
-            RecordPager(records = records, onClick = onRecords)
-        }
-
-        Spacer(Modifier.height(12.dp))
-        WeekCard(thisWeek = state.thisWeek, lastWeek = state.lastWeek, today = state.today)
     }
 }
 
@@ -491,8 +512,8 @@ private fun WeekDays(
 }
 
 /**
- * The pill over the cat that opens 꾸미기: plain, or lit with how many gifts are new. A new gift is
- * a surprise waiting, so it is shown and counted, and never called overdue.
+ * The pill at the top that opens 꾸미기: plain, or lit with how many gifts are new. A new gift is a
+ * surprise waiting, so it is shown and counted, and never called overdue.
  */
 @Composable
 private fun WardrobePill(newGifts: Int, onClick: () -> Unit, modifier: Modifier = Modifier) {
@@ -500,16 +521,151 @@ private fun WardrobePill(newGifts: Int, onClick: () -> Unit, modifier: Modifier 
     Text(
         text = if (fresh) stringResource(R.string.home_wardrobe_new, newGifts) else stringResource(R.string.home_wardrobe),
         style = Type.labelL,
-        color = if (fresh) Palette.TextOnBrand else Palette.TextSecondary,
+        color = if (fresh) Palette.TextOnAccent else Palette.TextSecondary,
         maxLines = 1,
-        // Opaque either way: it sits over the cat's picture, and over a scene when there is one.
         modifier = modifier
+            .heightIn(min = 48.dp)
             .clip(CircleShape)
-            .background(if (fresh) Palette.Brand600 else Palette.Bg2)
-            .border(1.dp, if (fresh) Palette.Brand600 else Palette.StrokeSoft, CircleShape)
+            .background(if (fresh) Palette.Brand500 else Palette.Bg2)
             .clickable(onClick = onClick)
-            .padding(horizontal = 14.dp, vertical = 8.dp),
+            .wrapContentHeight(Alignment.CenterVertically)
+            .padding(horizontal = 14.dp),
     )
+}
+
+/**
+ * A ring round [content] that fills with [fraction] of the day's bar: the hub's one gauge. The
+ * track is always drawn, so an empty day reads as a ring to fill rather than as nothing.
+ */
+@Composable
+private fun TodayRing(
+    fraction: Float,
+    modifier: Modifier = Modifier,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    val track = Palette.Bg3
+    val fill = Palette.Brand400
+    val inner = Palette.Bg2
+    Box(modifier.size(272.dp), contentAlignment = Alignment.Center) {
+        Canvas(Modifier.matchParentSize()) {
+            val stroke = 16.dp.toPx()
+            val inset = stroke / 2f
+            val arc = Size(size.width - stroke, size.height - stroke)
+            drawCircle(inner, radius = size.minDimension / 2f - stroke * 1.6f)
+            drawArc(track, 0f, 360f, false, Offset(inset, inset), arc, style = Stroke(stroke))
+            val sweep = 360f * fraction.coerceIn(0f, 1f)
+            if (sweep > 0f) {
+                drawArc(fill, -90f, sweep, false, Offset(inset, inset), arc, style = Stroke(stroke, cap = StrokeCap.Round))
+            }
+        }
+        Column(horizontalAlignment = Alignment.CenterHorizontally, content = content)
+    }
+}
+
+/**
+ * The bottom of the hub: the start button in the middle, as a round lime button with a pressed
+ * edge and a ring that breathes out from it, and a smaller round button either side — the movement
+ * it will play, which opens the picker, and the records.
+ */
+@Composable
+private fun StartBar(
+    exerciseName: String,
+    onPlay: () -> Unit,
+    onChangeExercise: () -> Unit,
+    onRecords: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        SideOrb(
+            icon = Icons.Rounded.SwapHoriz,
+            label = exerciseName,
+            description = stringResource(R.string.home_change_exercise_label),
+            onClick = onChangeExercise,
+        )
+        StartOrb(text = stringResource(R.string.home_cat_play), onClick = onPlay)
+        SideOrb(
+            icon = Icons.Rounded.BarChart,
+            label = stringResource(R.string.action_view_records),
+            description = null,
+            onClick = onRecords,
+        )
+    }
+}
+
+@Composable
+private fun StartOrb(text: String, onClick: () -> Unit) {
+    val reduceMotion = LocalReduceMotion.current
+    val breath = rememberInfiniteTransition(label = "start-orb")
+    val phase by breath.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(tween(durationMillis = 2_000, easing = LinearEasing)),
+        label = "start-orb-phase",
+    )
+    val lime = Palette.Brand500
+    Box(Modifier.size(156.dp), contentAlignment = Alignment.Center) {
+        Canvas(Modifier.matchParentSize()) {
+            val base = 64.dp.toPx()
+            val reach = size.minDimension / 2f - base
+            // Still, two faint rings; moving, one ring that grows out and fades.
+            if (reduceMotion) {
+                drawCircle(lime.copy(alpha = 0.45f), radius = base + reach * 0.45f, style = Stroke(2.dp.toPx()))
+                drawCircle(lime.copy(alpha = 0.22f), radius = base + reach * 0.95f, style = Stroke(2.dp.toPx()))
+            } else {
+                drawCircle(lime.copy(alpha = 0.5f * (1f - phase)), radius = base + reach * phase, style = Stroke(2.dp.toPx()))
+            }
+        }
+        Box(
+            modifier = Modifier
+                .size(124.dp)
+                .clip(CircleShape)
+                .background(Palette.BrandEdge)
+                .padding(bottom = 6.dp)
+                .clip(CircleShape)
+                .background(lime)
+                .clickable(role = Role.Button, onClick = onClick),
+            contentAlignment = Alignment.Center,
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Icon(
+                    imageVector = Icons.Rounded.PlayArrow,
+                    contentDescription = null,
+                    tint = Palette.TextOnAccent,
+                    modifier = Modifier.size(30.dp),
+                )
+                Text(
+                    text = text,
+                    style = Type.titleM,
+                    color = Palette.TextOnAccent,
+                    textAlign = TextAlign.Center,
+                    maxLines = 2,
+                    modifier = Modifier.widthIn(max = 96.dp),
+                )
+            }
+        }
+    }
+}
+
+/** A round 76dp button with an icon over a short label, beside the start button. */
+@Composable
+private fun SideOrb(icon: ImageVector, label: String, description: String?, onClick: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .size(76.dp)
+            .clip(CircleShape)
+            .background(Palette.Bg2)
+            .clickable(onClickLabel = description, role = Role.Button, onClick = onClick),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        Icon(imageVector = icon, contentDescription = null, tint = Palette.Brand400, modifier = Modifier.size(24.dp))
+        Spacer(Modifier.height(2.dp))
+        Text(text = label, style = Type.labelM, color = Palette.TextPrimary, maxLines = 1)
+    }
 }
 
 /**

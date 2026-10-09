@@ -41,12 +41,17 @@ object Palette {
     /** Text on [Brand600], which is dark enough to want light text in either theme. */
     val TextOnBrand = Color(0xFFF2F5FA)
 
-    // Brand
-    /** Brand colour used as text — a link, a level-up line. Deepens on a light surface. */
+    // Brand: one lime, the colour of the hub's ring and its start button (concept C, chosen by the
+    // owner on 2026-10-09). It is never a border round a box — the cards are plain surfaces.
+    /** Brand colour used as text — a link, a level-up line, a selection ring. Deepens on a light surface. */
     val Brand400: Color @Composable @ReadOnlyComposable get() = LocalThemeColors.current.brandText
-    val Brand500 = Color(0xFF7C6BFF)
-    val Brand600 = Color(0xFF5E4BE0)
-    val BrandWash = Color(0x1F7C6BFF)
+    /** The lime itself. Takes [TextOnAccent]: light text on it is unreadable. */
+    val Brand500 = Color(0xFFC6F432)
+    /** The lime's pressed edge, under a button's face. */
+    val BrandEdge = Color(0xFF94BC14)
+    /** A deep olive for fills that carry [TextOnBrand]. */
+    val Brand600 = Color(0xFF4A6600)
+    val BrandWash = Color(0x1FC6F432)
 
     // Game semantics
     val Accept = Color(0xFF35E08A)
@@ -114,17 +119,17 @@ data class ThemeColors(
     companion object {
         val Dark = ThemeColors(
             isDark = true,
-            bg0 = Color(0xFF07080C),
-            bg1 = Color(0xFF0E1117),
-            bg2 = Color(0xFF161A23),
-            bg3 = Color(0xFF1F2430),
-            strokeSoft = Color(0x1AFFFFFF),
-            strokeHard = Color(0xFF2E3542),
-            textPrimary = Color(0xFFF2F5FA),
-            textSecondary = Color(0xFFA9B3C4),
-            textTertiary = Color(0xFF7F8BA0),
-            textDisabled = Color(0xFF4A5464),
-            brandText = Color(0xFF9A8CFF),
+            bg0 = Color(0xFF0B0C0E),
+            bg1 = Color(0xFF111316),
+            bg2 = Color(0xFF1B1E22),
+            bg3 = Color(0xFF24282E),
+            strokeSoft = Color(0x14FFFFFF),
+            strokeHard = Color(0xFF30353C),
+            textPrimary = Color(0xFFF2F4EE),
+            textSecondary = Color(0xFFAEB4BC),
+            textTertiary = Color(0xFF8E959E),
+            textDisabled = Color(0xFF4A4F57),
+            brandText = Color(0xFFC6F432),
             info = Color(0xFF35C3FF),
             tierCommon = Color(0xFFC6CEDB),
             tierRare = Color(0xFF4DA3FF),
@@ -134,17 +139,17 @@ data class ThemeColors(
 
         val Light = ThemeColors(
             isDark = false,
-            bg0 = Color(0xFFE9ECF2),
-            bg1 = Color(0xFFF3F5F9),
+            bg0 = Color(0xFFE9EBE6),
+            bg1 = Color(0xFFF3F4F0),
             bg2 = Color(0xFFFFFFFF),
-            bg3 = Color(0xFFE4E8EF),
-            strokeSoft = Color(0x1A0B0D12),
-            strokeHard = Color(0xFFD2D8E2),
-            textPrimary = Color(0xFF11141B),
-            textSecondary = Color(0xFF465164),
-            textTertiary = Color(0xFF5F6B7E),
-            textDisabled = Color(0xFF9AA3B2),
-            brandText = Color(0xFF5A47D6),
+            bg3 = Color(0xFFE5E7E1),
+            strokeSoft = Color(0x1A111316),
+            strokeHard = Color(0xFFD3D6CF),
+            textPrimary = Color(0xFF121417),
+            textSecondary = Color(0xFF474D55),
+            textTertiary = Color(0xFF5E646C),
+            textDisabled = Color(0xFF9EA39B),
+            brandText = Color(0xFF4A6600),
             info = Color(0xFF0A6E9E),
             tierCommon = Color(0xFF5F6B7E),
             tierRare = Color(0xFF1C62C4),

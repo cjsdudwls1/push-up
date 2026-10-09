@@ -65,6 +65,10 @@
     <!-- The hub's one big button, and under it that a session goes on as long as the user likes; the movement is the pill under it, which opens the picker. -->
     <string name="home_cat_play">고양이 지키기</string>
     <string name="home_change_exercise_label">운동 바꾸기</string>
+    <!-- The hub's ring round the cat: today's share of the streak bar, for the movement the button plays. -->
+    <string name="home_ring_caption">오늘 %1$s</string>
+    <string name="home_ring_caption_hold">오늘 %1$s (초)</string>
+    <string name="home_ring_done">오늘 몫은 다 했어요</string>
     <!-- Under it: the picker, for a movement other than the one the button starts. -->
     <string name="home_change_exercise">운동 바꾸기</string>
     <!-- What the cat says as the hub opens, by how long it has been. Glad, never reproachful. -->

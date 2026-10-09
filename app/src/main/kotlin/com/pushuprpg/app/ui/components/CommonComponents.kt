@@ -6,7 +6,6 @@ import android.content.ContextWrapper
 import android.content.pm.ActivityInfo
 import android.view.View
 import androidx.annotation.StringRes
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -28,6 +27,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.DarkMode
 import androidx.compose.material.icons.rounded.LightMode
+import androidx.compose.material.icons.rounded.LocalFireDepartment
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -47,6 +47,7 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -54,6 +55,7 @@ import androidx.compose.ui.unit.dp
 import com.pushuprpg.app.R
 import com.pushuprpg.app.domain.ThemeMode
 import com.pushuprpg.app.ui.theme.LocalGameColors
+import com.pushuprpg.app.ui.theme.Orbit
 import com.pushuprpg.app.ui.theme.Palette
 import com.pushuprpg.app.ui.theme.Type
 import com.pushuprpg.core.detect.ExerciseType
@@ -61,11 +63,15 @@ import com.pushuprpg.core.detect.Exercises
 import java.util.WeakHashMap
 
 /** The one card radius the hub screens use, so nothing drifts by a few dp between screens. */
-val CardShape: Shape = RoundedCornerShape(20.dp)
+val CardShape: Shape = RoundedCornerShape(24.dp)
 
 /**
  * Card chrome as a modifier rather than a wrapper composable, so callers stay free to be a Row, a
  * Column or a clickable — every hub surface is a different shape of the same card.
+ *
+ * A plain raised surface with no outline, by the owner's choice of concept C (2026-10-09): a row of
+ * thin-bordered boxes read as a developer's dashboard. A card is told from the ground by its
+ * lightness alone; pass [borderColor] only where a card must be picked out from its neighbours.
  *
  * Composable only because its default colours follow the theme; it holds no state.
  */
@@ -73,11 +79,11 @@ val CardShape: Shape = RoundedCornerShape(20.dp)
 fun Modifier.cardSurface(
     shape: Shape = CardShape,
     color: Color = Palette.Bg2,
-    borderColor: Color = Palette.StrokeSoft,
+    borderColor: Color = Color.Transparent,
 ): Modifier = this
     .clip(shape)
     .background(color)
-    .border(1.dp, borderColor, shape)
+    .then(if (borderColor != Color.Transparent) Modifier.border(1.dp, borderColor, shape) else Modifier)
 
 @Composable
 fun SectionHeader(text: String, modifier: Modifier = Modifier) {
@@ -170,8 +176,11 @@ fun PrimaryButton(
         enabled = enabled,
         modifier = modifier
             .fillMaxWidth()
-            .heightIn(min = 64.dp),
-        shape = RoundedCornerShape(18.dp),
+            .heightIn(min = 64.dp)
+            // The face's pressed-in edge: a darker lime under the bottom of the pill, so the button
+            // reads as something to push rather than a box with a label in it.
+            .then(if (enabled) Modifier.background(Palette.BrandEdge, CircleShape).padding(bottom = 5.dp) else Modifier),
+        shape = CircleShape,
         colors = ButtonDefaults.buttonColors(
             containerColor = Palette.Brand500,
             contentColor = Palette.TextOnAccent,
@@ -212,10 +221,10 @@ fun SecondaryButton(
         modifier = modifier
             .fillMaxWidth()
             .heightIn(min = 56.dp),
-        shape = RoundedCornerShape(18.dp),
-        border = BorderStroke(1.dp, Palette.StrokeHard),
+        shape = CircleShape,
+        border = null,
         colors = ButtonDefaults.outlinedButtonColors(
-            containerColor = Palette.Bg2,
+            containerColor = Palette.Bg3,
             contentColor = Palette.TextPrimary,
             disabledContainerColor = Palette.Bg2,
             disabledContentColor = Palette.TextDisabled,
@@ -250,22 +259,21 @@ fun StreakChip(days: Int, modifier: Modifier = Modifier) {
     Row(
         modifier = modifier
             .clip(CircleShape)
-            .background(if (alive) Palette.Bg3 else Palette.Bg2)
-            .border(1.dp, if (alive) dot.copy(alpha = 0.40f) else Palette.StrokeSoft, CircleShape)
-            .padding(horizontal = 14.dp, vertical = 9.dp),
+            .background(Palette.Bg2)
+            .padding(start = 10.dp, end = 14.dp, top = 8.dp, bottom = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.Center,
     ) {
-        Box(
-            Modifier
-                .size(8.dp)
-                .clip(CircleShape)
-                .background(dot),
+        Icon(
+            imageVector = Icons.Rounded.LocalFireDepartment,
+            contentDescription = null,
+            tint = dot,
+            modifier = Modifier.size(20.dp),
         )
-        Spacer(Modifier.width(8.dp))
+        Spacer(Modifier.width(4.dp))
         Text(
             text = stringResource(R.string.home_streak, days),
-            style = Type.labelL,
+            style = Type.labelL.copy(fontFamily = Orbit, fontWeight = FontWeight.Normal),
             color = if (alive) Palette.TextPrimary else Palette.TextSecondary,
             maxLines = 1,
         )
@@ -308,7 +316,6 @@ fun RoundIconButton(icon: ImageVector, label: String, onClick: () -> Unit, modif
             .size(48.dp)
             .clip(CircleShape)
             .background(Palette.Bg2)
-            .border(1.dp, Palette.StrokeSoft, CircleShape)
             .clickable(role = Role.Button, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {

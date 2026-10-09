@@ -262,6 +262,12 @@ state and events — the rest's lines included; the screen draws the `CatView` i
 the sounds, and decides nothing about how the cat feels. It never changes the game —
 `CatCompanionTest` pins when it speaks.
 
+**The look is concept C, the ring**, by the owner's choice (2026-10-09, from four mockups): a dark
+ground, one lime accent (`Palette.Brand500`), and cards with no outline (`cardSurface`) — a row of
+thin-bordered boxes read as a developer's dashboard. The hub is the cat inside a ring that fills with
+the day's bar, and a round start button pinned at the bottom between the movement and the records.
+Numbers and headings are Orbit, sentences Gowun Dodum (`Type.kt`, `docs/FONT_CREDITS.md`).
+
 ## Copy
 
 Korean is the default locale, not a translation. Voice is 해요체 — an encouraging training partner,

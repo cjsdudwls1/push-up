@@ -23,6 +23,8 @@ data class CatSessionState(
     val ended: List<SetResult> = emptyList(),
     /** Rest still to go, while [phase] is [CatPhase.RESTING]. */
     val restLeftMs: Long = 0,
+    /** The whole of the rest under way, while [phase] is [CatPhase.RESTING]: what [restLeftMs] counts down from. */
+    val restLengthMs: Long = 0,
     /** Reps of the set being played that went past the 깊게 line. */
     val setDeepReps: Int = 0,
     /** Lives the session started with: one per set. */
@@ -124,6 +126,7 @@ class CatSession(
         life = game.state(),
         ended = ended.toList(),
         restLeftMs = if (phase == CatPhase.RESTING) restLeftMs else 0L,
+        restLengthMs = if (phase == CatPhase.RESTING) restLengthMs else 0L,
         setDeepReps = if (phase == CatPhase.PLAYING) setDeep else 0,
         lives = lives,
     )

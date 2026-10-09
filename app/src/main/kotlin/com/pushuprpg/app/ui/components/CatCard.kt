@@ -125,7 +125,7 @@ private fun CoatChip(coat: CatCoat, selected: Boolean, onClick: () -> Unit, modi
     Column(
         modifier = modifier
             .cardSurface(shape = shape, color = if (selected) Palette.Bg3 else Palette.Bg2)
-            .then(if (selected) Modifier.border(2.dp, Palette.Brand600, shape) else Modifier)
+            .then(if (selected) Modifier.border(2.dp, Palette.Brand400, shape) else Modifier)
             .clickable(onClick = onClick)
             .padding(vertical = 8.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
