@@ -61,7 +61,7 @@ with the objection that kills installs for a camera app.
 세트마다 지금 개수와 그 세트의 지난 최고 기록을 나란히 보여 줘요. 기록을 깨면 츄르를 받아요.
 
 ▶ 카메라가 세는 맨몸운동
-팔굽혀펴기(푸쉬업), 스쿼트, 플랭크, 턱걸이, 런지, 딥스. 폰을 어디에 두면 되는지는
+팔굽혀펴기(푸쉬업), 스쿼트, 플랭크, 턱걸이, 딥스. 폰을 어디에 두면 되는지는
 운동을 고를 때 한 줄로 알려 줘요. 플랭크는 개수 대신 버틴 시간으로 세요.
 어깨와 손목의 위치로 깊이를 재서, 카메라가 멀든 가깝든 같은 기준으로 세요.
 
@@ -106,7 +106,7 @@ white space. Play does not reward length.
 
 Terms placed naturally, in rough order of Korean search volume:
 
-`홈트` `홈트레이닝` `팔굽혀펴기` `푸쉬업` `맨몸운동` `스쿼트` `플랭크` `턱걸이` `런지` `운동 기록`
+`홈트` `홈트레이닝` `팔굽혀펴기` `푸쉬업` `맨몸운동` `스쿼트` `플랭크` `턱걸이` `딥스` `운동 기록`
 `운동 습관` `고양이` `칼로리`
 
 Deliberately not used: `다이어트`, `체지방`. The app measures neither, and its calories are an

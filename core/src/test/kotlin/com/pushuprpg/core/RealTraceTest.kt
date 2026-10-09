@@ -181,17 +181,14 @@ class RealTraceTest {
     // --- the second round: six sets filmed with the phone's own camera, 24-30 fps ---
     //
     // The device report: pushups graded 다음엔 더 깊게 with the chest on the floor, lunges filmed at
-    // an angle never counted, the plank held neither from the head on the forearms nor side on with
-    // the feet out of the picture, and dips were refused as too fast. Each is replayed at the
-    // recording's rate and at every second frame, 12-15 fps.
+    // an angle never counted (the lunge has since been taken out), the plank held neither from the
+    // head on the forearms nor side on with the feet out of the picture, and dips were refused as
+    // too fast. Each is replayed at the recording's rate and at every second frame, 12-15 fps.
 
     private class Set(val file: String, val type: ExerciseType, val least: Int, val done: Int, val why: String)
 
     private val camera = listOf(
         Set("pushup-head-camera.json.gz", ExerciseType.PUSHUP, 5, 5, "five pushups"),
-        Set("lunge-angled-a.json.gz", ExerciseType.LUNGE, 3, 3, "three lunges filmed at an angle"),
-        // The first lunge is at the bottom when the recording starts.
-        Set("lunge-angled-b.json.gz", ExerciseType.LUNGE, 2, 3, "lunges filmed at the other angle"),
         // The first pull is under way when the recording starts.
         Set("pullup-behind-camera.json.gz", ExerciseType.PULL_UP, 2, 3, "pull-ups from behind"),
         // The first dip starts 0.3 s in, inside the wait to arm; the last is cut off by the end.

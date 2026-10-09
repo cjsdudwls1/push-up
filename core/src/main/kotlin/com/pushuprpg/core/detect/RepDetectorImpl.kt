@@ -499,22 +499,10 @@ class RepDetectorImpl(
             if (came < shoulderTravel * calibrator.range) return AbandonReason.INCONSISTENT
         }
 
-        // A split stance, for a movement that is one. The depth signal reads a squat exactly as a
-        // lunge — hips over knees — so without this a squat counted. Unknown without world
-        // landmarks, and unknown is not refused.
-        signal?.stance?.let { stance ->
-            if (!sample.stagger.isNaN() && sample.stagger < stance.minStaggerM) return AbandonReason.NOT_SPLIT
-        }
-
         pruneStrikeWindow(tMs)
         if (strikeTimes.size >= config.maxRepsPer10s) return AbandonReason.TOO_FAST
-
-        frontThisRep = sample.front
         return null
     }
-
-    /** The leg in front on the rep being struck, for a split-stance movement. */
-    private var frontThisRep: BodySide? = null
 
     /** Time from leaving the top band to crossing the count line, on the rep being struck. */
     private var descentThisRepMs = 0
@@ -683,7 +671,7 @@ class RepDetectorImpl(
         maxCombo = maxOf(maxCombo, combo)
 
         val grade = if (maxDepthThisRep >= calibrator.deepEnter()) RepGrade.DEEP else RepGrade.COUNTED
-        events += RepEvent.Strike(tMs, repCount, grade, depth, combo, front = frontThisRep, descentMs = descentThisRepMs)
+        events += RepEvent.Strike(tMs, repCount, grade, depth, combo, descentMs = descentThisRepMs)
         if (grade == RepGrade.DEEP) {
             deepFiredThisRep = true
             events += RepEvent.DeepUpgrade(tMs, repCount, depth, loweringMs(tMs))

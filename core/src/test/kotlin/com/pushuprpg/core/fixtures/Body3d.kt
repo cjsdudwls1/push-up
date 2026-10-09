@@ -204,31 +204,6 @@ object Body3d {
     }
 
     /**
-     * A split squat — the lunge as it is actually repeated: feet stay split, the body goes down and
-     * up. Left leg forward, toward the camera. [depth] 0 is standing tall in the split, 1 is both
-     * knees at about ninety degrees.
-     */
-    fun lunge(depth: Float, leftForward: Boolean = true): Skeleton {
-        val s = Skeleton()
-        val split = 0.36f
-        val hipY = STANDING_HIP_Y - 0.40f * depth
-        val hipMid = V3(0f, hipY, 0f)
-        for ((side, hip, knee, ankle) in SIDES_LEG) {
-            val x = side * HIP_WIDTH / 2f
-            val front = (side > 0) == leftForward
-            val ankleZ = if (front) split else -split
-            s[hip] = V3(x, hipY, 0f)
-            s[ankle] = V3(x, ANKLE_HEIGHT, ankleZ)
-            // Both knees bend forward of the hip-ankle line: the front shin stays near vertical, the
-            // back knee drops toward the floor under the hip.
-            s[knee] = midJoint(s[hip], s[ankle], THIGH, SHANK, V3(0f, 0f, 1f))
-        }
-        uprightTorso(s, hipMid)
-        hangingArms(s)
-        return s
-    }
-
-    /**
      * A bar dip. Hands fixed on bars [barY] up, [barHalfWidth] apart. [depth] 0 is lockout with the
      * elbow at 172; 1 is an 85-degree bottom. The torso leans forward with depth by [leanDeg]
      * degrees, and the legs hang with the knees bent.
@@ -498,7 +473,7 @@ object Body3d {
         return rotated(s, facing)
     }
 
-    /** Standing tall, arms by the sides. The thing a plank or a lunge must not be mistaken for. */
+    /** Standing tall, arms by the sides. The thing a plank must not be mistaken for. */
     fun standing(): Skeleton {
         val s = Skeleton()
         standingLegs(s)

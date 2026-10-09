@@ -21,7 +21,7 @@ import com.pushuprpg.core.detect.ExerciseType
  * the live skeleton — so setting up is lining the lines up with the ghost, not reading advice.
  *
  * Shown only while setting up. The ghost is the pose as the phone should see it for [exercise]:
- * standing square for a squat or a lunge, hanging for a pull-up, on the bars for a dip, and for a
+ * standing square for a squat, hanging for a pull-up, on the bars for a dip, and for a
  * pushup or a plank the body from the head end, receding up the picture. On a phone on its side —
  * which only a plank's screen follows (FollowPhoneRotation) — the frame is wide and low, and the
  * plank lies across it side on, on its forearms.
@@ -111,21 +111,15 @@ private fun DrawScope.drawGhost(exercise: ExerciseType, topLeft: Offset, box: Si
             bone(p(0.44f, 0.52f), p(0.44f, 0.80f)); bone(p(0.44f, 0.80f), p(0.40f, 0.97f))
             bone(p(0.56f, 0.52f), p(0.56f, 0.80f)); bone(p(0.56f, 0.80f), p(0.60f, 0.97f))
         }
-        ExerciseType.SQUAT, ExerciseType.LUNGE -> {
+        ExerciseType.SQUAT -> {
             head(p(0.5f, 0.08f), 0.075f)
             val ls = p(0.33f, 0.20f); val rs = p(0.67f, 0.20f)
             bone(ls, rs)
             bone(ls, p(0.30f, 0.52f)); bone(rs, p(0.70f, 0.52f))
             val hip = p(0.5f, 0.52f)
             bone(p(0.5f, 0.20f), hip)
-            if (exercise == ExerciseType.LUNGE) {
-                // One foot forward — nearer the phone, so lower and larger in the picture.
-                bone(p(0.42f, 0.52f), p(0.38f, 0.76f)); bone(p(0.38f, 0.76f), p(0.36f, 0.99f))
-                bone(p(0.58f, 0.52f), p(0.60f, 0.72f)); bone(p(0.60f, 0.72f), p(0.61f, 0.90f))
-            } else {
-                bone(p(0.42f, 0.52f), p(0.40f, 0.76f)); bone(p(0.40f, 0.76f), p(0.39f, 0.97f))
-                bone(p(0.58f, 0.52f), p(0.60f, 0.76f)); bone(p(0.60f, 0.76f), p(0.61f, 0.97f))
-            }
+            bone(p(0.42f, 0.52f), p(0.40f, 0.76f)); bone(p(0.40f, 0.76f), p(0.39f, 0.97f))
+            bone(p(0.58f, 0.52f), p(0.60f, 0.76f)); bone(p(0.60f, 0.76f), p(0.61f, 0.97f))
         }
     }
 }

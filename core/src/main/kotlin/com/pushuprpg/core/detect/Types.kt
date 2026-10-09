@@ -8,11 +8,11 @@ package com.pushuprpg.core.detect
  * nothing. Persisted by `name`, so entries may be appended freely but never renamed or reordered.
  *
  * Bodyweight only, by the owner's decision. Curl, overhead press, bench press and hinge were
- * removed; every stored name is read back tolerantly, so a record or setting that still names one
- * of them falls back rather than failing to load.
+ * removed, and so was the lunge (2026-10-09); every stored name is read back tolerantly, so a
+ * record or setting that still names one of them falls back rather than failing to load.
  */
 enum class ExerciseType {
-    PUSHUP, SQUAT, PLANK, PULL_UP, LUNGE, DIP
+    PUSHUP, SQUAT, PLANK, PULL_UP, DIP
 }
 
 /**
@@ -51,13 +51,7 @@ enum class PoseQuality {
 
 enum class AbandonReason {
     HOVERED, STALLED_BOTTOM, SLOW_ASCENT, TOO_FAST, INCONSISTENT, QUALITY_LOST,
-
-    /** A lunge detector saw both feet side by side at the bottom: a squat, not a lunge. */
-    NOT_SPLIT,
 }
-
-/** The user's own left or right. */
-enum class BodySide { LEFT, RIGHT }
 
 enum class FormHint { LOCKOUT, HIPS_SAG, HIPS_PIKE, ASYMMETRY, TEMPO }
 

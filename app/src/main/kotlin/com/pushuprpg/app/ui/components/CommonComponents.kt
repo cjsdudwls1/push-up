@@ -415,7 +415,6 @@ fun exerciseLabelRes(exercise: ExerciseType): Int = when (exercise) {
     ExerciseType.SQUAT -> R.string.exercise_squat
     ExerciseType.PLANK -> R.string.exercise_plank
     ExerciseType.PULL_UP -> R.string.exercise_pull_up
-    ExerciseType.LUNGE -> R.string.exercise_lunge
     ExerciseType.DIP -> R.string.exercise_dip
 }
 
@@ -432,7 +431,6 @@ fun exerciseHintRes(exercise: ExerciseType): Int = when (exercise) {
     ExerciseType.SQUAT -> R.string.exercise_hint_squat
     ExerciseType.PLANK -> R.string.exercise_hint_plank
     ExerciseType.PULL_UP -> R.string.exercise_hint_pull_up
-    ExerciseType.LUNGE -> R.string.exercise_hint_lunge
     ExerciseType.DIP -> R.string.exercise_hint_dip
 }
 

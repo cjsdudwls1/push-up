@@ -51,8 +51,8 @@ enum class SkeletonMode {
  *     line *and* no dot — there is no code path that can draw one.
  *  2. **[SkeletonMode.MINIMAL] draws by allowlist**, not by threshold: the shoulder line plus the
  *     limbs whose landmarks the movement's signal reads. For a pushup that is the arms and nothing
- *     below, so the far-away legs are not even candidates. For a lunge it is the legs — drawing the
- *     arms there, as a fixed allowlist did, showed a user doing lunges a skeleton of their arms,
+ *     below, so the far-away legs are not even candidates. For a squat it is the legs — drawing the
+ *     arms there, as a fixed allowlist did, showed a user squatting a skeleton of their arms,
  *     and they reasonably concluded the app was watching the wrong limbs.
  *
  * Alpha fades smoothly with confidence instead of switching on and off, so a joint at the edge of

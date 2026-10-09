@@ -102,7 +102,7 @@ read through the count line of the very range that was wrong, it missed at a pho
 The bottom has the same trap and the same guard: two Shallow reps with the working joint fully bent
 move the bottom up to them, and a rep refused as too fast that went all the way may *widen* the
 range, never narrow it. Only a joint whose angle keeps closing to the bottom
-(`JointAngleCheck.confirmsFullDepth`: lunge, dip, pull-up) is asked — a pushup's elbow and a squat's
+(`JointAngleCheck.confirmsFullDepth`: dip, pull-up) is asked — a pushup's elbow and a squat's
 knee are fully bent at half depth and cannot tell a half rep from a whole one.
 
 **Real sets are replayed at a phone's frame rates.** `RealTraceTest` plays two sets recorded on a
@@ -123,10 +123,9 @@ brought closer by the zoom, and a set whose zoom is switched or dragged in a pau
 lens draws the body smaller from where it stood, and under a movement's `minScale` it is not read —
 the coach says COME_CLOSER. Its KDoc lists the limits found.
 
-**Pull-ups, dips and lunges are read along the spine** (`AxisSource.TORSO`), not across the
-shoulder line: at the distance a pull-up needs, the shoulder line is barely over the minimum scale
-from the front and gone from the side, and a lunge filmed at an angle — as people film it — was too
-narrow to measure at all. `HangingRigTest` and `LungeRigTest` pin front, side, back and diagonal.
+**Pull-ups and dips are read along the spine** (`AxisSource.TORSO`), not across the shoulder line:
+at the distance a pull-up needs, the shoulder line is barely over the minimum scale from the front
+and gone from the side. `HangingRigTest` pins front, side, back and diagonal.
 The model's spine is longer against the limbs than the rig's (people stand at 0.7-0.8 of the rig's
 `h`), so a prior that only fits the rig is a prior that never arms on a phone.
 A pull-up counts when the shoulders reach the count line (`ExerciseDescriptor.hangsFromBar`), read
@@ -174,18 +173,14 @@ depth from its deep upgrade and its finished record (`CeilingSurvival.onTick`); 
 set with the chest on the floor was once graded barely deep enough. `RealTraceTest` pins it on a real
 set.
 
-**A lunge needs a split stance** (`StanceCheck`, from world landmarks): the depth signal reads a
-squat exactly like a lunge. "Forward" is square to the hip line and the spine, never "horizontal" —
-world landmarks are in the camera's tilted frame. The game does not tell the user which leg to put
-forward, by the owner's decision: either leg counts, and the same leg twice is not remarked on.
-
 **Line crossings are placed between frames.** A brisk rep crosses the whole count band in one or
 two frames, and timing it frame to frame undercounted the descent by up to a frame — a 1-second
 squat read as 760 points a second and was refused as TOO_FAST, more often the higher the frame
 rate. `RepDetectorImpl.crossedAt` interpolates; any new timing taken off a line must use it.
 
-**Bodyweight movements only**, by the owner's decision: pushup, squat, plank, pull-up, lunge, dip.
-The weighted ones were removed; stored names that point at them read back tolerantly.
+**Bodyweight movements only**, by the owner's decision: pushup, squat, plank, pull-up, dip.
+The weighted ones were removed, and the lunge with its split-stance check by the owner's decision
+(2026-10-09); stored names that point at them read back tolerantly.
 
 **A line drawn for the user to aim at reads its value from `DetectorConfig`.** It must be the same
 value the rep counter uses. Never hardcode 70 or 88 in a composable.

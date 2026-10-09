@@ -14,7 +14,7 @@ import kotlin.test.assertEquals
  *
  * Before the band crossings were interpolated, a 1-second squat was refused as TOO_FAST at 20 and
  * 30 fps and counted at 15 — the frame times undercut the descent by up to a frame, and a smoother
- * camera undercut it more often. Squats, lunges, pull-ups and dips needed 1.2-2 seconds a rep.
+ * camera undercut it more often. Squats, pull-ups and dips needed 1.2-2 seconds a rep.
  */
 class FastRepRigTest {
 
@@ -33,7 +33,6 @@ class FastRepRigTest {
         Brisk(ExerciseType.PUSHUP, 800, Camera.onFloor(1.3f, 12f), { d: Float -> Body3d.pushup(d, front, Body3d.V3(0f, 0f, 0f)) }),
         Brisk(ExerciseType.PUSHUP, 800, Camera.onFloor(2.0f, 8f), { d: Float -> Body3d.pushup(d, Body3d.V3(-1f, 0f, 0f), Body3d.V3(0f, 0f, 0f)) }, "PUSHUP side on"),
         Brisk(ExerciseType.SQUAT, 1000, Camera.onFloor(2.2f, 30f), { d: Float -> Body3d.squat(d) }),
-        Brisk(ExerciseType.LUNGE, 1000, Camera.onFloor(2.2f, 30f), { d: Float -> Body3d.lunge(d, true) }),
         Brisk(ExerciseType.PULL_UP, 1000, Camera.onFloor(3f, 25f), { d: Float -> Body3d.pullUp(d, front) }),
         Brisk(ExerciseType.DIP, 1200, Camera.onFloor(3f, 25f), { d: Float -> Body3d.dipFacing(d, front) }),
     )

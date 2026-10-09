@@ -28,7 +28,7 @@ import kotlin.test.assertTrue
  * What it does not do, found here and not pinned:
  *
  *  - It does not let the phone stay where it was. At 0.5x the body is drawn half the size, and a
- *    lunge from 1.3 m or a squat from 2.2 m falls under the movement's minScale and is not read —
+ *    squat from 2.2 m falls under the movement's minScale and is not read —
  *    as it would not be at 1x from twice as far. The placement coach says COME_CLOSER for it.
  *  - A squat from the floor 1.1 m away with its feet in the picture counts its first rep and refuses
  *    the rest. That close, the shoulder width changes so much between standing and the bottom that
@@ -118,18 +118,10 @@ class WideAngleRigTest {
     }
 
     @Test
-    fun `a squat and a lunge count through a wide lens, and a squat is still not a lunge`() {
+    fun `a squat counts through a wide lens`() {
         val failures = mutableListOf<String>()
         for ((where, cam) in placements(listOf("the floor 2.6m away, tilted 30°" to Camera.onFloor(2.6f, 30f)))) {
             failures.counts("a squat from $where", ExerciseType.SQUAT, cam) { d -> Body3d.squat(d) }
-        }
-        for ((where, cam) in placements(listOf("the floor 2.2m away, tilted 30°" to Camera.onFloor(2.2f, 30f)))) {
-            for (yaw in listOf(0f, 45f, 90f)) {
-                failures.counts("a lunge at ${yaw.toInt()}° from $where", ExerciseType.LUNGE, cam) { d ->
-                    Body3d.rotated(Body3d.lunge(d), facing(yaw))
-                }
-            }
-            failures.countsNone("a squat as a lunge from $where", ExerciseType.LUNGE, cam, 0.95f) { d -> Body3d.squat(d) }
         }
         assertAll(failures)
     }
@@ -224,7 +216,6 @@ class WideAngleRigTest {
             Triple("a pushup from the head", ExerciseType.PUSHUP) { d -> Body3d.pushup(d, heading(0f), Body3d.V3(0f, 0f, 0f)) },
             Triple("a pushup side on", ExerciseType.PUSHUP) { d -> Body3d.pushup(d, heading(90f), Body3d.V3(0f, 0f, 0f)) },
             Triple("a squat", ExerciseType.SQUAT) { d -> Body3d.squat(d) },
-            Triple("a lunge", ExerciseType.LUNGE) { d -> Body3d.lunge(d) },
         )
         val failures = mutableListOf<String>()
         for ((what, type, pose) in sets) {
