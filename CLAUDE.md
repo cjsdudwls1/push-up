@@ -114,9 +114,10 @@ and fails there is not done. New recordings go in `core/src/test/resources/trace
 (2026-10-07, for a small room). It picks the widest camera facing that way (`intrinsicZoomRatio`) and
 zooms out — as far as it goes unless a ratio was picked — which CameraX applies before any stream,
 so the preview, the analysis and the overlay see the same wider picture. A phone with nothing under 1x films as before; it is off by
-default. It is switched, and how wide picked on a slider, from the run screen's top right as well as
-the settings (`WideCameraControl`): the ratio is applied to the open camera as the slider moves and
-saved when it is let go, and only turning it on or off opens the camera again.
+default. It is switched from the run screen's top right as well as the settings
+(`WideCameraControl`): one tap turns it on or off, by the owner's request (2026-10-09 — a button
+that opened a panel with a switch and a slider was one step too many). On is as wide as the camera
+goes; there is no slider, and turning it on clears any ratio an earlier build saved.
 `WideAngleRigTest` runs every movement at 0.8x, 0.6x and 0.5x from the usual placements
 brought closer by the zoom, and a set whose zoom is switched or dragged in a pause mid-set. A wider
 lens draws the body smaller from where it stood, and under a movement's `minScale` it is not read —

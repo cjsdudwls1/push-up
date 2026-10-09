@@ -83,12 +83,6 @@ fun ExercisePickScreen(
                 style = Type.headline,
                 color = Palette.TextPrimary,
             )
-            Spacer(Modifier.height(6.dp))
-            Text(
-                text = stringResource(R.string.pick_survival_sub),
-                style = Type.bodyM,
-                color = Palette.TextSecondary,
-            )
             Spacer(Modifier.height(10.dp))
         }
 

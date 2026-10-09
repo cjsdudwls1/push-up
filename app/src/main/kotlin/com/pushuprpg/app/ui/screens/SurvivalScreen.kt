@@ -147,10 +147,9 @@ fun SurvivalScreen(
     catWear: Set<CatItem> = emptySet(),
     /** 광각으로 찍기: the widest front camera, zoomed out. Switched here or in the settings. */
     wideCamera: Boolean = false,
-    /** How wide: 0 for as wide as it goes, otherwise the ratio picked on the slider. */
+    /** How wide: 0 for as wide as it goes, otherwise a ratio saved by an earlier build. */
     wideZoom: Float = 0f,
     onWideCameraChange: (Boolean) -> Unit = {},
-    onWideZoomChange: (Float) -> Unit = {},
     /** This movement's best per set before this session: what each set is played against. */
     setBests: SetBests = SetBests(),
     /** What the banked session did to the set bests; null until it is written. */
@@ -189,12 +188,8 @@ fun SurvivalScreen(
     // Raised by the camera and cleared by it once it opens; the card's retry binds it again.
     var cameraFailed by remember { mutableStateOf(false) }
     var cameraAttempt by remember { mutableIntStateOf(0) }
-    // The widest the open camera goes, once it has said; and the slider's ratio while it is dragged,
-    // which the camera follows before it is saved.
+    // The widest the open camera goes, once it has said.
     var wideLeast by remember { mutableStateOf<Float?>(null) }
-    var wideDragged by remember { mutableStateOf<Float?>(null) }
-    // Held until the saved ratio comes back, so letting go does not flick the picture back first.
-    LaunchedEffect(wideZoom) { wideDragged = null }
     val poseReady by poseSource.ready.collectAsState()
     // A model that never answers reports no error. The source moves a silent GPU to the CPU by
     // itself; silent there as well, it is taken for one that did not load, said the same way with a
@@ -209,7 +204,7 @@ fun SurvivalScreen(
             modifier = Modifier.fillMaxSize(),
             attempt = cameraAttempt,
             wide = wideCamera,
-            wideZoom = wideDragged ?: wideZoom,
+            wideZoom = wideZoom,
             onWideRange = { wideLeast = it },
             onCameraError = { failed -> cameraFailed = failed },
         )
@@ -372,20 +367,16 @@ fun SurvivalScreen(
             }
         }
 
-        // Top right, across from the close button: 광각 on and off, and how wide, live. The camera
+        // Top right, across from the close button: 광각 on and off in one tap. The camera
         // switches without the run stopping; the ceiling does not wait for it, as it waits for nothing.
         if (!cameraFailed && state.phase != CatPhase.OVER) {
             WideCameraControl(
                 on = wideCamera,
-                zoom = wideDragged ?: wideZoom,
                 least = wideLeast,
                 onToggle = { on ->
                     wideLeast = null
-                    wideDragged = null
                     onWideCameraChange(on)
                 },
-                onZoomPreview = { wideDragged = it },
-                onZoomPicked = onWideZoomChange,
                 modifier = Modifier
                     .align(Alignment.TopEnd)
                     .windowInsetsPadding(WindowInsets.safeDrawing)

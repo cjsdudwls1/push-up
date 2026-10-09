@@ -370,10 +370,8 @@ fun PushupRpgApp(
                                 wideCamera = settings.wideCamera,
                                 wideZoom = settings.wideZoom,
                                 onWideCameraChange = { on ->
-                                    scope.launch { container.settingsRepository.update { it.copy(wideCamera = on) } }
-                                },
-                                onWideZoomChange = { zoom ->
-                                    scope.launch { container.settingsRepository.update { it.copy(wideZoom = zoom) } }
+                                    // On is as wide as the camera goes: there is no slider left to pick a ratio.
+                                    scope.launch { container.settingsRepository.update { it.copy(wideCamera = on, wideZoom = 0f) } }
                                 },
                                 setBests = setBests,
                                 setOutcome = setOutcome,
