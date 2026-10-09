@@ -64,20 +64,35 @@ class CatSessionTest {
         return t
     }
 
-    /** By the owner's decision (2026-10-04) there are no lives: the session ends when the user ends it. */
+    /** Ten lives, by the owner's decision (2026-10-09): each set the ceiling wins costs one. */
     @Test
-    fun `a session goes on for as many sets as the user wants`() {
+    fun `a session is ten lives, one lost per set, and over when they are`() {
         val s = session()
+        assertEquals(CatSession.LIVES, s.state().livesLeft)
         var t = 0L
         var sets = 0
-        while (sets < 15 && t < 6_000_000) {
+        while (s.state().phase != CatPhase.OVER && t < 6_000_000) {
             t += 33
             val step = s.onTick(tick(t))
-            sets += step.session.count { it is CatSessionEvent.SetOver }
-            assertTrue(step.session.none { it is CatSessionEvent.Over }, "the session ended by itself after $sets sets")
+            if (step.session.any { it is CatSessionEvent.SetOver }) {
+                sets++
+                assertEquals(CatSession.LIVES - sets, s.state().livesLeft, "a set did not cost a life")
+            }
+            if (sets < CatSession.LIVES) {
+                assertTrue(step.session.none { it is CatSessionEvent.Over }, "the session ended after $sets sets")
+            }
         }
-        assertEquals(15, sets)
-        assertEquals(15, s.state().ended.size)
+        assertEquals(CatSession.LIVES, sets)
+        assertEquals(0, s.state().livesLeft)
+        assertEquals(CatPhase.OVER, s.state().phase)
+        assertTrue(s.finish(t).isEmpty())
+    }
+
+    @Test
+    fun `the user can end a session before its lives are lost`() {
+        val s = session()
+        val t = s.runUntil(0) { s.state().phase == CatPhase.RESTING }
+        assertEquals(CatSession.LIVES - 1, s.state().livesLeft)
         assertTrue(s.finish(t).single() is CatSessionEvent.Over)
         assertEquals(CatPhase.OVER, s.state().phase)
     }

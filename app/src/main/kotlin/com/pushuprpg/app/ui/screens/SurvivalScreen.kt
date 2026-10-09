@@ -43,6 +43,8 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.coerceIn
 import androidx.compose.ui.unit.dp
@@ -86,6 +88,7 @@ import com.pushuprpg.core.progression.WearSlot
 import com.pushuprpg.core.survival.CatLine
 import com.pushuprpg.core.survival.CatMood
 import com.pushuprpg.core.survival.CatPhase
+import com.pushuprpg.core.survival.CatSession
 import com.pushuprpg.core.survival.CatSessionState
 import com.pushuprpg.core.survival.SetResult
 import com.pushuprpg.core.survival.CatSpeech
@@ -100,8 +103,8 @@ import kotlinx.coroutines.delay
  * descending ceiling *is* the gauge. This is the mode people are shown first and
  * the one they send to a friend, so it must not look like sports science.
  *
- * A session is as many sets as the user wants, with a rest between them that the screen counts
- * down, until they end it with the close button or back; the tutorial is one set. See
+ * A session is ten lives — ten sets — with a rest between them that the screen counts down, over
+ * when they are lost or when the user ends it with the close button or back; the tutorial is one set. See
  * [com.pushuprpg.core.survival.CatSession].
  */
 @Composable
@@ -147,10 +150,9 @@ fun SurvivalScreen(
     catWear: Set<CatItem> = emptySet(),
     /** 광각으로 찍기: the widest front camera, zoomed out. Switched here or in the settings. */
     wideCamera: Boolean = false,
-    /** How wide: 0 for as wide as it goes, otherwise the ratio picked on the slider. */
+    /** How wide: 0 for as wide as it goes, otherwise a ratio saved by an earlier build. */
     wideZoom: Float = 0f,
     onWideCameraChange: (Boolean) -> Unit = {},
-    onWideZoomChange: (Float) -> Unit = {},
     /** This movement's best per set before this session: what each set is played against. */
     setBests: SetBests = SetBests(),
     /** What the banked session did to the set bests; null until it is written. */
@@ -189,12 +191,8 @@ fun SurvivalScreen(
     // Raised by the camera and cleared by it once it opens; the card's retry binds it again.
     var cameraFailed by remember { mutableStateOf(false) }
     var cameraAttempt by remember { mutableIntStateOf(0) }
-    // The widest the open camera goes, once it has said; and the slider's ratio while it is dragged,
-    // which the camera follows before it is saved.
+    // The widest the open camera goes, once it has said.
     var wideLeast by remember { mutableStateOf<Float?>(null) }
-    var wideDragged by remember { mutableStateOf<Float?>(null) }
-    // Held until the saved ratio comes back, so letting go does not flick the picture back first.
-    LaunchedEffect(wideZoom) { wideDragged = null }
     val poseReady by poseSource.ready.collectAsState()
     // A model that never answers reports no error. The source moves a silent GPU to the CPU by
     // itself; silent there as well, it is taken for one that did not load, said the same way with a
@@ -209,7 +207,7 @@ fun SurvivalScreen(
             modifier = Modifier.fillMaxSize(),
             attempt = cameraAttempt,
             wide = wideCamera,
-            wideZoom = wideDragged ?: wideZoom,
+            wideZoom = wideZoom,
             onWideRange = { wideLeast = it },
             onCameraError = { failed -> cameraFailed = failed },
         )
@@ -295,6 +293,8 @@ fun SurvivalScreen(
                         color = Palette.TextSecondary,
                     )
                 }
+                Spacer(Modifier.height(4.dp))
+                LivesRow(lives = state.lives, left = state.livesLeft)
                 // The set against its own best, by the owner's decision: the number is what makes
                 // breaking it worth chasing. Once the set has started; while setting up there is
                 // nothing yet to count.
@@ -372,20 +372,16 @@ fun SurvivalScreen(
             }
         }
 
-        // Top right, across from the close button: 광각 on and off, and how wide, live. The camera
+        // Top right, across from the close button: 광각 on and off in one tap. The camera
         // switches without the run stopping; the ceiling does not wait for it, as it waits for nothing.
         if (!cameraFailed && state.phase != CatPhase.OVER) {
             WideCameraControl(
                 on = wideCamera,
-                zoom = wideDragged ?: wideZoom,
                 least = wideLeast,
                 onToggle = { on ->
                     wideLeast = null
-                    wideDragged = null
                     onWideCameraChange(on)
                 },
-                onZoomPreview = { wideDragged = it },
-                onZoomPicked = onWideZoomChange,
                 modifier = Modifier
                     .align(Alignment.TopEnd)
                     .windowInsetsPadding(WindowInsets.safeDrawing)
@@ -850,7 +846,7 @@ private fun TutorialDoneCard(
         )
         Spacer(Modifier.height(8.dp))
         Text(
-            text = stringResource(R.string.tutorial_done_next),
+            text = stringResource(R.string.tutorial_done_next, CatSession.LIVES),
             style = Type.bodyL,
             color = Palette.TextSecondary,
             textAlign = TextAlign.Center,
@@ -890,6 +886,26 @@ private fun SetCounter(set: Int, now: Int, best: Int, hold: Boolean, modifier: M
         }
     }
 }
+
+/** The session's lives as hearts: full for the ones left, faint for the ones lost. */
+@Composable
+private fun LivesRow(lives: Int, left: Int, modifier: Modifier = Modifier) {
+    val description = stringResource(R.string.survival_lives_left, left)
+    Row(
+        modifier = modifier.semantics { contentDescription = description },
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        repeat(lives) { i ->
+            CameraText(
+                text = "\u2665",
+                style = Type.titleM,
+                color = if (i < left) HEART else Palette.TextDisabled,
+            )
+        }
+    }
+}
+
+private val HEART = Color(0xFFFF6F91)
 
 /**
  * The rest between two sets.
@@ -936,6 +952,8 @@ private fun RestCard(
             style = Type.displayM,
             color = Palette.TextPrimary,
         )
+        Spacer(Modifier.height(12.dp))
+        LivesRow(lives = state.lives, left = state.livesLeft)
         Spacer(Modifier.height(10.dp))
         val next = state.ended.size + 1
         Text(

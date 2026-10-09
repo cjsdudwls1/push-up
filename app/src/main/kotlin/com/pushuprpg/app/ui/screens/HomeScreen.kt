@@ -227,7 +227,6 @@ fun HomeScreen(
         Spacer(Modifier.height(18.dp))
         PrimaryButton(
             text = stringResource(R.string.home_cat_play),
-            supportingText = stringResource(R.string.home_cat_play_sub),
             onClick = onPlayCat,
         )
         Spacer(Modifier.height(6.dp))

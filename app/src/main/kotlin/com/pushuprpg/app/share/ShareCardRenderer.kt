@@ -271,7 +271,7 @@ object ShareCardRenderer {
         paint.letterSpacing = 0.04f
         paint.textAlign = Paint.Align.LEFT
         val baseline = 132f
-        canvas.drawText(res.getString(R.string.app_name), MARGIN, baseline, paint)
+        canvas.drawText(res.getString(R.string.survival_title), MARGIN, baseline, paint)
 
         val chipPaint = textPaint(32f, TEXT_ON_ACCENT, bold)
         chipPaint.textAlign = Paint.Align.CENTER

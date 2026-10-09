@@ -25,7 +25,12 @@ data class CatSessionState(
     val restLeftMs: Long = 0,
     /** Reps of the set being played that went past the 깊게 line. */
     val setDeepReps: Int = 0,
+    /** Lives the session started with: one per set. */
+    val lives: Int = CatSession.LIVES,
 ) {
+    /** Lives not yet lost, the one being played included. */
+    val livesLeft: Int get() = (lives - ended.size).coerceAtLeast(0)
+
     /** The set being played is counted until it ends; after that it is one of [ended]. */
     private val live: Boolean get() = phase == CatPhase.PLAYING
 
@@ -54,13 +59,13 @@ data class CatSessionState(
 sealed interface CatSessionEvent {
     val atMs: Long
 
-    /** The ceiling won and a set ended. A rest follows it, except in the tutorial's one set. */
+    /** The ceiling won and a set ended, a life with it. A rest follows it, unless that was the last life. */
     data class SetOver(override val atMs: Long, val result: SetResult) : CatSessionEvent
 
     /** The rest is over. The next set's ceiling waits, as the first did, for the user to be in position. */
     data class RestOver(override val atMs: Long) : CatSessionEvent
 
-    /** The session was ended from the screen, or the tutorial's one set ended. */
+    /** The session was ended from the screen, or its last life was lost. */
     data class Over(override val atMs: Long) : CatSessionEvent
 }
 
@@ -71,21 +76,21 @@ data class CatStep(
 )
 
 /**
- * 고양이 지켜줘 as a workout: as many sets as the user wants, with a rest between them.
+ * 고양이 지켜줘 as a workout: [LIVES] lives, one set each, with a rest between them.
  *
  * A single run of [CeilingSurvival] is a test — as many as you can, until the ceiling wins — and a
  * test is not a workout. Several of them with a rest between is several sets to the edge of failure,
  * which is what builds muscle: several sets do clearly more than one, and a set taken close to its
- * limit is the one that counts. There used to be ten lives, ten sets, and the session was over when
- * they were; by the owner's decision (2026-10-04) there are no lives, and the session goes on until
- * the user ends it from the screen ([finish]). The rest between sets is the default between sets:
+ * limit is the one that counts. A session is ten lives, by the owner's decision (2026-10-09, putting
+ * back what 2026-10-04 took out): the ceiling winning costs one and ends a set, and the session is
+ * over when they are all lost, or when the user ends it from the screen ([finish]). The rest between sets is the default between sets:
  * the ceiling does not come back until it is over, or until the user skips it ([skipRest]), which
  * the owner added on 2026-10-02.
  *
  * Each set is a fresh [CeilingSurvival] — a fresh ceiling and a fresh ramp, as a new set starts
  * fresh — and keeps that class's rule that nothing pauses it once it has started. With no lives to
- * lose, the ceiling winning while the camera had lost the user costs nothing but the set it ends,
- * whose reps are kept; there is nothing left to give back.
+ * lose, the ceiling winning while the camera had lost the user costs the life and the set it ends,
+ * whose reps are kept, as every life's are.
  *
  * Pure like the rest of `:core`: time is the frame's timestamp, and the rest is counted on it.
  */
@@ -94,7 +99,13 @@ class CatSession(
     private val newLife: () -> CeilingSurvival,
     /** The tutorial's session: one set, no rest, and over when the ceiling wins. */
     val oneSet: Boolean = false,
+    /** How many lives — sets — the session has. */
+    val lives: Int = if (oneSet) 1 else LIVES,
 ) {
+    init {
+        require(lives >= 1) { "a session needs a life" }
+    }
+
     /** The rest between sets. Read as each rest starts, so a change applies from the next one. */
     var restMs: Long = REST_MS
 
@@ -114,6 +125,7 @@ class CatSession(
         ended = ended.toList(),
         restLeftMs = if (phase == CatPhase.RESTING) restLeftMs else 0L,
         setDeepReps = if (phase == CatPhase.PLAYING) setDeep else 0,
+        lives = lives,
     )
 
     /**
@@ -175,7 +187,7 @@ class CatSession(
         val result = resultOf(game.state())
         ended += result
         val out = mutableListOf<CatSessionEvent>(CatSessionEvent.SetOver(atMs, result))
-        if (oneSet) {
+        if (oneSet || ended.size >= lives) {
             phase = CatPhase.OVER
             out += CatSessionEvent.Over(atMs)
         } else {
@@ -204,6 +216,9 @@ class CatSession(
     )
 
     companion object {
+        /** Ten lives, by the owner's decision. */
+        const val LIVES = 10
+
         /** A minute between sets, by the owner's decision; the settings offer longer. */
         const val REST_MS = 60_000L
     }

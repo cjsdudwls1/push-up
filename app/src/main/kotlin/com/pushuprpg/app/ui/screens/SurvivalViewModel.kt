@@ -74,7 +74,7 @@ class SurvivalViewModel(
     private val appScope: CoroutineScope,
 ) : ViewModel() {
 
-    // As many sets as the user wants, with a rest between them, by the owner's decision (2026-10-04),
+    // Ten lives — ten sets — with a rest between them, by the owner's decision (2026-10-09),
     // and the tutorial one set with none: it is somebody's first minute, and what it measures is one
     // go. Each set is worth what the movement is worth everywhere else: a pull-up moves the ceiling
     // about as far as three pushups. See CeilingSurvival.forExercise and CatSession.
