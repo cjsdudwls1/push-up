@@ -200,19 +200,23 @@ position only *starts* a set, and after that the ceiling never stops — resting
 stepping out of view all let it keep coming. It is a sprint, and a sprint you can pause by sitting
 up is not one. Do not "fix" it back to pausing. What keeps the rule instead is that there is nothing
 to lose: the ceiling winning ends the set and keeps its reps, and the next set comes after the rest.
-(While a session was ten lives, a life the tracker lost was given back once a session; with no lives
-there is nothing to give back.)
+(A life the tracker lost was once given back once a session; since the lives came back on
+2026-10-09 it is not — the set's reps are kept either way.)
 
-A session of 고양이 지켜줘 is **as many sets as the user wants, with a rest between them**, by the
-owner's decision (2026-10-04; it was ten lives, ten sets, and over when they were). A set is one run
-of the ceiling — a life, in `CeilingSurvival`'s words — and the rest (a minute by default; the
-settings offer 90 s and 2 min) runs its length unless the user skips it — the rest card's one button,
-added by the owner's decision of 2026-10-02 (`CatSession.skipRest`); there is no extend — and the
-next set's ceiling does not come back until it is over or skipped, and then waits, as the first did,
-for the user to be in position. Each set is a fresh `CeilingSurvival` and keeps the sprint rule
-above. The close button and back are the only way a session ends: they end it where it is and show
-its ending. The tutorial is one set and no rest (`CatSession.oneSet`). Ten sets in one session is
-still a full one, which a gift is for (`Gifts.FULL_SESSION_SETS`). `CatSessionTest` pins all of it.
+A session of 고양이 지켜줘 is **ten lives, one set each, with a rest between them**, by the owner's
+decision (2026-10-09, putting back the lives that 2026-10-04 took out). A set is one run of the
+ceiling — a life, in `CeilingSurvival`'s words — and the ceiling winning costs one, shown as the row
+of hearts under the score and on the rest card (`CatSessionState.livesLeft`). The rest (a minute by
+default; the settings offer 90 s and 2 min) runs its length unless the user skips it — the rest card's
+one button, added by the owner's decision of 2026-10-02 (`CatSession.skipRest`); there is no extend —
+and the next set's ceiling does not come back until it is over or skipped, and then waits, as the
+first did, for the user to be in position. Each set is a fresh `CeilingSurvival` and keeps the sprint
+rule above. The session is over when the last life is lost, or earlier when the user ends it with the
+close button or back; either way it shows its ending. No life is given back for a tracking failure:
+the set's reps are kept, which is what the rule above asks. The hearts that float up from the cat on a
+push are the cheer, not the lives. The tutorial is one set and no rest (`CatSession.oneSet`). Ten sets
+in one session is a full one, which a gift is for (`Gifts.FULL_SESSION_SETS`). `CatSessionTest` pins
+all of it.
 
 **The cat is the whole app; the dungeons were taken out** (2026-09-30), by the owner's decision.
 The hub's one big button is 고양이 지키기, and it starts the movement it names at once — the picker

@@ -126,7 +126,7 @@
     <string name="settings_rest_minutes">%1$d분</string>
     <string name="settings_rest_minutes_seconds">%1$d분 %2$d초</string>
     <string name="settings_cat_rest">고양이 쉬는 시간</string>
-    <string name="settings_cat_rest_sub">천장에 눌리면 이만큼 쉬고 다음 세트를 시작해요. 쉬어야 다음 세트에 더 많이 해요.</string>
+    <string name="settings_cat_rest_sub">목숨이 하나 줄면 이만큼 쉬고 다음 세트를 시작해요. 쉬어야 다음 세트에 더 많이 해요.</string>
     <string name="settings_wide_camera">광각으로 찍기</string>
     <string name="settings_wide_camera_sub">방이 좁아도 몸이 화면에 다 들어오게 넓게 찍어요. 운동 화면 오른쪽 위 광각 버튼을 눌러도 바로 켜지고 꺼져요. 넓게 찍는 만큼 폰 가까이에서 해요.</string>
     <string name="survival_wide">광각</string>
@@ -219,8 +219,8 @@
     <string name="tutorial_done_shallow">조금만 더 내려가면 세져요. 힘들면 무릎 대고 해도 괜찮아요.</string>
     <!-- The camera's miss, followed by the pushup placement hint. -->
     <string name="tutorial_done_zero">카메라가 아직 한 개도 못 셌어요.</string>
-    <!-- What comes after the tutorial's one set: as many sets as the user likes, with a rest between them. -->
-    <string name="tutorial_done_next">이제부터는 원하는 만큼 지켜요. 천장에 눌리면 1분 쉬고 다음 세트를 이어 가요.</string>
+    <!-- What comes after the tutorial's one set: a session is %1$d lives, with a rest between them. -->
+    <string name="tutorial_done_next">이제부터는 목숨 %1$d개로 지켜요. 목숨이 하나 줄면 1분 쉬고 이어 가요.</string>
     <string name="tutorial_continue">홈으로 가기</string>
     <!-- Back while the tutorial's ceiling waits. Answered with 계속하기 or 건너뛰기; skipped, it does not come back. -->
     <string name="tutorial_skip_confirm">튜토리얼을 건너뛸까요?</string>
@@ -229,6 +229,8 @@
     <!-- The rest between two sets; the countdown is result_rest_time. It can be skipped (rest_skip),
          and the next set's best is quoted (rest_next_*). -->
     <string name="rest_tip">물 한 모금 마시고 숨을 골라요. 쉬어야 다음 판에 더 많이 해요.</string>
+    <!-- The hearts' spoken label: lives not yet lost, the one being played included. -->
+    <string name="survival_lives_left">남은 목숨 %1$d개</string>
     <string name="rest_after">쉬는 시간이 끝나면, 자세를 잡을 때 다음 세트가 시작돼요</string>
     <string name="rest_skip">쉬는 시간 건너뛰기</string>
     <string name="rest_next_best">다음 %1$d세트 최고 기록은 %2$d개예요</string>

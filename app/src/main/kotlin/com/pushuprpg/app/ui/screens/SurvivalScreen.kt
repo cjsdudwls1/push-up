@@ -43,6 +43,8 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.coerceIn
 import androidx.compose.ui.unit.dp
@@ -86,6 +88,7 @@ import com.pushuprpg.core.progression.WearSlot
 import com.pushuprpg.core.survival.CatLine
 import com.pushuprpg.core.survival.CatMood
 import com.pushuprpg.core.survival.CatPhase
+import com.pushuprpg.core.survival.CatSession
 import com.pushuprpg.core.survival.CatSessionState
 import com.pushuprpg.core.survival.SetResult
 import com.pushuprpg.core.survival.CatSpeech
@@ -100,8 +103,8 @@ import kotlinx.coroutines.delay
  * descending ceiling *is* the gauge. This is the mode people are shown first and
  * the one they send to a friend, so it must not look like sports science.
  *
- * A session is as many sets as the user wants, with a rest between them that the screen counts
- * down, until they end it with the close button or back; the tutorial is one set. See
+ * A session is ten lives — ten sets — with a rest between them that the screen counts down, over
+ * when they are lost or when the user ends it with the close button or back; the tutorial is one set. See
  * [com.pushuprpg.core.survival.CatSession].
  */
 @Composable
@@ -290,6 +293,8 @@ fun SurvivalScreen(
                         color = Palette.TextSecondary,
                     )
                 }
+                Spacer(Modifier.height(4.dp))
+                LivesRow(lives = state.lives, left = state.livesLeft)
                 // The set against its own best, by the owner's decision: the number is what makes
                 // breaking it worth chasing. Once the set has started; while setting up there is
                 // nothing yet to count.
@@ -841,7 +846,7 @@ private fun TutorialDoneCard(
         )
         Spacer(Modifier.height(8.dp))
         Text(
-            text = stringResource(R.string.tutorial_done_next),
+            text = stringResource(R.string.tutorial_done_next, CatSession.LIVES),
             style = Type.bodyL,
             color = Palette.TextSecondary,
             textAlign = TextAlign.Center,
@@ -881,6 +886,26 @@ private fun SetCounter(set: Int, now: Int, best: Int, hold: Boolean, modifier: M
         }
     }
 }
+
+/** The session's lives as hearts: full for the ones left, faint for the ones lost. */
+@Composable
+private fun LivesRow(lives: Int, left: Int, modifier: Modifier = Modifier) {
+    val description = stringResource(R.string.survival_lives_left, left)
+    Row(
+        modifier = modifier.semantics { contentDescription = description },
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        repeat(lives) { i ->
+            CameraText(
+                text = "\u2665",
+                style = Type.titleM,
+                color = if (i < left) HEART else Palette.TextDisabled,
+            )
+        }
+    }
+}
+
+private val HEART = Color(0xFFFF6F91)
 
 /**
  * The rest between two sets.
@@ -927,6 +952,8 @@ private fun RestCard(
             style = Type.displayM,
             color = Palette.TextPrimary,
         )
+        Spacer(Modifier.height(12.dp))
+        LivesRow(lives = state.lives, left = state.livesLeft)
         Spacer(Modifier.height(10.dp))
         val next = state.ended.size + 1
         Text(
