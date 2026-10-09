@@ -164,18 +164,18 @@ class PlacementCoachTest {
 
     @Test
     fun `too far away is told to come closer`() {
-        val heard = listen(ExerciseType.LUNGE, Body3d.trace({ d -> Body3d.lunge(d) }, Camera.onFloor(5f, 30f), 3))
+        val heard = listen(ExerciseType.SQUAT, Body3d.trace({ d -> Body3d.squat(d) }, Camera.onFloor(5f, 30f), 3))
         assertEquals(0, heard.reps)
         assertEquals(PlacementAdvice.COME_CLOSER, heard.last)
     }
 
     @Test
     fun `feet below the frame are named, and the edge they left by`() {
-        // Level with the chest and close: the knees and ankles the lunge reads are under the frame.
-        val coach = PlacementCoach(ExerciseType.LUNGE)
-        val detector = DetectorFactory.create(ExerciseType.LUNGE)
+        // Level with the chest and close: the knees and ankles the squat reads are under the frame.
+        val coach = PlacementCoach(ExerciseType.SQUAT)
+        val detector = DetectorFactory.create(ExerciseType.SQUAT)
         var last = Placement()
-        still(Body3d.lunge(0f), Camera.level(1.3f, 1.3f)).forEach { last = coach.update(it, detector.onFrame(it)) }
+        still(Body3d.squat(0f), Camera.level(1.3f, 1.3f)).forEach { last = coach.update(it, detector.onFrame(it)) }
         assertTrue(
             last.advice == PlacementAdvice.SHOW_BELOW || last.advice == PlacementAdvice.MOVE_PHONE_BACK,
             "advice was ${last.advice}",
@@ -191,7 +191,7 @@ class PlacementCoachTest {
         // In position and counting first, then standing up to rest.
         Body3d.trace(floorBody(0f), Camera.onFloor(2.0f, 10f), 3).forEach { said += coach.update(it, detector.onFrame(it)).advice }
         val restStart = said.size
-        still(Body3d.lunge(0f), Camera.onFloor(2.0f, 10f)).forEach { f ->
+        still(Body3d.standing(), Camera.onFloor(2.0f, 10f)).forEach { f ->
             said += coach.update(f.copy(timestampMs = f.timestampMs + 60_000), detector.onFrame(f.copy(timestampMs = f.timestampMs + 60_000))).advice
         }
         assertTrue(PlacementAdvice.GET_IN_POSITION !in said.drop(restStart), "nagged a resting user: ${said.drop(restStart).distinct()}")

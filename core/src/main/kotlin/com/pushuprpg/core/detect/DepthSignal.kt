@@ -14,10 +14,6 @@ import kotlin.math.abs
 data class DepthSample(
     val h: Float,
     val source: DepthSource,
-    /** Front-to-back distance between the feet in metres, for a [StanceCheck]; NaN otherwise. */
-    val stagger: Float = Float.NaN,
-    /** The leg in front, for a [StanceCheck]; null otherwise. */
-    val front: BodySide? = null,
     /** |h_left − h_right| in h units; large values mean one side is dropping more than the other. */
     val asymmetry: Float,
     /**
@@ -84,22 +80,14 @@ object DepthSignal {
         var asymmetry = 0f
         when {
             usableL && usableR -> {
-                h = when (signal.sideCombiner) {
-                    // A split stance: only the front leg bends, and averaging it with a trailing
-                    // leg that barely moves halves the reading so no honest rep reaches the line.
-                    // h falls with effort, so the working side is the smaller one.
-                    SideCombiner.DEEPER_SIDE -> minOf(hL, hR)
-                    // One side far less trusted than the other: take the good one outright rather
-                    // than letting a weighted mean quietly import the bad one's error.
-                    SideCombiner.CONFIDENCE_WEIGHTED -> when {
-                        wL < SIDE_DOMINANCE * wR -> hR
-                        wR < SIDE_DOMINANCE * wL -> hL
-                        else -> (hL * wL + hR * wR) / (wL + wR)
-                    }
+                // One side far less trusted than the other: take the good one outright rather
+                // than letting a weighted mean quietly import the bad one's error.
+                h = when {
+                    wL < SIDE_DOMINANCE * wR -> hR
+                    wR < SIDE_DOMINANCE * wL -> hL
+                    else -> (hL * wL + hR * wR) / (wL + wR)
                 }
-                // An asymmetric movement is asymmetric by definition; reporting that as a fault
-                // would flag every honest rep.
-                asymmetry = if (signal.sideCombiner == SideCombiner.DEEPER_SIDE) 0f else abs(hL - hR)
+                asymmetry = abs(hL - hR)
             }
             usableL -> h = hL
             usableR -> h = hR
@@ -119,11 +107,7 @@ object DepthSignal {
 
         if (source == DepthSource.NONE) return null
 
-        val stance = signal.stance?.let { stance(frame) }
-        return DepthSample(
-            h = h, source = source, asymmetry = asymmetry, jointDepth = joint, bodyDrop = travel,
-            stagger = stance?.first ?: Float.NaN, front = stance?.second,
-        )
+        return DepthSample(h = h, source = source, asymmetry = asymmetry, jointDepth = joint, bodyDrop = travel)
     }
 
     /**
@@ -179,45 +163,6 @@ object DepthSignal {
         }
 
         return (100f * (check.topDeg - theta) / (check.topDeg - check.bottomDeg)).coerceIn(0f, 100f)
-    }
-
-    /**
-     * The feet's front-to-back distance in metres, and which is in front, from world landmarks.
-     *
-     * "Front" is the way the body faces: square to both the hip line and the spine, pointing the
-     * side the nose is on. Not "horizontal": world landmarks are in the camera's frame, and with the
-     * phone tilted up 30 degrees a horizontal plane in it runs through the torso, which put the nose
-     * behind the shoulders and every lunge on the wrong leg. Null without world landmarks.
-     */
-    fun stance(frame: PoseFrame): Pair<Float, BodySide>? {
-        if (!frame.hasWorld) return null
-        val w = frame.worldLandmarks
-        fun mid(a: Int, b: Int) = floatArrayOf(
-            (w[a].x + w[b].x) / 2f, (w[a].y + w[b].y) / 2f, (w[a].z + w[b].z) / 2f,
-        )
-        val hip = floatArrayOf(
-            w[Lm.LEFT_HIP].x - w[Lm.RIGHT_HIP].x,
-            w[Lm.LEFT_HIP].y - w[Lm.RIGHT_HIP].y,
-            w[Lm.LEFT_HIP].z - w[Lm.RIGHT_HIP].z,
-        )
-        val shoulders = mid(Lm.LEFT_SHOULDER, Lm.RIGHT_SHOULDER)
-        val hips = mid(Lm.LEFT_HIP, Lm.RIGHT_HIP)
-        val spine = floatArrayOf(shoulders[0] - hips[0], shoulders[1] - hips[1], shoulders[2] - hips[2])
-        // hip × spine: square to both.
-        var fx = hip[1] * spine[2] - hip[2] * spine[1]
-        var fy = hip[2] * spine[0] - hip[0] * spine[2]
-        var fz = hip[0] * spine[1] - hip[1] * spine[0]
-        val len = kotlin.math.sqrt(fx * fx + fy * fy + fz * fz)
-        if (len < 1e-5f) return null
-        fx /= len; fy /= len; fz /= len
-        val nose = w[Lm.NOSE]
-        if ((nose.x - shoulders[0]) * fx + (nose.y - shoulders[1]) * fy + (nose.z - shoulders[2]) * fz < 0f) {
-            fx = -fx; fy = -fy; fz = -fz
-        }
-        fun along(i: Int) = w[i].x * fx + w[i].y * fy + w[i].z * fz
-        val left = along(Lm.LEFT_ANKLE)
-        val right = along(Lm.RIGHT_ANKLE)
-        return abs(left - right) to (if (left > right) BodySide.LEFT else BodySide.RIGHT)
     }
 
     /**

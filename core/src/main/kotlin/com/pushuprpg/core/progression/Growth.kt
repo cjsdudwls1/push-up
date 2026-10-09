@@ -84,19 +84,19 @@ object Calories {
 
     /**
      * The movement's MET: 02020 vigorous calisthenics (push-ups, pull-ups) 7.5, and dips with them;
-     * 02057 high-intensity body-weight exercises (squat, lunge) 6.5; 02024 light calisthenics (plank)
+     * 02057 high-intensity body-weight exercises (squat) 6.5; 02024 light calisthenics (plank)
      * 2.8. A set here is taken to the edge, which is the vigorous end of each.
      */
     fun met(exercise: ExerciseType): Float = when (exercise) {
         ExerciseType.PUSHUP, ExerciseType.PULL_UP, ExerciseType.DIP -> 7.5f
-        ExerciseType.SQUAT, ExerciseType.LUNGE -> 6.5f
+        ExerciseType.SQUAT -> 6.5f
         ExerciseType.PLANK -> 2.8f
     }
 
     /** How long one rep takes at the pace the game is played at; a hold is counted by the second. */
     fun secondsPer(exercise: ExerciseType): Float = when (exercise) {
         ExerciseType.PUSHUP -> 2.0f
-        ExerciseType.SQUAT, ExerciseType.LUNGE, ExerciseType.DIP -> 2.5f
+        ExerciseType.SQUAT, ExerciseType.DIP -> 2.5f
         ExerciseType.PULL_UP -> 3.0f
         ExerciseType.PLANK -> 1.0f
     }

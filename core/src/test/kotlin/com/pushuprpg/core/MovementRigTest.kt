@@ -85,27 +85,6 @@ class MovementRigTest {
         assertCounts(ExerciseType.DIP, { Body3d.dip(it) }, Camera.level(2.5f, 0.9f), "waist height")
     }
 
-    @Test
-    fun `a lunge counts from the floor, which is where the placement line sends the phone`() {
-        assertCounts(ExerciseType.LUNGE, { d -> Body3d.lunge(d) }, floor30, "the floor")
-    }
-
-    /**
-     * Not a bug, a fact about the geometry, recorded so it is never mistaken for one: in a split
-     * stance the front knee is nearly half a metre nearer the lens than the hip. From a camera above
-     * knee height that makes it project lower, which reads as the hip sitting higher above it — a
-     * quarter of a shoulder width shallower than the body actually is. From the floor the same
-     * offset reads deeper. So the lunge is a floor-placement movement, and the honest failure from a
-     * level camera is SHALLOW: the gauge visibly stops short, rather than a refused strike or a
-     * silent zero.
-     */
-    @Test
-    fun `a lunge from waist height reads shallow, and says so, rather than failing silently`() {
-        val r = run(ExerciseType.LUNGE, { d -> Body3d.lunge(d) }, waist)
-        assertTrue(r.refusals.isEmpty(), "a level camera refused lunges as ${r.refusals.distinct()}")
-        assertTrue(r.shallow > 0 || r.reps == 8, "no Shallow event and no reps: a silent zero")
-    }
-
     // ---------------------------------------------------------------- the sign, per movement
 
     /**
@@ -116,7 +95,6 @@ class MovementRigTest {
     @Test
     fun `h falls with effort from every camera, for every standing movement`() {
         val movements = listOf<Pair<ExerciseType, (Float) -> Body3d.Skeleton>>(
-            ExerciseType.LUNGE to { d -> Body3d.lunge(d) },
             ExerciseType.DIP to { d -> Body3d.dip(d) },
         )
         for ((type, pose) in movements) {

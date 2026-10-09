@@ -120,7 +120,6 @@ private fun placementRes(advice: PlacementAdvice, exercise: ExerciseType): Int =
         ExerciseType.PUSHUP -> R.string.placement_start_pushup
         ExerciseType.PLANK -> R.string.placement_start_plank
         ExerciseType.SQUAT -> R.string.placement_start_squat
-        ExerciseType.LUNGE -> R.string.placement_start_lunge
         ExerciseType.PULL_UP -> R.string.placement_start_pull_up
         ExerciseType.DIP -> R.string.placement_start_dip
     }

@@ -75,7 +75,7 @@ def lines(s):
                  "placement_face_standing", "placement_clearer",
                  "quality_unstable_camera", "quality_subject_switch", "quality_implausible_rate",
                  "placement_start_pushup", "placement_start_plank", "placement_start_squat",
-                 "placement_start_lunge", "placement_start_pull_up", "placement_start_dip"):
+                 "placement_start_pull_up", "placement_start_dip"):
         add(name, "COACH")
 
     # 고양이.

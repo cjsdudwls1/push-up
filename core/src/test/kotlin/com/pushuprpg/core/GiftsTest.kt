@@ -90,8 +90,8 @@ class GiftsTest {
         val two = listOf(run(1), run(2, exercise = ExerciseType.SQUAT), run(3, exercise = ExerciseType.SQUAT))
         assertFalse(Gift.MOVEMENTS_3 in Gifts.earned(two, 1))
         // Opened and left is not tried.
-        assertFalse(Gift.MOVEMENTS_3 in Gifts.earned(two + run(4, reps = 0, bestSet = 0, exercise = ExerciseType.LUNGE), 1))
-        assertTrue(Gift.MOVEMENTS_3 in Gifts.earned(two + run(4, exercise = ExerciseType.LUNGE), 1))
+        assertFalse(Gift.MOVEMENTS_3 in Gifts.earned(two + run(4, reps = 0, bestSet = 0, exercise = ExerciseType.DIP), 1))
+        assertTrue(Gift.MOVEMENTS_3 in Gifts.earned(two + run(4, exercise = ExerciseType.DIP), 1))
     }
 
     @Test

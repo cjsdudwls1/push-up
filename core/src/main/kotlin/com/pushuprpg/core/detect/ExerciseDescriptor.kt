@@ -125,7 +125,7 @@ data class ExerciseDescriptor(
      * a pull-up session is about three times shorter, not the effort ratio shorter, because a
      * near-max movement caps out on volume long before a bodyweight push does.
      *
-     * Anchored on a trained pushup session of ~150 reps: pull-up 45, dip 45, squat 100, lunge 130.
+     * Anchored on a trained pushup session of ~150 reps: pull-up 45, dip 45, squat 100.
      * A hold is in seconds, not reps.
      */
     val sessionVolumeScale: Float,
@@ -139,7 +139,7 @@ data class ExerciseDescriptor(
      *
      * Two things are derived from this rather than listed by hand: which bones the minimal overlay
      * draws, and which body parts the user is told are out of shot. Both used to be "the arms",
-     * fixed, which showed someone doing lunges a skeleton of their arms.
+     * fixed, which showed someone squatting a skeleton of their arms.
      */
     val watchedLandmarks: Set<Int> by lazy {
         val s = signal ?: return@lazy emptySet()
@@ -218,7 +218,7 @@ data class JointAngleCheck(
     val bottomDeg: Float,
     /**
      * Whether the angle keeps closing to the bottom of the movement, so that a fully bent joint
-     * means a full rep. True for a lunge's knee, a dip's elbow and a pull-up's: on the rig they read
+     * means a full rep. True for a dip's elbow and a pull-up's: on the rig they read
      * 60-70 at a half rep and 95-99 at a full one. False for a pushup's elbow and a squat's knee,
      * which reach their bottom angle by half depth (92 and 88 at a half rep) and cannot tell a half
      * rep from a whole one. Only a joint that can is trusted to move the bottom of the range.
@@ -329,19 +329,6 @@ enum class AxisSource {
 const val TORSO_TO_SHOULDER_WIDTH = 0.8f
 
 /**
- * How the two sides' readings become one number.
- *
- * [CONFIDENCE_WEIGHTED] is right for a symmetric movement: both sides do the same thing, so the
- * better-seen one should dominate and the difference between them is a usable asymmetry signal.
- *
- * [DEEPER_SIDE] is for a split stance. In a lunge only the front leg bends; averaging it with a
- * trailing leg that barely moves halves the reading and no honest rep ever reaches the line. Taking
- * the deeper side tracks whichever leg is working, and asymmetry stops meaning anything — a lunge is
- * asymmetric by definition, so it is reported as zero rather than as a fault.
- */
-enum class SideCombiner { CONFIDENCE_WEIGHTED, DEEPER_SIDE }
-
-/**
  * How much of the core the quality gate insists on seeing.
  *
  * [BOTH_SHOULDERS] is right when the user faces the lens. Filmed from the side the far shoulder is
@@ -389,19 +376,6 @@ data class SideView(
     val minShoulderTravel: Float = 0.30f,
 )
 
-/**
- * The feet one in front of the other, measured in the model's 3-D skeleton: the ankles' distance
- * along the way the body faces, in metres.
- *
- * What makes a lunge a lunge rather than a squat, and the one thing the depth signal cannot see:
- * hips over knees reads the same whether the feet are split or side by side, so a squat counted as
- * a lunge — on the rig, six of six. A split squat's feet are 0.6-0.8 m apart front to back; a squat's
- * are side by side, a few centimetres at most.
- *
- * The same measurement says which leg is in front, which is how the game asks the user to swap.
- */
-data class StanceCheck(val minStaggerM: Float = 0.30f)
-
 enum class ScaleReference {
     /**
      * Slowly averaged projected biacromial width. The only normaliser implemented, and the only one
@@ -423,8 +397,6 @@ data class RepSignal(
     val scale: ScaleReference,
     val jointCheck: JointAngleCheck?,
     val bodyTravel: BodyTravelCheck?,
-    /** How the two sides' readings become one. See [SideCombiner]. */
-    val sideCombiner: SideCombiner = SideCombiner.CONFIDENCE_WEIGHTED,
     val crossCheck: CrossCheckPolicy,
     /**
      * Whether a reading may still be produced from the joint angle alone when the primary
@@ -433,8 +405,6 @@ data class RepSignal(
      * movement whose joint angle is a weak proxy.
      */
     val allowJointFallback: Boolean,
-    /** For a split-stance movement: how far apart front to back the feet must be. See [StanceCheck]. */
-    val stance: StanceCheck? = null,
     /**
      * Whether the joint angle may refuse a rep that the primary signal counted. False where the
      * model's 3-D angle for the joint cannot be trusted to agree — a dip filmed from the front, see
@@ -660,67 +630,6 @@ object Exercises {
     )
 
     /**
-     * A lunge is a squat whose two sides disagree on purpose.
-     *
-     * Same hip-above-knee signal, but combined by taking the working leg rather than averaging:
-     * a trailing leg that barely bends would otherwise halve the reading and no honest rep would
-     * ever reach the line.
-     *
-     * The honest weakness, stated because it is the cheat that defeats both the signal and its
-     * cross-check at once: standing on one leg and lifting the other knee produces the same
-     * hip-above-knee reading as a lunge. Pushup and squat have no equivalent.
-     */
-    val LUNGE = ExerciseDescriptor(
-        type = ExerciseType.LUNGE,
-        kind = MovementKind.REP,
-        // Read along the spine, like a pull-up: a lunge is filmed from the side or at an angle at
-        // least as often as from the front, and across the shoulder line a body turned that far is
-        // too narrow to measure — a real set filmed at an angle read LOW_CONFIDENCE on 161 frames
-        // of 165 and counted nothing.
-        axisSource = AxisSource.TORSO,
-        coreConfidence = CoreConfidence.NEAR_SIDE,
-        normalToward = HIPS,
-        signal = RepSignal(
-            proximal = HIPS,
-            distal = KNEES,
-            scale = ScaleReference.SHOULDER_WIDTH,
-            jointCheck = JointAngleCheck(KNEES, HIPS, ANKLES, KNEE_TOP_DEG, KNEE_BOTTOM_DEG, confirmsFullDepth = true),
-            bodyTravel = BodyTravelCheck(BodyPoint.Midpoint(SHOULDERS), BodyPoint.Midpoint(ANKLES), invert = true),
-            sideCombiner = SideCombiner.DEEPER_SIDE,
-            crossCheck = CrossCheckPolicy.BEST_AVAILABLE,
-            allowJointFallback = false,
-            stance = StanceCheck(),
-        ),
-        config = DetectorConfig(
-            exercise = ExerciseType.LUNGE,
-            // Wider than a squat's band: the min combiner biases the top down, and a fatigued user
-            // very commonly stands between reps with a slight knee bend.
-            topEnter = 18f, topExit = 34f,
-            // Lower than a squat's: a lunge bottom has no felt hard cue the way "parallel" does,
-            // and the reading shifts with step length, so a strict line rejects honest reps.
-            countEnter = 65f, countExit = 50f,
-            deepEnter = 88f, deepExit = 80f,
-            // Pacing is minRepPeriodMs's job. Read along the spine, the rig's brisk 1-second lunge
-            // crossed the band too fast for a cap of 450 at 12 fps and counted none of ten.
-            maxDescentSpeed = 600f, minAscentMs = 250, minRepPeriodMs = 900,
-            maxDescentMs = 5000, maxBottomMs = 6000,
-            signalMinCutoff = 1.0f, signalBeta = 18f,
-            // Thigh over most of the spine. The rig stands at 0.9-1.2 depending on where the phone
-            // is, but a person filmed on a phone stood at 0.76-0.90: the model puts the hips lower
-            // and the shoulders higher than the rig's joints, so its spine is longer against the
-            // leg. At 1.10 that person read 17 on the gauge standing, drifted past the top band
-            // before the wait to arm was over, and the first lunge never counted. At 0.95 the rig,
-            // standing 14 above the top, crossed the band in a frame at 12 fps and was refused as
-            // too fast. 1.00 serves both.
-            hTopPrior = 1.00f, hBotPrior = -0.10f, rMin = 0.50f,
-            topClampMin = 0.60f, topClampMax = 1.60f,
-            botClampMin = -0.60f, botClampMax = 0.70f,
-        ),
-        validatedOnDevice = true,
-        sessionVolumeScale = 0.87f,
-        streakBar = 15,
-    )
-    /**
      * A dip is a pull-up's mirror: the hands are fixed and the body travels PAST them rather than
      * toward them. At lockout the acromion sits an arm's length above the wrists; at the bottom it
      * is a hand's width above. So `h` is the same shrinking shoulder-to-wrist gap in the same pair
@@ -805,7 +714,7 @@ object Exercises {
     )
 
     val ALL: List<ExerciseDescriptor> = listOf(
-        PUSHUP, SQUAT, PULL_UP, PLANK, LUNGE, DIP,
+        PUSHUP, SQUAT, PULL_UP, PLANK, DIP,
     )
 
     private val byType: Map<ExerciseType, ExerciseDescriptor> = ALL.associateBy { it.type }
