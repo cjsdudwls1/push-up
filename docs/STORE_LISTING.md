@@ -19,13 +19,17 @@ rather than list search terms. These all do.
 
 | # | Title | Chars | Note |
 |---|-------|-------|------|
-| **A** | `고양이 지켜줘: 카메라 홈트` | 15 | **Chosen by the owner (2026-10-03).** The name, what makes it different, and the category people type. |
-| B | `고양이 지켜줘: 팔굽혀펴기 홈트` | 17 | Covers the most-typed movement, but the app is six movements, not one. |
+| **A** | `고양이 지켜줘: 맨몸운동 게임` | 16 | **Chosen by the owner (2026-10-10).** The name, the six bodyweight movements, and that it plays as a game. |
+| B | `고양이 지켜줘: 카메라 홈트` | 15 | The owner's earlier choice (2026-10-03). |
 | C | `고양이 지켜줘` | 7 | Cleanest, gives up the free keyword slot. |
 
-**A**, as the owner chose. The launcher label under the icon stays `고양이 지켜줘` (`app_name`): a
-subtitle there is cut off on most home screens. `홈트` is the category Korean searchers type; `카메라` is the one thing no timer or log
-app can say. `팔굽혀펴기` and `푸쉬업` are in the short description, where Play indexes them too.
+**A**, as the owner chose. This title is the Play Console's 앱 이름 field and nothing else: the launcher
+label under the icon, the share card and every screen stay `고양이 지켜줘` (`app_name`,
+`survival_title`), by the owner's decision (2026-10-10) — a subtitle is cut off on most home screens.
+`맨몸운동` is what all six movements are; `홈트`, `카메라`, `팔굽혀펴기` and `푸쉬업` are in the short and
+full descriptions, where Play indexes them too.
+
+`게임` in the title does not change the Console's 앱/게임 choice or the 건강/피트니스 category below.
 
 ## Short description — 80 characters
 
@@ -64,6 +68,10 @@ with the objection that kills installs for a camera app.
 팔굽혀펴기(푸쉬업), 스쿼트, 플랭크, 턱걸이, 딥스. 폰을 어디에 두면 되는지는
 운동을 고를 때 한 줄로 알려 줘요. 플랭크는 개수 대신 버틴 시간으로 세요.
 어깨와 손목의 위치로 깊이를 재서, 카메라가 멀든 가깝든 같은 기준으로 세요.
+
+▶ AI가 관절을 보고 세요
+카메라 화면에서 어깨·팔꿈치·손목·엉덩이·무릎 같은 관절을 찾아 개수를 세요.
+몸 전체가 화면에 들어오게, 밝은 곳에서 창문을 등지지 않게, 몸 선이 보이는 옷을 입으면 더 정확해요.
 
 ▶ 카메라가 놓쳐도 괜찮아요
 잃을 목숨이 없어요. 천장에 눌려도 그 세트의 개수는 그대로 남고, 쉬었다가 다음 세트로 이어 가요.

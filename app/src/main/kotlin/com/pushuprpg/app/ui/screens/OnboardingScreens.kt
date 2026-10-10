@@ -131,6 +131,20 @@ fun PermissionScreen(
                 .cardSurface(shape = RoundedCornerShape(18.dp), color = colors.acceptDim)
                 .padding(18.dp),
         )
+        // What the camera is for, and what helps it see. Placement for each movement is still said
+        // live by the placement banner; this is only what holds for all of them.
+        Spacer(Modifier.height(20.dp))
+        Text(
+            text = stringResource(R.string.permission_how),
+            style = Type.bodyL,
+            color = Palette.TextPrimary,
+        )
+        Spacer(Modifier.height(10.dp))
+        Text(
+            text = stringResource(R.string.permission_tips),
+            style = Type.bodyM,
+            color = Palette.TextSecondary,
+        )
         if (permanentlyDenied) {
             Spacer(Modifier.height(16.dp))
             Text(

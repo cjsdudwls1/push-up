@@ -6,7 +6,9 @@
   any correction.
 -->
 <resources>
-    <string name="app_name">고양이 지켜줘: 맨몸운동 게임</string>
+    <!-- The launcher label: short, by the owner's decision (2026-10-10). The store title, 고양이 지켜줘: 맨몸운동 게임,
+         lives in the Play Console (docs/STORE_LISTING.md); on a home screen a subtitle is cut off. -->
+    <string name="app_name">고양이 지켜줘</string>
 
     <!-- Navigation / common -->
     <string name="action_start">시작하기</string>
@@ -24,6 +26,10 @@
     <string name="permission_headline">카메라 권한이 필요해요</string>
     <string name="permission_privacy">카메라는 동작만 인식해요. 영상은 저장되지도, 어디로도 전송되지 않아요.</string>
     <string name="privacy_telemetry">앱이 멈추거나 오류가 나면 원인을 찾기 위한 기록이, 평소에는 운동 시작·끝 같은 이용 통계(개수, 시간, 기기 모델 등)가 전송돼요. 여기에 영상이나 사진, 관절 좌표는 들어가지 않아요.</string>
+    <!-- How the count works and what helps it, once, before the camera is first opened. By the owner's
+         request (2026-10-10): people who know it is reading their joints set themselves up for it. -->
+    <string name="permission_how">AI가 카메라 화면에서 어깨·팔꿈치·손목·엉덩이·무릎 같은 관절을 찾아 개수를 세요. 관절이 잘 보일수록 정확하게 세요.</string>
+    <string name="permission_tips">· 운동하는 몸 전체가 화면에 들어오게\n· 밝은 곳에서, 창문이나 조명을 등지지 않게\n· 몸 선이 보이는 옷을 입고, 화면에는 한 사람만</string>
     <string name="permission_grant">카메라 권한 허용</string>
     <string name="permission_open_settings">설정에서 권한 켜기</string>
     <string name="permission_denied_body">권한이 없으면 동작을 읽을 수 없어요. 설정에서 언제든 켤 수 있어요.</string>
