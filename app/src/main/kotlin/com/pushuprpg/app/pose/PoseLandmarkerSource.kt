@@ -119,6 +119,12 @@ class PoseLandmarkerSource(
     } catch (e: IllegalStateException) {
         Log.w(TAG, "pose landmarker failed on $delegate", e)
         false
+    } catch (e: LinkageError) {
+        // A library class that cannot load — how a stripped logging backend reached the user, as
+        // an ExceptionInInitializerError that took the whole app down. Said as the model being
+        // unavailable instead.
+        Log.w(TAG, "pose landmarker failed on $delegate", e)
+        false
     }
 
     /**
