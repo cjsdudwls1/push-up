@@ -294,7 +294,7 @@ fun SurvivalScreen(
                     )
                 }
                 Spacer(Modifier.height(4.dp))
-                LivesRow(lives = state.lives, left = state.livesLeft)
+                LivesRow(left = state.livesLeft)
                 // The set against its own best, by the owner's decision: the number is what makes
                 // breaking it worth chasing. Once the set has started; while setting up there is
                 // nothing yet to count.
@@ -887,20 +887,20 @@ private fun SetCounter(set: Int, now: Int, best: Int, hold: Boolean, modifier: M
     }
 }
 
-/** The session's lives as hearts: full for the ones left, faint for the ones lost. */
+/**
+ * The session's lives as hearts, one for each left: a set the ceiling wins takes one away, by the
+ * owner's request (2026-10-28). The lost ones used to stay as faint hearts, and over the camera,
+ * outlined like the rest, they read as ten hearts all session.
+ */
 @Composable
-private fun LivesRow(lives: Int, left: Int, modifier: Modifier = Modifier) {
+private fun LivesRow(left: Int, modifier: Modifier = Modifier) {
     val description = stringResource(R.string.survival_lives_left, left)
     Row(
         modifier = modifier.semantics { contentDescription = description },
         horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        repeat(lives) { i ->
-            CameraText(
-                text = "\u2665",
-                style = Type.titleM,
-                color = if (i < left) HEART else Palette.TextDisabled,
-            )
+        repeat(left) {
+            CameraText(text = "\u2665", style = Type.titleM, color = HEART)
         }
     }
 }
@@ -953,7 +953,7 @@ private fun RestCard(
             color = Palette.TextPrimary,
         )
         Spacer(Modifier.height(12.dp))
-        LivesRow(lives = state.lives, left = state.livesLeft)
+        LivesRow(left = state.livesLeft)
         Spacer(Modifier.height(10.dp))
         val next = state.ended.size + 1
         Text(

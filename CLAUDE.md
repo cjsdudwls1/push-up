@@ -205,7 +205,10 @@ to lose: the ceiling winning ends the set and keeps its reps, and the next set c
 A session of 고양이 지켜줘 is **ten lives, one set each, with a rest between them**, by the owner's
 decision (2026-10-09, putting back the lives that 2026-10-04 took out). A set is one run of the
 ceiling — a life, in `CeilingSurvival`'s words — and the ceiling winning costs one, shown as the row
-of hearts under the score and on the rest card (`CatSessionState.livesLeft`). The rest (a minute by
+of hearts under the score and on the rest card (`CatSessionState.livesLeft`), one heart for each
+life left — a lost one is gone, not dimmed, by the owner's request (2026-10-28): dimmed and outlined
+over the camera, they read as ten all session. Where to stand is spoken only while a set is on and
+its ceiling has not won, as the banner shows it: not in a rest, and not over the ending. The rest (a minute by
 default; the settings offer 90 s and 2 min) runs its length unless the user skips it — the rest card's
 one button, added by the owner's decision of 2026-10-02 (`CatSession.skipRest`); there is no extend —
 and the next set's ceiling does not come back until it is over or skipped, and then waits, as the

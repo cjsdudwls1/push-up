@@ -246,10 +246,13 @@ class SurvivalViewModel(
         )
         val catView = cat.view()
         // The cat's lines are heard as well as read: the bubble is small and the phone is far. Where
-        // to stand is not said during a rest: stepping away for water is what a rest is for.
-        val resting = now.phase == CatPhase.RESTING
+        // to stand is said only while a set is on, as the banner shows it: not during a rest, since
+        // stepping away for water is what a rest is for, and not once the ceiling has won or the
+        // session is over — after the tenth set the camera still sees the user getting up, and it
+        // used to tell them to come closer over the ending.
+        val coaching = now.phase == CatPhase.PLAYING && now.life.alive
         voice.announce(
-            announcer.survival(catView.speech, _placement.value.advice.takeUnless { resting }, tick.tMs),
+            announcer.survival(catView.speech, _placement.value.advice.takeIf { coaching }, tick.tMs),
             exercise = exercise,
         )
         // Not over an ending published from the screen while this frame was in flight.
