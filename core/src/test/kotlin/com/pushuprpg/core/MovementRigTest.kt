@@ -13,6 +13,7 @@ import com.pushuprpg.core.detect.UserProfile
 import com.pushuprpg.core.fixtures.Body3d
 import com.pushuprpg.core.fixtures.Body3d.Camera
 import com.pushuprpg.core.pose.PoseLandmarks as Lm
+import kotlin.math.abs
 import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.test.Test
@@ -416,4 +417,45 @@ class MovementRigTest {
             assertTrue(PoseQuality.SUBJECT_SWITCH !in qualities, "at $fps fps a stray frame changed the view")
         }
     }
+
+    // ---------------------------------------------------------------- the pushup, phone on its side
+
+    /**
+     * Where a pushup is filmed from with the phone on its side: on the floor, near and far. The wide
+     * picture holds the whole body side on from about half the distance the upright one needs, as
+     * it does for a plank (PlankRigTest).
+     */
+    private val sidewaysCameras = listOf(
+        "the floor 1.0m away" to Camera.onFloor(1.0f, 15f).landscape(),
+        "the floor 1.3m away" to Camera.onFloor(1.3f, 12f).landscape(),
+        "the floor 1.5m away" to Camera.onFloor(1.5f, 5f).landscape(),
+        "the floor 1.8m away" to Camera.onFloor(1.8f, 10f).landscape(),
+        "the floor 2.2m away" to Camera.onFloor(2.2f, 20f).landscape(),
+    )
+
+    /**
+     * The owner's ask (2026-10-28): the phone on its side for a pushup too, as for a plank. Side on,
+     * 45-60 degrees off and from the head, on the toes and the knees, at 30, 15 and 10 fps, every rep
+     * counts and no rep 40% of the way down does; side on and 75 degrees off every rep goes 깊게 as
+     * well. Between the diagonal and the side the 깊게 is not pinned, as it is not upright: 1 m away and
+     * 60 degrees off, one rep in eight counts without it.
+     */
+    @Test
+    fun `with the phone on its side, a pushup counts from the side and the head and no half one does`() {
+        for ((where, camera) in sidewaysCameras) for (yaw in listOf(90f, -90f, 75f, 60f, 45f, 30f, 0f)) {
+            for (onKnees in listOf(false, true)) for (fps in listOf(30, 15, 10)) {
+                val what = (if (onKnees) "a knee pushup" else "a pushup") +
+                    " from a phone on its side on $where, ${yaw.toInt()} degrees off the head, at $fps fps"
+                val full = run(ExerciseType.PUSHUP, pushupAt(yaw, onKnees), camera, fps = fps)
+                assertEquals(8, full.reps, "$what counted ${full.reps} of 8; refused as ${full.refusals.distinct()}, shallow ${full.shallow}")
+                if (abs(yaw) >= 75f) {
+                    val deep = full.events.count { it is RepEvent.DeepUpgrade }
+                    assertEquals(8, deep, "$what went 깊게 on $deep of 8")
+                }
+                val half = run(ExerciseType.PUSHUP, pushupAt(yaw, onKnees), camera, count = 30, peakDepth = 0.4f, fps = fps)
+                assertEquals(0, half.reps, "$what 40% down counted ${half.reps} of 30")
+            }
+        }
+    }
+
 }

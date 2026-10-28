@@ -639,7 +639,7 @@ private const val CAT_SCALE_WIDTH = 420f
 
 /**
  * The screen height that draws it at scale 1. Never the tighter of the two on an upright phone, where
- * the cat is sized by the width as it always was; on a phone on its side — a plank's, see
+ * the cat is sized by the width as it always was; on a phone on its side — a plank's or a pushup's, see
  * FollowPhoneRotation — sized by the width the cat would fill half the height and leave the ceiling
  * nowhere to come down.
  */
@@ -930,8 +930,8 @@ private fun RestCard(
 ) {
     val seconds = ((state.restLeftMs + 999L) / 1000L).toInt()
     Column(
-        // Narrowed on a phone on its side (a plank's), where full width is a banner, not a card; and
-        // kept off the cutout, which is at the side there.
+        // Narrowed on a phone on its side (a plank's or a pushup's), where full width is a banner,
+        // not a card; and kept off the cutout, which is at the side there.
         modifier = modifier
             .windowInsetsPadding(WindowInsets.safeDrawing)
             .padding(horizontal = 28.dp)

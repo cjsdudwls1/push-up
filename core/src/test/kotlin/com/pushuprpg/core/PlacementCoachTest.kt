@@ -67,6 +67,21 @@ class PlacementCoachTest {
         }
     }
 
+    @Test
+    fun `a pushup filmed from a phone on its side counts, and the coach never objects while it does`() {
+        // The owner's ask (2026-10-28): the phone on its side for a pushup as for a plank. The wide
+        // picture is read as the upright one is, side on and from the head.
+        val cameras = listOf(Camera.onFloor(1.3f, 12f).landscape(), Camera.onFloor(1.8f, 10f).landscape())
+        for (camera in cameras) for (yaw in listOf(90f, -90f, 75f, 0f)) {
+            val heard = listen(ExerciseType.PUSHUP, Body3d.trace(floorBody(yaw), camera, 4))
+            assertEquals(4, heard.reps, "${yaw.toInt()} degrees off the head from a phone on its side at ${camera.position}")
+            val objections = heard.said.filterNotNull().filter {
+                it != PlacementAdvice.READY && it != PlacementAdvice.GET_IN_POSITION
+            }
+            assertTrue(objections.isEmpty(), "objected to a set that counted from a phone on its side: ${objections.distinct()}")
+        }
+    }
+
     /**
      * Turning between the head and the side, the detector refuses the frames on the way while it
      * confirms the new view — a second, as it must. The coach used to read that as a body it could

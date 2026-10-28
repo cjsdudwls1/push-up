@@ -80,10 +80,14 @@ side-on plank as bent. The arm check that tells a plank from standing is not ask
 level: from the head on the forearms the model put the elbow behind the shoulder half the time.
 **A plank may be filmed with the phone on its side**, by the owner's decision (2026-10-02): side on,
 the upright picture needed the phone too far away, and the wide one holds the body from 1.5-2 m. For
-a plank, and only a plank, the run screen turns with the phone whatever the rotation lock says
+a plank (and a pushup, below), the run screen turns with the phone whatever the rotation lock says
 (`FollowPhoneRotation`; the manifest keeps everything else upright), and the camera's use cases
 follow the display's rotation (`CameraPreview`), so the model is always handed an upright picture.
 `PlankRigTest` and `PlacementCoachTest` pin it from a phone on its side (`Body3d.Camera.landscape`).
+**A pushup may be too**, by the owner's request (2026-10-28), for the same reason; the turning
+screens are `FOLLOWS_PHONE_ROTATION`. Nothing in the detector changed for it — the side view and the
+head-on reading count on the wide picture as on the upright one — and `MovementRigTest` and
+`PlacementCoachTest` pin it from a phone on its side, side on and from the head.
 
 **A single frame never moves the calibration.** The lite model misplaces a landmark for a frame —
 a shoulder on the neck, the shoulders swapped — often enough to matter. A scale jump is a new subject
