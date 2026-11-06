@@ -13,10 +13,10 @@
     <!-- the ceiling -->
     <path
         android:pathData="M24,25 h60 a4,4 0 0 1 4,4 v4 a4,4 0 0 1 -4,4 h-60 a4,4 0 0 1 -4,-4 v-4 a4,4 0 0 1 4,-4 Z"
-        android:fillColor="#FFFF8A3D" />
+        android:fillColor="#FFC6F432" />
     <path
         android:pathData="M20,33 h68 a4,4 0 0 1 -4,4 h-60 a4,4 0 0 1 -4,-4 Z"
-        android:fillColor="#FFD9672A" />
+        android:fillColor="#FF94BC14" />
 
     <!-- arms -->
     <path android:pathData="M30,40 L38,40 L42,62 L32,64 Z" android:fillColor="#FFF3D9A8" />

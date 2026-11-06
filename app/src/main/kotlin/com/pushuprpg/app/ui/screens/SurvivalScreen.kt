@@ -11,6 +11,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -23,7 +24,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.rounded.Settings
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -44,6 +47,8 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -1034,7 +1039,7 @@ private fun RestCard(
             .padding(horizontal = 28.dp)
             .widthIn(max = 480.dp)
             .fillMaxWidth()
-            .cardSurface(shape = RoundedCornerShape(22.dp), color = Palette.Bg1)
+            .cardSurface(shape = RoundedCornerShape(28.dp), color = Palette.Bg1)
             .verticalScroll(rememberScrollState())
             .padding(22.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -1044,12 +1049,31 @@ private fun RestCard(
             style = Type.labelL,
             color = Palette.TextSecondary,
         )
-        Text(
-            text = stringResource(R.string.result_rest_time, seconds / 60, seconds % 60),
-            style = Type.displayM,
-            color = Palette.TextPrimary,
-        )
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(10.dp))
+        // The countdown inside a ring that empties with it — the hub's ring, read from across the room.
+        val left = if (state.restLengthMs > 0L) state.restLeftMs.toFloat() / state.restLengthMs else 0f
+        Box(Modifier.size(180.dp), contentAlignment = Alignment.Center) {
+            val track = Palette.Bg3
+            val ring = Palette.Brand500
+            Canvas(Modifier.matchParentSize()) {
+                val stroke = 12.dp.toPx()
+                val inset = stroke / 2f
+                val arcSize = Size(size.width - stroke, size.height - stroke)
+                drawArc(track, 0f, 360f, false, Offset(inset, inset), arcSize, style = Stroke(stroke))
+                if (left > 0f) {
+                    drawArc(
+                        ring, -90f, 360f * left.coerceIn(0f, 1f), false, Offset(inset, inset), arcSize,
+                        style = Stroke(stroke, cap = StrokeCap.Round),
+                    )
+                }
+            }
+            Text(
+                text = stringResource(R.string.result_rest_time, seconds / 60, seconds % 60),
+                style = Type.displayM,
+                color = Palette.TextPrimary,
+            )
+        }
+        Spacer(Modifier.height(14.dp))
         LivesRow(left = state.livesLeft)
         Spacer(Modifier.height(10.dp))
         val next = state.ended.size + 1
@@ -1060,7 +1084,7 @@ private fun RestCard(
                 else -> stringResource(R.string.rest_next_best, next, nextBest)
             },
             style = Type.titleM,
-            color = Palette.Deep,
+            color = Palette.Brand400,
             textAlign = TextAlign.Center,
         )
         Spacer(Modifier.height(12.dp))
@@ -1078,11 +1102,21 @@ private fun RestCard(
             textAlign = TextAlign.Center,
         )
         Spacer(Modifier.height(14.dp))
-        SecondaryButton(
-            text = stringResource(R.string.rest_skip),
+        // Outlined, not filled: it is there, but resting is what the card asks for.
+        OutlinedButton(
             onClick = onSkip,
-            modifier = Modifier.fillMaxWidth(),
-        )
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 60.dp),
+            shape = CircleShape,
+            border = BorderStroke(2.dp, Palette.Brand500),
+            colors = ButtonDefaults.outlinedButtonColors(
+                containerColor = Palette.BrandWash,
+                contentColor = Palette.Brand500,
+            ),
+        ) {
+            Text(text = stringResource(R.string.rest_skip), style = Type.titleM, maxLines = 1)
+        }
     }
 }
 

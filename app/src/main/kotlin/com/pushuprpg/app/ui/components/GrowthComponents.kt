@@ -325,13 +325,14 @@ fun SessionTrendCard(
                 Text(
                     text = stringResource(exerciseLabelRes(exercise)),
                     style = Type.labelM,
-                    color = if (active) Palette.TextOnBrand else Palette.TextSecondary,
+                    color = if (active) Palette.TextOnAccent else Palette.TextSecondary,
                     textAlign = TextAlign.Center,
                     maxLines = 1,
                     modifier = Modifier
                         .weight(1f)
                         .clip(CircleShape)
-                        .background(if (active) Palette.Brand600 else Palette.Bg3)
+                        // The lime, as the settings' picked segment and the hub's ring are.
+                        .background(if (active) Palette.Brand500 else Palette.Bg3)
                         .selectable(selected = active, role = Role.Tab) { onSelect(exercise) }
                         // A touch target: the chip is a tap to switch, so it is a full 44dp tall.
                         .heightIn(min = 44.dp)
@@ -384,7 +385,8 @@ fun SessionTrendCard(
         Spacer(Modifier.height(12.dp))
         TrendLine(
             points = trend.points,
-            line = colors.accept,
+            // The brand's lime on dark, its olive on light: the ring's colour, readable on either.
+            line = Palette.Brand400,
             label = stringResource(
                 R.string.trend_graph_label,
                 exerciseName,

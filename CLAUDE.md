@@ -241,7 +241,7 @@ since the app does not ask anyone's weight — and name the foods it would take 
 movement's record is its best one go against its first, and each movement keeps its own best score,
 by the owner's decision, since a pull-up is not a pushup. None of them ever falls, and a set the
 ceiling won or a week away subtracts nothing. The one exception is the graph, by the owner's request
-(2026-11-06): first under the hub's button, above the calories, each session's total (every rep of a
+(2026-11-06): first of the hub's numbers, above the calories, each session's total (every rep of a
 10-set session, or every second held) for one movement as a line, the last `Trends.SHOWN`, switched
 by a chip per movement in one tap (`Trends`, `SessionTrendCard`). It draws a dip as a dip, since it is
 there to show how it is going; a rise is coloured and a dip is said in grey, never as a shortfall, and
@@ -259,7 +259,7 @@ says so while a set is on. The run reads the settings live, so a change is heard
 
 **The cat starts out as 지수**, by the owner's decision (2026-11-06): `cat_default_name`, which a blank
 stored name reads as, and what the name field starts with. **The launcher icon is that cat holding the
-ceiling up over its head** on the brand's violet — the whole app in one picture; the Play listing's
+ceiling up over its head** on the ring look's charcoal, the ceiling in its lime — the whole app in one picture; the Play listing's
 512 px copy is `docs/store-assets/icon-512.png`.
 
 **The cat's things are gifts it finds, and beside them a shop for 츄르**, by the owner's decisions.
@@ -284,6 +284,12 @@ The cat's fear, its lines and its sounds are decided by `CatCompanion` in `:core
 state and events — the rest's lines included; the screen draws the `CatView` it is given and plays
 the sounds, and decides nothing about how the cat feels. It never changes the game —
 `CatCompanionTest` pins when it speaks.
+
+**The look is concept C, the ring**, by the owner's choice (2026-10-09, from four mockups): a dark
+ground, one lime accent (`Palette.Brand500`), and cards with no outline (`cardSurface`) — a row of
+thin-bordered boxes read as a developer's dashboard. The hub is the cat inside a ring that fills with
+the day's bar, and a round start button pinned at the bottom between the movement and the records.
+Numbers and headings are Orbit, sentences Gowun Dodum (`Type.kt`, `docs/FONT_CREDITS.md`).
 
 ## Copy
 

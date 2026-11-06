@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- The brand's violet (Palette.Brand500 to a deeper Brand600), which the cream cat and the orange
-     ceiling both stand out against. -->
+<!-- The ring look's charcoal ground (concept C), which the cream cat and the lime ceiling both
+     stand out against. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
@@ -12,8 +12,8 @@
                 android:startX="0" android:startY="0"
                 android:endX="108" android:endY="108"
                 android:type="linear">
-                <item android:offset="0" android:color="#FF7C6BFF" />
-                <item android:offset="1" android:color="#FF4A36C9" />
+                <item android:offset="0" android:color="#FF2A2F36" />
+                <item android:offset="1" android:color="#FF111316" />
             </gradient>
         </aapt:attr>
     </path>
