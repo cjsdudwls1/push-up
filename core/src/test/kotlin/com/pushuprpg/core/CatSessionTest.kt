@@ -122,6 +122,7 @@ class CatSessionTest {
         s.onTick(tick(died + 45_000))
         assertEquals(CatPhase.RESTING, s.state().phase)
         assertEquals(45_000L, s.state().restLeftMs)
+        assertEquals(90_000L, s.state().restLengthMs, "the rest card's ring counts down from the whole rest")
         val back = s.runUntil(died + 45_000) { s.state().phase == CatPhase.PLAYING }
         assertTrue(back - died in 90_000..90_100, "the rest took ${back - died}ms")
     }

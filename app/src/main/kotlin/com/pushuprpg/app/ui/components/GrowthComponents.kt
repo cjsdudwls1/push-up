@@ -1,18 +1,37 @@
 package com.pushuprpg.app.ui.components
 
 import androidx.annotation.StringRes
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.drawText
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.pushuprpg.app.R
@@ -29,6 +48,7 @@ import com.pushuprpg.core.progression.Food
 import com.pushuprpg.core.progression.Gift
 import com.pushuprpg.core.progression.RunGrowth
 import com.pushuprpg.core.progression.Gifts
+import com.pushuprpg.core.progression.SessionTrend
 import java.util.Locale
 
 /** A food on the calorie ladder, by name. */
@@ -263,6 +283,186 @@ fun RunGrowthLines(growth: RunGrowth?, modifier: Modifier = Modifier) {
                 color = Palette.TextPrimary,
                 textAlign = TextAlign.Center,
             )
+        }
+    }
+}
+
+/**
+ * Each session's total, one movement at a time, as a line: the first thing under the hub's button,
+ * by the owner's request (2026-11-06), with the calories under it. The five movements are chips
+ * across the top and one tap switches the graph — no screen to open, no menu to find.
+ *
+ * A session is a 고양이 session of up to ten sets; its total is every rep in it, or every second held
+ * for a plank ([com.pushuprpg.core.progression.Trends]). A rise is coloured; a dip is drawn as it was
+ * and said in grey — the graph is there to show how it is going, not to scold.
+ */
+@Composable
+fun SessionTrendCard(
+    trends: Map<ExerciseType, SessionTrend>,
+    selected: ExerciseType,
+    onSelect: (ExerciseType) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val colors = LocalGameColors.current
+    val trend = trends[selected] ?: SessionTrend(selected, emptyList(), 0)
+    val hold = Exercises.of(selected).kind == MovementKind.HOLD
+    val exerciseName = stringResource(exerciseLabelRes(selected))
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .cardSurface()
+            .padding(20.dp),
+    ) {
+        Text(
+            text = stringResource(R.string.trend_title),
+            style = Type.labelL,
+            color = Palette.TextTertiary,
+        )
+        Spacer(Modifier.height(10.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
+            ExerciseType.entries.forEach { exercise ->
+                val active = exercise == selected
+                Text(
+                    text = stringResource(exerciseLabelRes(exercise)),
+                    style = Type.labelM,
+                    color = if (active) Palette.TextOnAccent else Palette.TextSecondary,
+                    textAlign = TextAlign.Center,
+                    maxLines = 1,
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(CircleShape)
+                        // The lime, as the settings' picked segment and the hub's ring are.
+                        .background(if (active) Palette.Brand500 else Palette.Bg3)
+                        .selectable(selected = active, role = Role.Tab) { onSelect(exercise) }
+                        // A touch target: the chip is a tap to switch, so it is a full 44dp tall.
+                        .heightIn(min = 44.dp)
+                        .wrapContentHeight()
+                        .padding(vertical = 10.dp),
+                )
+            }
+        }
+        Spacer(Modifier.height(16.dp))
+
+        val latest = trend.latest
+        if (latest == null) {
+            Text(
+                text = stringResource(R.string.trend_empty, exerciseName),
+                style = Type.bodyM,
+                color = Palette.TextSecondary,
+                modifier = Modifier.fillMaxWidth().padding(vertical = 28.dp),
+                textAlign = TextAlign.Center,
+            )
+            return@Column
+        }
+
+        Row(verticalAlignment = Alignment.Bottom) {
+            Text(
+                text = stringResource(if (hold) R.string.trend_value_hold else R.string.trend_value, latest),
+                style = Type.numeralL,
+                color = Palette.TextPrimary,
+            )
+            Spacer(Modifier.width(8.dp))
+            Text(
+                text = stringResource(R.string.trend_latest_label),
+                style = Type.bodyM,
+                color = Palette.TextTertiary,
+                modifier = Modifier.padding(bottom = 5.dp),
+            )
+            Spacer(Modifier.weight(1f))
+            val change = trend.change
+            Text(
+                text = when {
+                    change == null -> stringResource(R.string.trend_first)
+                    change > 0 -> stringResource(if (hold) R.string.trend_up_hold else R.string.trend_up, change)
+                    change < 0 -> stringResource(if (hold) R.string.trend_down_hold else R.string.trend_down, -change)
+                    else -> stringResource(R.string.trend_same)
+                },
+                style = Type.labelL,
+                color = if (change != null && change > 0) colors.accept else Palette.TextSecondary,
+                modifier = Modifier.padding(bottom = 6.dp),
+            )
+        }
+        Spacer(Modifier.height(12.dp))
+        TrendLine(
+            points = trend.points,
+            // The brand's lime on dark, its olive on light: the ring's colour, readable on either.
+            line = Palette.Brand400,
+            label = stringResource(
+                R.string.trend_graph_label,
+                exerciseName,
+                trend.points.joinToString(", "),
+            ),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(132.dp),
+        )
+        Spacer(Modifier.height(6.dp))
+        Row(Modifier.fillMaxWidth()) {
+            Text(
+                text = stringResource(R.string.trend_axis_sessions, trend.points.size),
+                style = Type.labelS,
+                color = Palette.TextTertiary,
+                modifier = Modifier.weight(1f),
+            )
+            Text(
+                text = stringResource(R.string.trend_axis_latest),
+                style = Type.labelS,
+                color = Palette.TextTertiary,
+            )
+        }
+    }
+}
+
+/**
+ * The line itself: one dot a session, each with its total over it, the latest one filled. The range
+ * hugs the values with a margin rather than starting at zero, so a session of 42 after one of 38 is
+ * a visible step — every dot is labelled, so nothing is exaggerated by it.
+ */
+@Composable
+private fun TrendLine(points: List<Int>, line: Color, label: String, modifier: Modifier = Modifier) {
+    val measurer = rememberTextMeasurer()
+    val valueStyle = Type.labelM.copy(color = Palette.TextSecondary)
+    val latestStyle = Type.labelM.copy(color = Palette.TextPrimary)
+    val grid = Palette.StrokeSoft
+    val dotHole = Palette.Bg2
+    Canvas(modifier.semantics { contentDescription = label }) {
+        val top = 22.dp.toPx()
+        val bottom = size.height - 8.dp.toPx()
+        val side = 14.dp.toPx()
+        val lo = points.min()
+        val hi = points.max()
+        val margin = maxOf((hi - lo) * 0.2f, 2f)
+        val min = (lo - margin).coerceAtLeast(0f)
+        val max = hi + margin
+        fun x(i: Int) = if (points.size == 1) size.width / 2f else side + (size.width - 2 * side) * i / (points.size - 1)
+        fun y(v: Int) = bottom - (bottom - top) * (v - min) / (max - min)
+
+        // A faint floor and a midline: enough to read the slope against, not a chart's worth of grid.
+        listOf(bottom, (top + bottom) / 2f).forEach { gy ->
+            drawLine(grid, Offset(0f, gy), Offset(size.width, gy), strokeWidth = 1.dp.toPx())
+        }
+        if (points.size > 1) {
+            val path = Path().apply {
+                points.forEachIndexed { i, v -> if (i == 0) moveTo(x(i), y(v)) else lineTo(x(i), y(v)) }
+            }
+            // The area under the line, faintly, so the shape reads at a glance.
+            val area = Path().apply {
+                addPath(path)
+                lineTo(x(points.lastIndex), bottom)
+                lineTo(x(0), bottom)
+                close()
+            }
+            drawPath(area, line.copy(alpha = 0.12f))
+            drawPath(path, line, style = Stroke(width = 3.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round))
+        }
+        points.forEachIndexed { i, v ->
+            val last = i == points.lastIndex
+            val c = Offset(x(i), y(v))
+            drawCircle(line, radius = (if (last) 6.dp else 4.5.dp).toPx(), center = c)
+            if (!last) drawCircle(dotHole, radius = 2.dp.toPx(), center = c)
+            val text = measurer.measure(v.toString(), if (last) latestStyle else valueStyle)
+            val tx = (c.x - text.size.width / 2f).coerceIn(0f, size.width - text.size.width)
+            drawText(text, topLeft = Offset(tx, c.y - 10.dp.toPx() - text.size.height))
         }
     }
 }

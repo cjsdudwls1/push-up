@@ -240,7 +240,7 @@ private fun ShopTile(
     Column(
         modifier = modifier
             .cardSurface(shape = shape, color = if (worn) Palette.Bg3 else Palette.Bg2)
-            .then(if (worn) Modifier.border(2.dp, Palette.Brand600, shape) else Modifier)
+            .then(if (worn) Modifier.border(2.dp, Palette.Brand400, shape) else Modifier)
             .then(if (tappable) Modifier.clickable(role = Role.Button, onClick = onClick) else Modifier)
             .padding(horizontal = 6.dp, vertical = 10.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -290,7 +290,7 @@ private fun GiftTile(
     Column(
         modifier = modifier
             .cardSurface(shape = shape, color = if (worn) Palette.Bg3 else Palette.Bg2)
-            .then(if (worn) Modifier.border(2.dp, Palette.Brand600, shape) else Modifier)
+            .then(if (worn) Modifier.border(2.dp, Palette.Brand400, shape) else Modifier)
             .then(if (found) Modifier.clickable(role = Role.Button, onClick = onClick) else Modifier)
             .padding(horizontal = 6.dp, vertical = 10.dp),
         horizontalAlignment = Alignment.CenterHorizontally,

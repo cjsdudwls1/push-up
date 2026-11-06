@@ -128,7 +128,7 @@ keyword gains.
 
 | Asset | Spec | Status |
 |-------|------|--------|
-| App icon | 512×512 PNG, 32-bit | In repo as `ic_launcher`; export at 512 |
+| App icon | 512×512 PNG, 32-bit | `docs/store-assets/icon-512.png`, rendered from `ic_launcher` (the cat holding up the ceiling) |
 | Feature graphic | 1024×500 PNG | **Done** — `docs/store-assets/feature-graphic.png`, regenerate with `scripts/render-art.sh`. The picture is the share card's own ceiling and cat |
 | Phone screenshots | 2–8, 16:9 or 9:16, min 320px | **Needs a real device** |
 | Tablet screenshots | optional | Skip |

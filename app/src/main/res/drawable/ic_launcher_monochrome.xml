@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Themed icons: the same cat and ceiling as one silhouette, the eyes and the smile cut out of
+     the head (evenOdd) so the face still reads in a single colour. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
@@ -6,19 +8,21 @@
     android:viewportHeight="108"
     android:tint="#FFFFFFFF">
     <path
-        android:pathData="M54,24 L70,42 L64,42 L54,31 L44,42 L38,42 Z"
+        android:pathData="M24,25 h60 a4,4 0 0 1 4,4 v4 a4,4 0 0 1 -4,4 h-60 a4,4 0 0 1 -4,-4 v-4 a4,4 0 0 1 4,-4 Z"
         android:fillColor="#FFFFFFFF"
         android:fillAlpha="0.6" />
     <path
-        android:pathData="M54,30 L59,40 L59,66 L49,66 L49,40 Z"
+        android:pathData="M30,40 L38,40 L42,62 L32,64 Z M78,40 L70,40 L66,62 L76,64 Z M38,58 L42,41 L53,51 Z M70,58 L66,41 L55,51 Z"
+        android:fillColor="#FFFFFFFF" />
+    <!-- the paws on their own: drawn in one path with the arms, their opposite winding cut holes -->
+    <path
+        android:pathData="M27,41 a7,6 0 1,0 14,0 a7,6 0 1,0 -14,0 Z"
         android:fillColor="#FFFFFFFF" />
     <path
-        android:pathData="M36,66 L72,66 L72,73 L36,73 Z"
+        android:pathData="M67,41 a7,6 0 1,0 14,0 a7,6 0 1,0 -14,0 Z"
         android:fillColor="#FFFFFFFF" />
     <path
-        android:pathData="M50,73 L58,73 L58,84 L50,84 Z"
-        android:fillColor="#FFFFFFFF" />
-    <path
-        android:pathData="M54,84 m-5,0 a5,5 0 1,0 10,0 a5,5 0 1,0 -10,0"
+        android:fillType="evenOdd"
+        android:pathData="M54,47 C69,47 77,56 77,66 C77,77 67,84 54,84 C41,84 31,77 31,66 C31,56 39,47 54,47 Z M41.8,64 a3.2,3.6 0 1,0 6.4,0 a3.2,3.6 0 1,0 -6.4,0 Z M59.8,64 a3.2,3.6 0 1,0 6.4,0 a3.2,3.6 0 1,0 -6.4,0 Z M49.3,72.6 Q51.75,77.6 54,74.2 Q56.25,77.6 58.7,72.6 L58.3,73.6 Q56.25,75.4 54,72.2 Q51.75,75.4 49.7,73.6 Z"
         android:fillColor="#FFFFFFFF" />
 </vector>

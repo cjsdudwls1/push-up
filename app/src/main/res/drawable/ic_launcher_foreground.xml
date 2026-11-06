@@ -1,38 +1,78 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- A sword driven upward: the app's whole verb is "push up". Content stays inside the
-     66x66dp adaptive-icon safe zone so no launcher mask clips it. -->
+<!-- The cat holding the ceiling up over its head: the whole app in one picture. The cat is the one
+     the app opens with (the cream coat, the same colours as CatArt), and its paws are where the
+     user's push goes. Determined brows, an ω smile — a partner straining with you, not a drill
+     instructor. The slab is meant to run off the mask's edges; everything else stays inside the
+     66dp safe zone (a circle of radius 33 around 54,54). -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
 
-    <!-- upward thrust chevrons -->
+    <!-- the ceiling -->
     <path
-        android:pathData="M54,24 L70,42 L64,42 L54,31 L44,42 L38,42 Z"
-        android:fillColor="#FFFFB020"
-        android:fillAlpha="0.55" />
+        android:pathData="M24,25 h60 a4,4 0 0 1 4,4 v4 a4,4 0 0 1 -4,4 h-60 a4,4 0 0 1 -4,-4 v-4 a4,4 0 0 1 4,-4 Z"
+        android:fillColor="#FFC6F432" />
+    <path
+        android:pathData="M20,33 h68 a4,4 0 0 1 -4,4 h-60 a4,4 0 0 1 -4,-4 Z"
+        android:fillColor="#FF94BC14" />
 
-    <!-- blade -->
-    <path
-        android:pathData="M54,30 L59,40 L59,66 L49,66 L49,40 Z"
-        android:fillColor="#FFEDEFF5" />
-    <path
-        android:pathData="M54,30 L59,40 L59,66 L54,66 Z"
-        android:fillColor="#FFB9C0D4" />
+    <!-- arms -->
+    <path android:pathData="M30,40 L38,40 L42,62 L32,64 Z" android:fillColor="#FFF3D9A8" />
+    <path android:pathData="M78,40 L70,40 L66,62 L76,64 Z" android:fillColor="#FFF3D9A8" />
 
-    <!-- crossguard -->
+    <!-- paws against the ceiling -->
     <path
-        android:pathData="M36,66 L72,66 L72,73 L36,73 Z"
-        android:fillColor="#FFFF8A3D" />
+        android:pathData="M27,41 a7,6 0 1,0 14,0 a7,6 0 1,0 -14,0"
+        android:fillColor="#FFF3D9A8" />
+    <path
+        android:pathData="M67,41 a7,6 0 1,0 14,0 a7,6 0 1,0 -14,0"
+        android:fillColor="#FFF3D9A8" />
+    <path
+        android:pathData="M31,38 v3 M34,38 v3 M37,38 v3 M71,38 v3 M74,38 v3 M77,38 v3"
+        android:strokeColor="#FFC9A877"
+        android:strokeWidth="1.2"
+        android:strokeLineCap="round" />
 
-    <!-- grip -->
-    <path
-        android:pathData="M50,73 L58,73 L58,84 L50,84 Z"
-        android:fillColor="#FF6B4A2F" />
+    <!-- ears -->
+    <path android:pathData="M38,58 L42,41 L53,51 Z" android:fillColor="#FFF3D9A8" />
+    <path android:pathData="M70,58 L66,41 L55,51 Z" android:fillColor="#FFF3D9A8" />
+    <path android:pathData="M41,54 L43,45 L49,51 Z" android:fillColor="#FFE0A88C" />
+    <path android:pathData="M67,54 L65,45 L59,51 Z" android:fillColor="#FFE0A88C" />
 
-    <!-- pommel -->
+    <!-- head -->
     <path
-        android:pathData="M54,84 m-5,0 a5,5 0 1,0 10,0 a5,5 0 1,0 -10,0"
-        android:fillColor="#FFFF8A3D" />
+        android:pathData="M54,47 C69,47 77,56 77,66 C77,77 67,84 54,84 C41,84 31,77 31,66 C31,56 39,47 54,47 Z"
+        android:fillColor="#FFF3D9A8" />
+
+    <!-- eyes -->
+    <path
+        android:pathData="M41.8,64 a3.2,3.6 0 1,0 6.4,0 a3.2,3.6 0 1,0 -6.4,0 M59.8,64 a3.2,3.6 0 1,0 6.4,0 a3.2,3.6 0 1,0 -6.4,0"
+        android:fillColor="#FF3A2A18" />
+    <path
+        android:pathData="M45,62.6 a1,1 0 1,0 2,0 a1,1 0 1,0 -2,0 M63,62.6 a1,1 0 1,0 2,0 a1,1 0 1,0 -2,0"
+        android:fillColor="#FFFFFFFF" />
+
+    <!-- brows -->
+    <path
+        android:pathData="M41,58 L48,59.6 M67,58 L60,59.6"
+        android:strokeColor="#FF3A2A18"
+        android:strokeWidth="1.8"
+        android:strokeLineCap="round" />
+
+    <!-- nose and the ω smile -->
+    <path android:pathData="M52,70 L56,70 L54,72.4 Z" android:fillColor="#FFE0A88C" />
+    <path
+        android:pathData="M49.5,73 Q51.75,76.5 54,73 Q56.25,76.5 58.5,73"
+        android:strokeColor="#FF3A2A18"
+        android:strokeWidth="1.4"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+
+    <!-- cheeks -->
+    <path
+        android:pathData="M37,72 a3,2 0 1,0 6,0 a3,2 0 1,0 -6,0 M65,72 a3,2 0 1,0 6,0 a3,2 0 1,0 -6,0"
+        android:fillColor="#FFF0A08A"
+        android:fillAlpha="0.6" />
 </vector>

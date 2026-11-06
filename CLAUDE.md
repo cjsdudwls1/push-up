@@ -80,10 +80,14 @@ side-on plank as bent. The arm check that tells a plank from standing is not ask
 level: from the head on the forearms the model put the elbow behind the shoulder half the time.
 **A plank may be filmed with the phone on its side**, by the owner's decision (2026-10-02): side on,
 the upright picture needed the phone too far away, and the wide one holds the body from 1.5-2 m. For
-a plank, and only a plank, the run screen turns with the phone whatever the rotation lock says
+a plank (and a pushup, below), the run screen turns with the phone whatever the rotation lock says
 (`FollowPhoneRotation`; the manifest keeps everything else upright), and the camera's use cases
 follow the display's rotation (`CameraPreview`), so the model is always handed an upright picture.
 `PlankRigTest` and `PlacementCoachTest` pin it from a phone on its side (`Body3d.Camera.landscape`).
+**A pushup may be too**, by the owner's request (2026-10-28), for the same reason; the turning
+screens are `FOLLOWS_PHONE_ROTATION`. Nothing in the detector changed for it — the side view and the
+head-on reading count on the wide picture as on the upright one — and `MovementRigTest` and
+`PlacementCoachTest` pin it from a phone on its side, side on and from the head.
 
 **A single frame never moves the calibration.** The lite model misplaces a landmark for a frame —
 a shoulder on the neck, the shoulders swapped — often enough to matter. A scale jump is a new subject
@@ -201,7 +205,10 @@ to lose: the ceiling winning ends the set and keeps its reps, and the next set c
 A session of 고양이 지켜줘 is **ten lives, one set each, with a rest between them**, by the owner's
 decision (2026-10-09, putting back the lives that 2026-10-04 took out). A set is one run of the
 ceiling — a life, in `CeilingSurvival`'s words — and the ceiling winning costs one, shown as the row
-of hearts under the score and on the rest card (`CatSessionState.livesLeft`). The rest (a minute by
+of hearts under the score and on the rest card (`CatSessionState.livesLeft`), one heart for each
+life left — a lost one is gone, not dimmed, by the owner's request (2026-10-28): dimmed and outlined
+over the camera, they read as ten all session. Where to stand is spoken only while a set is on and
+its ceiling has not won, as the banner shows it: not in a rest, and not over the ending. The rest (a minute by
 default; the settings offer 90 s and 2 min) runs its length unless the user skips it — the rest card's
 one button, added by the owner's decision of 2026-10-02 (`CatSession.skipRest`); there is no extend —
 and the next set's ceiling does not come back until it is over or skipped, and then waits, as the
@@ -233,11 +240,27 @@ energy it burned — MET × 65 kg × a movement's seconds per rep, an estimate t
 since the app does not ask anyone's weight — and name the foods it would take to put back; each
 movement's record is its best one go against its first, and each movement keeps its own best score,
 by the owner's decision, since a pull-up is not a pushup. None of them ever falls, and a set the
-ceiling won or a week away subtracts nothing. The hub's cat greets by how long it has been (`Welcome`), glad
+ceiling won or a week away subtracts nothing. The one exception is the graph, by the owner's request
+(2026-11-06): first of the hub's numbers, above the calories, each session's total (every rep of a
+10-set session, or every second held) for one movement as a line, the last `Trends.SHOWN`, switched
+by a chip per movement in one tap (`Trends`, `SessionTrendCard`). It draws a dip as a dip, since it is
+there to show how it is going; a rise is coloured and a dip is said in grey, never as a shortfall, and
+a session with nothing in it is left out rather than drawn as a drop. `TrendsTest` pins it. The hub's cat greets by how long it has been (`Welcome`), glad
 whatever the answer, and a broken streak is never said — by the owner's decision, pointing at what
 was lost is how a return becomes a goodbye. The week is one card, its days named 월 to 일 rather
 than drawn as dots, with last week summed up at the start of the next (`Weeks.recap`). There are no
 push notifications, by the owner's decision.
+
+**The run screen has its own gear**, by the owner's request (2026-11-06): the sound, the cat's voice,
+the music, the buzz and the rest are a tap away at every moment of a run — playing, resting, at the
+ending, in the tutorial — in a panel over the camera (`RunSettingsPanel`), not the settings screen,
+which a run cannot open without ending. Nothing pauses for it (the ceiling never does) and the panel
+says so while a set is on. The run reads the settings live, so a change is heard at once.
+
+**The cat starts out as 지수**, by the owner's decision (2026-11-06): `cat_default_name`, which a blank
+stored name reads as, and what the name field starts with. **The launcher icon is that cat holding the
+ceiling up over its head** on the ring look's charcoal, the ceiling in its lime — the whole app in one picture; the Play listing's
+512 px copy is `docs/store-assets/icon-512.png`.
 
 **The cat's things are gifts it finds, and beside them a shop for 츄르**, by the owner's decisions.
 The shop came later (2026-10-01): a set that beats its own best pays 츄르 (`SetOutcome.churu`), and
@@ -261,6 +284,12 @@ The cat's fear, its lines and its sounds are decided by `CatCompanion` in `:core
 state and events — the rest's lines included; the screen draws the `CatView` it is given and plays
 the sounds, and decides nothing about how the cat feels. It never changes the game —
 `CatCompanionTest` pins when it speaks.
+
+**The look is concept C, the ring**, by the owner's choice (2026-10-09, from four mockups): a dark
+ground, one lime accent (`Palette.Brand500`), and cards with no outline (`cardSurface`) — a row of
+thin-bordered boxes read as a developer's dashboard. The hub is the cat inside a ring that fills with
+the day's bar, and a round start button pinned at the bottom between the movement and the records.
+Numbers and headings are Orbit, sentences Gowun Dodum (`Type.kt`, `docs/FONT_CREDITS.md`).
 
 ## Copy
 
