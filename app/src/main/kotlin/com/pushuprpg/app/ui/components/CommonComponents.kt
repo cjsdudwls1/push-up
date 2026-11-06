@@ -342,9 +342,10 @@ fun Pill(text: String, tint: Color, modifier: Modifier = Modifier) {
  *
  * For a plank, by the owner's decision (2026-10-02): filmed side on, the upright picture needed the
  * phone too far away, and turned on its side it holds the whole body from about half the distance.
- * The camera turns its pictures with the screen (CameraPreview), so the pose model is always handed
- * an upright body and the overlay lands on it. Everything else stays upright: the manifest locks the
- * app to portrait, and only this lets go of it.
+ * For a pushup too, by the owner's request (2026-10-28), for the same reason. The camera turns its
+ * pictures with the screen (CameraPreview), so the pose model is always handed an upright body and
+ * the overlay lands on it. Everything else stays upright: the manifest locks the app to portrait, and
+ * only this lets go of it, for the movements in [FOLLOWS_PHONE_ROTATION].
  */
 @Composable
 fun FollowPhoneRotation() {
@@ -354,6 +355,9 @@ fun FollowPhoneRotation() {
         onDispose { activity.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT }
     }
 }
+
+/** The movements whose run screen turns with the phone: the ones done lying along the floor. */
+val FOLLOWS_PHONE_ROTATION = setOf(ExerciseType.PLANK, ExerciseType.PUSHUP)
 
 private tailrec fun Context.findActivity(): Activity? = when (this) {
     is Activity -> this

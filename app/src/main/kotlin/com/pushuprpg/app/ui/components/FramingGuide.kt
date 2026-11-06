@@ -23,8 +23,8 @@ import com.pushuprpg.core.detect.ExerciseType
  * Shown only while setting up. The ghost is the pose as the phone should see it for [exercise]:
  * standing square for a squat, hanging for a pull-up, on the bars for a dip, and for a
  * pushup or a plank the body from the head end, receding up the picture. On a phone on its side —
- * which only a plank's screen follows (FollowPhoneRotation) — the frame is wide and low, and the
- * plank lies across it side on, on its forearms.
+ * which only a plank's and a pushup's screens follow (FollowPhoneRotation) — the frame is wide and
+ * low, and the body lies across it side on: a plank on its forearms, a pushup on straight arms.
  */
 @Composable
 fun FramingGuide(exercise: ExerciseType, modifier: Modifier = Modifier) {
@@ -34,7 +34,7 @@ fun FramingGuide(exercise: ExerciseType, modifier: Modifier = Modifier) {
     // line — spoken as well as shown — already says what to do. The frame and the ghost are the how.
     Canvas(modifier.fillMaxSize()) {
         val sideways = size.width > size.height
-        // Sideways, under the HUD and down to the floor of the picture, where a plank is.
+        // Sideways, under the HUD and down to the floor of the picture, where the body lies.
         val box = if (sideways) Size(size.width * 0.84f, size.height * 0.60f) else Size(size.width * 0.72f, size.height * 0.80f)
         val topLeft = Offset((size.width - box.width) / 2f, size.height * if (sideways) 0.32f else 0.10f)
         drawRoundRect(
@@ -75,6 +75,19 @@ private fun DrawScope.drawGhost(exercise: ExerciseType, topLeft: Offset, box: Si
         bone(shoulder, hip)
         bone(hip, knee)
         bone(knee, p(0.93f, 0.92f))
+        return
+    }
+    if (sideways && exercise == ExerciseType.PUSHUP) {
+        // Side on, head to the left, at the top of a pushup: the arms straight down from the
+        // shoulders to the hands on the floor, the body one line down to the feet.
+        head(p(0.24f, 0.22f), 0.075f)
+        val shoulder = p(0.30f, 0.30f)
+        bone(shoulder, p(0.31f, 0.92f))
+        val hip = p(0.58f, 0.59f)
+        val knee = p(0.74f, 0.755f)
+        bone(shoulder, hip)
+        bone(hip, knee)
+        bone(knee, p(0.90f, 0.92f))
         return
     }
 

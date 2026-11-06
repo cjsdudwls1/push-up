@@ -105,13 +105,13 @@ fun CameraPreview(
             }
         }
 
-        // The use cases turn with the screen. The app is upright everywhere but a plank, which may be
-        // filmed with the phone on its side (FollowPhoneRotation); the activity handles the turn
-        // itself rather than being recreated, so nothing rebinds, and CameraX has to be told. Turned
-        // and not told, the analysis would keep handing over the upright picture's buffer, with the
-        // body lying across it, and the overlay would draw it a quarter turn off. A listener rather
-        // than the configuration, because a half turn from one side to the other changes no
-        // configuration at all.
+        // The use cases turn with the screen. The app is upright everywhere but a plank and a
+        // pushup, which may be filmed with the phone on its side (FollowPhoneRotation); the activity
+        // handles the turn itself rather than being recreated, so nothing rebinds, and CameraX has to
+        // be told. Turned and not told, the analysis would keep handing over the upright picture's
+        // buffer, with the body lying across it, and the overlay would draw it a quarter turn off. A
+        // listener rather than the configuration, because a half turn from one side to the other
+        // changes no configuration at all.
         var preview: Preview? = null
         var analysis: ImageAnalysis? = null
         val displays = context.getSystemService(DisplayManager::class.java)
