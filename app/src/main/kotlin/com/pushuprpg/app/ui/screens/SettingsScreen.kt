@@ -118,16 +118,7 @@ fun SettingsScreen(
         SegmentedSetting(
             title = stringResource(R.string.settings_haptics),
             options = HapticStrength.entries,
-            labelFor = {
-                stringResource(
-                    when (it) {
-                        HapticStrength.OFF -> R.string.settings_haptics_off
-                        HapticStrength.LIGHT -> R.string.settings_haptics_light
-                        HapticStrength.MEDIUM -> R.string.settings_haptics_medium
-                        HapticStrength.STRONG -> R.string.settings_haptics_strong
-                    }
-                )
-            },
+            labelFor = { stringResource(hapticLabelRes(it)) },
             selected = settings.hapticStrength,
             onSelect = { v ->
                 onChange { it.copy(hapticStrength = v) }
@@ -141,10 +132,7 @@ fun SettingsScreen(
             title = stringResource(R.string.settings_cat_rest),
             subtitle = stringResource(R.string.settings_cat_rest_sub),
             options = CAT_REST_OPTIONS,
-            labelFor = { seconds ->
-                if (seconds % 60 == 0) stringResource(R.string.settings_rest_minutes, seconds / 60)
-                else stringResource(R.string.settings_rest_minutes_seconds, seconds / 60, seconds % 60)
-            },
+            labelFor = { restLabel(it) },
             selected = settings.catRestSeconds.takeIf { it in CAT_REST_OPTIONS } ?: CAT_REST_OPTIONS.first(),
             onSelect = { v -> onChange { it.copy(catRestSeconds = v) } },
         )
@@ -206,6 +194,71 @@ fun SettingsScreen(
             onClick = onOpenTerms,
         )
     }
+}
+
+/**
+ * The settings that matter mid-workout, on the run screen itself: the sound, the cat's voice, the
+ * music, the buzz and the rest. By the owner's request (2026-11-06) they are a tap away at every
+ * moment of a run — playing, resting or at the ending — rather than behind the hub, which a run
+ * cannot go back to without ending. They write the same settings as [SettingsScreen], and the run
+ * reads them live, so a change is heard at once.
+ */
+@Composable
+fun RunSettingsPanel(
+    settings: AppSettings,
+    onChange: ((AppSettings) -> AppSettings) -> Unit,
+    modifier: Modifier = Modifier,
+    onPreviewHaptic: (HapticStrength) -> Unit = {},
+) {
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        SwitchSetting(
+            title = stringResource(R.string.settings_sfx),
+            checked = settings.sfxEnabled,
+            onCheckedChange = { v -> onChange { it.copy(sfxEnabled = v) } },
+        )
+        SwitchSetting(
+            title = stringResource(R.string.settings_voice),
+            checked = settings.voiceEnabled,
+            onCheckedChange = { v -> onChange { it.copy(voiceEnabled = v) } },
+        )
+        SegmentedSetting(
+            title = stringResource(R.string.settings_music),
+            options = MusicTrack.entries,
+            labelFor = { stringResource(musicLabelRes(it)) },
+            selected = settings.music,
+            onSelect = { v -> onChange { it.copy(music = v) } },
+        )
+        SegmentedSetting(
+            title = stringResource(R.string.settings_haptics),
+            options = HapticStrength.entries,
+            labelFor = { stringResource(hapticLabelRes(it)) },
+            selected = settings.hapticStrength,
+            onSelect = { v ->
+                onChange { it.copy(hapticStrength = v) }
+                onPreviewHaptic(v)
+            },
+        )
+        SegmentedSetting(
+            title = stringResource(R.string.settings_cat_rest),
+            options = CAT_REST_OPTIONS,
+            labelFor = { restLabel(it) },
+            selected = settings.catRestSeconds.takeIf { it in CAT_REST_OPTIONS } ?: CAT_REST_OPTIONS.first(),
+            onSelect = { v -> onChange { it.copy(catRestSeconds = v) } },
+        )
+    }
+}
+
+@Composable
+private fun restLabel(seconds: Int): String =
+    if (seconds % 60 == 0) stringResource(R.string.settings_rest_minutes, seconds / 60)
+    else stringResource(R.string.settings_rest_minutes_seconds, seconds / 60, seconds % 60)
+
+@StringRes
+private fun hapticLabelRes(strength: HapticStrength): Int = when (strength) {
+    HapticStrength.OFF -> R.string.settings_haptics_off
+    HapticStrength.LIGHT -> R.string.settings_haptics_light
+    HapticStrength.MEDIUM -> R.string.settings_haptics_medium
+    HapticStrength.STRONG -> R.string.settings_haptics_strong
 }
 
 @Composable

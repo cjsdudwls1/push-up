@@ -22,6 +22,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -42,6 +43,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -49,7 +51,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.coerceIn
 import androidx.compose.ui.unit.dp
 import com.pushuprpg.app.R
+import com.pushuprpg.app.domain.AppSettings
 import com.pushuprpg.app.domain.CatCoat
+import com.pushuprpg.app.domain.HapticStrength
 import com.pushuprpg.app.pose.CameraPreview
 import com.pushuprpg.app.pose.PoseLandmarkerSource
 import com.pushuprpg.app.share.ShareCardData
@@ -57,6 +61,7 @@ import com.pushuprpg.app.ui.components.CameraErrorCard
 import com.pushuprpg.app.ui.components.KeepScreenOn
 import com.pushuprpg.app.ui.components.ModelErrorBanner
 import com.pushuprpg.app.ui.components.PrimaryButton
+import com.pushuprpg.app.ui.components.RoundIconButton
 import com.pushuprpg.app.ui.components.RunGrowthLines
 import com.pushuprpg.app.ui.components.SecondaryButton
 import com.pushuprpg.app.ui.components.WideCameraControl
@@ -157,6 +162,10 @@ fun SurvivalScreen(
     setBests: SetBests = SetBests(),
     /** What the banked session did to the set bests; null until it is written. */
     setOutcome: SetOutcome? = null,
+    /** The settings, for the gear's panel; null hides the gear. */
+    settings: AppSettings? = null,
+    onSettingsChange: ((AppSettings) -> AppSettings) -> Unit = {},
+    onPreviewHaptic: (HapticStrength) -> Unit = {},
 ) {
     val hold = Exercises.of(exercise).kind == MovementKind.HOLD
     KeepScreenOn()
@@ -178,6 +187,9 @@ fun SurvivalScreen(
     BackHandler {
         if (waitingTutorial) confirmingSkip = !confirmingSkip else close()
     }
+    // The gear's panel. Composed after the handler above, so back closes the panel first.
+    var settingsOpen by rememberSaveable { mutableStateOf(false) }
+    BackHandler(enabled = settingsOpen) { settingsOpen = false }
 
     // Long enough to look stuck: the tutorial offers its skip after this much waiting to start.
     var waitedForStart by rememberSaveable { mutableStateOf(false) }
@@ -372,21 +384,35 @@ fun SurvivalScreen(
             }
         }
 
-        // Top right, across from the close button: 광각 on and off in one tap. The camera
-        // switches without the run stopping; the ceiling does not wait for it, as it waits for nothing.
-        if (!cameraFailed && state.phase != CatPhase.OVER) {
-            WideCameraControl(
-                on = wideCamera,
-                least = wideLeast,
-                onToggle = { on ->
-                    wideLeast = null
-                    onWideCameraChange(on)
-                },
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .windowInsetsPadding(WindowInsets.safeDrawing)
-                    .padding(end = 16.dp, top = 8.dp),
-            )
+        // Top right, across from the close button: 광각 on and off in one tap, and the gear. The
+        // camera switches without the run stopping; the ceiling does not wait for it, as it waits
+        // for nothing. The gear is there at every moment of a run, by the owner's request
+        // (2026-11-06): the sound, the music, the buzz and the rest, changed where the run is.
+        Row(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .windowInsetsPadding(WindowInsets.safeDrawing)
+                .padding(end = 16.dp, top = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            if (!cameraFailed && state.phase != CatPhase.OVER) {
+                WideCameraControl(
+                    on = wideCamera,
+                    least = wideLeast,
+                    onToggle = { on ->
+                        wideLeast = null
+                        onWideCameraChange(on)
+                    },
+                )
+            }
+            if (settings != null) {
+                RoundIconButton(
+                    icon = Icons.Rounded.Settings,
+                    label = stringResource(R.string.action_settings),
+                    onClick = { settingsOpen = true },
+                )
+            }
         }
 
         // The tutorial's way out, where a run's close button sits: once the wait to start has gone on
@@ -482,6 +508,77 @@ fun SurvivalScreen(
         if (confirmingSkip && waitingTutorial) {
             SkipConfirm(onSkip = onSkip, onStay = { confirmingSkip = false })
         }
+
+        if (settingsOpen && settings != null) {
+            RunSettingsSheet(
+                settings = settings,
+                onChange = onSettingsChange,
+                onPreviewHaptic = onPreviewHaptic,
+                // Said only while a set is on: then the ceiling is moving behind the panel.
+                ceilingMoving = playing && state.started,
+                onDismiss = { settingsOpen = false },
+            )
+        }
+    }
+}
+
+/**
+ * The gear's panel, over the bottom of the run. Nothing pauses for it — the ceiling never does, by
+ * the owner's decision — so it says so while a set is on, and closes with a tap above it, its
+ * button or back. What it changes is heard at once: the run reads the settings live.
+ */
+@Composable
+private fun BoxScope.RunSettingsSheet(
+    settings: AppSettings,
+    onChange: ((AppSettings) -> AppSettings) -> Unit,
+    onPreviewHaptic: (HapticStrength) -> Unit,
+    ceilingMoving: Boolean,
+    onDismiss: () -> Unit,
+) {
+    Box(
+        Modifier
+            .matchParentSize()
+            .background(Palette.ScrimPanel)
+            .clickable(onClickLabel = stringResource(R.string.action_close), onClick = onDismiss),
+    )
+    Column(
+        modifier = Modifier
+            .align(Alignment.BottomCenter)
+            .fillMaxWidth()
+            .heightIn(max = 560.dp)
+            .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
+            .background(Palette.Bg1)
+            // Taps inside the panel stay in it rather than falling through to the scrim's close:
+            // a pointer handler, even an empty one, makes the panel the one hit.
+            .pointerInput(Unit) {}
+            .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal))
+            .padding(horizontal = 20.dp)
+            .padding(top = 20.dp, bottom = 16.dp),
+    ) {
+        Text(
+            text = stringResource(R.string.run_settings_title),
+            style = Type.titleM,
+            color = Palette.TextPrimary,
+        )
+        if (ceilingMoving) {
+            Spacer(Modifier.height(4.dp))
+            Text(
+                text = stringResource(R.string.run_settings_ceiling),
+                style = Type.bodyM,
+                color = Palette.TextSecondary,
+            )
+        }
+        Spacer(Modifier.height(12.dp))
+        RunSettingsPanel(
+            settings = settings,
+            onChange = onChange,
+            onPreviewHaptic = onPreviewHaptic,
+            modifier = Modifier
+                .weight(1f, fill = false)
+                .verticalScroll(rememberScrollState()),
+        )
+        Spacer(Modifier.height(12.dp))
+        PrimaryButton(text = stringResource(R.string.action_close), onClick = onDismiss)
     }
 }
 

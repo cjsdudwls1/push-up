@@ -14,7 +14,11 @@ import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -40,6 +44,7 @@ import com.pushuprpg.core.progression.BurnProgress
 import com.pushuprpg.core.progression.Calories
 import com.pushuprpg.core.progression.Gift
 import com.pushuprpg.core.progression.MovementRecord
+import com.pushuprpg.core.progression.SessionTrend
 import com.pushuprpg.core.progression.Streak
 import com.pushuprpg.core.progression.StreakState
 import com.pushuprpg.core.progression.Weeks
@@ -61,6 +66,8 @@ data class HomeUiState(
     val burn: BurnProgress = Calories.progress(0f),
     /** Each movement's best one go and first one, for how far it has come. */
     val records: Map<ExerciseType, MovementRecord> = emptyMap(),
+    /** Every movement's sessions as totals, for the graph; one per movement, done or not. */
+    val trends: Map<ExerciseType, SessionTrend> = emptyMap(),
     val thisWeek: WeekSummary = EMPTY_WEEK,
     val lastWeek: WeekSummary = EMPTY_WEEK,
     /** Last week summed up, for the start of this one; null until loaded. */
@@ -101,8 +108,8 @@ private val EMPTY_WEEK = WeekSummary(start = 0, days = List(7) { false }, reps =
  * mode the tutorial already taught, which starts the movement it names at once; the picker is the
  * link under it, since the movement is the same one day after another. Under that, the answer to
  * the other question a habit needs,
- * "am I getting anywhere": the calories every rep so far has burned, the best set against the first,
- * and the week at a glance. The cat says how long it has been, glad whatever the answer.
+ * "am I getting anywhere": each session's total as a graph, a movement a tap, then the calories every
+ * rep so far has burned, the best set against the first, and the week at a glance. The cat says how long it has been, glad whatever the answer.
  */
 @Composable
 fun HomeScreen(
@@ -265,7 +272,18 @@ fun HomeScreen(
             RecapCard(recap = recap)
         }
 
+        // First under the button, by the owner's request (2026-11-06): how each session's total is
+        // going, a movement at a time, switched with one tap on its chip. It opens on the movement
+        // picked last, and a tap elsewhere on the hub does not move it.
         Spacer(Modifier.height(22.dp))
+        var graphed by rememberSaveable(lastExercise) { mutableStateOf(lastExercise) }
+        SessionTrendCard(
+            trends = state.trends,
+            selected = graphed,
+            onSelect = { graphed = it },
+        )
+
+        Spacer(Modifier.height(12.dp))
         CalorieCard(
             progress = state.burn,
             exercise = lastExercise,

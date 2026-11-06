@@ -375,6 +375,11 @@ fun PushupRpgApp(
                                 },
                                 setBests = setBests,
                                 setOutcome = setOutcome,
+                                settings = settings,
+                                onSettingsChange = { transform ->
+                                    scope.launch { container.settingsRepository.update(transform) }
+                                },
+                                onPreviewHaptic = container.audio::previewHaptic,
                                 poseSource = poseSource,
                                 exercise = exercise,
                                 isTutorial = isTutorial,

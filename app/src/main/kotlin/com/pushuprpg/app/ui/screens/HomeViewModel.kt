@@ -14,6 +14,7 @@ import com.pushuprpg.core.progression.Calories
 import com.pushuprpg.core.progression.DayTotal
 import com.pushuprpg.core.progression.Gifts
 import com.pushuprpg.core.progression.Records
+import com.pushuprpg.core.progression.Trends
 import com.pushuprpg.core.progression.Weeks
 import com.pushuprpg.core.progression.recap
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -83,6 +84,7 @@ class HomeViewModel(
             today = days.today.epochDay,
             burn = Calories.progress(Calories.of(facts)),
             records = Records.of(facts),
+            trends = Trends.all(facts),
             thisWeek = thisWeek,
             lastWeek = lastWeek,
             lastWeekRecap = Weeks.recap(facts, thisWeek.start - 7),

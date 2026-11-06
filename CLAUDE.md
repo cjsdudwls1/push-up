@@ -233,11 +233,27 @@ energy it burned — MET × 65 kg × a movement's seconds per rep, an estimate t
 since the app does not ask anyone's weight — and name the foods it would take to put back; each
 movement's record is its best one go against its first, and each movement keeps its own best score,
 by the owner's decision, since a pull-up is not a pushup. None of them ever falls, and a set the
-ceiling won or a week away subtracts nothing. The hub's cat greets by how long it has been (`Welcome`), glad
+ceiling won or a week away subtracts nothing. The one exception is the graph, by the owner's request
+(2026-11-06): first under the hub's button, above the calories, each session's total (every rep of a
+10-set session, or every second held) for one movement as a line, the last `Trends.SHOWN`, switched
+by a chip per movement in one tap (`Trends`, `SessionTrendCard`). It draws a dip as a dip, since it is
+there to show how it is going; a rise is coloured and a dip is said in grey, never as a shortfall, and
+a session with nothing in it is left out rather than drawn as a drop. `TrendsTest` pins it. The hub's cat greets by how long it has been (`Welcome`), glad
 whatever the answer, and a broken streak is never said — by the owner's decision, pointing at what
 was lost is how a return becomes a goodbye. The week is one card, its days named 월 to 일 rather
 than drawn as dots, with last week summed up at the start of the next (`Weeks.recap`). There are no
 push notifications, by the owner's decision.
+
+**The run screen has its own gear**, by the owner's request (2026-11-06): the sound, the cat's voice,
+the music, the buzz and the rest are a tap away at every moment of a run — playing, resting, at the
+ending, in the tutorial — in a panel over the camera (`RunSettingsPanel`), not the settings screen,
+which a run cannot open without ending. Nothing pauses for it (the ceiling never does) and the panel
+says so while a set is on. The run reads the settings live, so a change is heard at once.
+
+**The cat starts out as 지수**, by the owner's decision (2026-11-06): `cat_default_name`, which a blank
+stored name reads as, and what the name field starts with. **The launcher icon is that cat holding the
+ceiling up over its head** on the brand's violet — the whole app in one picture; the Play listing's
+512 px copy is `docs/store-assets/icon-512.png`.
 
 **The cat's things are gifts it finds, and beside them a shop for 츄르**, by the owner's decisions.
 The shop came later (2026-10-01): a set that beats its own best pays 츄르 (`SetOutcome.churu`), and

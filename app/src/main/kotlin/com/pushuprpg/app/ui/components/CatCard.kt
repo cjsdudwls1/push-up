@@ -51,7 +51,10 @@ fun CatCard(
     wear: Set<CatItem> = emptySet(),
     showCat: Boolean = true,
 ) {
-    var typed by remember { mutableStateOf(name) }
+    // The field starts with the name the cat already goes by — 지수 until it is renamed — so it reads
+    // as the cat's name to change rather than a blank to fill. Nothing is stored until it is edited.
+    val defaultName = stringResource(R.string.cat_default_name)
+    var typed by remember { mutableStateOf(name.ifBlank { defaultName }) }
     var picked by remember { mutableStateOf(coat) }
 
     Column(
