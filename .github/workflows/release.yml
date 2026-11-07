@@ -6,6 +6,8 @@ on:
     # Every build that reaches the phone-install branch goes to Play's internal test track and on
     # to the closed test; a v* tag also goes to production (see the last step).
     branches: ["claude/pushup-rpg-app-2xnr4o"]
+    # A change to the docs alone is not a build testers need to download (or Google to review).
+    paths-ignore: ["docs/**", "**.md", "site/**"]
   workflow_dispatch:
 
 # One upload at a time, in order: Play rejects a bundle whose version code is not higher than the
