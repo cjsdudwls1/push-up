@@ -6,6 +6,25 @@ Getting builds onto a phone through Play's internal test track, step by step: se
 [PLAY_INTERNAL_TEST.md](PLAY_INTERNAL_TEST.md). Once the upload key and a Play service account are
 in the repository secrets, every push to the install branch is signed and uploaded there.
 
+## How a build reaches Play (since 2026-11-07)
+
+| What | Where it goes |
+|---|---|
+| A push (or merge) to `claude/pushup-rpg-app-2xnr4o` | internal → closed test (`alpha`), the same bundle |
+| A `v*` tag (`git tag v0.2.0 && git push origin v0.2.0`) | internal → closed test → production |
+| Actions → **Promote on Play** (by hand) | any track to any other; widens a staged rollout |
+
+- Release notes are `distribution/whatsnew/whatsnew-ko-KR` (500 characters at most). Reword it in the
+  same commit as the change, or testers read the last build's notes.
+- Production from a tag rolls out to everyone, or to the share in the repository variable
+  `PLAY_PRODUCTION_FRACTION` (e.g. `0.2`); widen it with Promote on Play, `from` and `to` both
+  `production`, and a larger fraction.
+- `PLAY_CLOSED_TRACK` = `none` stops builds going to the closed test.
+- Each build sent to the closed test or production goes through Google's review first, usually
+  within hours to a few days. Internal testers get it at once.
+- `tools/play.py status` prints what is on every track; locally it takes the service account
+  file as `--key` or `PLAY_SERVICE_ACCOUNT_FILE`.
+
 ## Blocking — nothing ships without these
 
 ### Signing

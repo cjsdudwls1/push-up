@@ -18,6 +18,10 @@ scripts/install-android-sdk.sh [dir]  # the SDK :app needs, if Google's servers 
 ./gradlew :app:assembleDebug  # needs the SDK
 ```
 
+A merge to `claude/pushup-rpg-app-2xnr4o` ships: CI signs it and puts it on Play's internal track and
+the closed test, and a `v*` tag sends it on to production (`docs/RELEASE.md`). Reword
+`distribution/whatsnew/whatsnew-ko-KR` with any change a tester would notice.
+
 When a device report says reps are not counting, ask for a trace rather than guessing: debug builds
 have 설정 → 테스트 → 동작 기록 남기기 / 방금 한 운동 기록 보내기, which shares the latest run's landmarks as
 JSON. `replay-trace.sh` shows which check refused each rep, and the file can become a test. A screen

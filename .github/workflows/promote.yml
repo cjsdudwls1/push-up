@@ -1,0 +1,50 @@
+name: Promote on Play
+
+# Moves a bundle Play already has from one track to another, by hand: the build on the internal
+# track to production once it has been tried, or a staged production rollout to more people.
+# Nothing is rebuilt (tools/play.py).
+on:
+  workflow_dispatch:
+    inputs:
+      from:
+        description: "From track"
+        type: choice
+        options: [internal, alpha, beta, production]
+        default: internal
+      to:
+        description: "To track (alpha is the closed test)"
+        type: choice
+        options: [production, alpha, beta, internal]
+        default: production
+      version_code:
+        description: "Version code (blank: the newest on the from track)"
+        required: false
+      fraction:
+        description: "Share of users, e.g. 0.2 (blank: everyone)"
+        required: false
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install --quiet google-auth requests
+      - name: Promote
+        env:
+          PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          FROM: ${{ inputs.from }}
+          TO: ${{ inputs.to }}
+          CODE: ${{ inputs.version_code }}
+          FRACTION: ${{ inputs.fraction }}
+        run: |
+          python tools/play.py promote --from "$FROM" --to "$TO" \
+            ${CODE:+--version-code "$CODE"} ${FRACTION:+--fraction "$FRACTION"} \
+            --notes-file distribution/whatsnew/whatsnew-ko-KR
+          python tools/play.py status
