@@ -10,6 +10,16 @@
 git tag v0.1.0 && git push origin v0.1.0
 ```
 
+## 현재 상태 (2026-11-07, Console에서 확인)
+
+- 비공개 테스트 버전 게시 ✓, 테스터 12명 참여 ✓, **14일 조건: 13일째** — 2026-11-08에 채워진다.
+  테스터가 정확히 12명이라 그 사이 한 명만 빠져도 기간이 다시 시작될 수 있다. 여유로 몇 명 더 넣어 둘 것.
+- 앱 콘텐츠: 주의 필요 항목 없음(전부 완료).
+- Android vitals: 지난 28일(10/10~11/7) 사용자 인식 비정상 종료·ANR **0건**.
+- Play 테스트 의견: 1건(10/27, Galaxy S22 Ultra, 별 5개) — 잘 동작하고, 카메라를 기울여 흉내 낸
+  푸시업은 모두 세지 않았다는 내용.
+- 관리형 게시는 꺼져 있어서 API로 올린 비공개 테스트 릴리스는 빠른 검사 뒤 자동으로 검토에 넘어간다.
+
 ## 신청서 답안 (2026-11-07 작성)
 
 양식은 Console 언어로 나오며 답은 어느 언어로 써도 된다. 아래 영어 답을 붙여 넣는다.
@@ -32,13 +42,16 @@ git tag v0.1.0 && git push origin v0.1.0
 **받은 피드백 요약과 수집 방법** — 아래 (2)~(4)는 저장소에 "소유자의 요청"으로 기록된 것도 있다.
 테스터에게서 온 것만 남긴다 [확인 필요].
 
-> We collected feedback through [확인 필요: e.g. direct messages, a group chat], and asked
+> We collected feedback through Google Play's testing feedback and [확인 필요: e.g. direct
+> messages, a group chat], and asked
 > testers who saw a miscount for a recording of the set. The main points: (1) the release build
 > crashed the moment the camera permission was granted, which our debug builds never showed;
 > (2) some movements did not count from certain camera positions — pull-ups from behind the
 > camera, dips filmed from the front, pushups filmed from the head; (3) filming a plank or a
 > pushup from the side needed the phone too far away in portrait; (4) testers wanted to change
-> sound and rest settings during a workout, and to see whether they were improving.
+> sound and rest settings during a workout, and to see whether they were improving. One tester
+> reported through Play that on a Galaxy S22 Ultra it worked well and that faking pushups by
+> tilting the camera was never counted.
 
 ### 2. 앱
 
@@ -76,8 +89,8 @@ find it hard to keep a bodyweight routine going on their own. The app is in Kore
 > Every tester-reported counting problem we could reproduce from a recording is fixed and covered
 > by an automated test that replays the recording at its own frame rate and at half and a third
 > of it. The release
-> build is signed, minified and installed through Play on testers' phones, crash reports from the
-> latest builds [확인 필요: e.g. "show no crashes"], and every build goes through our automated
+> build is signed, minified and installed through Play on testers' phones, Android vitals shows no
+> user-perceived crashes or ANRs over the last 28 days of the test, and every build goes through our automated
 > tests before it reaches testers.
 
 ## 신청 전 확인
@@ -85,4 +98,4 @@ find it hard to keep a bodyweight routine going on their own. The app is in Kore
 - 대시보드의 비공개 테스트 조건이 둘 다 체크됐는지 (테스터 12명 이상, 14일 연속)
 - 정책 → 앱 콘텐츠의 항목이 모두 완료인지 (개인정보처리방침, 데이터 보안, 콘텐츠 등급, 타겟층,
   광고 없음, 건강 앱 신고)
-- Firebase Crashlytics에서 최근 빌드(1036, 1037)의 비정상 종료 수 — 위 `[확인 필요]`에 넣는다
+- 남은 `[확인 필요]`(모집 난이도, 모집 방법, 피드백 채널, (2)~(4) 중 테스터 발 피드백)를 채웠는지
