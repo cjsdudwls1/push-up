@@ -3,8 +3,8 @@ name: Release AAB
 on:
   push:
     tags: ["v*"]
-    # Every build that reaches the phone-install branch also goes to Play's internal test track,
-    # once the signing and Play secrets exist. Until then the job says what is missing and stops.
+    # Every build that reaches the phone-install branch goes to Play's internal test track and on
+    # to the closed test; a v* tag also goes to production (see the last step).
     branches: ["claude/pushup-rpg-app-2xnr4o"]
   workflow_dispatch:
 
@@ -97,6 +97,7 @@ jobs:
       - name: Bundle release
         if: steps.have.outputs.sign == 'true'
         run: |
+          echo "VERSION_CODE=$((1000 + ${{ github.run_number }}))" >> "$GITHUB_ENV"
           ./gradlew :app:bundleRelease --no-daemon --stacktrace \
             -Ppushup.versionCode=$((1000 + ${{ github.run_number }}))
 
@@ -116,6 +117,7 @@ jobs:
       # Play refuses API uploads for an app until its first bundle has been uploaded by hand in
       # the Console; see docs/RELEASE.md. An app still in draft only takes draft releases — set the
       # repository variable PLAY_RELEASE_STATUS to "draft" until the first release is rolled out.
+      # The release notes are distribution/whatsnew/whatsnew-ko-KR: reword it with the change.
       - name: Upload to Play (internal testing)
         if: steps.have.outputs.sign == 'true' && steps.have.outputs.play == 'true'
         uses: r0adkll/upload-google-play@v1
@@ -123,5 +125,44 @@ jobs:
           serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
           packageName: io.github.cjsdudwls1.pushuprpg
           releaseFiles: app/build/outputs/bundle/release/*.aab
-          track: internal
+          releaseName: ${{ env.VERSION_CODE }}
+          tracks: internal
+          whatsNewDirectory: distribution/whatsnew
           status: ${{ vars.PLAY_RELEASE_STATUS || 'completed' }}
+
+      # The same bundle, not a rebuild, moves on from there (tools/play.py). The closed test gets
+      # every build, after Google's review of it; set the variable PLAY_CLOSED_TRACK to none to
+      # stop that.
+      - uses: actions/setup-python@v5
+        if: steps.have.outputs.sign == 'true' && steps.have.outputs.play == 'true'
+        with:
+          python-version: "3.12"
+
+      - name: Set up Play tools
+        if: steps.have.outputs.sign == 'true' && steps.have.outputs.play == 'true'
+        run: pip install --quiet google-auth requests
+
+      - name: Promote to closed testing
+        if: >-
+          steps.have.outputs.sign == 'true' && steps.have.outputs.play == 'true'
+          && vars.PLAY_CLOSED_TRACK != 'none'
+        env:
+          PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+        run: |
+          python tools/play.py promote --from internal --to "${{ vars.PLAY_CLOSED_TRACK || 'alpha' }}" \
+            --version-code "$VERSION_CODE" --notes-file distribution/whatsnew/whatsnew-ko-KR
+
+      # Production only from a tag (git tag v0.2.0 && git push origin v0.2.0), rolled out to the
+      # share PLAY_PRODUCTION_FRACTION names (e.g. 0.2) or to everyone when it is unset. A staged
+      # rollout is widened with the Promote workflow. Needs production access in the Console.
+      - name: Promote to production
+        if: >-
+          steps.have.outputs.sign == 'true' && steps.have.outputs.play == 'true'
+          && github.ref_type == 'tag'
+        env:
+          PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          FRACTION: ${{ vars.PLAY_PRODUCTION_FRACTION }}
+        run: |
+          python tools/play.py promote --from internal --to production \
+            --version-code "$VERSION_CODE" --notes-file distribution/whatsnew/whatsnew-ko-KR \
+            ${FRACTION:+--fraction "$FRACTION"}
