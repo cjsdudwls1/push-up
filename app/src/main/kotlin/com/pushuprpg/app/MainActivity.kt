@@ -48,6 +48,7 @@ class MainActivity : ComponentActivity() {
         ) == PackageManager.PERMISSION_GRANTED
 
         val container = (application as PushupApp).container
+        container.ads.start(this)
 
         // Exactly when the graph starts at onboarding — its first screen not yet passed — and once
         // per launch rather than per visit to the screen.
@@ -78,9 +79,16 @@ class MainActivity : ComponentActivity() {
         ) == PackageManager.PERMISSION_GRANTED
     }
 
+    override fun onStart() {
+        super.onStart()
+        (application as PushupApp).container.screens.appShown()
+    }
+
     override fun onStop() {
         super.onStop()
-        (application as PushupApp).container.onAppStop()
+        val container = (application as PushupApp).container
+        if (!container.ads.fullScreenOpen) container.screens.appHidden()
+        container.onAppStop()
     }
 
     private fun openAppSettings() {

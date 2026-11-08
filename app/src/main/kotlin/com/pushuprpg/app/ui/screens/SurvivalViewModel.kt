@@ -110,6 +110,12 @@ class SurvivalViewModel(
     private val _setOutcome = MutableStateFlow<SetOutcome?>(null)
     val setOutcome: StateFlow<SetOutcome?> = _setOutcome.asStateFlow()
 
+    private val _churuDoubled = MutableStateFlow(false)
+    val churuDoubled: StateFlow<Boolean> = _churuDoubled.asStateFlow()
+
+    /** True the one time this session's 츄르 may be doubled. */
+    fun markChuruDoubled(): Boolean = _churuDoubled.compareAndSet(expect = false, update = true)
+
     private val hold = Exercises.of(exercise).kind == MovementKind.HOLD
 
     /** What the banked session changed: a record, places passed. Null until it is written. */
@@ -352,6 +358,7 @@ class SurvivalViewModel(
         _nearMisses.value = 0
         _growth.value = null
         _setOutcome.value = null
+        _churuDoubled.value = false
         saved.set(false)
         endedHere = false
         _state.value = session.state()

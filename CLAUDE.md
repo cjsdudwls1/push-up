@@ -289,6 +289,12 @@ state and events — the rest's lines included; the screen draws the `CatView` i
 the sounds, and decides nothing about how the cat feels. It never changes the game —
 `CatCompanionTest` pins when it speaks.
 
+**Ads never touch a run**, by the owner's decision (2026-11-08): a rewarded ad in the shop (`AdRules`,
+three a day), a rewarded 츄르 2배 at a session's ending (the camera is turned off first), one
+interstitial a day after 홈으로 (none in the first three days, and only if already loaded), and a banner
+on the records. None during a set, the tutorial, a rest or just before a start, and none on the hub.
+Test builds use Google's sample units; real IDs reach only `v*` tag builds (`release.yml`).
+
 **The look is concept C, the ring**, by the owner's choice (2026-10-09, from four mockups): a dark
 ground, one lime accent (`Palette.Brand500`), and cards with no outline (`cardSurface`) — a row of
 thin-bordered boxes read as a developer's dashboard. The hub is the cat inside a ring that fills with
