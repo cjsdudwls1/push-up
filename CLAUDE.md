@@ -262,8 +262,9 @@ which a run cannot open without ending. Nothing pauses for it (the ceiling never
 says so while a set is on. The run reads the settings live, so a change is heard at once.
 
 **The cat starts out as 지수**, by the owner's decision (2026-11-06): `cat_default_name`, which a blank
-stored name reads as, and what the name field starts with. **The launcher icon is that cat holding the
-ceiling up over its head** on the ring look's charcoal, the ceiling in its lime — the whole app in one picture; the Play listing's
+stored name reads as, and what the name field starts with. **The launcher icon is that cat, the whole of it
+from the paws on the ceiling to its feet and tail, holding the ceiling up over its head** (2026-11-10, by
+the owner's request: the paws and a head alone read as strange) on the ring look's charcoal, the ceiling in its lime — the whole app in one picture; the Play listing's
 512 px copy is `docs/store-assets/icon-512.png`.
 
 **The cat's things are gifts it finds, and beside them a shop for 츄르**, by the owner's decisions.
