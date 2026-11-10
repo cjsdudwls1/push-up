@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -42,6 +43,7 @@ import com.pushuprpg.app.domain.AppSettings
 import com.pushuprpg.app.domain.ThemeMode
 import com.pushuprpg.app.domain.wearing
 import com.pushuprpg.app.domain.withWear
+import com.pushuprpg.core.survival.CatPhase
 import com.pushuprpg.core.detect.ExerciseType
 import com.pushuprpg.app.pose.PoseFrameSink
 import com.pushuprpg.app.share.ShareCardData
@@ -345,6 +347,17 @@ fun PushupRpgApp(
                     val growth by vm.growth.collectAsState()
                     val setBests by vm.setBests.collectAsState()
                     val setOutcome by vm.setOutcome.collectAsState()
+                    val depth by vm.depth.collectAsState()
+
+                    // The music hurries as the ceiling closes, and is back to its pace once the
+                    // set is not being played and when the run is left.
+                    val urgency = if (state.phase == CatPhase.PLAYING && state.life.started && state.life.alive) {
+                        state.life.intensity
+                    } else {
+                        0f
+                    }
+                    SideEffect { container.music.setUrgency(urgency) }
+                    DisposableEffect(Unit) { onDispose { container.music.setUrgency(0f) } }
 
                     DisposableEffect(vm) {
                         val consumer: (com.pushuprpg.core.pose.PoseFrame) -> Unit = vm::onPoseFrame
@@ -365,6 +378,9 @@ fun PushupRpgApp(
                                 cat = cat,
                                 placement = placement,
                                 setupSkeleton = setupSkeleton,
+                                depth = { depth },
+                                depthLines = vm.depthLines,
+                                showCamera = settings.showCamera,
                                 catName = settings.catName,
                                 catCoat = settings.catCoat,
                                 catWear = settings.wearing(),

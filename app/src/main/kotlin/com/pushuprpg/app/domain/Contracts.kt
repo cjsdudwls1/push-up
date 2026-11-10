@@ -168,6 +168,12 @@ data class AppSettings(
      * screen's slider. 0 is as wide as the camera goes, whatever that is on this phone.
      */
     val wideZoom: Float = 0f,
+    /**
+     * Show the camera's picture under 고양이 지켜줘 once a set is under way. Off leaves the room
+     * dark behind the ceiling and the cat; the pose is read either way, and the picture still shows
+     * while setting up, which is lining up with it. By the owner's request (2026-11-10).
+     */
+    val showCamera: Boolean = true,
 )
 
 enum class HapticStrength { OFF, LIGHT, MEDIUM, STRONG }
