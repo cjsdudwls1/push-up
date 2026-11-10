@@ -32,8 +32,8 @@ import com.pushuprpg.core.progression.WearSlot
 /**
  * 고양이 at rest, on a cushion: the hub's face.
  *
- * The same drawing the run uses, calm and smiling, with the tail swaying on its own clock — still
- * under reduced motion. [cheer] above a third closes the eyes into a smile. It wears [wear], and
+ * The same drawing the run uses, calm and bright-eyed, with the tail swaying on its own clock — still
+ * under reduced motion. [cheer] is passed through; the eyes stay open and bright. It wears [wear], and
  * sits in the scene among them, if there is one, on a card of its own.
  */
 @Composable

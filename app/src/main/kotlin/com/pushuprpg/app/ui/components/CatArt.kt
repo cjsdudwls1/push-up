@@ -79,7 +79,8 @@ fun coatColors(coat: CatCoat): CoatColors = when (coat) {
  * - [mood] is the stage of fear [com.pushuprpg.core.survival.CatCompanion] decided: strained eyes
  *   and a bead of sweat once the ceiling is coming, and at the end crossed eyes, a tremble and sweat
  *   on both sides, with the paws up (만세) to hold the ceiling off.
- * - [cheer] is the moment after a push: the eyes close into a smile.
+ * - [cheer] is the moment after a push. The eyes stay open and bright through it: the owner found
+ *   the smile's closed eyes too hard to see (2026-11-10); hearts still rise (see [drawHearts]).
  * - [phase] is a free-running 0..1 clock over four seconds, for the sweat and the tremble; hold it at 0
  *   to keep the cat still, which is what reduced motion does.
  * - [holdUpTo] raises the paws to that height, as the run does with the ceiling coming down; null
@@ -116,9 +117,7 @@ fun DrawScope.drawCat(
     val s = catCell(scale)
     val p = pixelPalette(coat)
     val ms = phase * PHASE_MS
-    val happy = cheer > 0.35f
     val eyes = when {
-        happy -> EyeLook.HAPPY
         mood == CatMood.PANIC -> EyeLook.PANIC
         mood == CatMood.SCARED || mood == CatMood.UNEASY -> EyeLook.STRAIN
         else -> EyeLook.NORMAL
@@ -193,7 +192,6 @@ fun DrawScope.drawCat(
 /** How the eyes look, as two 3-by-3 grids: E the eye, W its glint. */
 private enum class EyeLook(val grid: List<List<String>>) {
     NORMAL(listOf(listOf("EEW", "EEE", "EEE"), listOf("EEW", "EEE", "EEE"))),
-    HAPPY(listOf(listOf(".E.", "E.E", "..."), listOf(".E.", "E.E", "..."))),
     STRAIN(listOf(listOf("...", "EEE", "..."), listOf("...", "EEE", "..."))),
     PANIC(listOf(listOf("E..", ".E.", "E.."), listOf("..E", ".E.", "..E"))),
 }
