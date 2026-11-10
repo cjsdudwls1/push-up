@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Themed icons: the same cat and ceiling as one silhouette, the eyes and the smile cut out of
-     the head (evenOdd) so the face still reads in a single colour. -->
+<!-- Themed icons: the same cat and ceiling as one silhouette, the eyes cut out of the head (evenOdd)
+     so the face still reads in a single colour. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
@@ -8,21 +8,38 @@
     android:viewportHeight="108"
     android:tint="#FFFFFFFF">
     <path
-        android:pathData="M24,25 h60 a4,4 0 0 1 4,4 v4 a4,4 0 0 1 -4,4 h-60 a4,4 0 0 1 -4,-4 v-4 a4,4 0 0 1 4,-4 Z"
+        android:pathData="M24,19 h60 a4,4 0 0 1 4,4 v4 a4,4 0 0 1 -4,4 h-60 a4,4 0 0 1 -4,-4 v-4 a4,4 0 0 1 4,-4 Z"
         android:fillColor="#FFFFFFFF"
         android:fillAlpha="0.6" />
     <path
-        android:pathData="M30,40 L38,40 L42,62 L32,64 Z M78,40 L70,40 L66,62 L76,64 Z M38,58 L42,41 L53,51 Z M70,58 L66,41 L55,51 Z"
-        android:fillColor="#FFFFFFFF" />
-    <!-- the paws on their own: drawn in one path with the arms, their opposite winding cut holes -->
+        android:pathData="M63,76 C75,80 81,72 77,63"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="4.6"
+        android:strokeLineCap="round" />
     <path
-        android:pathData="M27,41 a7,6 0 1,0 14,0 a7,6 0 1,0 -14,0 Z"
+        android:pathData="M35,37 L44.5,61 M73,37 L63.5,61"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="7"
+        android:strokeLineCap="round" />
+    <path
+        android:pathData="M48,73 L48,82 M60,73 L60,82"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="7"
+        android:strokeLineCap="round" />
+    <path
+        android:pathData="M41.5,84 a6,3.4 0 1,1 12,0 a6,3.4 0 1,1 -12,0 Z M54.5,84 a6,3.4 0 1,1 12,0 a6,3.4 0 1,1 -12,0 Z"
         android:fillColor="#FFFFFFFF" />
     <path
-        android:pathData="M67,41 a7,6 0 1,0 14,0 a7,6 0 1,0 -14,0 Z"
+        android:pathData="M54,55 C64,55 67,63 67,70 C67,77 62,81 54,81 C46,81 41,77 41,70 C41,63 44,55 54,55 Z"
+        android:fillColor="#FFFFFFFF" />
+    <path
+        android:pathData="M28,34 a6.5,5.5 0 1,0 13,0 a6.5,5.5 0 1,0 -13,0 Z M67,34 a6.5,5.5 0 1,0 13,0 a6.5,5.5 0 1,0 -13,0 Z"
+        android:fillColor="#FFFFFFFF" />
+    <path
+        android:pathData="M41,48 L44,34 L52,42 Z M67,48 L64,34 L56,42 Z"
         android:fillColor="#FFFFFFFF" />
     <path
         android:fillType="evenOdd"
-        android:pathData="M54,47 C69,47 77,56 77,66 C77,77 67,84 54,84 C41,84 31,77 31,66 C31,56 39,47 54,47 Z M41.8,64 a3.2,3.6 0 1,0 6.4,0 a3.2,3.6 0 1,0 -6.4,0 Z M59.8,64 a3.2,3.6 0 1,0 6.4,0 a3.2,3.6 0 1,0 -6.4,0 Z M49.3,72.6 Q51.75,77.6 54,74.2 Q56.25,77.6 58.7,72.6 L58.3,73.6 Q56.25,75.4 54,72.2 Q51.75,75.4 49.7,73.6 Z"
+        android:pathData="M54,38 C65,38 70,45 70,51 C70,58 63,62 54,62 C45,62 38,58 38,51 C38,45 43,38 54,38 Z M45.6,50 a2.6,2.9 0 1,0 5.2,0 a2.6,2.9 0 1,0 -5.2,0 Z M57.2,50 a2.6,2.9 0 1,0 5.2,0 a2.6,2.9 0 1,0 -5.2,0 Z"
         android:fillColor="#FFFFFFFF" />
 </vector>
