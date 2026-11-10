@@ -142,6 +142,12 @@ fun SettingsScreen(
             checked = settings.wideCamera,
             onCheckedChange = { v -> onChange { it.copy(wideCamera = v) } },
         )
+        SwitchSetting(
+            title = stringResource(R.string.settings_show_camera),
+            subtitle = stringResource(R.string.settings_show_camera_sub),
+            checked = settings.showCamera,
+            onCheckedChange = { v -> onChange { it.copy(showCamera = v) } },
+        )
         // No exercise picker here. It is the hub's 운동 바꾸기, where the choice is actually being
         // made and where the per-exercise camera placement is worth reading.
 
@@ -220,6 +226,12 @@ fun RunSettingsPanel(
             title = stringResource(R.string.settings_voice),
             checked = settings.voiceEnabled,
             onCheckedChange = { v -> onChange { it.copy(voiceEnabled = v) } },
+        )
+        SwitchSetting(
+            title = stringResource(R.string.settings_show_camera),
+            subtitle = stringResource(R.string.settings_show_camera_sub),
+            checked = settings.showCamera,
+            onCheckedChange = { v -> onChange { it.copy(showCamera = v) } },
         )
         SegmentedSetting(
             title = stringResource(R.string.settings_music),

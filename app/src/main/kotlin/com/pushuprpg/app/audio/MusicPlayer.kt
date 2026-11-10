@@ -9,6 +9,7 @@ import android.os.Handler
 import android.os.Looper
 import com.pushuprpg.app.R
 import com.pushuprpg.app.domain.MusicTrack
+import kotlin.math.roundToInt
 
 /**
  * Background music: one looping track at a time, under the game's sounds.
@@ -39,6 +40,9 @@ class MusicPlayer(context: Context) {
         .build()
 
     private var hasFocus = false
+
+    /** How fast the track plays: 1 normally, more as 고양이 지켜줘's ceiling closes. See [setUrgency]. */
+    private var tempo = 1f
 
     /** Paused for a call or another app's short sound, and to come back when it is over. */
     private var pausedForTransientLoss = false
@@ -74,9 +78,33 @@ class MusicPlayer(context: Context) {
             isLooping = true
             setVolume(VOLUME, VOLUME)
             start()
+            applyTempo(this)
         }
         current = if (player != null) track else MusicTrack.OFF
         if (player == null) abandonFocus()
+    }
+
+    /**
+     * Plays the track faster as [urgency] goes from 0 to 1 — up to [MAX_TEMPO], at the same pitch:
+     * the ceiling coming down is heard as the music hurrying (owner's decision, 2026-11-10). In
+     * [TEMPO_STEPS] steps, so a ceiling moving every frame is not a playback change every frame. It
+     * holds for whatever plays next, so the run sets it back to 0 when it is over.
+     */
+    fun setUrgency(urgency: Float) {
+        val step = (urgency.coerceIn(0f, 1f) * TEMPO_STEPS).roundToInt()
+        val s = 1f + (MAX_TEMPO - 1f) * step / TEMPO_STEPS
+        if (s == tempo) return
+        tempo = s
+        // Only on a playing player: setting a speed on a paused one starts it.
+        player?.takeIf { it.isPlaying }?.let { applyTempo(it) }
+    }
+
+    private fun applyTempo(p: MediaPlayer) {
+        // Some decoders refuse a time-stretch; the music then just keeps its pace.
+        runCatching {
+            val params = p.playbackParams
+            if (params.speed != tempo) p.playbackParams = params.setSpeed(tempo).setPitch(1f)
+        }
     }
 
     /** Lowers the music under a spoken line, and brings it back after. */
@@ -99,7 +127,10 @@ class MusicPlayer(context: Context) {
         val p = player ?: return
         if (p.isPlaying) return
         if (audio?.isMusicActive == true) return
-        if (requestFocus()) p.start()
+        if (requestFocus()) {
+            p.start()
+            applyTempo(p)
+        }
     }
 
     fun stop() {
@@ -125,7 +156,10 @@ class MusicPlayer(context: Context) {
             }
             AudioManager.AUDIOFOCUS_GAIN -> if (pausedForTransientLoss) {
                 pausedForTransientLoss = false
-                player?.start()
+                player?.let {
+                    it.start()
+                    applyTempo(it)
+                }
             }
             // A duck: another app's is done by the platform, the game's own voice's by setDucked.
             else -> Unit
@@ -160,5 +194,9 @@ class MusicPlayer(context: Context) {
 
         /** How far the music drops while the voice speaks. */
         const val DUCK = 0.3f
+
+        /** The fastest the music goes with the ceiling at the cat's head. More than this smears. */
+        const val MAX_TEMPO = 1.35f
+        const val TEMPO_STEPS = 7
     }
 }

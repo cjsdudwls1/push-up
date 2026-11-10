@@ -69,6 +69,7 @@ import com.pushuprpg.app.ui.components.PrimaryButton
 import com.pushuprpg.app.ui.components.RoundIconButton
 import com.pushuprpg.app.ui.components.RunGrowthLines
 import com.pushuprpg.app.ui.components.SecondaryButton
+import com.pushuprpg.app.ui.components.SurvivalDepthGauge
 import com.pushuprpg.app.ui.components.WideCameraControl
 import com.pushuprpg.app.ui.components.cardSurface
 import com.pushuprpg.app.ui.components.catHeadTop
@@ -109,9 +110,10 @@ import kotlinx.coroutines.delay
 /**
  * 고양이 지켜줘.
  *
- * A deliberately warm, round register: no skeleton, no numbers on the run, no depth gauge — the
- * descending ceiling *is* the gauge. This is the mode people are shown first and
- * the one they send to a friend, so it must not look like sports science.
+ * A deliberately warm, round register: no skeleton and no numbers on the run — the descending
+ * ceiling is the gauge of the run. How deep a rep is, though, the ceiling cannot say, so a plain bar
+ * at the side does (owner's request, 2026-11-10). This is the mode people are shown first and the
+ * one they send to a friend, so it must not look like sports science.
  *
  * A session is ten lives — ten sets — with a rest between them that the screen counts down, over
  * when they are lost or when the user ends it with the close button or back; the tutorial is one set. See
@@ -153,6 +155,12 @@ fun SurvivalScreen(
     placement: Placement = Placement(),
     /** The skeleton while setting up, for lining up with the framing guide; null once started. */
     setupSkeleton: RenderSkeleton? = null,
+    /** How deep the user is now, 0..100; read only where the gauge draws. 0 when there is none. */
+    depth: () -> Float = { 0f },
+    /** The detector's 1회 and 깊게 thresholds, on the same scale. */
+    depthLines: Pair<Float, Float> = 70f to 88f,
+    /** The camera's picture under a set under way; off, the room is dark. See AppSettings.showCamera. */
+    showCamera: Boolean = true,
     /** As the user typed it; blank is the default name. */
     catName: String = "",
     catCoat: CatCoat = CatCoat.CREAM,
@@ -229,6 +237,12 @@ fun SurvivalScreen(
             onCameraError = { failed -> cameraFailed = failed },
         )
 
+        // The picture switched off: the camera still runs underneath, since the pose is read from
+        // it, and still shows while setting up, which is lining up with it.
+        if (!showCamera && !(playing && !life.started)) {
+            Box(Modifier.fillMaxSize().background(Color(0xFF1A1208)))
+        }
+
         // Warm wash over the camera: the room becomes a cosy room rather than a lab.
         Box(
             Modifier
@@ -271,6 +285,18 @@ fun SurvivalScreen(
                 modifier = Modifier.fillMaxSize(),
             )
             FramingGuide(exercise = exercise)
+        }
+
+        if (playing && life.started && life.alive && !hold) {
+            SurvivalDepthGauge(
+                depth = depth,
+                countAt = depthLines.first,
+                deepAt = depthLines.second,
+                modifier = Modifier
+                    .align(Alignment.CenterEnd)
+                    .windowInsetsPadding(WindowInsets.safeDrawing)
+                    .padding(end = 14.dp),
+            )
         }
 
         // Above the cat's head, where a speech bubble belongs. The canvas places the cat by the same

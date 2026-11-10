@@ -137,6 +137,10 @@
     <string name="settings_cat_rest">고양이 쉬는 시간</string>
     <string name="settings_cat_rest_sub">목숨이 하나 줄면 이만큼 쉬고 다음 세트를 시작해요. 쉬어야 다음 세트에 더 많이 해요.</string>
     <string name="settings_wide_camera">광각으로 찍기</string>
+    <string name="settings_show_camera">운동 중 카메라 화면 보기</string>
+    <string name="settings_show_camera_sub">꺼도 자세는 그대로 알아봐요. 자리 잡는 동안에는 화면이 보여요.</string>
+    <string name="survival_depth_count">1회</string>
+    <string name="survival_depth_deep">깊게</string>
     <string name="settings_wide_camera_sub">방이 좁아도 몸이 화면에 다 들어오게 넓게 찍어요. 운동 화면 오른쪽 위 광각 버튼을 눌러도 바로 켜지고 꺼져요. 넓게 찍는 만큼 폰 가까이에서 해요.</string>
     <string name="survival_wide">광각</string>
     <string name="survival_wide_at">광각 %1$s</string>
@@ -495,7 +499,7 @@
     <string name="settings_section_exercise">운동</string>
     <string name="settings_reduce_motion_sub">화면 흔들림과 번쩍임을 줄여요.</string>
     <string name="settings_cvd_sub">초록·빨강 대신 파랑·노랑으로 구분해요.</string>
-    <string name="settings_voice_sub">고양이의 말과 자세 안내를 목소리로 알려줘요. 폰이 멀리 있어도 들려요.</string>
+    <string name="settings_voice_sub">자리 잡기 안내와 쉬는 시간의 고양이 말을 목소리로 알려줘요. 천장이 내려오는 동안에는 말 대신 음악이 빨라져요.</string>
     <!-- Share card -->
     <string name="share_card_survival_headline">고양이를 지켰어요</string>
     <string name="share_card_survival_hero_label">천장을 밀어 올린 점수</string>

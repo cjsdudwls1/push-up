@@ -128,6 +128,16 @@ class SurvivalViewModel(
 
     private val announcer = Announcer()
 
+    /**
+     * How deep the user is right now, 0..100 as the detector reads it, for the run's depth gauge;
+     * 0 when no set is being played, and always for a hold, which has no depth to show.
+     */
+    private val _depth = MutableStateFlow(0f)
+    val depth: StateFlow<Float> = _depth.asStateFlow()
+
+    /** Where the gauge's 1회 and 깊게 lines sit: the detector's own thresholds. */
+    val depthLines: Pair<Float, Float> = detector.config.countEnter to detector.config.deepEnter
+
     // The skeleton, only while setting up: the mode hides it on purpose, but lining up with the
     // framing guide is done by watching the lines.
     private val _setupSkeleton = MutableStateFlow<RenderSkeleton?>(null)
@@ -245,20 +255,24 @@ class SurvivalViewModel(
                 cat.rest(now.restLeftMs, step.session, tick.tMs)
         )
         val catView = cat.view()
-        // The cat's lines are heard as well as read: the bubble is small and the phone is far. Where
-        // to stand is said only while a set is on, as the banner shows it: not during a rest, since
-        // stepping away for water is what a rest is for, and not once the ceiling has won or the
-        // session is over — after the tenth set the camera still sees the user getting up, and it
-        // used to tell them to come closer over the ending.
+        // Where to stand is said only while a set is on, as the banner shows it: not during a rest,
+        // since stepping away for water is what a rest is for, and not once the ceiling has won or
+        // the session is over — after the tenth set the camera still sees the user getting up, and
+        // it used to tell them to come closer over the ending.
         val coaching = now.phase == CatPhase.PLAYING && now.life.alive
+        // While the ceiling is moving the cat is read, not heard: by the owner's decision
+        // (2026-11-10) the narration did not suit the run, and the music speeding up and the one
+        // danger meow carry it. Before a set and between sets it still speaks.
+        val live = coaching && now.life.started
         voice.announce(
-            announcer.survival(catView.speech, _placement.value.advice.takeIf { coaching }, tick.tMs),
+            announcer.survival(catView.speech.takeUnless { live }, _placement.value.advice.takeIf { coaching }, tick.tMs),
             exercise = exercise,
         )
         // Not over an ending published from the screen while this frame was in flight.
         if (endedHere) return
         _state.value = now
         _cat.value = catView
+        _depth.value = if (live && !hold) tick.depth else 0f
         val settingUp = now.phase == CatPhase.PLAYING && !now.life.started
         detector.skeletonMode = if (settingUp) SkeletonMode.FULL else SkeletonMode.OFF
         _setupSkeleton.value = if (settingUp) tick.render else null
