@@ -357,7 +357,15 @@ fun PushupRpgApp(
                         0f
                     }
                     SideEffect { container.music.setUrgency(urgency) }
-                    DisposableEffect(Unit) { onDispose { container.music.setUrgency(0f) } }
+                    // The run plays the pixel chiptune, which follows the ceiling, in place of the
+                    // picked track; the track comes back when the run is left.
+                    DisposableEffect(Unit) {
+                        container.music.setChiptune(true)
+                        onDispose {
+                            container.music.setUrgency(0f)
+                            container.music.setChiptune(false)
+                        }
+                    }
 
                     DisposableEffect(vm) {
                         val consumer: (com.pushuprpg.core.pose.PoseFrame) -> Unit = vm::onPoseFrame
@@ -381,7 +389,6 @@ fun PushupRpgApp(
                                 depth = { depth },
                                 depthLines = vm.depthLines,
                                 fx = vm.fx,
-                                showCamera = settings.showCamera,
                                 catName = settings.catName,
                                 catCoat = settings.catCoat,
                                 catWear = settings.wearing(),

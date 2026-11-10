@@ -13,7 +13,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
+import com.pushuprpg.app.ui.theme.PixelShape
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -60,7 +60,7 @@ fun CatCard(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .cardSurface(shape = RoundedCornerShape(18.dp), color = Palette.Bg1)
+            .cardSurface(shape = PixelShape(18.dp), color = Palette.Bg1)
             .padding(16.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -124,7 +124,7 @@ fun CatCard(
 
 @Composable
 private fun CoatChip(coat: CatCoat, selected: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    val shape = RoundedCornerShape(12.dp)
+    val shape = PixelShape(12.dp)
     Column(
         modifier = modifier
             .cardSurface(shape = shape, color = if (selected) Palette.Bg3 else Palette.Bg2)

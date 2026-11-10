@@ -3,7 +3,7 @@ package com.pushuprpg.app.ui.screens
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
+import com.pushuprpg.app.ui.theme.PixelShape
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -171,7 +171,7 @@ private fun DayGroup(day: LocalDate, sessions: List<SessionRecord>, today: Local
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .cardSurface(shape = RoundedCornerShape(16.dp)),
+                .cardSurface(shape = PixelShape(16.dp)),
         ) {
             sessions.forEachIndexed { i, session ->
                 if (i > 0) {
@@ -242,7 +242,7 @@ private fun MovementRecordRow(record: MovementRecord) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .cardSurface(shape = RoundedCornerShape(16.dp))
+            .cardSurface(shape = PixelShape(16.dp))
             .padding(14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {

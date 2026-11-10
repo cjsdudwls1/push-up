@@ -137,8 +137,6 @@
     <string name="settings_cat_rest">고양이 쉬는 시간</string>
     <string name="settings_cat_rest_sub">목숨이 하나 줄면 이만큼 쉬고 다음 세트를 시작해요. 쉬어야 다음 세트에 더 많이 해요.</string>
     <string name="settings_wide_camera">광각으로 찍기</string>
-    <string name="settings_show_camera">운동 중 카메라 화면 보기</string>
-    <string name="settings_show_camera_sub">꺼도 자세는 그대로 알아봐요. 자리 잡는 동안에는 화면이 보여요.</string>
     <string name="survival_depth_count">1회</string>
     <string name="survival_depth_deep">깊게</string>
     <string name="settings_wide_camera_sub">방이 좁아도 몸이 화면에 다 들어오게 넓게 찍어요. 운동 화면 오른쪽 위 광각 버튼을 눌러도 바로 켜지고 꺼져요. 넓게 찍는 만큼 폰 가까이에서 해요.</string>
@@ -519,4 +517,5 @@
          before the listing can be published, so it is part of the release checklist, not a link. -->
     <string name="privacy_policy_url" translatable="false">https://cjsdudwls1.github.io/push-up/privacy.html</string>
     <string name="terms_url" translatable="false">https://cjsdudwls1.github.io/push-up/terms.html</string>
+    <string name="survival_combo">x%1$d</string>
 </resources>

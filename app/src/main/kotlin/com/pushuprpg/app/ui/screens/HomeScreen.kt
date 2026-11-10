@@ -1,5 +1,13 @@
 package com.pushuprpg.app.ui.screens
 
+import androidx.compose.ui.graphics.drawscope.translate
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawOutline
+import kotlin.math.PI
+import kotlin.math.atan2
+import kotlin.math.floor
+import kotlin.math.roundToInt
+import kotlin.math.sqrt
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -13,7 +21,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
+import com.pushuprpg.app.ui.theme.PixelCircle
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.BarChart
@@ -386,7 +394,7 @@ private fun PageDots(count: Int, current: Int, modifier: Modifier = Modifier) {
             Box(
                 Modifier
                     .size(6.dp)
-                    .clip(CircleShape)
+                    .clip(PixelCircle)
                     .background(if (i == current) colors.accept else Palette.Bg3),
             )
         }
@@ -509,9 +517,9 @@ private fun WeekDays(
             Box(
                 modifier = Modifier
                     .size(size)
-                    .clip(CircleShape)
+                    .clip(PixelCircle)
                     .background(if (worked) colors.accept else Palette.Bg3)
-                    .then(if (isToday && !worked) Modifier.border(2.dp, colors.accept, CircleShape) else Modifier),
+                    .then(if (isToday && !worked) Modifier.border(2.dp, colors.accept, PixelCircle) else Modifier),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
@@ -542,7 +550,7 @@ private fun WardrobePill(newGifts: Int, onClick: () -> Unit, modifier: Modifier 
         maxLines = 1,
         modifier = modifier
             .heightIn(min = 48.dp)
-            .clip(CircleShape)
+            .clip(PixelCircle)
             .background(if (fresh) Palette.Brand500 else Palette.Bg2)
             .clickable(onClick = onClick)
             .wrapContentHeight(Alignment.CenterVertically)
@@ -564,15 +572,37 @@ private fun TodayRing(
     val fill = Palette.Brand400
     val inner = Palette.Bg2
     Box(modifier.size(272.dp), contentAlignment = Alignment.Center) {
+        // The ring as pixel art (2026-11-10, the pixel look): cells on a 34-cell grid, two cells
+        // thick, filled clockwise from the top; the inside a disc of the same cells.
         Canvas(Modifier.matchParentSize()) {
-            val stroke = 16.dp.toPx()
-            val inset = stroke / 2f
-            val arc = Size(size.width - stroke, size.height - stroke)
-            drawCircle(inner, radius = size.minDimension / 2f - stroke * 1.6f)
-            drawArc(track, 0f, 360f, false, Offset(inset, inset), arc, style = Stroke(stroke))
-            val sweep = 360f * fraction.coerceIn(0f, 1f)
-            if (sweep > 0f) {
-                drawArc(fill, -90f, sweep, false, Offset(inset, inset), arc, style = Stroke(stroke, cap = StrokeCap.Round))
+            val n = 34
+            val cell = floor(size.minDimension / n)
+            val origin = (size.minDimension - cell * n) / 2f
+            val mid = n / 2f
+            val outer = mid
+            val ringIn = mid - 2.2f
+            val disc = mid - 3.4f
+            val done = fraction.coerceIn(0f, 1f)
+            val gap = 1f.coerceAtMost(cell / 8f)
+            for (i in 0 until n) for (j in 0 until n) {
+                val dx = i + 0.5f - mid
+                val dy = j + 0.5f - mid
+                val d = sqrt(dx * dx + dy * dy)
+                val color = when {
+                    d <= disc -> inner
+                    d in ringIn..outer -> {
+                        // Clockwise from twelve o'clock, as a fraction of the way round.
+                        val turn = ((atan2(dx, -dy) / (2f * PI.toFloat())) + 1f) % 1f
+                        if (turn < done) fill else track
+                    }
+                    else -> continue
+                }
+                val inset = if (d <= disc) 0f else gap
+                drawRect(
+                    color,
+                    topLeft = Offset(origin + i * cell + inset, origin + j * cell + inset),
+                    size = Size(cell - 2 * inset, cell - 2 * inset),
+                )
             }
         }
         Column(horizontalAlignment = Alignment.CenterHorizontally, content = content)
@@ -629,20 +659,28 @@ private fun StartOrb(text: String, onClick: () -> Unit) {
             val base = 64.dp.toPx()
             val reach = size.minDimension / 2f - base
             // Still, two faint rings; moving, one ring that grows out and fades.
+            fun ring(r: Float, color: Color) {
+                val d = (2f * r).roundToInt().toFloat()
+                val at = (size.minDimension - d) / 2f
+                translate(at, at) {
+                    drawOutline(PixelCircle.createOutline(Size(d, d), layoutDirection, this), color, style = Stroke(3.dp.toPx()))
+                }
+            }
             if (reduceMotion) {
-                drawCircle(lime.copy(alpha = 0.45f), radius = base + reach * 0.45f, style = Stroke(2.dp.toPx()))
-                drawCircle(lime.copy(alpha = 0.22f), radius = base + reach * 0.95f, style = Stroke(2.dp.toPx()))
+                ring(base + reach * 0.45f, lime.copy(alpha = 0.45f))
+                ring(base + reach * 0.95f, lime.copy(alpha = 0.22f))
             } else {
-                drawCircle(lime.copy(alpha = 0.5f * (1f - phase)), radius = base + reach * phase, style = Stroke(2.dp.toPx()))
+                // Stepped outward, a few sizes rather than every frame's, like a sprite's frames.
+                ring(base + reach * (floor(phase * 5f) / 4f).coerceAtMost(1f), lime.copy(alpha = 0.5f * (1f - phase)))
             }
         }
         Box(
             modifier = Modifier
                 .size(124.dp)
-                .clip(CircleShape)
+                .clip(PixelCircle)
                 .background(Palette.BrandEdge)
                 .padding(bottom = 6.dp)
-                .clip(CircleShape)
+                .clip(PixelCircle)
                 .background(lime)
                 .clickable(role = Role.Button, onClick = onClick),
             contentAlignment = Alignment.Center,
@@ -673,7 +711,7 @@ private fun SideOrb(icon: ImageVector, label: String, description: String?, onCl
     Column(
         modifier = Modifier
             .size(76.dp)
-            .clip(CircleShape)
+            .clip(PixelCircle)
             .background(Palette.Bg2)
             .clickable(onClickLabel = description, role = Role.Button, onClick = onClick),
         horizontalAlignment = Alignment.CenterHorizontally,

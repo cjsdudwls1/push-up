@@ -32,12 +32,7 @@ object ShareCardRenderer {
     private const val MARGIN = 72f
     private const val PANEL_TOP = 186f
     private const val PANEL_BOTTOM = 690f
-    private const val TEETH = 14
     private const val MIN_SLAB = 70f
-    private const val EAR_GAP = 34f
-
-    /** Floor to ear tip, in the units [drawCat] multiplies by its scale. */
-    private const val CAT_HEIGHT_UNITS = 46f * 1.05f + 30f * (0.72f + 1.58f)
 
     // The palette, duplicated from the Compose theme as plain ints. Duplicated rather than shared
     // because ui.theme.Palette is Compose Color and this file must not depend on Compose.
@@ -50,13 +45,23 @@ object ShareCardRenderer {
     private const val ACCEPT = 0xFF35E08A.toInt()
     private const val INFO = 0xFF35C3FF.toInt()
 
-    // 고양이's warm set.
-    private const val CAT_BG = 0xFF1A1208.toInt()
-    private const val CAT_PANEL = 0xFF241809.toInt()
-    private const val CAT_FUR = 0xFFF3D9A8.toInt()
-    private const val CAT_INK = 0xFF3A2A18.toInt()
-    private const val CAT_EAR = 0xFFE0A88C.toInt()
-    private const val CAT_SLAB = 0xFF7A4A32.toInt()
+    // The pixel demo's room and its cheese cat.
+    private const val CAT_BG = 0xFF0B0E14.toInt()
+    private const val CAT_PANEL = 0xFF171C26.toInt()
+    private const val ROOM = 0xFF171C26.toInt()
+    private const val ROOM_STRIPE = 0xFF1F2633.toInt()
+    private const val FLOOR_EDGE = 0xFF2A3140.toInt()
+    private const val FLOOR = 0xFF141922.toInt()
+    private const val FLOOR_BOARD = 0xFF1D2330.toInt()
+    private const val BRICK = 0xFF6B5747.toInt()
+    private const val BRICK_DARK = 0xFF4A3C31.toInt()
+    private const val BRICK_LIT = 0xFF937560.toInt()
+    private const val CAT_OUTLINE = 0xFF2B1A12.toInt()
+    private const val CAT_FUR = 0xFFFF9A2E.toInt()
+    private const val CAT_STRIPE = 0xFFE0761A.toInt()
+    private const val CAT_LIGHT = 0xFFFFD9A8.toInt()
+    private const val CAT_EAR = 0xFFFF8FAB.toInt()
+    private const val CAT_EYE = 0xFF1E1A2E.toInt()
 
     private val bold: Typeface get() = Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD)
     private val regular: Typeface get() = Typeface.SANS_SERIF
@@ -73,7 +78,7 @@ object ShareCardRenderer {
     // ---------------------------------------------------------------- 고양이
 
     private fun drawSurvival(res: Resources, canvas: Canvas, data: ShareCardData.Survival) {
-        background(canvas, top = CAT_BG, bottom = 0xFF120C05.toInt(), glow = DEEP)
+        background(canvas, top = CAT_BG, bottom = 0xFF0B0E14.toInt(), glow = DEEP)
         header(res, canvas, chip = data.movement, chipColor = DEEP)
 
         val panel = panel(canvas, CAT_PANEL)
@@ -110,141 +115,119 @@ object ShareCardRenderer {
     }
 
     /**
-     * The slab, the gap, and the cat.
+     * The pixel demo's room (2026-11-10, the look the owner chose): the dark wall, the brick ceiling
+     * with its teeth, and the cat holding it up, all on one grid of the art's pixels.
      *
-     * Frozen a little above the cat rather than at the height the run ended: the card is read by
-     * someone who has never played, and a slab resting on the cat reads as a squashed cat.
+     * The ceiling stops a little above the cat's raised paws rather than on them: the card is read by
+     * someone who has never played, and a ceiling resting on the cat reads as a squashed cat.
      *
      * The Play feature graphic draws its picture with this too (`tools/sharecard-preview`), so the
-     * store shows the same cat the card does.
+     * store shows the same cat the card does. Only rectangles, so the preview's shim draws it as is.
      */
     internal fun drawCeilingAndCat(canvas: Canvas, panel: RectF) {
         canvas.save()
         canvas.clipPath(Path().apply { addRoundRect(panel, 44f, 44f, Path.Direction.CW) })
+        val paint = Paint()
+        // One of the art's pixels; the cat is 20 cells of 4 of them, a third of the panel across.
+        val u = Math.round(panel.width() / 240f).coerceAtLeast(1).toFloat()
+        val cols = (panel.width() / u).toInt() + 2
+        val rows = (panel.height() / u).toInt() + 2
+        val floorRow = rows - 1 - Math.round(panel.height() * 0.08f / u)
+        fun px(c: Int, r: Int, w: Int, h: Int, color: Int) {
+            paint.color = color
+            canvas.drawRect(panel.left + c * u, panel.top + r * u, panel.left + (c + w) * u, panel.top + (r + h) * u, paint)
+        }
+        // The wall, its stripes, the floor's edge and its boards.
+        px(0, 0, cols, rows, ROOM)
+        var x = 8
+        while (x < cols) { px(x, 0, 2, floorRow, ROOM_STRIPE); x += 24 }
+        px(0, floorRow, cols, 4, FLOOR_EDGE)
+        px(0, floorRow + 4, cols, rows, FLOOR)
+        var y = floorRow + 12
+        while (y < rows) { px(0, y, cols, 2, FLOOR_BOARD); y += 10 }
 
-        val paint = Paint(Paint.ANTI_ALIAS_FLAG)
-        val floorY = panel.bottom - panel.height() * 0.08f
-        val scale = panel.width() / 340f
+        val cell = 4
+        val catCols = CAT_SPRITE[0].length
+        val catLeft = cols / 2 - catCols * cell / 2
+        val catTop = floorRow - CAT_SPRITE.size * cell
+        // The paws, raised: four cells over the ears. The ceiling's teeth stop two cells above them.
+        val reach = -4
+        val ceilingBottom = maxOf(catTop + (reach - 3) * cell - 11, Math.round(MIN_SLAB / u))
 
-        // The ceiling is positioned from the cat's ears rather than from the panel, so the gap that
-        // is the entire point of the mode is a fixed, deliberate distance instead of whatever two
-        // independently-tuned fractions happen to leave.
-        val toothWidth = panel.width() / TEETH
-        val toothDepth = toothWidth * 0.55f
-        val slabBottom = (floorY - CAT_HEIGHT_UNITS * scale - EAR_GAP - toothDepth)
-            .coerceAtLeast(panel.top + MIN_SLAB)
-
-        paint.color = CAT_SLAB
-        canvas.drawRect(panel.left, panel.top, panel.right, slabBottom, paint)
-
-        val tooth = Path()
-        for (i in 0 until TEETH) {
-            tooth.reset()
-            tooth.moveTo(panel.left + i * toothWidth, slabBottom)
-            tooth.lineTo(panel.left + (i + 0.5f) * toothWidth, slabBottom + toothDepth)
-            tooth.lineTo(panel.left + (i + 1f) * toothWidth, slabBottom)
-            tooth.close()
-            canvas.drawPath(tooth, paint)
+        val paws = intArrayOf(-2, 19)
+        for (a in paws) {
+            px(catLeft + a * cell - 1, catTop + reach * cell, 3 * cell + 2, (11 - reach) * cell, CAT_OUTLINE)
+            px(catLeft + a * cell + 1, catTop + reach * cell + 2, 3 * cell - 2, (11 - reach) * cell - 2, CAT_FUR)
+            px(catLeft + a * cell - 2, catTop + (reach - 1) * cell + 2, 4 * cell, 2 * cell, CAT_OUTLINE)
+            px(catLeft + a * cell, catTop + reach * cell, 3 * cell, cell, CAT_LIGHT)
+            px(catLeft + (a + 1) * cell, catTop + reach * cell + 1, cell, 2, CAT_EAR)
+        }
+        for ((r, line) in CAT_SPRITE.withIndex()) {
+            for ((c, ch) in line.withIndex()) {
+                val color = when (ch) {
+                    'K' -> CAT_OUTLINE
+                    'O' -> CAT_FUR
+                    'S' -> CAT_STRIPE
+                    'L' -> CAT_LIGHT
+                    'P' -> CAT_EAR
+                    else -> continue
+                }
+                px(catLeft + c * cell, catTop + r * cell, cell, cell, color)
+            }
+        }
+        // The eyes, three cells each with a glint, and the cat is fine: it is holding.
+        for (start in intArrayOf(3, 14)) {
+            px(catLeft + start * cell, catTop + 6 * cell, 3 * cell, 3 * cell, CAT_EYE)
+            px(catLeft + (start + 2) * cell, catTop + 6 * cell, cell, cell, 0xFFFFFFFF.toInt())
         }
 
-        drawCat(canvas, panel.centerX(), floorY, scale)
-
-        paint.color = CAT_INK
-        canvas.drawRect(panel.left, floorY, panel.right, panel.bottom, paint)
-
+        // The ceiling: bricks down to its underside, a lit edge, and stepped teeth.
+        px(0, 0, cols, ceilingBottom, BRICK)
+        var by = ceilingBottom - 12
+        var row = 0
+        while (by > -12) {
+            px(0, by, cols, 2, BRICK_DARK)
+            var bx = (row % 2) * 16
+            while (bx < cols) { px(bx, by, 2, 12, BRICK_DARK); bx += 32 }
+            by -= 12
+            row++
+        }
+        px(0, ceilingBottom - 4, cols, 2, BRICK_LIT)
+        var tx = 0
+        while (tx < cols) {
+            px(tx + 2, ceilingBottom, 12, 4, BRICK)
+            px(tx + 4, ceilingBottom + 4, 8, 4, BRICK)
+            px(tx + 6, ceilingBottom + 8, 4, 2, BRICK)
+            px(tx + 6, ceilingBottom + 10, 4, 1, BRICK_DARK)
+            tx += 16
+        }
         canvas.restore()
     }
 
-    /**
-     * 고양이.
-     *
-     * The mascot, and the only drawing in the app a stranger judges before deciding whether to
-     * install anything. Circles alone came out as a snowman, so the parts that actually say "cat" —
-     * tall swept ears, whiskers, a tail — are drawn even though they cost nothing in the game and
-     * everything in recognisability here.
-     */
-    private fun drawCat(canvas: Canvas, centerX: Float, baseY: Float, scale: Float) {
-        val paint = Paint(Paint.ANTI_ALIAS_FLAG)
-        val body = 46f * scale
-        val head = 30f * scale
-        val headY = baseY - body * 1.05f - head * 0.72f
-
-        // Tail first, so the body edge covers where it joins.
-        paint.style = Paint.Style.STROKE
-        paint.strokeWidth = head * 0.30f
-        paint.strokeCap = Paint.Cap.ROUND
-        paint.color = CAT_FUR
-        val tail = Path()
-        tail.moveTo(centerX + body * 0.82f, baseY - body * 0.18f)
-        tail.quadTo(
-            centerX + body * 1.62f, baseY - body * 0.30f,
-            centerX + body * 1.48f, baseY - body * 0.98f,
-        )
-        tail.quadTo(
-            centerX + body * 1.36f, baseY - body * 1.46f,
-            centerX + body * 0.98f, baseY - body * 1.40f,
-        )
-        canvas.drawPath(tail, paint)
-        paint.style = Paint.Style.FILL
-
-        canvas.drawRoundRect(
-            RectF(centerX - body, baseY - body * 1.05f, centerX + body, baseY),
-            body * 0.62f, body * 0.62f, paint,
-        )
-
-        // Ears before the head, so their bases disappear under it.
-        val ear = Path()
-        listOf(-1f, 1f).forEach { side ->
-            ear.reset()
-            ear.moveTo(centerX + side * head * 0.16f, headY - head * 0.62f)
-            ear.lineTo(centerX + side * head * 0.74f, headY - head * 1.58f)
-            ear.lineTo(centerX + side * head * 1.00f, headY - head * 0.34f)
-            ear.close()
-            canvas.drawPath(ear, paint)
-        }
-        paint.color = CAT_EAR
-        listOf(-1f, 1f).forEach { side ->
-            ear.reset()
-            ear.moveTo(centerX + side * head * 0.36f, headY - head * 0.66f)
-            ear.lineTo(centerX + side * head * 0.71f, headY - head * 1.28f)
-            ear.lineTo(centerX + side * head * 0.84f, headY - head * 0.52f)
-            ear.close()
-            canvas.drawPath(ear, paint)
-        }
-
-        paint.color = CAT_FUR
-        canvas.drawCircle(centerX, headY, head, paint)
-
-        paint.color = CAT_INK
-        val eyeY = headY - head * 0.10f
-        listOf(-1f, 1f).forEach { side ->
-            canvas.drawCircle(centerX + side * head * 0.36f, eyeY, head * 0.15f, paint)
-        }
-
-        // Nose: a small downward triangle, the one mark that stops this reading as a bear.
-        val nose = Path()
-        val noseY = eyeY + head * 0.30f
-        nose.moveTo(centerX - head * 0.10f, noseY)
-        nose.lineTo(centerX + head * 0.10f, noseY)
-        nose.lineTo(centerX, noseY + head * 0.11f)
-        nose.close()
-        canvas.drawPath(nose, paint)
-
-        paint.style = Paint.Style.STROKE
-        paint.strokeWidth = head * 0.055f
-        paint.strokeCap = Paint.Cap.ROUND
-
-        // A closed, content mouth: a cat that is fine is a cat worth protecting.
-        val mouthY = noseY + head * 0.12f
-        canvas.drawLine(centerX, mouthY, centerX - head * 0.14f, mouthY + head * 0.12f, paint)
-        canvas.drawLine(centerX, mouthY, centerX + head * 0.14f, mouthY + head * 0.12f, paint)
-
-        listOf(-1f, 1f).forEach { side ->
-            val from = centerX + side * head * 0.42f
-            canvas.drawLine(from, noseY - head * 0.04f, from + side * head * 0.72f, noseY - head * 0.22f, paint)
-            canvas.drawLine(from, noseY + head * 0.12f, from + side * head * 0.76f, noseY + head * 0.16f, paint)
-        }
-    }
+    /** The app's cheese cat, the demo's own, cell for cell as `CatArt` draws it. */
+    private val CAT_SPRITE = arrayOf(
+        "..KK............KK..",
+        ".KOOK..........KOOK.",
+        ".KOPOK........KOPOK.",
+        "KOOPOOKKKKKKKKOOPOOK",
+        "KOOOOOOOSSSSOOOOOOOK",
+        "KOOOOOOOOSSOOOOOOOOK",
+        "KOOOOOOOOOOOOOOOOOOK",
+        "KOOOOOOOOOOOOOOOOOOK",
+        "KOOOOOOOOOOOOOOOOOOK",
+        "KOOOOOOOOPPOOOOOOOOK",
+        "KOPPOOOOKOOKOOOOPPOK",
+        "KOOOOOOOOKKOOOOOOOOK",
+        ".KOOOOOOOOOOOOOOOOK.",
+        "..KKKOOOOOOOOOOKKK..",
+        "....KOLLLLLLLLOK....",
+        "...KOOLLLLLLLLOOK...",
+        "...KOOLLLLLLLLOOK...",
+        "...KOOOLLLLLLOOOK...",
+        "...KOOOOOOOOOOOOK...",
+        "...KLLLKKKKKKLLLK...",
+        "....KKK......KKK....",
+    )
 
     // ---------------------------------------------------------------- shared furniture
 

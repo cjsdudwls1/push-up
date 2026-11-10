@@ -14,13 +14,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.selection.selectable
-import androidx.compose.foundation.shape.CircleShape
+import com.pushuprpg.app.ui.theme.PixelCircle
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
@@ -330,7 +331,7 @@ fun SessionTrendCard(
                     maxLines = 1,
                     modifier = Modifier
                         .weight(1f)
-                        .clip(CircleShape)
+                        .clip(PixelCircle)
                         // The lime, as the settings' picked segment and the hub's ring are.
                         .background(if (active) Palette.Brand500 else Palette.Bg3)
                         .selectable(selected = active, role = Role.Tab) { onSelect(exercise) }
@@ -453,13 +454,16 @@ private fun TrendLine(points: List<Int>, line: Color, label: String, modifier: M
                 close()
             }
             drawPath(area, line.copy(alpha = 0.12f))
-            drawPath(path, line, style = Stroke(width = 3.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round))
+            drawPath(path, line, style = Stroke(width = 3.dp.toPx(), cap = StrokeCap.Square, join = StrokeJoin.Miter))
         }
         points.forEachIndexed { i, v ->
             val last = i == points.lastIndex
             val c = Offset(x(i), y(v))
-            drawCircle(line, radius = (if (last) 6.dp else 4.5.dp).toPx(), center = c)
-            if (!last) drawCircle(dotHole, radius = 2.dp.toPx(), center = c)
+            // Square points, as pixel art has them.
+            val r = (if (last) 6.dp else 4.5.dp).toPx()
+            drawRect(line, topLeft = Offset(c.x - r, c.y - r), size = Size(2 * r, 2 * r))
+            val hole = 2.dp.toPx()
+            if (!last) drawRect(dotHole, topLeft = Offset(c.x - hole, c.y - hole), size = Size(2 * hole, 2 * hole))
             val text = measurer.measure(v.toString(), if (last) latestStyle else valueStyle)
             val tx = (c.x - text.size.width / 2f).coerceIn(0f, size.width - text.size.width)
             drawText(text, topLeft = Offset(tx, c.y - 10.dp.toPx() - text.size.height))

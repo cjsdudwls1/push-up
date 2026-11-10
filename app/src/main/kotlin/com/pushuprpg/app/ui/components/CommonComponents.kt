@@ -22,8 +22,8 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
+import com.pushuprpg.app.ui.theme.PixelCircle
+import com.pushuprpg.app.ui.theme.PixelShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.DarkMode
 import androidx.compose.material.icons.rounded.LightMode
@@ -55,7 +55,7 @@ import androidx.compose.ui.unit.dp
 import com.pushuprpg.app.R
 import com.pushuprpg.app.domain.ThemeMode
 import com.pushuprpg.app.ui.theme.LocalGameColors
-import com.pushuprpg.app.ui.theme.Orbit
+import com.pushuprpg.app.ui.theme.Galmuri
 import com.pushuprpg.app.ui.theme.Palette
 import com.pushuprpg.app.ui.theme.Type
 import com.pushuprpg.core.detect.ExerciseType
@@ -63,7 +63,7 @@ import com.pushuprpg.core.detect.Exercises
 import java.util.WeakHashMap
 
 /** The one card radius the hub screens use, so nothing drifts by a few dp between screens. */
-val CardShape: Shape = RoundedCornerShape(24.dp)
+val CardShape: Shape = PixelShape(24.dp)
 
 /**
  * Card chrome as a modifier rather than a wrapper composable, so callers stay free to be a Row, a
@@ -110,7 +110,7 @@ fun ProgressTrack(
     trackColor: Color = Palette.Bg3,
 ) {
     val filled = fraction.coerceIn(0f, 1f)
-    val shape = RoundedCornerShape(height / 2)
+    val shape = PixelShape(height / 2)
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -140,7 +140,7 @@ fun StatTile(
 ) {
     Column(
         modifier = modifier
-            .cardSurface(shape = RoundedCornerShape(18.dp))
+            .cardSurface(shape = PixelShape(18.dp))
             .padding(horizontal = 12.dp, vertical = 18.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
@@ -179,8 +179,8 @@ fun PrimaryButton(
             .heightIn(min = 64.dp)
             // The face's pressed-in edge: a darker lime under the bottom of the pill, so the button
             // reads as something to push rather than a box with a label in it.
-            .then(if (enabled) Modifier.background(Palette.BrandEdge, CircleShape).padding(bottom = 5.dp) else Modifier),
-        shape = CircleShape,
+            .then(if (enabled) Modifier.background(Palette.BrandEdge, PixelCircle).padding(bottom = 5.dp) else Modifier),
+        shape = PixelCircle,
         colors = ButtonDefaults.buttonColors(
             containerColor = Palette.Brand500,
             contentColor = Palette.TextOnAccent,
@@ -221,7 +221,7 @@ fun SecondaryButton(
         modifier = modifier
             .fillMaxWidth()
             .heightIn(min = 56.dp),
-        shape = CircleShape,
+        shape = PixelCircle,
         border = null,
         colors = ButtonDefaults.outlinedButtonColors(
             containerColor = Palette.Bg3,
@@ -258,7 +258,7 @@ fun StreakChip(days: Int, modifier: Modifier = Modifier) {
     val dot = if (alive) LocalGameColors.current.combo else Palette.TextTertiary
     Row(
         modifier = modifier
-            .clip(CircleShape)
+            .clip(PixelCircle)
             .background(Palette.Bg2)
             .padding(start = 10.dp, end = 14.dp, top = 8.dp, bottom = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -273,7 +273,7 @@ fun StreakChip(days: Int, modifier: Modifier = Modifier) {
         Spacer(Modifier.width(4.dp))
         Text(
             text = stringResource(R.string.home_streak, days),
-            style = Type.labelL.copy(fontFamily = Orbit, fontWeight = FontWeight.Normal),
+            style = Type.labelL.copy(fontFamily = Galmuri, fontWeight = FontWeight.Bold),
             color = if (alive) Palette.TextPrimary else Palette.TextSecondary,
             maxLines = 1,
         )
@@ -314,7 +314,7 @@ fun RoundIconButton(icon: ImageVector, label: String, onClick: () -> Unit, modif
     Box(
         modifier = modifier
             .size(48.dp)
-            .clip(CircleShape)
+            .clip(PixelCircle)
             .background(Palette.Bg2)
             .clickable(role = Role.Button, onClick = onClick),
         contentAlignment = Alignment.Center,
@@ -337,7 +337,7 @@ fun Pill(text: String, tint: Color, modifier: Modifier = Modifier) {
         color = tint,
         maxLines = 1,
         modifier = modifier
-            .clip(CircleShape)
+            .clip(PixelCircle)
             .background(tint.copy(alpha = 0.16f))
             .padding(horizontal = 10.dp, vertical = 5.dp),
     )

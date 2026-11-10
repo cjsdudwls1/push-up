@@ -126,13 +126,15 @@ def combo_up():
 
 
 def defeat():
-    """탈진, not 패배. Falls, but resolves — the run ended, the work still counted."""
-    n = secs(1.2)
+    """A heart lost: the 8-bit bonk of the pixel demo, three falling square blips. Short and dry,
+    so it reads as a game's "oops" rather than a loss; 탈진, not 패배."""
+    n = secs(0.36)
     out = np.zeros(n)
-    for i, f in enumerate((523.25, 440.00, 349.23)):
-        start = secs(0.16 * i)
-        m = n - start
-        out[start:] += tone(f, m, "sine") * env(m, decay=0.34) * 0.55
+    for i, f in enumerate((523.0, 392.0, 262.0)):
+        start = secs(0.08 * i)
+        m = secs(0.09)
+        e = np.exp(np.linspace(0, math.log(0.0001 / 0.06), m)) * 0.06
+        out[start:start + m] += tone(f, m, "square") * e
     return normalise(out, 0.6)
 
 

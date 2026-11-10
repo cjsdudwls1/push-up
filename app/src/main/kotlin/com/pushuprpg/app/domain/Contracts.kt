@@ -172,6 +172,8 @@ data class AppSettings(
      * Show the camera's picture under 고양이 지켜줘 once a set is under way. Off leaves the room
      * dark behind the ceiling and the cat; the pose is read either way, and the picture still shows
      * while setting up, which is lining up with it. By the owner's request (2026-11-10).
+     * No longer read: the pixel room (2026-11-10) always covers a set, so the switch was taken out.
+     * Kept so the stored value still reads back.
      */
     val showCamera: Boolean = true,
 )

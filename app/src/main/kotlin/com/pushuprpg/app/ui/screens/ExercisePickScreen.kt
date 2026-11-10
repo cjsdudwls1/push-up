@@ -16,7 +16,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
+import com.pushuprpg.app.ui.theme.PixelShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -113,7 +113,7 @@ private fun ExerciseRow(
         modifier = Modifier
             .fillMaxWidth()
             .cardSurface(
-                shape = RoundedCornerShape(18.dp),
+                shape = PixelShape(18.dp),
                 color = if (expanded) Palette.Bg3 else Palette.Bg1,
             )
             // Tapping a collapsed row opens it rather than starting the run. Six movements on one

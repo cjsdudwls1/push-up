@@ -275,12 +275,12 @@ class SurvivalViewModel(
         // the session is over — after the tenth set the camera still sees the user getting up, and
         // it used to tell them to come closer over the ending.
         val coaching = now.phase == CatPhase.PLAYING && now.life.alive
-        // While the ceiling is moving the cat is read, not heard: by the owner's decision
-        // (2026-11-10) the narration did not suit the run, and the music speeding up and the one
-        // danger meow carry it. Before a set and between sets it still speaks.
         val live = coaching && now.life.started
+        // Only where to stand is spoken: by the owner's decision (2026-11-10, with the pixel look)
+        // the cat's lines are off in the run, before a set and between them as well as during one —
+        // the chiptune speeding up and the one danger meow carry it.
         voice.announce(
-            announcer.survival(catView.speech.takeUnless { live }, _placement.value.advice.takeIf { coaching }, tick.tMs),
+            announcer.survival(null, _placement.value.advice.takeIf { coaching }, tick.tMs),
             exercise = exercise,
         )
         // Not over an ending published from the screen while this frame was in flight.

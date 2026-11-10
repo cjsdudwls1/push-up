@@ -262,10 +262,11 @@ which a run cannot open without ending. Nothing pauses for it (the ceiling never
 says so while a set is on. The run reads the settings live, so a change is heard at once.
 
 **The cat starts out as 지수**, by the owner's decision (2026-11-06): `cat_default_name`, which a blank
-stored name reads as, and what the name field starts with. **The launcher icon is that cat, the whole of it
-from the paws on the ceiling to its feet and tail, holding the ceiling up over its head** (2026-11-10, by
-the owner's request: the paws and a head alone read as strange) on the ring look's charcoal, the ceiling in its lime — the whole app in one picture; the Play listing's
-512 px copy is `docs/store-assets/icon-512.png`.
+stored name reads as, and what the name field starts with. **The launcher icon is the run's cat, the whole of it,
+holding the ceiling up over its head** (2026-11-10, by the owner's request: the paws and a head alone read
+as strange), in pixels since the same day: the demo's cheese cat under the brick ceiling in its dark room
+— the whole app in one picture. `tools/pixel_icon.py` writes the three adaptive layers and the Play
+listing's 512 px copy (`docs/store-assets/icon-512.png`) from one raster; edit it, not the XML.
 
 **The cat's things are gifts it finds, and beside them a shop for 츄르**, by the owner's decisions.
 The shop came later (2026-10-01): a set that beats its own best pays 츄르 (`SetOutcome.churu`), and
@@ -290,11 +291,23 @@ state and events — the rest's lines included; the screen draws the `CatView` i
 the sounds, and decides nothing about how the cat feels. It never changes the game —
 `CatCompanionTest` pins when it speaks.
 
-**The look is concept C, the ring**, by the owner's choice (2026-10-09, from four mockups): a dark
-ground, one lime accent (`Palette.Brand500`), and cards with no outline (`cardSurface`) — a row of
-thin-bordered boxes read as a developer's dashboard. The hub is the cat inside a ring that fills with
-the day's bar, and a round start button pinned at the bottom between the movement and the records.
-Numbers and headings are Orbit, sentences Gowun Dodum (`Type.kt`, `docs/FONT_CREDITS.md`).
+**The look is pixel art, all of it**, by the owner's choice (2026-11-10, from the pixel demo they
+approved: "아예 싹다 바꾸란 말임"). It keeps concept C's layout (2026-10-09): a dark ground, one lime
+accent (`Palette.Brand500`), cards with no outline (`cardSurface`), the hub's cat inside a ring that
+fills with the day's bar and a start button pinned at the bottom between the movement and the records.
+What changed is the drawing: the demo's palette (`ThemeColors.Dark`), corners cut in stairs rather than
+rounded (`PixelShape`, `PixelCircle` — no `RoundedCornerShape`/`CircleShape`), the ring as a grid of
+cells, the cat and its things as sprites, the scenes rendered small and laid over unsmoothed
+(`drawPixelScene`). Every face is Galmuri11 (bold for numbers and headings), with Silkscreen for the run's Latin-only HUD labels such as the combo (`Type.kt`,
+`docs/FONT_CREDITS.md`).
+
+**A set is played in the demo's dark pixel room** (`PixelRoom`): the brick ceiling, the cat, the
+pixel HUD and hearts, the depth gauge where the demo has it, all placed on the demo's 240x426 grid
+(`RoomGeometry`). The camera's picture shows only while setting up, which is lining up with it;
+after that the room covers it, so the old 카메라 화면 보기 switch is gone (`AppSettings.showCamera` is
+kept only so the stored value reads back). The music in a set is the demo's chiptune (`Chiptune.kt`),
+and a lost heart an 8-bit bonk. The voice says where to stand and nothing else: the cat's lines are
+off, by the owner's choice the same day.
 
 ## Copy
 

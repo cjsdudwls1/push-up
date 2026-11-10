@@ -1,6 +1,6 @@
 package com.pushuprpg.app.ui.theme
 
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CutCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Shapes
 import androidx.compose.material3.Typography
@@ -65,11 +65,11 @@ private val LightScheme = lightColorScheme(
 )
 
 private val AppShapes = Shapes(
-    extraSmall = RoundedCornerShape(8.dp),
-    small = RoundedCornerShape(12.dp),
-    medium = RoundedCornerShape(16.dp),
-    large = RoundedCornerShape(24.dp),
-    extraLarge = RoundedCornerShape(32.dp),
+    extraSmall = CutCornerShape(3.dp),
+    small = CutCornerShape(4.dp),
+    medium = CutCornerShape(6.dp),
+    large = CutCornerShape(6.dp),
+    extraLarge = CutCornerShape(9.dp),
 )
 
 private val AppTypography = Typography(

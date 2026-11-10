@@ -11,7 +11,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
+import com.pushuprpg.app.ui.theme.PixelShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -62,7 +62,7 @@ fun CatPortrait(
     }
 }
 
-private val SCENE_SHAPE = RoundedCornerShape(24.dp)
+private val SCENE_SHAPE = PixelShape(24.dp)
 
 /**
  * What the cat says, in a paper bubble with its name on top: the same bubble the run draws over
@@ -73,7 +73,7 @@ fun CatSpeechBubble(name: String, text: String, modifier: Modifier = Modifier) {
     Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
         Column(
             Modifier
-                .background(PAPER, RoundedCornerShape(18.dp))
+                .background(PAPER, PixelShape(18.dp))
                 .padding(horizontal = 16.dp, vertical = 10.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {

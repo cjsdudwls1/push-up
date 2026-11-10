@@ -8,7 +8,17 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
 import com.pushuprpg.app.ui.components.FxCue
-import com.pushuprpg.app.ui.components.PixelCanvas
+import com.pushuprpg.app.ui.components.PixelLives
+import com.pushuprpg.app.ui.components.PixelRoom
+import com.pushuprpg.app.ui.components.RoomGeometry
+import com.pushuprpg.app.ui.theme.Galmuri
+import com.pushuprpg.app.ui.theme.Silkscreen
+import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.IntOffset
 import com.pushuprpg.app.ui.components.PixelFxLayer
 import com.pushuprpg.app.ui.components.rememberPixelFx
 import androidx.activity.compose.BackHandler
@@ -30,8 +40,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
+import com.pushuprpg.app.ui.theme.PixelCircle
+import com.pushuprpg.app.ui.theme.PixelShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.rounded.Settings
@@ -170,8 +180,6 @@ fun SurvivalScreen(
     depth: () -> Float = { 0f },
     /** The detector's 1회 and 깊게 thresholds, on the same scale. */
     depthLines: Pair<Float, Float> = 70f to 88f,
-    /** The camera's picture under a set under way; off, the room is dark. See AppSettings.showCamera. */
-    showCamera: Boolean = true,
     /** The pixel bursts: a push landing, a deep one, a combo, a record. See PixelFx. */
     fx: Flow<FxCue> = emptyFlow(),
     /** As the user typed it; blank is the default name. */
@@ -238,8 +246,11 @@ fun SurvivalScreen(
     val modelStalled = rememberModelStalled(source = poseSource, cameraFailed = cameraFailed)
     val noModel = modelFailed || modelStalled
 
-    BoxWithConstraints(modifier.fillMaxSize().background(Color(0xFF1A1208))) {
+    BoxWithConstraints(modifier.fillMaxSize().background(ROOM_DARK)) {
 
+        // The pose is read from the camera, so it always runs; its picture shows only while
+        // setting up, which is lining up with it, by the owner's choice (2026-11-10): a set is
+        // played in the pixel demo's dark room. The room covers it the rest of the time.
         CameraPreview(
             source = poseSource,
             modifier = Modifier.fillMaxSize(),
@@ -250,51 +261,35 @@ fun SurvivalScreen(
             onCameraError = { failed -> cameraFailed = failed },
         )
 
-        // The picture switched off: the camera still runs underneath, since the pose is read from
-        // it, and still shows while setting up, which is lining up with it.
-        if (!showCamera && !(playing && !life.started)) {
-            Box(Modifier.fillMaxSize().background(Color(0xFF1A1208)))
-        }
-
-        // Warm wash over the camera: the room becomes a cosy room rather than a lab.
-        Box(
-            Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.verticalGradient(
-                        0f to Color(0xCC2A1B0A),
-                        0.55f to Color(0x552A1B0A),
-                        1f to Color(0xAA1A1208),
-                    )
-                )
-        )
-
         // Until the run starts the lower part of the picture is the framing guide's: the ghost's head
-        // and arms for a pushup sit where the cat and its bubble do, and the frame's foot below the
-        // floor. So the cat and the floor are drawn faint underneath it, and the cat's waiting line
-        // is said at the top instead of in a bubble over the ghost.
+        // and arms for a pushup sit where the cat does, so the cat is drawn faint underneath it.
         val settingUp = playing && !life.started && life.alive
+        if (settingUp) Box(Modifier.fillMaxSize().background(SETUP_WASH))
 
         val reduceMotion = LocalReduceMotion.current
         val pixelFx = rememberPixelFx(fx, reduceMotion)
-        val unit = with(LocalDensity.current) { maxWidth.toPx() } / 240f
+        val density = LocalDensity.current
+        val room = RoomGeometry(with(density) { maxWidth.toPx() }, with(density) { maxHeight.toPx() })
+        val u = room.u
 
         // Resting, the ceiling is back up: a crushed cat is not what a minute of rest looks at.
-        CeilingAndCat(
+        PixelRoom(
             state = if (resting) life.copy(height = 1f, intensity = 0f) else life,
             cat = cat,
             coat = catCoat,
             wear = catWear,
-            faded = settingUp,
+            fx = pixelFx,
+            setUp = settingUp,
+            holdUp = life.started && !resting,
             modifier = Modifier
                 .fillMaxSize()
                 .graphicsLayer {
                     val shake = pixelFx.shake()
-                    translationX = (shake.x.roundToInt() * unit)
-                    translationY = (shake.y.roundToInt() * unit)
+                    translationX = shake.x.roundToInt() * u
+                    translationY = shake.y.roundToInt() * u
                 },
         )
-        PixelFxLayer(pixelFx, floorAt = FLOOR_AT, modifier = Modifier.fillMaxSize())
+        PixelFxLayer(pixelFx, modifier = Modifier.fillMaxSize())
 
         // Setting up: the skeleton and a ghost of the starting pose, so framing the phone is
         // matching lines rather than guessing. Gone the moment the run starts.
@@ -312,28 +307,17 @@ fun SurvivalScreen(
         }
 
         if (playing && life.started && life.alive && !hold) {
+            // Where the demo has it: its right edge four of the art's pixels in from the room's.
             SurvivalDepthGauge(
                 depth = depth,
                 countAt = depthLines.first,
                 deepAt = depthLines.second,
-                modifier = Modifier
-                    .align(Alignment.CenterEnd)
-                    .windowInsetsPadding(WindowInsets.safeDrawing)
-                    .padding(end = 14.dp),
+                u = u,
+                modifier = Modifier.offset {
+                    IntOffset(room.x(188f).roundToInt(), room.y(96f).roundToInt())
+                },
             )
         }
-
-        // Above the cat's head, where a speech bubble belongs. The canvas places the cat by the same
-        // proportions, so this lands on it at any screen size.
-        val bubbleBottom = catHeadTop(baseY = maxHeight.value * FLOOR_AT, scale = catScale(maxWidth.value, maxHeight.value), mood = cat.mood)
-        CatBubbleSlot(
-            speech = cat.speech.takeUnless { settingUp },
-            name = name,
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(bottom = (maxHeight.value - bubbleBottom).dp + 6.dp)
-                .padding(horizontal = 32.dp),
-        )
 
         Column(
             modifier = Modifier
@@ -342,26 +326,35 @@ fun SurvivalScreen(
                 .padding(top = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            // Outlined, as all text over the camera is, and none of it under bodyM: the warm wash
-            // does not darken a bright room enough to read plain grey type off it.
-            CameraText(
+            // The demo's HUD: the pixel face at whole multiples of the art's pixels, with a hard
+            // one-pixel shadow. Galmuri is drawn on an 11-pixel grid, so 11u is one font pixel a pixel.
+            val hud = remember(u, density) { PixelHud(u, density) }
+            Text(
                 text = stringResource(R.string.survival_score, state.totalScore),
-                style = Type.numeralL,
-                color = Palette.TextPrimary,
+                style = hud.big,
+                color = HUD_TEXT,
             )
             // Not in the tutorial: a best of 0 says nothing to someone who has never played. The best
             // is this movement's own, and says so — a pull-up's score is not a pushup's.
             if (!isTutorial) {
                 if (bestScore > 0) {
                     Spacer(Modifier.height(2.dp))
-                    CameraText(
+                    Text(
                         text = stringResource(R.string.survival_best_of, stringResource(exerciseLabelRes(exercise)), bestScore),
-                        style = Type.bodyM,
-                        color = Palette.TextSecondary,
+                        style = hud.small,
+                        color = HUD_DIM,
                     )
                 }
-                Spacer(Modifier.height(4.dp))
-                LivesRow(left = state.livesLeft)
+                Spacer(Modifier.height(6.dp))
+                val livesSaid = stringResource(R.string.survival_lives_left, state.livesLeft)
+                PixelLives(
+                    left = state.livesLeft,
+                    u = u,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(with(density) { (12f * u).toDp() })
+                        .semantics { contentDescription = livesSaid },
+                )
                 // The set against its own best, by the owner's decision: the number is what makes
                 // breaking it worth chasing. Once the set has started; while setting up there is
                 // nothing yet to count.
@@ -372,17 +365,24 @@ fun SurvivalScreen(
                         now = if (hold) (life.elapsedMs / 1000L).toInt() else life.reps,
                         best = setBests.at(state.ended.size),
                         hold = hold,
+                        hud = hud,
                     )
+                    // The demo's combo, gold once it is long or the ceiling is close.
+                    if (!hold && life.combo > 0) {
+                        Text(
+                            text = stringResource(R.string.survival_combo, life.combo),
+                            style = hud.combo,
+                            color = if (life.intensity > 0.6f || life.combo >= 20) Color(0xFFFFE066) else Color(0xFFFFC27A),
+                        )
+                    }
                 }
             }
             // The ceiling waits for the user to be in position, and says so — a still ceiling with
             // no explanation reads as a broken one. The tutorial says it in its intro.
             if (settingUp) {
                 Spacer(Modifier.height(10.dp))
-                // The cat's words are its own, as in the bubble; only where they are shown moves.
-                val catSays = cat.speech?.let { stringResource(R.string.cat_says, name, catLineText(it)) }
                 if (isTutorial) {
-                    TutorialIntro(catSays = catSays, modifier = Modifier.padding(horizontal = 20.dp))
+                    TutorialIntro(modifier = Modifier.padding(horizontal = 20.dp))
                 } else {
                     CameraText(
                         text = stringResource(R.string.survival_waiting_with, stringResource(exerciseLabelRes(exercise))),
@@ -390,15 +390,6 @@ fun SurvivalScreen(
                         color = Palette.TextPrimary,
                         modifier = Modifier.padding(horizontal = 20.dp),
                     )
-                    if (catSays != null) {
-                        Spacer(Modifier.height(4.dp))
-                        CameraText(
-                            text = catSays,
-                            style = Type.bodyM.copy(textAlign = TextAlign.Center),
-                            color = Palette.TextSecondary,
-                            modifier = Modifier.padding(horizontal = 20.dp),
-                        )
-                    }
                 }
             }
             // Where the phone and the user are, live: before the first rep, and again whenever the
@@ -426,7 +417,7 @@ fun SurvivalScreen(
                     .windowInsetsPadding(WindowInsets.safeDrawing)
                     .padding(start = 16.dp, top = 8.dp)
                     .size(48.dp)
-                    .clip(CircleShape)
+                    .clip(PixelCircle)
                     .background(Palette.ScrimPanelHigh)
                     .clickable(onClick = close),
                 contentAlignment = Alignment.Center,
@@ -481,7 +472,7 @@ fun SurvivalScreen(
                     .windowInsetsPadding(WindowInsets.safeDrawing)
                     .padding(start = 16.dp, top = 8.dp)
                     .height(48.dp)
-                    .clip(CircleShape)
+                    .clip(PixelCircle)
                     .background(Palette.ScrimPanelHigh)
                     .clickable(onClick = onSkip)
                     .padding(horizontal = 18.dp),
@@ -601,7 +592,7 @@ private fun BoxScope.RunSettingsSheet(
             .align(Alignment.BottomCenter)
             .fillMaxWidth()
             .heightIn(max = 560.dp)
-            .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
+            .clip(PixelShape(topStart = 24.dp, topEnd = 24.dp, bottomEnd = 0.dp, bottomStart = 0.dp))
             .background(Palette.Bg1)
             // Taps inside the panel stay in it rather than falling through to the scrim's close:
             // a pointer handler, even an empty one, makes the panel the one hit.
@@ -669,236 +660,8 @@ private fun BoxScope.SkipConfirm(onSkip: () -> Unit, onStay: () -> Unit) {
     }
 }
 
-/**
- * The ceiling, the cat, and the space between them.
- *
- * Everything is drawn from shapes: there are no art assets yet, and a mode whose whole appeal is
- * how quickly it reads does not need them. The gap between the slab and the floor is the only
- * information on screen, which is exactly the point.
- */
-@Composable
-private fun CeilingAndCat(
-    state: SurvivalState,
-    cat: CatView,
-    coat: CatCoat,
-    modifier: Modifier = Modifier,
-    wear: Set<CatItem> = emptySet(),
-    /** Setting up: the cat and the floor are drawn faint, so the framing guide reads through them. */
-    faded: Boolean = false,
-) {
-    // The cat's own clock, for the tail's sway and a frightened tremble. Read only inside the draw
-    // lambda, so it redraws the canvas without recomposing the screen. Still under reduced motion.
-    val reduceMotion = LocalReduceMotion.current
-    val clock = rememberInfiniteTransition(label = "cat")
-    val phase by clock.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(tween(durationMillis = 4_000, easing = LinearEasing)),
-        label = "cat-phase",
-    )
-
-    // Tension is carried by colour as well as by position, so the danger reads peripherally.
-    val danger = state.intensity
-
-    Box(modifier) {
-        // The toy behind the ceiling, so that the slab comes down over it as it would over a real one;
-        // the cat, drawn in front, keeps its ears and raised paws over the teeth. Faint with the cat.
-        if (wear.any { it.slot == WearSlot.TOY }) {
-            PixelCanvas(Modifier.fillMaxSize().alpha(if (faded) SETUP_ALPHA else 1f), pixelsAcross = CAT_PIXELS) {
-                drawCatToyBeside(wear, size.width / 2f, size.height * FLOOR_AT, catScale(size.width, size.height))
-            }
-        }
-
-        // On the art's own grid, 240 across, as the bursts are: bricks, and teeth in steps.
-        PixelCanvas(Modifier.fillMaxSize(), pixelsAcross = 240) {
-            val floorY = size.height * FLOOR_AT
-            val topY = size.height * 0.10f
-            val u = size.width / 240f
-            // Height 0 — the life ends — is the teeth on the cat's head, crouched as it is by then,
-            // not the slab on the floor. Drawn down to the floor, the ceiling went behind the cat
-            // and the set played on with the cat already under it, and the hearts never fell.
-            val headTop = catHeadTop(floorY, catScale(size.width, size.height), CatMood.PANIC)
-            val lowest = headTop - 11f * u
-            val travel = lowest - topY
-            // Whole pixels, so the bricks do not shimmer as it moves.
-            val bottom = ((topY + travel * (1f - state.height.coerceIn(0f, 1f))) / u).roundToInt()
-            drawPixelCeiling(bottom, danger, u)
-        }
-
-        // A layer of its own, so faint is one alpha over the whole cat rather than each shape of it.
-        PixelCanvas(Modifier.fillMaxSize().alpha(if (faded) SETUP_ALPHA else 1f), pixelsAcross = CAT_PIXELS) {
-            val floorY = size.height * FLOOR_AT
-            val scale = catScale(size.width, size.height)
-            drawCat(
-                centerX = size.width / 2f,
-                baseY = floorY,
-                scale = scale,
-                coat = coat,
-                mood = cat.mood,
-                alarm = danger,
-                cheer = cat.cheer,
-                phase = if (reduceMotion) 0f else phase,
-                wear = wear,
-                toy = false,
-            )
-            drawHearts(
-                centerX = size.width / 2f,
-                headTopY = catHeadTop(floorY, scale, cat.mood),
-                scale = scale,
-                count = cat.hearts,
-                cheer = cat.cheer,
-            )
-
-            drawRect(
-                color = Color(0xFF3A2A18),
-                topLeft = Offset(0f, floorY),
-                size = Size(size.width, size.height - floorY),
-            )
-        }
-    }
-}
-
-/** The cat's pixels across the screen: coarser than the ceiling's, so it reads as pixel art. */
-private const val CAT_PIXELS = 160
-
-/**
- * The ceiling as pixel art, in the art's pixels of [u] each, its underside at [bottom] of them:
- * bricks that redden with [danger], a lit edge, and stepped teeth.
- */
-private fun DrawScope.drawPixelCeiling(bottom: Int, danger: Float, u: Float) {
-    val r = (107 + 128 * danger).roundToInt().coerceIn(0, 255)
-    val g = (87 - 46 * danger).roundToInt().coerceIn(0, 255)
-    val b = (71 - 41 * danger).roundToInt().coerceIn(0, 255)
-    val base = Color(r, g, b)
-    val dark = Color((r * 0.7f).toInt(), (g * 0.7f).toInt(), (b * 0.7f).toInt())
-    val lite = Color(minOf(255, r + 40), minOf(255, g + 30), minOf(255, b + 25))
-    fun px(x: Int, y: Int, w: Int, h: Int, c: Color) =
-        drawRect(c, topLeft = Offset(x * u, y * u), size = Size(w * u, h * u))
-    val across = ceil(size.width / u).toInt() + 1
-    px(0, -4, across, bottom + 4, base)
-    var y = bottom - 12
-    var row = 0
-    while (y > -12) {
-        px(0, y, across, 2, dark)
-        var x = (row % 2) * 16
-        while (x < across) {
-            px(x, y, 2, 12, dark)
-            x += 32
-        }
-        y -= 12
-        row++
-    }
-    px(0, bottom - 4, across, 2, lite)
-    var x = 0
-    while (x < across) {
-        px(x + 2, bottom, 12, 4, base)
-        px(x + 4, bottom + 4, 8, 4, base)
-        px(x + 6, bottom + 8, 4, 3, base)
-        px(x + 6, bottom + 8, 4, 1, dark)
-        x += 16
-    }
-}
-
-/** Where the floor is, as a fraction of the screen's height. The bubble is placed by it too. */
-private const val FLOOR_AT = 0.82f
-
-/** How strongly the cat and the floor are drawn while setting up, under the framing guide. */
-private const val SETUP_ALPHA = 0.4f
-
-/** The screen width, in the cat's own units, that draws it at scale 1. */
-private const val CAT_SCALE_WIDTH = 420f
-
-/**
- * The screen height that draws it at scale 1. Never the tighter of the two on an upright phone, where
- * the cat is sized by the width as it always was; on a phone on its side — a plank's or a pushup's, see
- * FollowPhoneRotation — sized by the width the cat would fill half the height and leave the ceiling
- * nowhere to come down.
- */
-private const val CAT_SCALE_HEIGHT = 600f
-
-/** How large to draw the cat on a [width] by [height] screen: the canvas and the bubble agree on it. */
-private fun catScale(width: Float, height: Float): Float =
-    minOf(width / CAT_SCALE_WIDTH, height / CAT_SCALE_HEIGHT)
-
 /** How long the tutorial waits for its run to start before it offers 건너뛰기. */
 private const val SKIP_OFFERED_AFTER_MS = 10_000L
-
-/**
- * The speech bubble, popping in for each new line and gone between them.
- *
- * Words matter here more than anywhere else in the app: a cat that says 살려 줘요 is a cat the user
- * pushes harder for. The name tag is the user's own name for it, which is why naming it is offered
- * at all.
- */
-@Composable
-private fun CatBubbleSlot(speech: CatSpeech?, name: String, modifier: Modifier = Modifier) {
-    val reduceMotion = LocalReduceMotion.current
-    AnimatedContent(
-        targetState = speech,
-        transitionSpec = {
-            if (reduceMotion) fadeIn(tween(0)) togetherWith fadeOut(tween(0))
-            else (fadeIn(tween(120)) + scaleIn(tween(160), initialScale = 0.85f)) togetherWith fadeOut(tween(160))
-        },
-        contentAlignment = Alignment.BottomCenter,
-        modifier = modifier,
-        label = "cat-bubble",
-    ) { shown ->
-        if (shown != null) CatBubble(name = name, text = catLineText(shown))
-    }
-}
-
-@Composable
-private fun CatBubble(name: String, text: String, modifier: Modifier = Modifier) {
-    val paper = Color(0xFFFFF8EC)
-    Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
-        Column(
-            Modifier
-                .background(paper, RoundedCornerShape(18.dp))
-                .padding(horizontal = 14.dp, vertical = 9.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Text(text = name, style = Type.labelM, color = Color(0xFFB0662A))
-            Text(text = text, style = Type.bodyL, color = Color(0xFF3A2A18), textAlign = TextAlign.Center)
-        }
-        Canvas(Modifier.size(width = 18.dp, height = 10.dp)) {
-            drawPath(
-                Path().apply {
-                    moveTo(0f, 0f)
-                    lineTo(size.width, 0f)
-                    lineTo(size.width / 2f, size.height)
-                    close()
-                },
-                color = paper,
-            )
-        }
-    }
-}
-
-/** The words for a line, rotating through its wordings so the same moment is not said the same way twice running. */
-@Composable
-private fun catLineText(speech: CatSpeech): String {
-    val wordings = when (speech.line) {
-        CatLine.WAITING -> listOf(R.string.cat_line_waiting_1, R.string.cat_line_waiting_2)
-        CatLine.HELLO -> listOf(R.string.cat_line_hello_1, R.string.cat_line_hello_2)
-        CatLine.CALM -> listOf(R.string.cat_line_calm_1, R.string.cat_line_calm_2, R.string.cat_line_calm_3)
-        CatLine.NEAR_MISS -> listOf(R.string.cat_line_near_miss_1, R.string.cat_line_near_miss_2)
-        CatLine.UNEASY -> listOf(R.string.cat_line_uneasy_1, R.string.cat_line_uneasy_2)
-        CatLine.MILESTONE -> listOf(R.string.cat_line_milestone_1, R.string.cat_line_milestone_2)
-        CatLine.COMBO -> listOf(R.string.cat_line_combo_1, R.string.cat_line_combo_2)
-        CatLine.SCARED -> listOf(R.string.cat_line_scared_1, R.string.cat_line_scared_2)
-        CatLine.PANIC -> listOf(R.string.cat_line_panic_1, R.string.cat_line_panic_2)
-        CatLine.SAVED -> listOf(R.string.cat_line_saved_1, R.string.cat_line_saved_2, R.string.cat_line_saved_3)
-        CatLine.REST -> listOf(R.string.cat_line_rest_1, R.string.cat_line_rest_2)
-        CatLine.REST_TEN -> listOf(R.string.cat_line_rest_ten)
-        CatLine.AGAIN -> listOf(R.string.cat_line_again_1, R.string.cat_line_again_2)
-        CatLine.RECORD -> listOf(R.string.cat_line_record_1, R.string.cat_line_record_2)
-    }
-    val id = wordings[speech.serial % wordings.size]
-    return when (speech.line) {
-        CatLine.MILESTONE, CatLine.COMBO -> stringResource(id, speech.arg)
-        else -> stringResource(id)
-    }
-}
 
 /**
  * The tutorial explaining itself, once, before the ceiling starts moving: where the phone goes,
@@ -912,13 +675,11 @@ private fun catLineText(speech: CatSpeech): String {
  */
 @Composable
 private fun TutorialIntro(
-    /** The cat's waiting line with its name, here rather than in a bubble over the framing ghost. */
-    catSays: String?,
     modifier: Modifier = Modifier,
 ) {
     Column(
         modifier = modifier
-            .clip(RoundedCornerShape(18.dp))
+            .clip(PixelShape(18.dp))
             .background(Palette.ScrimPanelHigh)
             .padding(horizontal = 20.dp, vertical = 12.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -936,15 +697,6 @@ private fun TutorialIntro(
             color = Palette.TextSecondary,
             textAlign = TextAlign.Center,
         )
-        if (catSays != null) {
-            Spacer(Modifier.height(6.dp))
-            Text(
-                text = catSays,
-                style = Type.bodyM,
-                color = Palette.TextPrimary,
-                textAlign = TextAlign.Center,
-            )
-        }
     }
 }
 
@@ -973,7 +725,7 @@ private fun TutorialDoneCard(
         modifier = modifier
             .padding(horizontal = 28.dp)
             .fillMaxWidth()
-            .cardSurface(shape = RoundedCornerShape(22.dp), color = Palette.Bg1)
+            .cardSurface(shape = PixelShape(22.dp), color = Palette.Bg1)
             .padding(22.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
@@ -1032,10 +784,10 @@ private fun TutorialDoneCard(
  * record colour and says so; a set never played before has no best, and its first is the record.
  */
 @Composable
-private fun SetCounter(set: Int, now: Int, best: Int, hold: Boolean, modifier: Modifier = Modifier) {
+private fun SetCounter(set: Int, now: Int, best: Int, hold: Boolean, hud: PixelHud, modifier: Modifier = Modifier) {
     val beaten = best > 0 && now > best
     Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
-        CameraText(
+        Text(
             text = stringResource(
                 when {
                     best <= 0 && hold -> R.string.set_now_first_hold
@@ -1045,38 +797,41 @@ private fun SetCounter(set: Int, now: Int, best: Int, hold: Boolean, modifier: M
                 },
                 set, now, best,
             ),
-            style = Type.titleL,
-            color = if (beaten) Palette.Deep else Palette.TextPrimary,
+            style = hud.small,
+            color = if (beaten) Palette.Deep else HUD_TEXT,
         )
         if (beaten) {
-            CameraText(
+            Text(
                 text = stringResource(R.string.set_record_broken),
-                style = Type.bodyM,
+                style = hud.small,
                 color = Palette.Deep,
             )
         }
     }
 }
 
-/**
- * The session's lives as hearts, one for each left: a set the ceiling wins takes one away, by the
- * owner's request (2026-10-28). The lost ones used to stay as faint hearts, and over the camera,
- * outlined like the rest, they read as ten hearts all session.
- */
-@Composable
-private fun LivesRow(left: Int, modifier: Modifier = Modifier) {
-    val description = stringResource(R.string.survival_lives_left, left)
-    Row(
-        modifier = modifier.semantics { contentDescription = description },
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
-    ) {
-        repeat(left) {
-            CameraText(text = "\u2665", style = Type.titleM, color = HEART)
-        }
-    }
+/** The demo's HUD faces, in whole multiples of one of the art's pixels ([u]). */
+private class PixelHud(u: Float, private val density: Density) {
+    private val shadow = Shadow(color = Color(0xFF0B0E14), offset = Offset(u, u), blurRadius = 0f)
+    private fun face(px: Float, family: FontFamily, weight: FontWeight) = TextStyle(
+        fontFamily = family,
+        fontWeight = weight,
+        fontSize = with(density) { px.toSp() },
+        lineHeight = with(density) { (px * 1.15f).toSp() },
+        textAlign = TextAlign.Center,
+        shadow = shadow,
+    )
+    val big = face(22f * u, Galmuri, FontWeight.Bold)
+    val small = face(11f * u, Galmuri, FontWeight.Bold)
+    val combo = face(16f * u, Silkscreen, FontWeight.Normal)
 }
 
-private val HEART = Color(0xFFFF6F91)
+private val HUD_TEXT = Color(0xFFFFF4E0)
+private val HUD_DIM = Color(0xFF9AA3B2)
+private val ROOM_DARK = Color(0xFF171C26)
+
+/** Over the camera while setting up: dark enough for the HUD, light enough to line up by. */
+private val SETUP_WASH = Color(0x8C0B0E14)
 
 /**
  * The rest between two sets.
@@ -1108,7 +863,7 @@ private fun RestCard(
             .padding(horizontal = 28.dp)
             .widthIn(max = 480.dp)
             .fillMaxWidth()
-            .cardSurface(shape = RoundedCornerShape(28.dp), color = Palette.Bg1)
+            .cardSurface(shape = PixelShape(28.dp), color = Palette.Bg1)
             .verticalScroll(rememberScrollState())
             .padding(22.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -1143,7 +898,12 @@ private fun RestCard(
             )
         }
         Spacer(Modifier.height(14.dp))
-        LivesRow(left = state.livesLeft)
+        val heartU = with(LocalDensity.current) { 1.4.dp.toPx() }
+        PixelLives(
+            left = state.livesLeft,
+            u = heartU,
+            modifier = Modifier.fillMaxWidth().height(18.dp),
+        )
         Spacer(Modifier.height(10.dp))
         val next = state.ended.size + 1
         Text(
@@ -1177,7 +937,7 @@ private fun RestCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .heightIn(min = 60.dp),
-            shape = CircleShape,
+            shape = PixelCircle,
             border = BorderStroke(2.dp, Palette.Brand500),
             colors = ButtonDefaults.outlinedButtonColors(
                 containerColor = Palette.BrandWash,
@@ -1214,7 +974,7 @@ private fun SessionOverCard(
             .padding(horizontal = 24.dp)
             .widthIn(max = 520.dp)
             .fillMaxWidth()
-            .cardSurface(shape = RoundedCornerShape(22.dp), color = Palette.Bg1)
+            .cardSurface(shape = PixelShape(22.dp), color = Palette.Bg1)
             .verticalScroll(rememberScrollState())
             .padding(22.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -1346,7 +1106,7 @@ private fun SetsChart(sets: List<SetResult>, hold: Boolean, broken: Set<Int> = e
                         Modifier
                             .fillMaxWidth()
                             .height((CHART_HEIGHT * value / top).coerceAtLeast(3f).dp)
-                            .clip(RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp))
+                            .clip(PixelShape(topStart = 4.dp, topEnd = 4.dp, bottomEnd = 0.dp, bottomStart = 0.dp))
                             .background(Palette.Deep),
                     )
                     Spacer(Modifier.height(4.dp))
