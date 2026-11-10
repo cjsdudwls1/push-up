@@ -78,6 +78,10 @@ private val KEY_GIFTS_SEEN = stringSetPreferencesKey("gifts_seen")
 private fun setBestsKey(e: ExerciseType) = stringPreferencesKey("set_bests_${e.name}")
 private val KEY_CHURU = intPreferencesKey("churu")
 private val KEY_BOUGHT = stringSetPreferencesKey("bought")
+private val KEY_AD_FIRST_DAY = longPreferencesKey("ad_first_day")
+private val KEY_AD_SHOP_DAY = longPreferencesKey("ad_shop_day")
+private val KEY_AD_SHOP_COUNT = intPreferencesKey("ad_shop_count")
+private val KEY_AD_INTERSTITIAL_DAY = longPreferencesKey("ad_interstitial_day")
 
 private fun Preferences.toProgress(): PlayerProgress = PlayerProgress(
     lifetimeReps = this[KEY_LIFETIME_REPS] ?: PROGRESS_DEFAULT.lifetimeReps,
@@ -95,6 +99,12 @@ private fun Preferences.toProgress(): PlayerProgress = PlayerProgress(
     }.toMap(),
     churu = this[KEY_CHURU] ?: PROGRESS_DEFAULT.churu,
     bought = this[KEY_BOUGHT] ?: PROGRESS_DEFAULT.bought,
+    ads = com.pushuprpg.core.progression.AdLedger(
+        firstDay = this[KEY_AD_FIRST_DAY] ?: 0,
+        shopDay = this[KEY_AD_SHOP_DAY] ?: 0,
+        shopCount = this[KEY_AD_SHOP_COUNT] ?: 0,
+        interstitialDay = this[KEY_AD_INTERSTITIAL_DAY] ?: 0,
+    ),
 )
 
 private fun MutablePreferences.writeProgress(p: PlayerProgress) {
@@ -111,6 +121,10 @@ private fun MutablePreferences.writeProgress(p: PlayerProgress) {
     p.setBests.forEach { (exercise, bests) -> this[setBestsKey(exercise)] = bests.joinToString(",") }
     this[KEY_CHURU] = p.churu
     this[KEY_BOUGHT] = p.bought
+    this[KEY_AD_FIRST_DAY] = p.ads.firstDay
+    this[KEY_AD_SHOP_DAY] = p.ads.shopDay
+    this[KEY_AD_SHOP_COUNT] = p.ads.shopCount
+    this[KEY_AD_INTERSTITIAL_DAY] = p.ads.interstitialDay
 }
 
 /**

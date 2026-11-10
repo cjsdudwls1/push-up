@@ -44,6 +44,7 @@ import com.pushuprpg.app.domain.CatCoat
 import com.pushuprpg.app.ui.components.CatCard
 import com.pushuprpg.app.ui.components.CatPortrait
 import com.pushuprpg.app.ui.components.Pill
+import com.pushuprpg.app.ui.components.SecondaryButton
 import com.pushuprpg.app.ui.components.cardSurface
 import com.pushuprpg.app.ui.components.drawItemPicture
 import com.pushuprpg.app.ui.components.giftWhyText
@@ -51,6 +52,7 @@ import com.pushuprpg.app.ui.components.itemNameRes
 import com.pushuprpg.app.ui.theme.LocalGameColors
 import com.pushuprpg.app.ui.theme.Palette
 import com.pushuprpg.app.ui.theme.Type
+import com.pushuprpg.core.progression.AdRules
 import com.pushuprpg.core.progression.CatItem
 import com.pushuprpg.core.progression.Gift
 import com.pushuprpg.core.progression.ShopItem
@@ -83,6 +85,11 @@ fun WardrobeScreen(
     bought: Set<CatItem> = emptySet(),
     /** Asked once the user has said yes; the caller pays and puts it on. */
     onBuy: (ShopItem) -> Unit = {},
+    /** Ads may be requested at all; without that the shop offers none. */
+    adsAvailable: Boolean = false,
+    adReady: Boolean = false,
+    adsLeft: Int = 0,
+    onWatchAd: () -> Unit = {},
 ) {
     var asking by remember { mutableStateOf<ShopItem?>(null) }
     asking?.let { item ->
@@ -191,6 +198,19 @@ fun WardrobeScreen(
             style = Type.bodyM,
             color = Palette.TextSecondary,
         )
+        if (adsAvailable) {
+            Spacer(Modifier.height(10.dp))
+            SecondaryButton(
+                text = when {
+                    adsLeft == 0 -> stringResource(R.string.shop_ad_done_today)
+                    adReady -> stringResource(R.string.shop_ad_watch, AdRules.SHOP_AD_CHURU, adsLeft)
+                    else -> stringResource(R.string.shop_ad_loading)
+                },
+                onClick = onWatchAd,
+                enabled = adsLeft > 0 && adReady,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
         Spacer(Modifier.height(12.dp))
         ShopItem.entries.chunked(TILES_PER_ROW).forEach { row ->
             Row(

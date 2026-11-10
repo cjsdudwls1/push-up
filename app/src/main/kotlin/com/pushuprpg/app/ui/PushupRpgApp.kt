@@ -2,7 +2,12 @@ package com.pushuprpg.app.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -37,6 +42,8 @@ import androidx.activity.enableEdgeToEdge
 import androidx.core.net.toUri
 import com.pushuprpg.app.AppContainer
 import com.pushuprpg.app.BuildConfig
+import com.pushuprpg.app.ads.AdBanner
+import com.pushuprpg.app.ads.AdPlacement
 import com.pushuprpg.app.trace.TraceFiles
 import com.pushuprpg.app.domain.AppSettings
 import com.pushuprpg.app.domain.ThemeMode
@@ -55,14 +62,21 @@ import com.pushuprpg.app.R
 import com.pushuprpg.app.ui.theme.AlwaysDark
 import com.pushuprpg.app.ui.theme.Palette
 import com.pushuprpg.app.ui.theme.PushupRpgTheme
+import com.pushuprpg.core.progression.AdRules
 import com.pushuprpg.core.progression.Gift
 import com.pushuprpg.core.progression.Gifts
 import com.pushuprpg.core.progression.Shop
 import com.pushuprpg.app.domain.purse
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.launch
+
+/** Long enough for the hub to be on screen before the ad covers it. */
+private const val HOME_AD_DELAY_MS = 500L
+
+private fun today(): Long = java.time.LocalDate.now().toEpochDay()
 
 /**
  * The navigation graph.
@@ -127,6 +141,18 @@ fun PushupRpgApp(
     val darkTheme = settings.themeMode == ThemeMode.DARK
     val backStackEntry by navController.currentBackStackEntryAsState()
     SystemBars(darkSurface = darkTheme || backStackEntry?.destination?.route in Routes.ALWAYS_DARK)
+
+    val ads = container.ads
+    val activity = context as? ComponentActivity
+    val adsReady by ads.ready.collectAsState()
+    val adPrivacyRequired by ads.privacyOptionsRequired.collectAsState()
+    // Set by the ending's 홈으로, and read once by the hub that it lands on.
+    var interstitialOnArrival by remember { mutableStateOf(false) }
+
+    // Someone updating from a build without ads gets their three days from here.
+    LaunchedEffect(Unit) {
+        container.progressRepository.update { it.copy(ads = AdRules.started(it.ads, today())) }
+    }
 
     val toggleTheme: () -> Unit = {
         scope.launch {
@@ -225,16 +251,46 @@ fun PushupRpgApp(
                     LaunchedEffect(vm) {
                         entry.repeatOnLifecycle(Lifecycle.State.STARTED) { vm.followToday() }
                     }
+                    // Loaded here, where no camera is running, and shown only if it is already in
+                    // hand when the user comes home; see Ads.showInterstitial.
+                    LaunchedEffect(adsReady) {
+                        val due = AdRules.interstitialDue(container.progressRepository.current().ads, today())
+                        if (due) {
+                            ads.preloadInterstitial()
+                            if (interstitialOnArrival && activity != null) {
+                                interstitialOnArrival = false
+                                delay(HOME_AD_DELAY_MS)
+                                ads.showInterstitial(activity) {
+                                    container.appScope.launch {
+                                        container.progressRepository.update {
+                                            it.copy(ads = AdRules.interstitialShown(it.ads, today()))
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        interstitialOnArrival = false
+                    }
                     HomeScreen(
                         state = state,
                         themeMode = settings.themeMode,
                         onToggleTheme = toggleTheme,
                         // Straight in with the movement the button names; changing it is the link under it.
-                        onPlayCat = { navController.navigateFrom(entry, Routes.survival(exercise = settings.exercise)) },
-                        onChangeExercise = { navController.navigateFrom(entry, Routes.SURVIVAL_PICK) },
-                        onRecords = { navController.navigateFrom(entry, Routes.RECORDS) },
-                        onSettings = { navController.navigateFrom(entry, Routes.SETTINGS) },
-                        onWardrobe = { navController.navigateFrom(entry, Routes.WARDROBE) },
+                        onPlayCat = {
+                            navController.navigateFrom(entry, Routes.survival(exercise = settings.exercise))
+                        },
+                        onChangeExercise = {
+                            navController.navigateFrom(entry, Routes.SURVIVAL_PICK)
+                        },
+                        onRecords = {
+                            navController.navigateFrom(entry, Routes.RECORDS)
+                        },
+                        onSettings = {
+                            navController.navigateFrom(entry, Routes.SETTINGS)
+                        },
+                        onWardrobe = {
+                            navController.navigateFrom(entry, Routes.WARDROBE)
+                        },
                         lastExercise = settings.exercise,
                         catName = settings.catName,
                         catCoat = settings.catCoat,
@@ -262,7 +318,32 @@ fun PushupRpgApp(
                             container.progressRepository.update { p -> p.copy(giftsSeen = p.giftsSeen + now.map { it.name }) }
                         }
                     }
+                    val rewardedReady by ads.rewardedReady.collectAsState()
+                    val shopAdsLeft = AdRules.shopAdsLeft(progress.ads, today())
+                    LaunchedEffect(adsReady, rewardedReady, shopAdsLeft) {
+                        if (adsReady && !rewardedReady && shopAdsLeft > 0) ads.loadRewarded(AdPlacement.SHOP)
+                    }
                     WardrobeScreen(
+                        adsAvailable = adsReady,
+                        adReady = rewardedReady,
+                        adsLeft = shopAdsLeft,
+                        onWatchAd = {
+                            if (activity != null) {
+                                ads.showRewarded(
+                                    activity,
+                                    AdPlacement.SHOP,
+                                    onReward = {
+                                        container.appScope.launch {
+                                            container.progressRepository.update { p ->
+                                                val after = AdRules.shopAdWatched(p.ads, today()) ?: return@update p
+                                                p.copy(ads = after, churu = p.churu + AdRules.SHOP_AD_CHURU)
+                                            }
+                                        }
+                                    },
+                                    onDone = { shown -> if (!shown) toast(context, R.string.ad_unavailable) },
+                                )
+                            }
+                        },
                         catName = settings.catName,
                         catCoat = settings.catCoat,
                         onCatChange = { name, coat ->
@@ -345,6 +426,11 @@ fun PushupRpgApp(
                     val growth by vm.growth.collectAsState()
                     val setBests by vm.setBests.collectAsState()
                     val setOutcome by vm.setOutcome.collectAsState()
+                    val churuDoubled by vm.churuDoubled.collectAsState()
+                    // Up while the 츄르 2배 ad is fetched and played: an ad's video and the camera
+                    // are not asked to share the phone.
+                    var cameraOff by remember { mutableStateOf(false) }
+                    DisposableEffect(vm) { onDispose { ads.cancelWaiting() } }
 
                     DisposableEffect(vm) {
                         val consumer: (com.pushuprpg.core.pose.PoseFrame) -> Unit = vm::onPoseFrame
@@ -384,9 +470,40 @@ fun PushupRpgApp(
                                 poseSource = poseSource,
                                 exercise = exercise,
                                 isTutorial = isTutorial,
-                                onRetry = vm::restart,
-                                onSkipRest = vm::skipRest,
-                                onShare = onShare,
+                                adsAvailable = adsReady,
+                                cameraOff = cameraOff,
+                                churuDoubled = churuDoubled,
+                                onDoubleChuru = {
+                                    val extra = setOutcome?.churu ?: 0
+                                    if (extra > 0 && activity != null && !churuDoubled && !cameraOff) {
+                                        cameraOff = true
+                                        ads.showRewarded(
+                                            activity,
+                                            AdPlacement.DOUBLE,
+                                            onReward = {
+                                                if (vm.markChuruDoubled()) {
+                                                    container.appScope.launch {
+                                                        container.progressRepository.update { it.copy(churu = it.churu + extra) }
+                                                    }
+                                                }
+                                            },
+                                            onDone = { shown ->
+                                                cameraOff = false
+                                                if (!shown) toast(context, R.string.ad_unavailable)
+                                            },
+                                        )
+                                    }
+                                },
+                                onRetry = {
+                                    ads.cancelWaiting()
+                                    vm.restart()
+                                },
+                                onSkipRest = {
+                                    vm.skipRest()
+                                },
+                                onShare = { card ->
+                                    onShare(card)
+                                },
                                 modelFailed = poseError != null,
                                 nearMisses = nearMisses,
                                 growth = growth,
@@ -432,6 +549,7 @@ fun PushupRpgApp(
                                     } else {
                                         // The ending's 홈으로, where the session is banked already;
                                         // the screen going any other way banks it on the way out.
+                                        interstitialOnArrival = true
                                         vm.leave()
                                         // By route, so a second tap cannot pop the hub along with it.
                                         navController.popBackStack(Routes.SURVIVAL, inclusive = true)
@@ -450,12 +568,21 @@ fun PushupRpgApp(
                     val factsFlow = remember { container.sessionRepository.facts() }
                     val sessions by recentFlow.collectAsState(initial = emptyList())
                     val facts by factsFlow.collectAsState(initial = emptyList())
-                    RecordsScreen(
-                        progress = progress,
-                        sessions = sessions,
-                        facts = facts,
-                        exercise = settings.exercise,
-                    )
+                    Column(Modifier.fillMaxSize()) {
+                        RecordsScreen(
+                            progress = progress,
+                            sessions = sessions,
+                            facts = facts,
+                            exercise = settings.exercise,
+                            // The banner sits on the navigation bar's space, so the list leaves it none.
+                            modifier = Modifier
+                                .weight(1f)
+                                .then(if (adsReady) Modifier.consumeWindowInsets(WindowInsets.navigationBars) else Modifier),
+                        )
+                        if (adsReady) {
+                            AdBanner(ads = ads, modifier = Modifier.windowInsetsPadding(WindowInsets.navigationBars))
+                        }
+                    }
                 }
 
                 composable(Routes.SETTINGS) {
@@ -467,6 +594,8 @@ fun PushupRpgApp(
                         onOpenPrivacy = { openUrl(context, context.getString(R.string.privacy_policy_url)) },
                         onOpenTerms = { openUrl(context, context.getString(R.string.terms_url)) },
                         onPreviewHaptic = container.audio::previewHaptic,
+                        showAdPrivacy = adPrivacyRequired,
+                        onOpenAdPrivacy = { activity?.let(ads::showPrivacyOptions) },
                         traceTools = BuildConfig.DEBUG,
                         onSendTrace = {
                             scope.launch {

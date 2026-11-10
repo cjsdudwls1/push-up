@@ -48,6 +48,7 @@ class MainActivity : ComponentActivity() {
         ) == PackageManager.PERMISSION_GRANTED
 
         val container = (application as PushupApp).container
+        container.ads.start(this)
 
         // Exactly when the graph starts at onboarding — its first screen not yet passed — and once
         // per launch rather than per visit to the screen.

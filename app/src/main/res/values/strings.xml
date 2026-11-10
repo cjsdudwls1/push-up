@@ -183,6 +183,7 @@
     <string name="pick_exercise_hold">시간으로 세요</string>
     <string name="settings_privacy">개인정보 처리방침</string>
     <string name="settings_terms">이용약관·건강 안내</string>
+    <string name="settings_ad_privacy">광고 개인정보 옵션</string>
 
     <!-- Exercises -->
     <string name="exercise_pushup">푸쉬업</string>
@@ -262,6 +263,10 @@
     <string name="session_total_reps">모두 %1$,d개 했어요</string>
     <string name="session_sets_broken">세트 기록을 %1$d개 깼어요</string>
     <string name="session_churu">츄르 %1$d개를 받았어요</string>
+    <string name="session_double_churu">광고 보고 츄르 %1$d개 더 받기</string>
+    <string name="session_double_loading">광고를 불러오고 있어요. 카메라는 꺼 뒀어요</string>
+    <string name="session_double_done">츄르를 %1$d개 더 받았어요</string>
+    <string name="ad_unavailable">지금은 광고를 불러올 수 없어요. 잠시 뒤에 다시 눌러 주세요</string>
     <string name="session_again">한 판 더</string>
     <string name="survival_share_text">고양이 지켜줘 %1$,d점! 운동으로 고양이를 지켰어요 🐱💪</string>
 
@@ -453,6 +458,9 @@
     <!-- The shop: 츄르 from set records buys what no gift brings. -->
     <string name="shop_title">츄르 상점</string>
     <string name="shop_churu">츄르 %1$d개</string>
+    <string name="shop_ad_watch">광고 보고 츄르 %1$d개 받기 (오늘 %2$d번 남음)</string>
+    <string name="shop_ad_loading">광고를 준비하고 있어요</string>
+    <string name="shop_ad_done_today">오늘 광고로 받을 수 있는 츄르를 다 받았어요</string>
     <string name="shop_hint">세트 기록을 깰 때마다 츄르를 받아요. 처음 해 본 세트도 한 개씩 받아요.</string>
     <string name="shop_price">츄르 %1$d</string>
     <string name="shop_owned">가지고 있어요</string>

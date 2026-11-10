@@ -38,6 +38,9 @@ fun SettingsScreen(
     onSendTrace: () -> Unit = {},
     /** One buzz at the strength just picked, so the choice is made by feel. */
     onPreviewHaptic: (HapticStrength) -> Unit = {},
+    /** Only where the consent SDK says a way to change the answer is required. */
+    showAdPrivacy: Boolean = false,
+    onOpenAdPrivacy: () -> Unit = {},
 ) {
     Column(
         modifier = modifier
@@ -193,6 +196,12 @@ fun SettingsScreen(
             title = stringResource(R.string.settings_terms),
             onClick = onOpenTerms,
         )
+        if (showAdPrivacy) {
+            ActionSetting(
+                title = stringResource(R.string.settings_ad_privacy),
+                onClick = onOpenAdPrivacy,
+            )
+        }
     }
 }
 

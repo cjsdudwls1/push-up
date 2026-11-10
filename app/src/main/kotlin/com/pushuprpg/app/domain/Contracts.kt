@@ -1,6 +1,7 @@
 package com.pushuprpg.app.domain
 
 import com.pushuprpg.core.detect.ExerciseType
+import com.pushuprpg.core.progression.AdLedger
 import com.pushuprpg.core.progression.CatItem
 import com.pushuprpg.core.progression.Gifts
 import com.pushuprpg.core.progression.RunGrowth
@@ -45,6 +46,8 @@ data class PlayerProgress(
     val churu: Int = 0,
     /** Things bought in the shop, by [com.pushuprpg.core.progression.CatItem] name. Never taken back. */
     val bought: Set<String> = emptySet(),
+    /** How many ads have been shown, for the daily limits. */
+    val ads: AdLedger = AdLedger(),
 )
 
 /** [exercise]'s best per set. */

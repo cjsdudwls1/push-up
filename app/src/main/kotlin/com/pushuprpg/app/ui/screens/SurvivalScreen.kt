@@ -171,6 +171,12 @@ fun SurvivalScreen(
     settings: AppSettings? = null,
     onSettingsChange: ((AppSettings) -> AppSettings) -> Unit = {},
     onPreviewHaptic: (HapticStrength) -> Unit = {},
+    /** Ads may be requested, so the ending may offer 츄르 2배. */
+    adsAvailable: Boolean = false,
+    /** The ad for 츄르 2배 is being fetched or played; the camera lets go meanwhile. */
+    cameraOff: Boolean = false,
+    churuDoubled: Boolean = false,
+    onDoubleChuru: () -> Unit = {},
 ) {
     val hold = Exercises.of(exercise).kind == MovementKind.HOLD
     KeepScreenOn()
@@ -219,15 +225,17 @@ fun SurvivalScreen(
 
     BoxWithConstraints(modifier.fillMaxSize().background(Color(0xFF1A1208))) {
 
-        CameraPreview(
-            source = poseSource,
-            modifier = Modifier.fillMaxSize(),
-            attempt = cameraAttempt,
-            wide = wideCamera,
-            wideZoom = wideZoom,
-            onWideRange = { wideLeast = it },
-            onCameraError = { failed -> cameraFailed = failed },
-        )
+        if (!cameraOff) {
+            CameraPreview(
+                source = poseSource,
+                modifier = Modifier.fillMaxSize(),
+                attempt = cameraAttempt,
+                wide = wideCamera,
+                wideZoom = wideZoom,
+                onWideRange = { wideLeast = it },
+                onCameraError = { failed -> cameraFailed = failed },
+            )
+        }
 
         // Warm wash over the camera: the room becomes a cosy room rather than a lab.
         Box(
@@ -504,6 +512,10 @@ fun SurvivalScreen(
                     onHome = onHome,
                     onChangeExercise = onChangeExercise,
                     setOutcome = setOutcome,
+                    adsAvailable = adsAvailable,
+                    adLoading = cameraOff,
+                    churuDoubled = churuDoubled,
+                    onDoubleChuru = onDoubleChuru,
                     modifier = Modifier.align(Alignment.Center),
                 )
             }
@@ -1136,6 +1148,10 @@ private fun SessionOverCard(
     onHome: () -> Unit,
     onChangeExercise: () -> Unit,
     setOutcome: SetOutcome?,
+    adsAvailable: Boolean,
+    adLoading: Boolean,
+    churuDoubled: Boolean,
+    onDoubleChuru: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val hold = Exercises.of(exercise).kind == MovementKind.HOLD
@@ -1204,6 +1220,25 @@ private fun SessionOverCard(
                 style = Type.bodyM,
                 color = Palette.TextSecondary,
             )
+            if (churuDoubled) {
+                Text(
+                    text = stringResource(R.string.session_double_done, setOutcome.churu),
+                    style = Type.bodyM,
+                    color = Palette.Deep,
+                )
+            } else if (adsAvailable) {
+                Spacer(Modifier.height(8.dp))
+                SecondaryButton(
+                    text = if (adLoading) {
+                        stringResource(R.string.session_double_loading)
+                    } else {
+                        stringResource(R.string.session_double_churu, setOutcome.churu)
+                    },
+                    onClick = onDoubleChuru,
+                    enabled = !adLoading,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
         }
         if (!hold) {
             Spacer(Modifier.height(8.dp))

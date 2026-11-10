@@ -28,6 +28,11 @@ val keystoreProperties = Properties().apply {
     }
 }
 
+// Google's published sample ads unless a build is given real IDs. Only a v* tag build is
+// (.github/workflows/release.yml): testers tapping real ads can get an AdMob account suspended.
+fun admob(name: String, sample: String): String =
+    (findProperty("pushup.admob.$name") as String?)?.takeIf { it.isNotBlank() } ?: sample
+
 android {
     // namespace is the code package (the R class); applicationId is the Play identity. They are
     // allowed to differ, and here they do: the identity is owned, the package name is not worth a
@@ -52,8 +57,12 @@ android {
         // Every bundle uploaded to Play needs a higher code than the last. The release workflow
         // passes one derived from its run number; a local build stays at 1.
         versionCode = (findProperty("pushup.versionCode") as String?)?.toIntOrNull() ?: 1
-        versionName = "0.1.1"
+        versionName = "0.2.0"
         buildConfigField("boolean", "FIREBASE_CONFIGURED", firebaseConfigured.toString())
+        manifestPlaceholders["admobAppId"] = admob("appId", "ca-app-pub-3940256099942544~3347511713")
+        buildConfigField("String", "ADMOB_REWARDED", "\"${admob("rewarded", "ca-app-pub-3940256099942544/5224354917")}\"")
+        buildConfigField("String", "ADMOB_INTERSTITIAL", "\"${admob("interstitial", "ca-app-pub-3940256099942544/1033173712")}\"")
+        buildConfigField("String", "ADMOB_BANNER", "\"${admob("banner", "ca-app-pub-3940256099942544/9214589741")}\"")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         // Korean-only for v1: the default resources are Korean, so shipping an "en"
@@ -180,6 +189,8 @@ dependencies {
     implementation(libs.androidx.camera.view)
 
     implementation(libs.mediapipe.tasks.vision)
+    implementation(libs.play.services.ads)
+    implementation(libs.user.messaging.platform)
 
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)

@@ -98,10 +98,31 @@ jobs:
       # started it, and clear of the 1 a local build carries.
       - name: Bundle release
         if: steps.have.outputs.sign == 'true'
+        env:
+          ADMOB_APP_ID: ${{ secrets.ADMOB_APP_ID }}
+          ADMOB_REWARDED: ${{ secrets.ADMOB_REWARDED }}
+          ADMOB_INTERSTITIAL: ${{ secrets.ADMOB_INTERSTITIAL }}
+          ADMOB_BANNER: ${{ secrets.ADMOB_BANNER }}
         run: |
           echo "VERSION_CODE=$((1000 + ${{ github.run_number }}))" >> "$GITHUB_ENV"
+          # Real ads for a production tag only; every other build keeps Google's sample ads.
+          admob=()
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            for name in ADMOB_APP_ID ADMOB_REWARDED ADMOB_INTERSTITIAL ADMOB_BANNER; do
+              if [[ -z "${!name}" ]]; then
+                echo "::error::$name secret is not set; a production build would ship sample ads."
+                exit 1
+              fi
+            done
+            admob=(
+              "-Ppushup.admob.appId=$ADMOB_APP_ID"
+              "-Ppushup.admob.rewarded=$ADMOB_REWARDED"
+              "-Ppushup.admob.interstitial=$ADMOB_INTERSTITIAL"
+              "-Ppushup.admob.banner=$ADMOB_BANNER"
+            )
+          fi
           ./gradlew :app:bundleRelease --no-daemon --stacktrace \
-            -Ppushup.versionCode=$((1000 + ${{ github.run_number }}))
+            -Ppushup.versionCode=$((1000 + ${{ github.run_number }})) "${admob[@]}"
 
       - name: Clean up signing material
         if: always()
