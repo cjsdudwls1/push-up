@@ -52,7 +52,7 @@ android {
         // Every bundle uploaded to Play needs a higher code than the last. The release workflow
         // passes one derived from its run number; a local build stays at 1.
         versionCode = (findProperty("pushup.versionCode") as String?)?.toIntOrNull() ?: 1
-        versionName = "0.1.0"
+        versionName = "0.1.1"
         buildConfigField("boolean", "FIREBASE_CONFIGURED", firebaseConfigured.toString())
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
