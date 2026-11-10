@@ -380,6 +380,7 @@ fun PushupRpgApp(
                                 setupSkeleton = setupSkeleton,
                                 depth = { depth },
                                 depthLines = vm.depthLines,
+                                fx = vm.fx,
                                 showCamera = settings.showCamera,
                                 catName = settings.catName,
                                 catCoat = settings.catCoat,

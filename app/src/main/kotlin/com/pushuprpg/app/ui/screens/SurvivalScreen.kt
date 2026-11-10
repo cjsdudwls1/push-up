@@ -1,5 +1,16 @@
 package com.pushuprpg.app.ui.screens
 
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalDensity
+import kotlin.math.roundToInt
+import kotlin.math.ceil
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
+import com.pushuprpg.app.ui.components.FxCue
+import com.pushuprpg.app.ui.components.PixelCanvas
+import com.pushuprpg.app.ui.components.PixelFxLayer
+import com.pushuprpg.app.ui.components.rememberPixelFx
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.LinearEasing
@@ -161,6 +172,8 @@ fun SurvivalScreen(
     depthLines: Pair<Float, Float> = 70f to 88f,
     /** The camera's picture under a set under way; off, the room is dark. See AppSettings.showCamera. */
     showCamera: Boolean = true,
+    /** The pixel bursts: a push landing, a deep one, a combo, a record. See PixelFx. */
+    fx: Flow<FxCue> = emptyFlow(),
     /** As the user typed it; blank is the default name. */
     catName: String = "",
     catCoat: CatCoat = CatCoat.CREAM,
@@ -262,6 +275,10 @@ fun SurvivalScreen(
         // is said at the top instead of in a bubble over the ghost.
         val settingUp = playing && !life.started && life.alive
 
+        val reduceMotion = LocalReduceMotion.current
+        val pixelFx = rememberPixelFx(fx, reduceMotion)
+        val unit = with(LocalDensity.current) { maxWidth.toPx() } / 240f
+
         // Resting, the ceiling is back up: a crushed cat is not what a minute of rest looks at.
         CeilingAndCat(
             state = if (resting) life.copy(height = 1f, intensity = 0f) else life,
@@ -269,8 +286,15 @@ fun SurvivalScreen(
             coat = catCoat,
             wear = catWear,
             faded = settingUp,
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxSize()
+                .graphicsLayer {
+                    val shake = pixelFx.shake()
+                    translationX = (shake.x.roundToInt() * unit)
+                    translationY = (shake.y.roundToInt() * unit)
+                },
         )
+        PixelFxLayer(pixelFx, floorAt = FLOOR_AT, modifier = Modifier.fillMaxSize())
 
         // Setting up: the skeleton and a ghost of the starting pose, so framing the phone is
         // matching lines rather than guessing. Gone the moment the run starts.
@@ -680,51 +704,29 @@ private fun CeilingAndCat(
         // The toy behind the ceiling, so that the slab comes down over it as it would over a real one;
         // the cat, drawn in front, keeps its ears and raised paws over the teeth. Faint with the cat.
         if (wear.any { it.slot == WearSlot.TOY }) {
-            Canvas(Modifier.fillMaxSize().alpha(if (faded) SETUP_ALPHA else 1f)) {
+            PixelCanvas(Modifier.fillMaxSize().alpha(if (faded) SETUP_ALPHA else 1f), pixelsAcross = CAT_PIXELS) {
                 drawCatToyBeside(wear, size.width / 2f, size.height * FLOOR_AT, catScale(size.width, size.height))
             }
         }
 
-        Canvas(Modifier.fillMaxSize()) {
+        // On the art's own grid, 240 across, as the bursts are: bricks, and teeth in steps.
+        PixelCanvas(Modifier.fillMaxSize(), pixelsAcross = 240) {
             val floorY = size.height * FLOOR_AT
             val topY = size.height * 0.10f
-            val toothWidth = size.width / 14f
+            val u = size.width / 240f
             // Height 0 — the life ends — is the teeth on the cat's head, crouched as it is by then,
             // not the slab on the floor. Drawn down to the floor, the ceiling went behind the cat
             // and the set played on with the cat already under it, and the hearts never fell.
             val headTop = catHeadTop(floorY, catScale(size.width, size.height), CatMood.PANIC)
-            val lowest = headTop - toothWidth * 0.55f
+            val lowest = headTop - 11f * u
             val travel = lowest - topY
-            val ceilingBottom = topY + travel * (1f - state.height.coerceIn(0f, 1f))
-
-            val slab = Color(
-                red = 0.42f + 0.5f * danger,
-                green = 0.34f - 0.18f * danger,
-                blue = 0.28f - 0.16f * danger,
-                alpha = 1f,
-            )
-
-            drawRect(
-                color = slab,
-                topLeft = Offset(0f, 0f),
-                size = Size(size.width, ceilingBottom),
-            )
-            // Teeth along the underside: menace without needing a texture.
-            for (i in 0 until 14) {
-                drawPath(
-                    path = Path().apply {
-                        moveTo(i * toothWidth, ceilingBottom)
-                        lineTo((i + 0.5f) * toothWidth, ceilingBottom + toothWidth * 0.55f)
-                        lineTo((i + 1f) * toothWidth, ceilingBottom)
-                        close()
-                    },
-                    color = slab,
-                )
-            }
+            // Whole pixels, so the bricks do not shimmer as it moves.
+            val bottom = ((topY + travel * (1f - state.height.coerceIn(0f, 1f))) / u).roundToInt()
+            drawPixelCeiling(bottom, danger, u)
         }
 
         // A layer of its own, so faint is one alpha over the whole cat rather than each shape of it.
-        Canvas(Modifier.fillMaxSize().alpha(if (faded) SETUP_ALPHA else 1f)) {
+        PixelCanvas(Modifier.fillMaxSize().alpha(if (faded) SETUP_ALPHA else 1f), pixelsAcross = CAT_PIXELS) {
             val floorY = size.height * FLOOR_AT
             val scale = catScale(size.width, size.height)
             drawCat(
@@ -753,6 +755,47 @@ private fun CeilingAndCat(
                 size = Size(size.width, size.height - floorY),
             )
         }
+    }
+}
+
+/** The cat's pixels across the screen: coarser than the ceiling's, so it reads as pixel art. */
+private const val CAT_PIXELS = 160
+
+/**
+ * The ceiling as pixel art, in the art's pixels of [u] each, its underside at [bottom] of them:
+ * bricks that redden with [danger], a lit edge, and stepped teeth.
+ */
+private fun DrawScope.drawPixelCeiling(bottom: Int, danger: Float, u: Float) {
+    val r = (107 + 128 * danger).roundToInt().coerceIn(0, 255)
+    val g = (87 - 46 * danger).roundToInt().coerceIn(0, 255)
+    val b = (71 - 41 * danger).roundToInt().coerceIn(0, 255)
+    val base = Color(r, g, b)
+    val dark = Color((r * 0.7f).toInt(), (g * 0.7f).toInt(), (b * 0.7f).toInt())
+    val lite = Color(minOf(255, r + 40), minOf(255, g + 30), minOf(255, b + 25))
+    fun px(x: Int, y: Int, w: Int, h: Int, c: Color) =
+        drawRect(c, topLeft = Offset(x * u, y * u), size = Size(w * u, h * u))
+    val across = ceil(size.width / u).toInt() + 1
+    px(0, -4, across, bottom + 4, base)
+    var y = bottom - 12
+    var row = 0
+    while (y > -12) {
+        px(0, y, across, 2, dark)
+        var x = (row % 2) * 16
+        while (x < across) {
+            px(x, y, 2, 12, dark)
+            x += 32
+        }
+        y -= 12
+        row++
+    }
+    px(0, bottom - 4, across, 2, lite)
+    var x = 0
+    while (x < across) {
+        px(x + 2, bottom, 12, 4, base)
+        px(x + 4, bottom + 4, 8, 4, base)
+        px(x + 6, bottom + 8, 4, 3, base)
+        px(x + 6, bottom + 8, 4, 1, dark)
+        x += 16
     }
 }
 

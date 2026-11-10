@@ -12,6 +12,7 @@ import com.pushuprpg.core.audio.Announcer
 import com.pushuprpg.app.domain.SettingsRepository
 import com.pushuprpg.app.domain.ProgressRepository
 import com.pushuprpg.app.telemetry.Event
+import com.pushuprpg.app.ui.components.FxCue
 import com.pushuprpg.app.telemetry.Telemetry
 import com.pushuprpg.app.telemetry.TutorialEnd
 import com.pushuprpg.app.trace.RunTraces
@@ -49,7 +50,11 @@ import com.pushuprpg.core.survival.CatSessionEvent
 import com.pushuprpg.core.survival.CatSessionState
 import com.pushuprpg.core.survival.CatView
 import com.pushuprpg.core.survival.CeilingSurvival
+import com.pushuprpg.core.survival.SurvivalEvent
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -140,6 +145,15 @@ class SurvivalViewModel(
 
     // The skeleton, only while setting up: the mode hides it on purpose, but lining up with the
     // framing guide is done by watching the lines.
+    // The pixel bursts over the cat: a push landing, a deep one, a combo, a record. Emitted from the
+    // pose thread as the event happens and dropped if nobody is drawing, never queued up for later.
+    private val _fx = MutableSharedFlow<FxCue>(extraBufferCapacity = 8)
+    val fx: SharedFlow<FxCue> = _fx.asSharedFlow()
+
+    /** The set whose record burst has been shown, so it plays once a set; -1 for none yet. */
+    @Volatile
+    private var recordShownForSet = -1
+
     private val _setupSkeleton = MutableStateFlow<RenderSkeleton?>(null)
     val setupSkeleton: StateFlow<RenderSkeleton?> = _setupSkeleton.asStateFlow()
 
@@ -254,6 +268,7 @@ class SurvivalViewModel(
             cat.update(now.life, step.life, tick.tMs, best = best, hold = hold) +
                 cat.rest(now.restLeftMs, step.session, tick.tMs)
         )
+        if (now.phase == CatPhase.PLAYING) emitFx(step.life, now, best)
         val catView = cat.view()
         // Where to stand is said only while a set is on, as the banner shows it: not during a rest,
         // since stepping away for water is what a rest is for, and not once the ceiling has won or
@@ -351,7 +366,36 @@ class SurvivalViewModel(
         return true
     }
 
+    private fun emitFx(events: List<SurvivalEvent>, now: CatSessionState, best: Int) {
+        for (event in events) {
+            when (event) {
+                is SurvivalEvent.Pushed -> if (!event.hold) {
+                    _fx.tryEmit(if (event.deep) FxCue.PERFECT else FxCue.HIT)
+                    val combo = event.combo
+                    when {
+                        combo == 5 -> _fx.tryEmit(FxCue.COMBO5)
+                        combo == 10 -> _fx.tryEmit(FxCue.COMBO10)
+                        combo >= 20 && combo % 10 == 0 -> _fx.tryEmit(FxCue.COMBO20)
+                    }
+                }
+                is SurvivalEvent.Deepened -> _fx.tryEmit(FxCue.PERFECT)
+                // The sprite says 30 SEC, so only the first.
+                is SurvivalEvent.Milestone -> if (event.seconds == 30) _fx.tryEmit(FxCue.MILESTONE)
+                is SurvivalEvent.GameOver -> _fx.tryEmit(FxCue.COMBO_END)
+                else -> Unit
+            }
+        }
+        // As the cat's RECORD line counts it: reps, or a hold's seconds.
+        val value = if (hold) (now.life.elapsedMs / 1000L).toInt() else now.life.reps
+        val set = now.ended.size
+        if (best > 0 && value > best && now.life.alive && recordShownForSet != set) {
+            recordShownForSet = set
+            _fx.tryEmit(FxCue.RECORD)
+        }
+    }
+
     private fun applyRestart() {
+        recordShownForSet = -1
         session.reset()
         detector.reset()
         cat.reset()
