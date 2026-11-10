@@ -146,16 +146,11 @@
   <tr><td>트래킹 끊김</td><td>끊긴 원인, 그 세트에서 몇 번째 개수에서 끊겼는지, 준비 자세가 잡힌 뒤였는지</td></tr>
   <tr><td>한 판(세트 여러 개) 종료</td><td>운동 종류, 플레이한 세트 수, 개수, 점수, 플레이한 시간, 한 번에 10세트 이상 했는지, 동작 신뢰도 점수, 준비 자세가 잡혔는지, 트래킹이 끊긴 횟수와 다시 잡힌 횟수, 끊겨 있던 시간</td></tr>
   <tr><td>연속 일수 유지</td><td>연속 일수</td></tr>
-  <tr><td>화면 보기</td><td>화면 이름</td></tr>
-  <tr><td>화면 이동</td><td>떠난 화면, 다음 화면, 머문 시간</td></tr>
-  <tr><td>앱 나감</td><td>앱을 나갈 때 보고 있던 화면, 그 화면에 머문 시간</td></tr>
-  <tr><td>버튼 탭</td><td>화면 이름, 버튼 이름(터치한 좌표는 보내지 않습니다)</td></tr>
-  <tr><td>광고</td><td>광고 위치, 단계(광고 버튼 노출·불러오기·표시·클릭·닫기·보상·오류), 오류 코드</td></tr>
 </table>
 </div>
 <p>Google Analytics는 앱이 따로 보내지 않아도 다음을 자동으로 기록합니다.</p>
 <ul>
-  <li>이벤트: 첫 실행, 사용 세션 시작, 앱을 쓴 시간, 앱 업데이트·삭제, 운영체제 업데이트,
+  <li>이벤트: 첫 실행, 사용 세션 시작, 앱을 쓴 시간, 화면 보기, 앱 업데이트·삭제, 운영체제 업데이트,
       앱 데이터 삭제, 앱 비정상 종료</li>
   <li>모든 이벤트에 붙는 값: 앱 인스턴스 ID(앱을 다시 설치하면 새로 만들어집니다), 기기 모델과 종류,
       운영체제와 앱 버전, 언어, 첫 실행 시각, IP 주소로 추정한 대략적인 위치(국가·도시 수준.
@@ -303,10 +298,9 @@
   model, OS version, app version and the movement being tracked (retained up to 90 days). Firebase Analytics receives the
   specific product events listed in section 4-2 — onboarding, camera permission outcome, tutorial
   start, completion or skip, the end of a session (with how often tracking lost the user), tracking
-  loss, streak length, screens viewed and moved between with the time spent on them, the screen the
-  user left the app from, buttons tapped (by name, never by touch position) and ad steps
+  loss and streak length
   — together with what Google Analytics records on its own: first open, sessions, engagement time,
-  app updates and removals, OS updates, data clears and crashes, each with an app
+  screen views, app updates and removals, OS updates, data clears and crashes, each with an app
   instance identifier, device model, OS and app version,
   language, first-open time and a coarse location derived from the IP address (retained up to 14
   months). Advertising ID collection is turned off in Analytics. Neither includes images, video, or pose data.

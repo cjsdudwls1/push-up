@@ -18,8 +18,6 @@ import com.google.android.ump.ConsentInformation
 import com.google.android.ump.ConsentRequestParameters
 import com.google.android.ump.UserMessagingPlatform
 import com.pushuprpg.app.BuildConfig
-import com.pushuprpg.app.telemetry.Event
-import com.pushuprpg.app.telemetry.Telemetry
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -40,7 +38,7 @@ object AdPlacement {
  * button, which turns the camera off first. All methods are called on the main thread; the SDK's
  * start-up is the one thing moved off it.
  */
-class Ads(context: Context, private val telemetry: Telemetry, private val scope: CoroutineScope) {
+class Ads(context: Context, private val scope: CoroutineScope) {
     private val app = context.applicationContext
     private val started = AtomicBoolean(false)
     private var consentAsked = false
@@ -112,7 +110,6 @@ class Ads(context: Context, private val telemetry: Telemetry, private val scope:
     fun loadRewarded(placement: String) {
         if (!_ready.value || rewardedLoading || freshRewarded() != null) return
         rewardedLoading = true
-        log(placement, "load")
         RewardedAd.load(
             app,
             BuildConfig.ADMOB_REWARDED,
@@ -131,7 +128,6 @@ class Ads(context: Context, private val telemetry: Telemetry, private val scope:
 
                 override fun onAdFailedToLoad(error: LoadAdError) {
                     rewardedLoading = false
-                    log(placement, "load_error", error.code)
                     waiting?.let { pending ->
                         waiting = null
                         pending.onDone(false)
@@ -178,7 +174,6 @@ class Ads(context: Context, private val telemetry: Telemetry, private val scope:
         fullScreenOpen = true
         ad.fullScreenContentCallback = callback(pending.placement) { shown -> pending.onDone(shown) }
         ad.show(pending.activity) {
-            log(pending.placement, "reward")
             pending.onReward()
         }
     }
@@ -186,7 +181,6 @@ class Ads(context: Context, private val telemetry: Telemetry, private val scope:
     fun preloadInterstitial() {
         if (!_ready.value || interstitialLoading || freshInterstitial() != null) return
         interstitialLoading = true
-        log(AdPlacement.HOME, "load")
         InterstitialAd.load(
             app,
             BuildConfig.ADMOB_INTERSTITIAL,
@@ -200,7 +194,6 @@ class Ads(context: Context, private val telemetry: Telemetry, private val scope:
 
                 override fun onAdFailedToLoad(error: LoadAdError) {
                     interstitialLoading = false
-                    log(AdPlacement.HOME, "load_error", error.code)
                 }
             },
         )
@@ -221,26 +214,18 @@ class Ads(context: Context, private val telemetry: Telemetry, private val scope:
 
         override fun onAdShowedFullScreenContent() {
             shown = true
-            log(placement, "show")
         }
 
-        override fun onAdClicked() = log(placement, "click")
 
         override fun onAdDismissedFullScreenContent() {
             fullScreenOpen = false
-            log(placement, "close")
             onDone(shown)
         }
 
         override fun onAdFailedToShowFullScreenContent(error: AdError) {
             fullScreenOpen = false
-            log(placement, "show_error", error.code)
             onDone(false)
         }
-    }
-
-    fun log(placement: String, action: String, code: Int? = null) {
-        telemetry.log(Event.AdEvent(placement, action, code))
     }
 
     private fun freshRewarded(): RewardedAd? {

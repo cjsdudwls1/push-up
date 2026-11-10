@@ -6,7 +6,6 @@ import com.pushuprpg.app.audio.GameAudio
 import com.pushuprpg.app.audio.GameVoice
 import com.pushuprpg.app.audio.MusicPlayer
 import com.pushuprpg.app.ads.Ads
-import com.pushuprpg.app.telemetry.ScreenTracker
 import com.pushuprpg.app.telemetry.Telemetry
 import com.pushuprpg.app.data.AppDatabase
 import com.pushuprpg.app.data.DataStoreProgressRepository
@@ -67,9 +66,7 @@ class AppContainer(context: Context) {
 
     val telemetry: Telemetry by lazy { Telemetry(appContext) }
 
-    val screens: ScreenTracker by lazy { ScreenTracker(telemetry) }
-
-    val ads: Ads by lazy { Ads(appContext, telemetry, appScope) }
+    val ads: Ads by lazy { Ads(appContext, appScope) }
 
     /**
      * The latest run's landmarks, for a bug report. Follows the setting, and only in a debug build:

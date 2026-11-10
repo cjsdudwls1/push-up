@@ -79,16 +79,9 @@ class MainActivity : ComponentActivity() {
         ) == PackageManager.PERMISSION_GRANTED
     }
 
-    override fun onStart() {
-        super.onStart()
-        (application as PushupApp).container.screens.appShown()
-    }
-
     override fun onStop() {
         super.onStop()
-        val container = (application as PushupApp).container
-        if (!container.ads.fullScreenOpen) container.screens.appHidden()
-        container.onAppStop()
+        (application as PushupApp).container.onAppStop()
     }
 
     private fun openAppSettings() {

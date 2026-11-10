@@ -36,12 +36,6 @@
             android:name="google_analytics_adid_collection_enabled"
             android:value="false" />
 
-        <!-- One Activity holds every screen, so automatic reporting would only ever say MainActivity.
-             ScreenTracker logs the real screens. -->
-        <meta-data
-            android:name="google_analytics_automatic_screen_reporting_enabled"
-            android:value="false" />
-
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
             android:value="${admobAppId}" />

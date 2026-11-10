@@ -44,7 +44,6 @@ import com.pushuprpg.app.AppContainer
 import com.pushuprpg.app.BuildConfig
 import com.pushuprpg.app.ads.AdBanner
 import com.pushuprpg.app.ads.AdPlacement
-import com.pushuprpg.app.telemetry.Event
 import com.pushuprpg.app.trace.TraceFiles
 import com.pushuprpg.app.domain.AppSettings
 import com.pushuprpg.app.domain.ThemeMode
@@ -149,9 +148,7 @@ fun PushupRpgApp(
     val adPrivacyRequired by ads.privacyOptionsRequired.collectAsState()
     // Set by the ending's 홈으로, and read once by the hub that it lands on.
     var interstitialOnArrival by remember { mutableStateOf(false) }
-    val tap: (String) -> Unit = { target -> container.telemetry.log(Event.UiTap(container.screens.current, target)) }
 
-    LaunchedEffect(backStackEntry?.destination?.route) { container.screens.entered(backStackEntry?.destination?.route) }
     // Someone updating from a build without ads gets their three days from here.
     LaunchedEffect(Unit) {
         container.progressRepository.update { it.copy(ads = AdRules.started(it.ads, today())) }
@@ -280,23 +277,18 @@ fun PushupRpgApp(
                         onToggleTheme = toggleTheme,
                         // Straight in with the movement the button names; changing it is the link under it.
                         onPlayCat = {
-                            tap("play_cat")
                             navController.navigateFrom(entry, Routes.survival(exercise = settings.exercise))
                         },
                         onChangeExercise = {
-                            tap("change_exercise")
                             navController.navigateFrom(entry, Routes.SURVIVAL_PICK)
                         },
                         onRecords = {
-                            tap("records")
                             navController.navigateFrom(entry, Routes.RECORDS)
                         },
                         onSettings = {
-                            tap("settings")
                             navController.navigateFrom(entry, Routes.SETTINGS)
                         },
                         onWardrobe = {
-                            tap("wardrobe")
                             navController.navigateFrom(entry, Routes.WARDROBE)
                         },
                         lastExercise = settings.exercise,
@@ -331,13 +323,11 @@ fun PushupRpgApp(
                     LaunchedEffect(adsReady, rewardedReady, shopAdsLeft) {
                         if (adsReady && !rewardedReady && shopAdsLeft > 0) ads.loadRewarded(AdPlacement.SHOP)
                     }
-                    LaunchedEffect(adsReady) { if (adsReady) ads.log(AdPlacement.SHOP, "offer") }
                     WardrobeScreen(
                         adsAvailable = adsReady,
                         adReady = rewardedReady,
                         adsLeft = shopAdsLeft,
                         onWatchAd = {
-                            tap("shop_watch_ad")
                             if (activity != null) {
                                 ads.showRewarded(
                                     activity,
@@ -377,7 +367,6 @@ fun PushupRpgApp(
                         churu = progressState?.churu ?: 0,
                         bought = progressState?.purse()?.owned.orEmpty(),
                         onBuy = { item ->
-                            tap("shop_buy")
                             scope.launch {
                                 var paid = false
                                 container.progressRepository.update { p ->
@@ -485,7 +474,6 @@ fun PushupRpgApp(
                                 cameraOff = cameraOff,
                                 churuDoubled = churuDoubled,
                                 onDoubleChuru = {
-                                    tap("double_churu")
                                     val extra = setOutcome?.churu ?: 0
                                     if (extra > 0 && activity != null && !churuDoubled && !cameraOff) {
                                         cameraOff = true
@@ -507,23 +495,19 @@ fun PushupRpgApp(
                                     }
                                 },
                                 onRetry = {
-                                    tap("retry")
                                     ads.cancelWaiting()
                                     vm.restart()
                                 },
                                 onSkipRest = {
-                                    tap("skip_rest")
                                     vm.skipRest()
                                 },
                                 onShare = { card ->
-                                    tap("share")
                                     onShare(card)
                                 },
                                 modelFailed = poseError != null,
                                 nearMisses = nearMisses,
                                 growth = growth,
                                 onSkip = {
-                                    tap("skip_tutorial")
                                     if (navController.isOnTop(entry)) {
                                         vm.skipTutorial()
                                         navController.navigate(Routes.HOME) {
@@ -534,7 +518,6 @@ fun PushupRpgApp(
                                 onClose = {
                                     // Ends the session where it is and shows its ending; with nothing
                                     // played there is none, and it leaves as 홈으로 does.
-                                    tap("close")
                                     if (navController.isOnTop(entry) && !vm.endHere()) {
                                         vm.leave()
                                         navController.popBackStack(Routes.SURVIVAL, inclusive = true)
@@ -543,7 +526,6 @@ fun PushupRpgApp(
                                 onChangeExercise = {
                                     // The ending's 운동 바꾸기: banked like 홈으로, then straight to the
                                     // picker, which starts the next session itself.
-                                    tap("change_exercise")
                                     if (navController.isOnTop(entry)) {
                                         vm.leave()
                                         navController.navigate(Routes.SURVIVAL_PICK) {
@@ -552,7 +534,6 @@ fun PushupRpgApp(
                                     }
                                 },
                                 onHome = {
-                                    tap("home")
                                     if (isTutorial) {
                                         // The done card's button, or back once the run has started. A
                                         // double tap on the card finished it twice and pushed a second

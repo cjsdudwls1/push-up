@@ -13,11 +13,9 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import com.google.android.gms.ads.AdListener
 import com.google.android.gms.ads.AdRequest
 import com.google.android.gms.ads.AdSize
 import com.google.android.gms.ads.AdView
-import com.google.android.gms.ads.LoadAdError
 import com.pushuprpg.app.BuildConfig
 
 /** An anchored banner. Its height is held before the ad arrives, so nothing above it jumps. */
@@ -31,12 +29,6 @@ fun AdBanner(ads: Ads, modifier: Modifier = Modifier) {
             AdView(context).apply {
                 setAdSize(size)
                 adUnitId = BuildConfig.ADMOB_BANNER
-                adListener = object : AdListener() {
-                    override fun onAdImpression() = ads.log(AdPlacement.RECORDS, "show")
-                    override fun onAdClicked() = ads.log(AdPlacement.RECORDS, "click")
-                    override fun onAdFailedToLoad(error: LoadAdError) =
-                        ads.log(AdPlacement.RECORDS, "load_error", error.code)
-                }
                 loadAd(AdRequest.Builder().build())
             }
         }

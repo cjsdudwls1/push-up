@@ -188,33 +188,6 @@ sealed class Event(val name: String, val params: Map<String, Any> = emptyMap()) 
      */
     data class StreakMaintained(val days: Int) :
         Event("streak_maintained", mapOf("days" to days))
-
-    /** A screen opened. [screen] is its route without arguments. */
-    data class ScreenView(val screen: String) :
-        Event("screen_view", mapOf("screen_name" to screen, "screen_class" to screen))
-
-    /** Moved from [screen] to [next] inside the app, after [durationMs] on it. */
-    data class ScreenExit(val screen: String, val next: String, val durationMs: Long) :
-        Event("screen_exit", mapOf("screen" to screen, "next_screen" to next, "duration_ms" to durationMs))
-
-    /** The app went out of sight while [screen] was up: where people leave from. */
-    data class AppLeft(val screen: String, val durationMs: Long) :
-        Event("app_left", mapOf("screen" to screen, "duration_ms" to durationMs))
-
-    /** A named button was pressed. A name, never a position or anything typed. */
-    data class UiTap(val screen: String, val target: String) :
-        Event("ui_tap", mapOf("screen" to screen, "target" to target))
-
-    /** One step of an ad's life: offer, load, show, click, reward, close, or an error [code]. */
-    data class AdEvent(val placement: String, val action: String, val code: Int? = null) :
-        Event(
-            "ad_event",
-            buildMap {
-                put("placement", placement)
-                put("action", action)
-                code?.let { put("error_code", it) }
-            },
-        )
 }
 
 /** How the tutorial ended, once its ceiling had started to move. */
