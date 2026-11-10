@@ -57,7 +57,7 @@ android {
         // Every bundle uploaded to Play needs a higher code than the last. The release workflow
         // passes one derived from its run number; a local build stays at 1.
         versionCode = (findProperty("pushup.versionCode") as String?)?.toIntOrNull() ?: 1
-        versionName = "0.1.0"
+        versionName = "0.2.0"
         buildConfigField("boolean", "FIREBASE_CONFIGURED", firebaseConfigured.toString())
         manifestPlaceholders["admobAppId"] = admob("appId", "ca-app-pub-3940256099942544~3347511713")
         buildConfigField("String", "ADMOB_REWARDED", "\"${admob("rewarded", "ca-app-pub-3940256099942544/5224354917")}\"")
