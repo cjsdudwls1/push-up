@@ -36,6 +36,10 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.isTraversalGroup
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.LiveRegionMode
+import com.pushuprpg.app.ui.theme.PixelShape
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableIntStateOf
@@ -126,9 +130,10 @@ private val EMPTY_WEEK = WeekSummary(start = 0, days = List(7) { false }, reps =
 /**
  * The hub, built around the cat.
  *
- * One question leads it — "am I doing this today?" — and one button answers it: 고양이 지키기, the
- * mode the tutorial already taught, which starts the movement it names at once; the picker is the
- * link under it, since the movement is the same one day after another. Under that, the answer to
+ * One question leads it — "am I doing this today?" — and the dock pinned at the bottom answers it:
+ * a chip per movement and one big button that says only the movement it starts (2026-11-11, the
+ * owner: "바로 운동 종목명만 크게"; the picker screen is gone, the hub is the picker). The chip picked
+ * drives the whole hub: the ring, the graph, the records and the calories. Under the cat, the answer to
  * the other question a habit needs,
  * "am I getting anywhere": each session's total as a graph, a movement a tap, then the calories every
  * rep so far has burned, the best set against the first, and the week at a glance. The cat says how long it has been, glad whatever the answer.
@@ -136,12 +141,10 @@ private val EMPTY_WEEK = WeekSummary(start = 0, days = List(7) { false }, reps =
 @Composable
 fun HomeScreen(
     state: HomeUiState,
-    themeMode: ThemeMode,
-    onToggleTheme: () -> Unit,
-    /** Starts 고양이 지켜줘 with [lastExercise], the movement the button names. */
-    onPlayCat: () -> Unit,
-    /** The picker, for another movement. */
-    onChangeExercise: () -> Unit,
+    /** Starts 고양이 지켜줘 with the movement the button names. */
+    onPlayCat: (ExerciseType) -> Unit,
+    /** A chip was picked: remembered as the last choice. */
+    onSelectExercise: (ExerciseType) -> Unit,
     onRecords: () -> Unit,
     onSettings: () -> Unit,
     /** 꾸미기: the cat's name, coat and what it has found. */
@@ -154,7 +157,10 @@ fun HomeScreen(
     modifier: Modifier = Modifier,
 ) {
     val name = catName.ifBlank { stringResource(R.string.cat_default_name) }
-    val exerciseName = stringResource(exerciseLabelRes(lastExercise))
+    // Plain remember, not saveable or keyed on [lastExercise]: the stored choice arrives late, and a
+    // chip tapped twice quickly would jump back. Coming back from a run builds the hub anew from it.
+    var selected by remember { mutableStateOf(lastExercise) }
+    val exerciseName = stringResource(exerciseLabelRes(selected))
 
     Column(
         modifier = modifier
@@ -178,8 +184,9 @@ fun HomeScreen(
                 Spacer(Modifier.weight(1f))
                 // The way into 꾸미기 besides the cat itself, lit with how many finds are new.
                 WardrobePill(newGifts = state.newGifts, onClick = onWardrobe)
+                // The records where the theme was (it is in the settings, and not an everyday switch).
                 Spacer(Modifier.width(8.dp))
-                ThemeToggle(mode = themeMode, onToggle = onToggleTheme)
+                RoundIconButton(icon = PixelIcons.Bars, label = stringResource(R.string.action_view_records), onClick = onRecords)
                 // Up here beside the theme, by the owner's decision: the bottom of the hub had a row of
                 // two buttons under everything else, and 설정 is not something to scroll for.
                 Spacer(Modifier.width(8.dp))
@@ -214,8 +221,8 @@ fun HomeScreen(
 
             // The day's bar for the movement the button plays, as a ring round the cat (concept C,
             // 2026-10-09): full once today has kept the streak, whichever movement kept it.
-            val bar = Exercises.of(lastExercise)
-            val left = state.leftToday(lastExercise)
+            val bar = Exercises.of(selected)
+            val left = state.leftToday(selected)
             TodayRing(
                 fraction = if (left == 0) 1f else (bar.streakBar - left).toFloat() / bar.streakBar,
                 modifier = Modifier.align(Alignment.CenterHorizontally),
@@ -225,7 +232,7 @@ fun HomeScreen(
                     coat = catCoat,
                     wear = catWear,
                     modifier = Modifier
-                        .size(width = 176.dp, height = 124.dp)
+                        .size(width = 148.dp, height = 104.dp)
                         .clickable(
                             onClickLabel = stringResource(R.string.home_wardrobe_open),
                             role = Role.Button,
@@ -276,27 +283,24 @@ fun HomeScreen(
                 }
             }
 
-            // The nudge only when there is something to nudge about. Saying it every day would make the
-            // encouragement worthless, and saying it after a plank tells someone who held one for
-            // minutes that they have not started. A day begun short of the bar says what is left of it.
+            // What is left of today's bar, once a day is under way. Before anything is done the cat's line
+            // and the ring's 0 / 15 already say it, so a third sentence saying the same was dropped.
             //
             // A broken streak is never said, by the owner's decision: pointing at what was lost is how
             // a return turns into a goodbye. The cat says it is glad instead, and the chip shows what
             // the streak goes on from.
             val notStarted = state.todayReps == 0 && state.todayActiveMs == 0L
-            if (notStarted || left > 0) {
-                Spacer(Modifier.height(10.dp))
+            if (!notStarted && left > 0) {
+                Spacer(Modifier.height(6.dp))
                 Text(
                     text = when {
-                        notStarted && bar.kind == MovementKind.HOLD -> stringResource(R.string.home_nudge_hold, exerciseName, bar.streakBar)
-                        notStarted -> stringResource(R.string.home_nudge, exerciseName, bar.streakBar)
                         state.streakShown == 0 && bar.kind == MovementKind.HOLD ->
                             stringResource(R.string.home_left_first_hold, exerciseName, left)
                         state.streakShown == 0 -> stringResource(R.string.home_left_first, exerciseName, left)
                         bar.kind == MovementKind.HOLD -> stringResource(R.string.home_left_hold, exerciseName, left)
                         else -> stringResource(R.string.home_left, exerciseName, left)
                     },
-                    style = Type.bodyL,
+                    style = Type.labelL,
                     color = Palette.TextSecondary,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth(),
@@ -319,25 +323,17 @@ fun HomeScreen(
                 Spacer(Modifier.fillMaxWidth().height(LOADING_HEIGHT))
                 return@Column
             }
-            var graphed by rememberSaveable(lastExercise) { mutableStateOf(lastExercise) }
-            SessionTrendCard(
-                trends = state.trends,
-                selected = graphed,
-                onSelect = { graphed = it },
-            )
+            // The graph follows the dock's chip; it has no chips of its own here.
+            SessionTrendCard(trends = state.trends, selected = selected)
 
+            // The week next: it answers "is this week going" fastest.
             Spacer(Modifier.height(12.dp))
-            CalorieCard(
-                progress = state.burn,
-                exercise = lastExercise,
-                modifier = Modifier.clickable(onClick = onRecords),
-            )
+            WeekCard(thisWeek = state.thisWeek, lastWeek = state.lastWeek, today = state.today)
 
-            // Every movement's best, swiped sideways, the one picked last first; a tap opens the records,
-            // which is the only way in now that the button at the bottom is gone.
-            val records = remember(state.records, lastExercise) {
+            // Every movement's best, swiped sideways, the one picked first; a tap opens the records.
+            val records = remember(state.records, selected) {
                 state.records.values.sortedWith(
-                    compareByDescending<MovementRecord> { it.exercise == lastExercise }.thenByDescending { it.total }
+                    compareByDescending<MovementRecord> { it.exercise == selected }.thenByDescending { it.total }
                 )
             }
             if (records.isNotEmpty()) {
@@ -345,17 +341,23 @@ fun HomeScreen(
                 RecordPager(records = records, onClick = onRecords)
             }
 
+            // The calories last: the most to read, and the slowest to change.
             Spacer(Modifier.height(12.dp))
-            WeekCard(thisWeek = state.thisWeek, lastWeek = state.lastWeek, today = state.today)
+            CalorieCard(
+                progress = state.burn,
+                exercise = selected,
+                modifier = Modifier.clickable(onClick = onRecords),
+            )
         }
 
-        // The one big button, pinned under everything else so it never scrolls away, between the
-        // two things a session is chosen with: which movement, and how the last ones went.
-        StartBar(
-            exerciseName = exerciseName,
-            onPlay = onPlayCat,
-            onChangeExercise = onChangeExercise,
-            onRecords = onRecords,
+        // Pinned under everything else so it never scrolls away: which movement, and go.
+        StartDock(
+            selected = selected,
+            onSelect = {
+                selected = it
+                onSelectExercise(it)
+            },
+            onStart = { onPlayCat(selected) },
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 20.dp)
@@ -419,6 +421,10 @@ private fun welcomeText(welcome: Welcome, monday: Boolean): String = when (welco
 @Composable
 private fun RecordPager(records: List<MovementRecord>, onClick: () -> Unit) {
     val pager = rememberPagerState(pageCount = { records.size })
+    // The pages are keyed, so a reorder keeps whichever card was showing; picking another chip should
+    // bring that movement's card to the front, so back to the first page when the first one changes.
+    val first = records.firstOrNull()?.exercise
+    LaunchedEffect(first) { if (pager.currentPage != 0) pager.scrollToPage(0) }
     Column(Modifier.fillMaxWidth()) {
         HorizontalPager(
             state = pager,
@@ -628,7 +634,7 @@ private fun TodayRing(
     val track = Palette.Bg3
     val fill = Palette.Brand400
     val inner = Palette.Bg2
-    Box(modifier.size(272.dp), contentAlignment = Alignment.Center) {
+    Box(modifier.size(224.dp), contentAlignment = Alignment.Center) {
         // The ring as pixel art (2026-11-10, the pixel look): cells on a 34-cell grid, two cells
         // thick, filled clockwise from the top; the inside a disc of the same cells.
         Canvas(Modifier.matchParentSize()) {
@@ -667,54 +673,46 @@ private fun TodayRing(
 }
 
 /**
- * The bottom of the hub: the launch button in the middle, a round button in the call-to-action
- * colour with a pressed edge and a ring that steps out from it like a charging shot, and a smaller
- * round button either side: 종목 변경, which opens the picker, and the records.
+ * The bottom of the hub (2026-11-11, with Fable's review): the movement chips, the picked one's camera
+ * line, and the start button. Choosing and starting are two separate taps, with the hint line between
+ * them, so a chip tapped a little low does not start a set.
  */
 @Composable
-private fun StartBar(
-    exerciseName: String,
-    onPlay: () -> Unit,
-    onChangeExercise: () -> Unit,
-    onRecords: () -> Unit,
+private fun StartDock(
+    selected: ExerciseType,
+    onSelect: (ExerciseType) -> Unit,
+    onStart: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Row(
-        modifier = modifier,
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween,
-    ) {
-        SideOrb(
-            icon = PixelIcons.Swap,
-            label = stringResource(R.string.home_change_exercise_short),
-            description = stringResource(R.string.home_change_exercise_label),
-            onClick = onChangeExercise,
-        )
-        StartOrb(
-            text = stringResource(R.string.home_cat_play),
-            exerciseName = exerciseName,
-            description = stringResource(R.string.home_start_description, exerciseName),
-            onClick = onPlay,
-        )
-        SideOrb(
-            icon = PixelIcons.Bars,
-            label = stringResource(R.string.action_view_records),
-            description = null,
-            onClick = onRecords,
+    val name = stringResource(exerciseLabelRes(selected))
+    Column(modifier.semantics { isTraversalGroup = true }) {
+        ExerciseChips(selected = selected, onSelect = onSelect)
+        // Held at two lines' height, so switching movements does not make the dock jump.
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .heightIn(min = 48.dp)
+                .semantics { liveRegion = LiveRegionMode.Polite },
+        ) {
+            ExerciseNotes(selected)
+        }
+        Spacer(Modifier.height(4.dp))
+        StartButton(
+            text = name,
+            description = stringResource(R.string.home_start_description, name),
+            onClick = onStart,
         )
     }
 }
 
 /**
- * The start button: [text] over the movement it will play, so the one tap says what it starts.
- *
- * Its ring is drawn outside the button, in the room around it, and steps out a size at a time, five
- * sizes, [RING_STEP_MS] apart: a sprite's frames rather than every vsync. Under reduced motion it holds
- * two faint rings still. The face is the same pixel circle as its darker edge, drawn up from it, so
- * the two line up cell for cell.
+ * The start button: the movement's name, big, and nothing else, by the owner's request. A full-width
+ * pixel slab in the call-to-action colour on its own darker edge, 6dp lower, so it reads as a key to
+ * press; an outline steps out from it a size at a time, [RING_STEPS] sizes [RING_STEP_MS] apart, like
+ * a charging shot. Under reduced motion it holds one faint outline still.
  */
 @Composable
-private fun StartOrb(text: String, exerciseName: String, description: String, onClick: () -> Unit) {
+private fun StartButton(text: String, description: String, onClick: () -> Unit) {
     val reduceMotion = LocalReduceMotion.current
     val step = remember { mutableIntStateOf(0) }
     if (!reduceMotion) {
@@ -728,99 +726,58 @@ private fun StartOrb(text: String, exerciseName: String, description: String, on
     val cta = Palette.Cta
     val edge = Palette.CtaEdge
     val on = Palette.OnCta
-    Box(Modifier.size(156.dp), contentAlignment = Alignment.Center) {
-        // The ring, its five outlines made once per size and colour, and only picked between per frame.
-        Spacer(
-            Modifier
-                .matchParentSize()
-                .drawWithCache {
-                    val base = 62.dp.toPx()
-                    val reach = size.minDimension / 2f - base
-                    val stroke = Stroke(3.dp.toPx())
-                    fun outline(r: Float) = (2f * r).let { d ->
-                        val dd = floor(d)
-                        Triple(dd, (size.minDimension - dd) / 2f, PixelCircle.createOutline(Size(dd, dd), layoutDirection, this))
-                    }
-                    val moving = List(RING_STEPS) { outline(base + reach * (it + 1f) / RING_STEPS) }
-                    val still = listOf(outline(base + reach * 0.45f), outline(base + reach * 0.95f))
-                    onDrawBehind {
-                        if (reduceMotion) {
-                            still.forEachIndexed { i, (_, at, o) ->
-                                translate(at, at) { drawOutline(o, cta.copy(alpha = if (i == 0) 0.45f else 0.22f), style = stroke) }
-                            }
-                        } else {
-                            val i = step.intValue
-                            val (_, at, o) = moving[i]
-                            translate(at, at) { drawOutline(o, cta.copy(alpha = 0.55f * (1f - i / RING_STEPS.toFloat())), style = stroke) }
-                        }
-                    }
-                },
-        )
-        Box(
-            modifier = Modifier
-                .size(width = 124.dp, height = 130.dp)
-                .clickable(role = Role.Button, onClickLabel = description, onClick = onClick)
-                .semantics { contentDescription = description },
-            contentAlignment = Alignment.TopCenter,
-        ) {
-            // The edge: the face's own circle, 6dp lower, so only its bottom shows and the two match cell
-            // for cell.
-            Spacer(
-                Modifier
-                    .padding(top = 6.dp)
-                    .size(124.dp)
-                    .background(edge, PixelCircle),
-            )
-            Box(
-                Modifier
-                    .size(124.dp)
-                    .background(cta, PixelCircle),
-                contentAlignment = Alignment.Center,
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    PixelIcon(sprite = PixelIcons.Play, tint = on, modifier = Modifier.size(24.dp))
-                    Spacer(Modifier.height(2.dp))
-                    Text(
-                        text = text,
-                        style = Type.titleM,
-                        color = on,
-                        textAlign = TextAlign.Center,
-                        maxLines = 2,
-                        modifier = Modifier.widthIn(max = 100.dp),
-                    )
-                    Text(
-                        text = exerciseName,
-                        style = Type.labelM,
-                        color = on,
-                        textAlign = TextAlign.Center,
-                        maxLines = 1,
-                    )
+    val shape = PixelShape(14.dp)
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(BUTTON_H + REACH * 2)
+            .drawWithCache {
+                val stroke = Stroke(2.dp.toPx())
+                val reach = REACH.toPx()
+                val faceW = size.width - 2 * reach
+                val faceH = (BUTTON_H - EDGE).toPx()
+                fun outline(grow: Float) = grow to shape.createOutline(Size(faceW + 2 * grow, faceH + 2 * grow), layoutDirection, this)
+                val moving = List(RING_STEPS) { outline(reach * (it + 1f) / RING_STEPS) }
+                val still = outline(reach * 0.6f)
+                onDrawBehind {
+                    val (grow, o) = if (reduceMotion) still else moving[step.intValue]
+                    val alpha = if (reduceMotion) 0.3f else 0.55f * (1f - step.intValue / RING_STEPS.toFloat())
+                    translate(reach - grow, reach - grow) { drawOutline(o, cta.copy(alpha = alpha), style = stroke) }
                 }
             }
+            .padding(REACH)
+            .clickable(role = Role.Button, onClickLabel = description, onClick = onClick)
+            .semantics { contentDescription = description },
+        contentAlignment = Alignment.TopCenter,
+    ) {
+        // The edge: the face's own shape, lower by [EDGE], so only its bottom shows.
+        Spacer(
+            Modifier
+                .padding(top = EDGE)
+                .fillMaxWidth()
+                .height(BUTTON_H - EDGE)
+                .background(edge, shape),
+        )
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .height(BUTTON_H - EDGE)
+                .background(cta, shape),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            PixelIcon(sprite = PixelIcons.Play, tint = on, modifier = Modifier.size(26.dp))
+            Spacer(Modifier.width(12.dp))
+            Text(text = text, style = Type.headline, color = on, maxLines = 1)
         }
     }
 }
 
+private val BUTTON_H = 72.dp
+private val EDGE = 6.dp
+private val REACH = 6.dp
 private const val RING_STEPS = 5
 private const val RING_STEP_MS = 400L
-
-/** A round button, at least 76dp, with an icon over a short label, beside the start button. */
-@Composable
-private fun SideOrb(icon: PixelSprite, label: String, description: String?, onClick: () -> Unit) {
-    Column(
-        modifier = Modifier
-            .sizeIn(minWidth = 76.dp, minHeight = 76.dp)
-            .background(Palette.Bg2, PixelCircle)
-            .clickable(onClickLabel = description, role = Role.Button, onClick = onClick)
-            .padding(horizontal = 8.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
-    ) {
-        PixelIcon(sprite = icon, tint = Palette.Brand400, modifier = Modifier.size(24.dp))
-        Spacer(Modifier.height(4.dp))
-        Text(text = label, style = Type.labelM, color = Palette.TextPrimary, maxLines = 1)
-    }
-}
 
 /**
  * Last week, summed up at the start of this one: its days, its reps, the calories it burned and the

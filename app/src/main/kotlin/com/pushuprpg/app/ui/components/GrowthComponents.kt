@@ -309,7 +309,7 @@ fun RunGrowthLines(growth: RunGrowth?, modifier: Modifier = Modifier) {
 fun SessionTrendCard(
     trends: Map<ExerciseType, SessionTrend>,
     selected: ExerciseType,
-    onSelect: (ExerciseType) -> Unit,
+    onSelect: ((ExerciseType) -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     val colors = LocalGameColors.current
@@ -329,45 +329,9 @@ fun SessionTrendCard(
             modifier = Modifier.semantics { heading() },
         )
         Spacer(Modifier.height(10.dp))
-        // Scrolls sideways rather than squeezing: five names in a row do not fit a narrow phone at a
-        // large font. The picked one is filled and underlined, so it is told by more than colour.
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-            modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(rememberScrollState())
-                .selectableGroup(),
-        ) {
-            ExerciseType.entries.forEach { exercise ->
-                val active = exercise == selected
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center,
-                    modifier = Modifier
-                        .widthIn(min = 64.dp)
-                        .background(if (active) Palette.Cta else Palette.Bg3, PixelCircle)
-                        .selectable(selected = active, role = Role.Tab) { onSelect(exercise) }
-                        // A touch target: the chip is a tap to switch, so it is a full 48dp tall.
-                        .heightIn(min = 48.dp)
-                        .padding(horizontal = 14.dp),
-                ) {
-                    Text(
-                        text = stringResource(exerciseLabelRes(exercise)),
-                        style = Type.labelM,
-                        color = if (active) Palette.OnCta else Palette.TextSecondary,
-                        textAlign = TextAlign.Center,
-                        maxLines = 1,
-                        modifier = Modifier.padding(top = 12.dp, bottom = 4.dp),
-                    )
-                    Spacer(
-                        Modifier
-                            .width(16.dp)
-                            .height(3.dp)
-                            .background(if (active) Palette.OnCta else Color.Transparent),
-                    )
-                    Spacer(Modifier.height(6.dp))
-                }
-            }
+        // Its own chips only where nothing else picks the movement: on the hub, the dock's chips do.
+        if (onSelect != null) {
+            ExerciseChips(selected = selected, onSelect = onSelect)
         }
         Spacer(Modifier.height(16.dp))
 

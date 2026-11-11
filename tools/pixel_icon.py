@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""The launcher icon as pixel art: the demo's cheese cat holding the brick ceiling up in its dark room.
+"""The launcher icon as pixel art: the cheese cat holding the hull-steel ceiling up on its ship's deck.
+
+Deep space since 2026-11-11 (the owner's "아주 짙은 남색, 아주 짙은 보라, 검은색"): the run's room
+(PixelRoom.drawRoom) - a navy wall with stars through it, violet deck plates, a steel ceiling with a
+neon-cyan lit edge.
 
 Writes the adaptive icon's three layers (app/src/main/res/drawable/ic_launcher_{background,foreground,
 monochrome}.xml) and the Play listing's docs/store-assets/icon-512.png from one raster, so they cannot
@@ -20,14 +24,15 @@ import pathlib
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 N = 216  # art pixels across the icon's 108 dp
 
-ROOM = "#FF171C26"
-ROOM_STRIPE = "#FF1F2633"
-FLOOR_EDGE = "#FF2A3140"
-FLOOR = "#FF141922"
-FLOOR_BOARD = "#FF1D2330"
-BRICK = "#FF6B5747"
-BRICK_DARK = "#FF4A3C31"
-BRICK_LIT = "#FF937560"
+ROOM = "#FF0A0B22"
+ROOM_STRIPE = "#FF15143A"
+ROOM_STAR = "#FFB8C2F0"
+FLOOR_EDGE = "#FF3A3470"
+FLOOR = "#FF0F0E2A"
+FLOOR_BOARD = "#FF1A1840"
+BRICK = "#FF4A4870"
+BRICK_DARK = "#FF33324E"
+BRICK_LIT = "#FF34E7FF"
 OUTLINE = "#FF2B1A12"
 FUR = "#FFFF9A2E"
 STRIPE = "#FFE0761A"
@@ -78,6 +83,15 @@ def background():
     px(g, 0, 0, N, N, ROOM)
     for x in range(8, N, 24):
         px(g, x, 0, 2, floor_row, ROOM_STRIPE)
+    # A fixed scatter of stars through the wall, from a hash of the cell, as the run's room has.
+    for j in range(0, floor_row - 4, 8):
+        for i in range(0, N, 8):
+            h = (i * 374761393 + j * 668265263) & 0xFFFFFFFF
+            h = ((h ^ (h >> 13)) * 1274126177) & 0xFFFFFFFF
+            h = (h ^ (h >> 16)) & 0x7FFFFFFF
+            if h % 11 == 0:
+                big = 2 if h % 5 == 0 else 1
+                px(g, i + h % 6, j + h // 7 % 6, big, big, ROOM_STAR)
     px(g, 0, floor_row, N, 4, FLOOR_EDGE)
     px(g, 0, floor_row + 4, N, N, FLOOR)
     for y in range(floor_row + 12, N, 10):
@@ -197,9 +211,9 @@ def main():
     mono = [[("#FFFFFFFF" if c is not None and c not in (EYE, GLINT) else None) for c in row] for row in fg]
     res = ROOT / "app/src/main/res/drawable"
     (res / "ic_launcher_background.xml").write_text(
-        vector(bg, "The demo's dark pixel room: the wall, its stripes and the floor."), encoding="utf-8")
+        vector(bg, "The ship's deck: the navy wall, its ribs and stars, and the violet deck plates."), encoding="utf-8")
     (res / "ic_launcher_foreground.xml").write_text(
-        vector(fg, "The demo's cheese cat holding the brick ceiling up over its head, in pixels:\n"
+        vector(fg, "The cheese cat holding the hull-steel ceiling up over its head, in pixels:\n"
                    "     the whole app in one picture. The ceiling runs off the mask on purpose."),
         encoding="utf-8")
     (res / "ic_launcher_monochrome.xml").write_text(

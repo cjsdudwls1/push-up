@@ -69,10 +69,8 @@
     <!-- Home -->
     <string name="home_today_reps">오늘 %1$d개</string>
     <!-- The hub's one big button, and under it that a session goes on as long as the user likes; the movement is the pill under it, which opens the picker. -->
-    <string name="home_cat_play">고양이 지키기</string>
-    <string name="home_change_exercise_label">운동 바꾸기</string>
-    <string name="home_change_exercise_short">종목 변경</string>
-    <string name="home_start_description">고양이 지키기 시작, %1$s</string>
+    <string name="home_start_description">%1$s 시작하기</string>
+    <string name="home_exercise_chip_unvalidated">%1$s, 시험 중</string>
     <string name="home_cat_description">고양이 %1$s</string>
     <string name="home_today_time">오늘 %1$d분 %2$d초</string>
     <!-- The hub's ring round the cat: today's share of the streak bar, for the movement the button plays. -->
@@ -114,8 +112,6 @@
     <string name="recap_next">이번 주도 같이 해요!</string>
     <string name="home_streak">연속 %1$d일</string>
     <!-- %1$s is the movement picked last, %2$d that movement's streak bar: the real one. -->
-    <string name="home_nudge">오늘은 아직이에요. %1$s %2$d개만 해볼까요?</string>
-    <string name="home_nudge_hold">오늘은 아직이에요. %1$s %2$d초만 버텨 볼까요?</string>
     <!-- Today has begun short of the bar: %2$d is how much more of the movement picked last keeps
          the streak, what was already done today counted. -->
     <string name="home_left">%1$s %2$d개 더 하면 오늘 연속이 이어져요.</string>
@@ -186,8 +182,6 @@
     <string name="settings_cvd_none">없음</string>
     <string name="settings_cvd_blue_yellow">파랑-노랑</string>
     <string name="settings_reduce_motion">모션 줄이기</string>
-    <string name="pick_exercise_start">이걸로 시작</string>
-    <string name="pick_exercise_last">지난번</string>
     <string name="pick_exercise_hold">시간으로 세요</string>
     <string name="settings_privacy">개인정보 처리방침</string>
     <string name="settings_terms">이용약관·건강 안내</string>
@@ -222,7 +216,6 @@
     <string name="survival_best_of">%1$s 최고 %2$,d점</string>
     <!-- Before the first armed frame. The ceiling does not move until the user is in position. -->
     <string name="survival_waiting_with">%1$s 자세를 잡으면 천장이 내려오기 시작해요</string>
-    <string name="pick_survival_title">뭐로 밀어 올릴까요?</string>
     <!-- Under the pushup placement hint, before the tutorial's ceiling starts. -->
     <string name="tutorial_intro_body">푸쉬업 자세를 잡으면 천장이 내려와요. 밀어 올려서 고양이를 지켜 주세요.</string>
     <!-- The tutorial's ending, by what it counted: reps; none, but reps refused as not deep enough;

@@ -241,11 +241,16 @@ fun PushupRpgApp(
                     }
                     HomeScreen(
                         state = state,
-                        themeMode = settings.themeMode,
-                        onToggleTheme = toggleTheme,
-                        // Straight in with the movement the button names; changing it is the link under it.
-                        onPlayCat = { navController.navigateFrom(entry, Routes.survival(exercise = settings.exercise)) },
-                        onChangeExercise = { navController.navigateFrom(entry, Routes.SURVIVAL_PICK) },
+                        // Straight in with the movement the button names, remembered as the last
+                        // choice. Not awaited: the run takes its movement from the route, so there is
+                        // nothing for the write to race.
+                        onPlayCat = { ex ->
+                            scope.launch { container.settingsRepository.update { it.copy(exercise = ex) } }
+                            navController.navigateFrom(entry, Routes.survival(exercise = ex))
+                        },
+                        onSelectExercise = { ex ->
+                            scope.launch { container.settingsRepository.update { it.copy(exercise = ex) } }
+                        },
                         onRecords = { navController.navigateFrom(entry, Routes.RECORDS) },
                         onSettings = { navController.navigateFrom(entry, Routes.SETTINGS) },
                         onWardrobe = { navController.navigateFrom(entry, Routes.WARDROBE) },
@@ -310,25 +315,6 @@ fun PushupRpgApp(
                                 // Bought to be worn: on at once, in place of whatever was in its slot.
                                 if (paid) {
                                     container.settingsRepository.update { it.withWear(Gifts.wear(it.wearing(), item.item)) }
-                                }
-                            }
-                        },
-                    )
-                }
-
-                composable(Routes.SURVIVAL_PICK) { entry ->
-                    ExercisePickScreen(
-                        initial = settings.exercise,
-                        onStart = { picked ->
-                            // Remembered as the last choice, which the hub's button starts. Not
-                            // awaited: the run takes its movement from the route, so there is nothing
-                            // for the write to race.
-                            scope.launch {
-                                container.settingsRepository.update { it.copy(exercise = picked) }
-                            }
-                            if (navController.isOnTop(entry)) {
-                                navController.navigate(Routes.survival(exercise = picked)) {
-                                    popUpTo(Routes.SURVIVAL_PICK) { inclusive = true }
                                 }
                             }
                         },
@@ -443,13 +429,11 @@ fun PushupRpgApp(
                                     }
                                 },
                                 onChangeExercise = {
-                                    // The ending's 운동 바꾸기: banked like 홈으로, then straight to the
-                                    // picker, which starts the next session itself.
+                                    // The ending's 운동 바꾸기: banked like 홈으로, then back to the hub,
+                                    // whose dock is the picker since 2026-11-11.
                                     if (navController.isOnTop(entry)) {
                                         vm.leave()
-                                        navController.navigate(Routes.SURVIVAL_PICK) {
-                                            popUpTo(Routes.SURVIVAL) { inclusive = true }
-                                        }
+                                        navController.popBackStack(Routes.SURVIVAL, inclusive = true)
                                     }
                                 },
                                 onHome = {

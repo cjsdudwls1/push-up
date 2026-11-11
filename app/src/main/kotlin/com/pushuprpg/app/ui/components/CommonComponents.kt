@@ -443,6 +443,11 @@ fun ExerciseNotes(exercise: ExerciseType) {
             color = Palette.TextSecondary,
             modifier = Modifier.weight(1f),
         )
+        // A plank is counted in seconds, not reps, which changes what the run shows: said before it.
+        if (Exercises.of(exercise).kind == com.pushuprpg.core.detect.MovementKind.HOLD) {
+            Spacer(Modifier.width(8.dp))
+            Pill(text = stringResource(R.string.pick_exercise_hold), tint = Palette.TextSecondary)
+        }
         // Honest in two words rather than a sentence: no real body has confirmed the count yet.
         if (!Exercises.of(exercise).validatedOnDevice) {
             Spacer(Modifier.width(8.dp))
