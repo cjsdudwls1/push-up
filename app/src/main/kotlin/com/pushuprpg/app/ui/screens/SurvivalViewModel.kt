@@ -9,6 +9,8 @@ import com.pushuprpg.app.AppContainer
 import com.pushuprpg.app.audio.GameAudio
 import com.pushuprpg.app.audio.GameVoice
 import com.pushuprpg.core.audio.Announcer
+import com.pushuprpg.core.audio.SoundCue
+import com.pushuprpg.core.audio.SoundRequest
 import com.pushuprpg.app.domain.SettingsRepository
 import com.pushuprpg.app.domain.ProgressRepository
 import com.pushuprpg.app.telemetry.Event
@@ -153,6 +155,8 @@ class SurvivalViewModel(
     /** The set whose record burst has been shown, so it plays once a set; -1 for none yet. */
     @Volatile
     private var recordShownForSet = -1
+    /** The set and the step of its count to the record last heard, so each step is heard once. */
+    private var nearHeard: Pair<Int, Int>? = null
 
     private val _setupSkeleton = MutableStateFlow<RenderSkeleton?>(null)
     val setupSkeleton: StateFlow<RenderSkeleton?> = _setupSkeleton.asStateFlow()
@@ -392,10 +396,18 @@ class SurvivalViewModel(
             recordShownForSet = set
             _fx.tryEmit(FxCue.RECORD)
         }
+        // Closing in on it: a blip a step higher with each rep (or second) still to go, as the
+        // counter blinks 기록까지 N개!. Only on a change, so a hold does not blip every frame.
+        val toGo = if (now.life.alive) recordToGo(value, best, hold) else null
+        if (toGo != null && nearHeard != set to toGo) {
+            nearHeard = set to toGo
+            audio.play(SoundRequest(SoundCue.COMBO_UP, rate = 1.6f - 0.12f * (toGo - 1)))
+        }
     }
 
     private fun applyRestart() {
         recordShownForSet = -1
+        nearHeard = null
         session.reset()
         detector.reset()
         cat.reset()

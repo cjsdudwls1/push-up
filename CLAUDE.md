@@ -227,7 +227,11 @@ all of it.
 **The cat is the whole app; the dungeons were taken out** (2026-09-30), by the owner's decision.
 The hub is the picker (2026-11-11, "바로 운동 종목명만 크게"): a dock of one chip per movement
 over one big button that says only the movement's name and starts it at once; the chip picked drives
-the ring, the graph, the records and the calories, and is remembered as the last choice. There is no
+the ring round the cat, and is remembered as the last choice. Nothing else is under the cat
+(2026-11-11, by the owner's decision: the graph, the week, the records and the calories were cards
+nobody would look at); the records are the top bar's button, and a record is told in the run instead —
+기록까지 3개! blinking with a rising blip as a set closes in on its best (`recordToGo`), then the
+record's burst. There is no
 picker screen any more; the ending's 운동 바꾸기 goes back to the hub. There are no classes, levels, XP, difficulty or dungeon unlocks any
 more. What they stored is left where it was and not read, so a downgrade still finds it; rows played
 in a dungeon stay in the session table and count everywhere (`SessionRecord.dungeonIndex`), and the
@@ -247,14 +251,16 @@ since the app does not ask anyone's weight — and name the foods it would take 
 movement's record is its best one go against its first, and each movement keeps its own best score,
 by the owner's decision, since a pull-up is not a pushup. None of them ever falls, and a set the
 ceiling won or a week away subtracts nothing. The one exception is the graph, by the owner's request
-(2026-11-06): first of the hub's numbers, above the calories, each session's total (every rep of a
+(2026-11-06): each session's total (every rep of a
 10-set session, or every second held) for one movement as a line, the last `Trends.SHOWN`, switched
 by a chip per movement in one tap (`Trends`, `SessionTrendCard`). It draws a dip as a dip, since it is
 there to show how it is going; a rise is coloured and a dip is said in grey, never as a shortfall, and
-a session with nothing in it is left out rather than drawn as a drop. `TrendsTest` pins it. The hub's cat greets by how long it has been (`Welcome`), glad
+a session with nothing in it is left out rather than drawn as a drop. `TrendsTest` pins it. It left
+the hub with the other cards on 2026-11-11 and is drawn nowhere for now; `SessionTrendCard` is kept
+for whichever screen the owner wants it on. The hub's cat greets by how long it has been (`Welcome`), glad
 whatever the answer, and a broken streak is never said — by the owner's decision, pointing at what
-was lost is how a return becomes a goodbye. The week is one card, its days named 월 to 일 rather
-than drawn as dots, with last week summed up at the start of the next (`Weeks.recap`). There are no
+was lost is how a return becomes a goodbye. Last week is summed up on the hub at the start of the
+next (`Weeks.recap`), its days named 월 to 일 rather than drawn as dots. There are no
 push notifications, by the owner's decision.
 
 **The run screen has its own gear**, by the owner's request (2026-11-06): the sound, the cat's voice,

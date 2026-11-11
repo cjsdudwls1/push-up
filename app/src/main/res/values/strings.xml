@@ -93,18 +93,9 @@
     <string name="home_welcome_gift">선물을 찾아 왔어요! 저를 눌러 보세요, 냥</string>
     <string name="home_welcome_back_month">정말 오랜만이에요! %1$d일 만이네요. 오늘은 가볍게 한 판만 해요, 냥</string>
     <!-- The best one go of the movement picked last, and how far it has come from the first. -->
-    <string name="home_record_title">내 최고 기록</string>
-    <string name="home_record_value">%1$s 한 번에 %2$d개</string>
-    <string name="home_record_value_hold">%1$s %2$d초</string>
     <string name="home_record_gain">처음보다 +%1$d개</string>
     <string name="home_record_gain_hold">처음보다 +%1$d초</string>
     <!-- The week at a glance. %1$d days with work, %2$d reps. -->
-    <string name="week_title">이번 주</string>
-    <string name="week_totals">%1$d일 · %2$,d개</string>
-    <string name="week_ahead">벌써 지난주보다 %1$,d개 더 했어요!</string>
-    <string name="week_last">지난주에는 %1$d일, %2$,d개 했어요</string>
-    <string name="week_empty">이번 주 첫 운동을 해 볼까요?</string>
-    <string name="week_first">좋아요, 이번 주를 시작했어요!</string>
     <!-- Last week summed up, at the start of this one until its first workout. -->
     <string name="recap_title">지난주 결과</string>
     <string name="recap_totals">%1$d일 동안 %2$,d개 했어요</string>
@@ -254,6 +245,8 @@
     <string name="set_now_first">%1$d세트 · 지금 %2$d · 첫 기록</string>
     <string name="set_now_first_hold">%1$d세트 · 지금 %2$d초 · 첫 기록</string>
     <string name="set_record_broken">기록 경신!</string>
+    <string name="set_near_record">기록까지 %1$d개!</string>
+    <string name="set_near_record_hold">기록까지 %1$d초!</string>
 
     <!-- The session ended by the user. The cat's line goes through cat_says with its name. -->
     <string name="session_over_title">오늘의 고양이 지키기 끝!</string>

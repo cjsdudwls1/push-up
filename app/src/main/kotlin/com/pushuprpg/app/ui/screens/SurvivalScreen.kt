@@ -781,10 +781,27 @@ private fun TutorialDoneCard(
 /**
  * The set being played against its own best: 3세트 · 지금 9 / 최고 12. Past the best it turns the
  * record colour and says so; a set never played before has no best, and its first is the record.
+ *
+ * Close to the best it says how close, blinking in the record colour (2026-11-11, the owner: "기록
+ * 갱신하거나 갱신할 포인트에 가까워지거나 할떄 이펙트로 재밌게"): 기록까지 3개!, 2개!, 1개! — or a hold's
+ * last seconds. Under reduced motion it holds still. The view model plays a rising blip with each.
  */
 @Composable
 private fun SetCounter(set: Int, now: Int, best: Int, hold: Boolean, hud: PixelHud, modifier: Modifier = Modifier) {
     val beaten = best > 0 && now > best
+    val toGo = recordToGo(now, best, hold)
+    val reduceMotion = LocalReduceMotion.current
+    var lit by remember { mutableStateOf(true) }
+    if (toGo != null && !reduceMotion) {
+        // Hard on and off, a pixel game's blink, restarted with each step so a new number shows lit.
+        LaunchedEffect(toGo) {
+            lit = true
+            while (true) {
+                delay(NEAR_BLINK_MS)
+                lit = !lit
+            }
+        }
+    }
     Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
         Text(
             text = stringResource(
@@ -805,9 +822,18 @@ private fun SetCounter(set: Int, now: Int, best: Int, hold: Boolean, hud: PixelH
                 style = hud.small,
                 color = Palette.Deep,
             )
+        } else if (toGo != null) {
+            Text(
+                text = stringResource(if (hold) R.string.set_near_record_hold else R.string.set_near_record, toGo),
+                style = hud.big,
+                color = Palette.Deep,
+                modifier = Modifier.graphicsLayer { alpha = if (lit || reduceMotion) 1f else 0f },
+            )
         }
     }
 }
+
+private const val NEAR_BLINK_MS = 220L
 
 /** The demo's HUD faces, in whole multiples of one of the art's pixels ([u]). */
 private class PixelHud(u: Float, private val density: Density) {

@@ -12,8 +12,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import com.pushuprpg.app.ui.theme.PixelCircle
 import androidx.compose.foundation.verticalScroll
@@ -22,7 +20,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -133,10 +130,10 @@ private val EMPTY_WEEK = WeekSummary(start = 0, days = List(7) { false }, reps =
  * One question leads it — "am I doing this today?" — and the dock pinned at the bottom answers it:
  * a chip per movement and one big button that says only the movement it starts (2026-11-11, the
  * owner: "바로 운동 종목명만 크게"; the picker screen is gone, the hub is the picker). The chip picked
- * drives the whole hub: the ring, the graph, the records and the calories. Under the cat, the answer to
- * the other question a habit needs,
- * "am I getting anywhere": each session's total as a graph, a movement a tap, then the calories every
- * rep so far has burned, the best set against the first, and the week at a glance. The cat says how long it has been, glad whatever the answer.
+ * drives the ring round the cat. Nothing else is under the cat (2026-11-11, by the owner's decision:
+ * the graph, the week, the records and the calories were cards nobody would look at). The records
+ * are one tap away in the top bar, and a record nearly reached or broken is told in the run itself.
+ * The cat says how long it has been, glad whatever the answer.
  */
 @Composable
 fun HomeScreen(
@@ -173,7 +170,7 @@ fun HomeScreen(
                 .bottomFade()
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 20.dp)
-                // Room under the last card for the fade: it ends clear of the buttons, not under them.
+                // Room at the foot for the fade: it ends clear of the buttons, not under them.
                 .padding(top = 20.dp, bottom = 40.dp),
         ) {
             Row(
@@ -314,36 +311,6 @@ fun HomeScreen(
                 Spacer(Modifier.height(16.dp))
                 RecapCard(recap = recap)
             }
-
-            // First of the numbers, by the owner's request (2026-11-06): how each session's total is
-            // going, a movement at a time, switched with one tap on its chip. It opens on the
-            // movement picked last; the calories come under it.
-            Spacer(Modifier.height(22.dp))
-            if (state.loading) {
-                Spacer(Modifier.fillMaxWidth().height(LOADING_HEIGHT))
-                return@Column
-            }
-            // The graph follows the dock's chip; it has no chips of its own here.
-            SessionTrendCard(trends = state.trends, selected = selected)
-
-            // The week next: it answers "is this week going" fastest.
-            Spacer(Modifier.height(12.dp))
-            WeekCard(thisWeek = state.thisWeek, lastWeek = state.lastWeek, today = state.today)
-
-            // Every movement's best, swiped sideways, the one picked first; a tap opens the records.
-            val records = remember(state.records, selected) {
-                state.records.values.sortedWith(
-                    compareByDescending<MovementRecord> { it.exercise == selected }.thenByDescending { it.total }
-                )
-            }
-            if (records.isNotEmpty()) {
-                Spacer(Modifier.height(12.dp))
-                RecordPager(records = records, onClick = onRecords)
-            }
-
-            // The calories last: the most to read, and the slowest to change.
-            Spacer(Modifier.height(12.dp))
-            CalorieCard(progress = state.burn, exercise = selected, onOpen = onRecords)
         }
 
         // Pinned under everything else so it never scrolls away: which movement, and go.
@@ -361,9 +328,6 @@ fun HomeScreen(
         )
     }
 }
-
-/** About the height of the cards under the cat, held while they load so the page does not jump. */
-private val LOADING_HEIGHT = 520.dp
 
 /**
  * The scroll's bottom edge fades out in four steps over [FADE] rather than being cut off under the
@@ -405,157 +369,6 @@ private fun welcomeText(welcome: Welcome, monday: Boolean): String = when (welco
         welcome.days >= 7 -> stringResource(R.string.home_welcome_back_week, welcome.days)
         monday -> stringResource(R.string.home_welcome_monday)
         else -> stringResource(R.string.home_welcome_back, welcome.days)
-    }
-}
-
-/**
- * Every movement's best one go, a card each, swiped sideways, by the owner's decision: one card for
- * the movement picked last left the others' records a screen away. The next card peeks in at the
- * edge, which is what says the row moves, and the dots say how many there are. A tap on any card
- * opens the records.
- */
-@Composable
-private fun RecordPager(records: List<MovementRecord>, onClick: () -> Unit) {
-    val pager = rememberPagerState(pageCount = { records.size })
-    // The pages are keyed, so a reorder keeps whichever card was showing; picking another chip should
-    // bring that movement's card to the front, so back to the first page when the first one changes.
-    val first = records.firstOrNull()?.exercise
-    LaunchedEffect(first) { if (pager.currentPage != 0) pager.scrollToPage(0) }
-    Column(Modifier.fillMaxWidth()) {
-        HorizontalPager(
-            state = pager,
-            contentPadding = PaddingValues(end = if (records.size > 1) 40.dp else 0.dp),
-            pageSpacing = 10.dp,
-            verticalAlignment = Alignment.Top,
-            key = { records[it].exercise.name },
-            modifier = Modifier.fillMaxWidth(),
-        ) { page ->
-            RecordCard(record = records[page], onClick = onClick)
-        }
-        if (records.size > 1) {
-            Spacer(Modifier.height(8.dp))
-            PageDots(
-                count = records.size,
-                current = pager.currentPage,
-                modifier = Modifier.align(Alignment.CenterHorizontally),
-            )
-        }
-    }
-}
-
-/** Which of [count] cards is showing: the current one filled, the rest faint. */
-@Composable
-private fun PageDots(count: Int, current: Int, modifier: Modifier = Modifier) {
-    val colors = LocalGameColors.current
-    Row(modifier = modifier, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-        repeat(count) { i ->
-            Box(
-                Modifier
-                    .size(6.dp)
-                    .background(if (i == current) colors.accept else Palette.Bg3, PixelCircle),
-            )
-        }
-    }
-}
-
-/**
- * One movement's best one go, and how far it has come from the first: the number that says the body
- * is changing, where the calories say the work is adding up.
- */
-@Composable
-private fun RecordCard(record: MovementRecord, onClick: () -> Unit) {
-    val colors = LocalGameColors.current
-    val hold = Exercises.of(record.exercise).kind == MovementKind.HOLD
-    val exerciseName = stringResource(exerciseLabelRes(record.exercise))
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .cardSurface()
-            .clickable(onClickLabel = stringResource(R.string.action_view_records), onClick = onClick)
-            .padding(horizontal = 20.dp, vertical = 16.dp),
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                text = stringResource(R.string.home_record_title),
-                style = Type.labelL,
-                color = Palette.TextTertiary,
-                modifier = Modifier
-                    .weight(1f)
-                    .semantics { heading() },
-            )
-            MoreLink()
-        }
-        Spacer(Modifier.height(4.dp))
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                text = stringResource(
-                    if (hold) R.string.home_record_value_hold else R.string.home_record_value,
-                    exerciseName,
-                    record.best,
-                ),
-                style = Type.titleM,
-                color = Palette.TextPrimary,
-                modifier = Modifier.weight(1f),
-            )
-            if (record.gain > 0) {
-                Spacer(Modifier.width(12.dp))
-                Text(
-                    text = stringResource(
-                        if (hold) R.string.home_record_gain_hold else R.string.home_record_gain,
-                        record.gain,
-                    ),
-                    style = Type.labelL,
-                    color = colors.accept,
-                )
-            }
-        }
-    }
-}
-
-/**
- * The week at a glance: its days by name, lit on the days that had any work, and one line on how it
- * stands against last week — said only as a lead, never as a shortfall.
- */
-@Composable
-private fun WeekCard(thisWeek: WeekSummary, lastWeek: WeekSummary, today: Long) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .cardSurface()
-            .padding(20.dp),
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                text = stringResource(R.string.week_title),
-                style = Type.titleM,
-                color = Palette.TextPrimary,
-                modifier = Modifier.weight(1f).semantics { heading() },
-            )
-            Text(
-                text = stringResource(R.string.week_totals, thisWeek.activeDays, thisWeek.reps),
-                style = Type.labelL,
-                color = Palette.TextSecondary,
-            )
-        }
-        Spacer(Modifier.height(14.dp))
-        WeekDays(
-            days = thisWeek.days,
-            todayIndex = (today - thisWeek.start).toInt(),
-            size = 32.dp,
-            modifier = Modifier.fillMaxWidth(),
-        )
-        Spacer(Modifier.height(12.dp))
-        Text(
-            text = when {
-                lastWeek.reps > 0 && thisWeek.reps > lastWeek.reps ->
-                    stringResource(R.string.week_ahead, thisWeek.reps - lastWeek.reps)
-                lastWeek.activeDays > 0 -> stringResource(R.string.week_last, lastWeek.activeDays, lastWeek.reps)
-                thisWeek.activeDays == 0 -> stringResource(R.string.week_empty)
-                else -> stringResource(R.string.week_first)
-            },
-            style = Type.bodyM,
-            color = Palette.TextSecondary,
-        )
     }
 }
 
