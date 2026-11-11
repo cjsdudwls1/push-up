@@ -39,6 +39,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -454,4 +455,19 @@ fun ExerciseNotes(exercise: ExerciseType) {
             Pill(text = stringResource(R.string.exercise_unvalidated), tint = Palette.TextTertiary)
         }
     }
+}
+
+/**
+ * "기록 보기 ›" in a tappable card's corner, so the card reads as one that opens something. Left out of
+ * the accessibility tree: the card's own click label already says it.
+ */
+@Composable
+fun MoreLink(modifier: Modifier = Modifier) {
+    Text(
+        text = stringResource(R.string.card_more_records),
+        style = Type.labelS,
+        color = Palette.TextTertiary,
+        maxLines = 1,
+        modifier = modifier.clearAndSetSemantics {},
+    )
 }

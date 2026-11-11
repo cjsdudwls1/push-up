@@ -6,6 +6,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -164,19 +165,31 @@ fun kcalText(kcal: Float): String = when {
  * height did not land. It says it is an estimate, because the app does not know the user's weight.
  */
 @Composable
-fun CalorieCard(progress: BurnProgress, exercise: ExerciseType, modifier: Modifier = Modifier) {
+fun CalorieCard(
+    progress: BurnProgress,
+    exercise: ExerciseType,
+    modifier: Modifier = Modifier,
+    /** Opens the records; the card then says so in its corner. */
+    onOpen: (() -> Unit)? = null,
+) {
     val colors = LocalGameColors.current
+    val openLabel = stringResource(R.string.action_view_records)
     Column(
         modifier = modifier
             .fillMaxWidth()
             .cardSurface()
+            .then(if (onOpen != null) Modifier.clickable(onClickLabel = openLabel, onClick = onOpen) else Modifier)
             .padding(20.dp),
     ) {
-        Text(
-            text = stringResource(R.string.burn_title),
-            style = Type.labelL,
-            color = Palette.TextTertiary,
-        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = stringResource(R.string.burn_title),
+                style = Type.labelL,
+                color = Palette.TextTertiary,
+                modifier = Modifier.weight(1f),
+            )
+            if (onOpen != null) MoreLink()
+        }
         Spacer(Modifier.height(6.dp))
         Row(verticalAlignment = Alignment.Bottom) {
             Text(
@@ -226,7 +239,8 @@ fun CalorieCard(progress: BurnProgress, exercise: ExerciseType, modifier: Modifi
                     stringResource(exerciseLabelRes(exercise)),
                     Calories.toNext(progress, exercise),
                 ),
-                style = Type.bodyM,
+                // A side note to the line above, not a second headline (Fable's review, 2026-11-11).
+                style = Type.labelS,
                 color = Palette.TextTertiary,
             )
         }
@@ -425,7 +439,8 @@ private fun TrendLine(points: List<Int>, line: Color, label: String, modifier: M
     val dotHole = Palette.Bg2
     Canvas(modifier.semantics { contentDescription = label }) {
         val top = 22.dp.toPx()
-        val bottom = size.height - 8.dp.toPx()
+        // Room under the line for the labels set below their dots.
+        val bottom = size.height - 22.dp.toPx()
         val side = 14.dp.toPx()
         val lo = points.min()
         val hi = points.max()
@@ -463,7 +478,12 @@ private fun TrendLine(points: List<Int>, line: Color, label: String, modifier: M
             if (!last) drawRect(dotHole, topLeft = Offset(c.x - hole, c.y - hole), size = Size(2 * hole, 2 * hole))
             val text = measurer.measure(v.toString(), if (last) latestStyle else valueStyle)
             val tx = (c.x - text.size.width / 2f).coerceIn(0f, size.width - text.size.width)
-            drawText(text, topLeft = Offset(tx, c.y - 10.dp.toPx() - text.size.height))
+            // Over the dot, unless the line comes down to it: then the line runs through the space
+            // over it (the last dot after a higher one did), so the number goes under it instead.
+            val neighbours = listOfNotNull(points.getOrNull(i - 1), points.getOrNull(i + 1))
+            val under = neighbours.isNotEmpty() && neighbours.average() > v
+            val ty = if (under) c.y + 10.dp.toPx() else c.y - 10.dp.toPx() - text.size.height
+            drawText(text, topLeft = Offset(tx, ty.coerceIn(0f, size.height - text.size.height)))
         }
     }
 }

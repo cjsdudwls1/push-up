@@ -343,11 +343,7 @@ fun HomeScreen(
 
             // The calories last: the most to read, and the slowest to change.
             Spacer(Modifier.height(12.dp))
-            CalorieCard(
-                progress = state.burn,
-                exercise = selected,
-                modifier = Modifier.clickable(onClick = onRecords),
-            )
+            CalorieCard(progress = state.burn, exercise = selected, onOpen = onRecords)
         }
 
         // Pinned under everything else so it never scrolls away: which movement, and go.
@@ -471,22 +467,26 @@ private fun RecordCard(record: MovementRecord, onClick: () -> Unit) {
     val colors = LocalGameColors.current
     val hold = Exercises.of(record.exercise).kind == MovementKind.HOLD
     val exerciseName = stringResource(exerciseLabelRes(record.exercise))
-    Row(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
             .cardSurface()
             .clickable(onClickLabel = stringResource(R.string.action_view_records), onClick = onClick)
             .padding(horizontal = 20.dp, vertical = 16.dp),
-        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Column(Modifier.weight(1f)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
                 text = stringResource(R.string.home_record_title),
                 style = Type.labelL,
                 color = Palette.TextTertiary,
-                modifier = Modifier.semantics { heading() },
+                modifier = Modifier
+                    .weight(1f)
+                    .semantics { heading() },
             )
-            Spacer(Modifier.height(4.dp))
+            MoreLink()
+        }
+        Spacer(Modifier.height(4.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
                 text = stringResource(
                     if (hold) R.string.home_record_value_hold else R.string.home_record_value,
@@ -495,18 +495,19 @@ private fun RecordCard(record: MovementRecord, onClick: () -> Unit) {
                 ),
                 style = Type.titleM,
                 color = Palette.TextPrimary,
+                modifier = Modifier.weight(1f),
             )
-        }
-        if (record.gain > 0) {
-            Spacer(Modifier.width(12.dp))
-            Text(
-                text = stringResource(
-                    if (hold) R.string.home_record_gain_hold else R.string.home_record_gain,
-                    record.gain,
-                ),
-                style = Type.labelL,
-                color = colors.accept,
-            )
+            if (record.gain > 0) {
+                Spacer(Modifier.width(12.dp))
+                Text(
+                    text = stringResource(
+                        if (hold) R.string.home_record_gain_hold else R.string.home_record_gain,
+                        record.gain,
+                    ),
+                    style = Type.labelL,
+                    color = colors.accept,
+                )
+            }
         }
     }
 }

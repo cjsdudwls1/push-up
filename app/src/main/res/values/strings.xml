@@ -16,6 +16,7 @@
     <string name="action_skip">건너뛰기</string>
     <string name="action_home">홈으로</string>
     <string name="action_view_records">기록 보기</string>
+    <string name="card_more_records">기록 보기 ›</string>
     <string name="action_settings">설정</string>
 
     <!-- Onboarding & permission -->
