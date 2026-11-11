@@ -320,14 +320,14 @@ private fun <T> SegmentedSetting(
                 Text(
                     text = labelFor(option),
                     style = Type.labelL,
-                    color = if (active) Palette.TextOnAccent else Palette.TextSecondary,
+                    color = if (active) Palette.OnCta else Palette.TextSecondary,
                     textAlign = TextAlign.Center,
                     maxLines = 1,
                     modifier = Modifier
                         .weight(1f)
                         .cardSurface(
                             shape = PixelShape(12.dp),
-                            color = if (active) Palette.Brand500 else Palette.Bg3,
+                            color = if (active) Palette.Cta else Palette.Bg3,
                         )
                         .clickable { onSelect(option) }
                         // A touch target: the label and its padding alone came to 40dp.

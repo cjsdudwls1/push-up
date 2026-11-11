@@ -78,9 +78,9 @@ fun SurvivalDepthGauge(
                 peak[0] = d
             }
 
-            px(0f, 0f, 48f, gh + 30f, Color(0xC70B0E14))
-            px(x - 2f, y0 - 2f, w + 4f, gh + 4f, Color(0xFF2C3340))
-            px(x, y0, w, gh, Color(0xFF0B0E14))
+            px(0f, 0f, 48f, gh + 30f, Color(0xC707081A))
+            px(x - 2f, y0 - 2f, w + 4f, gh + 4f, Color(0xFF2A2860))
+            px(x, y0, w, gh, Color(0xFF07081A))
             val fillH = (d / 100f * gh / 2f).roundToInt() * 2f
             val col = when {
                 d >= deepAt -> Color(0xFFFFC53D)

@@ -89,7 +89,7 @@ private class FrameClock {
 
 /**
  * 고양이 지켜줘's scene as the pixel demo draws it: the dark room, the cat holding the ceiling up,
- * the brick ceiling with its teeth, and the red beat at the edges once the ceiling is close.
+ * the hull-steel ceiling with its teeth, and the red beat at the edges once the ceiling is close.
  *
  * [setUp] is the setting up before a set: the room is left out so the camera shows, which is what
  * lining up is done by, and the cat is faint under the framing guide. [holdUp] raises the cat's
@@ -168,24 +168,38 @@ private const val CEIL_TOP_F = RoomGeometry.CEIL_TOP
 /** How strongly the cat is drawn while setting up, under the framing guide. */
 private const val SETUP_ALPHA = 0.4f
 
-private val FLOOR_EDGE = Color(0xFF2A3140)
+private val FLOOR_EDGE = Color(0xFF3A3470)
 
-/** The room: the wall with its stripes, the floor's edge, and the boards below it. */
+/**
+ * The room, as a ship's deck in deep space (2026-11-11, the space look): a navy wall with the stars
+ * outside it and the hull's ribs every 24, the deck's lit edge, and its plates below.
+ */
 private fun DrawScope.drawRoom(g: RoomGeometry, danger: Float) {
-    drawRect(if (danger > 0.6f) Color(0xFF1F1416) else Color(0xFF171C26))
+    drawRect(if (danger > 0.6f) Color(0xFF1C0A1E) else Color(0xFF0A0B22))
     with(g) {
         val left = leftX
         val right = rightX
-        val stripe = Color(0xFF1F2633)
+        // The stars: fixed, from a hash of the cell, so the same sky every frame and no state.
+        var sy = topY
+        while (sy < RoomGeometry.FLOOR - 4f) {
+            var sx = floor(left / 8f) * 8f
+            while (sx < right) {
+                val h = starHash(sx.toInt() / 8, sy.toInt() / 8)
+                if (h % 23 == 0) px(sx + (h % 7), sy + (h / 7 % 7), if (h % 5 == 0) 2f else 1f, if (h % 5 == 0) 2f else 1f, ROOM_STAR)
+                sx += 8f
+            }
+            sy += 8f
+        }
+        val rib = Color(0xFF15143A)
         // Every 24 from x 8, as the demo's, carried on past its edges.
         var x = 8f + floor((left - 8f) / 24f) * 24f
         while (x < right) {
-            px(x, topY - 4f, 2f, RoomGeometry.FLOOR - topY + 4f, stripe)
+            px(x, topY - 4f, 2f, RoomGeometry.FLOOR - topY + 4f, rib)
             x += 24f
         }
         px(left - 4f, RoomGeometry.FLOOR, right - left + 8f, 4f, FLOOR_EDGE)
-        px(left - 4f, RoomGeometry.FLOOR + 4f, right - left + 8f, RoomGeometry.ART_H, Color(0xFF141922))
-        val board = Color(0xFF1D2330)
+        px(left - 4f, RoomGeometry.FLOOR + 4f, right - left + 8f, RoomGeometry.ART_H, Color(0xFF0F0E2A))
+        val board = Color(0xFF1A1840)
         var y = RoomGeometry.FLOOR + 12f
         while (y < RoomGeometry.FLOOR + (size.height - floorY) / u) {
             px(left - 4f, y, right - left + 8f, 2f, board)
@@ -194,14 +208,23 @@ private fun DrawScope.drawRoom(g: RoomGeometry, danger: Float) {
     }
 }
 
+private val ROOM_STAR = Color(0x99DDE4FF)
+
+/** A cheap, fixed scatter for the stars: the same number for the same cell, every frame. */
+internal fun starHash(i: Int, j: Int): Int {
+    var h = i * 374_761_393 + j * 668_265_263
+    h = (h xor (h ushr 13)) * 1_274_126_177
+    return (h xor (h ushr 16)) and 0x7FFF_FFFF
+}
+
 /**
- * The ceiling as the demo draws it, its underside at the demo's [bottom]: bricks that redden with
- * [danger], a lit edge, and stepped teeth. Up to the top of the screen, however tall it is.
+ * The ceiling as the demo draws it, its underside at the demo's [bottom]: hull plates (bricks in the
+ * demo; steel since the space look) that redden with [danger], a lit edge, and stepped teeth. Up to the top of the screen, however tall it is.
  */
 private fun DrawScope.drawPixelCeiling(g: RoomGeometry, bottom: Float, danger: Float) {
-    val r = (107 + 128 * danger).roundToInt().coerceIn(0, 255)
-    val gg = (87 - 46 * danger).roundToInt().coerceIn(0, 255)
-    val b = (71 - 41 * danger).roundToInt().coerceIn(0, 255)
+    val r = (74 + 161 * danger).roundToInt().coerceIn(0, 255)
+    val gg = (72 - 31 * danger).roundToInt().coerceIn(0, 255)
+    val b = (112 - 72 * danger).roundToInt().coerceIn(0, 255)
     val base = Color(r, gg, b)
     val dark = Color((r * 0.7f).toInt(), (gg * 0.7f).toInt(), (b * 0.7f).toInt())
     val lite = Color(minOf(255, r + 40), minOf(255, gg + 30), minOf(255, b + 25))

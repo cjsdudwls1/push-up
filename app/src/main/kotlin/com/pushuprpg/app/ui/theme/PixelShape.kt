@@ -16,7 +16,9 @@ import kotlin.math.roundToInt
  * whole app (2026-11-10). Each corner is up to three steps of 3 dp, about as many as [radius] would
  * have rounded off; a corner of 0 stays square. Steps land on whole pixels so the edge stays crisp.
  */
-class PixelShape(
+// A data class so two equal shapes compare equal, and a modifier given a new one each recomposition
+// is not redrawn for nothing.
+data class PixelShape(
     private val topStart: Dp,
     private val topEnd: Dp = topStart,
     private val bottomEnd: Dp = topStart,

@@ -292,16 +292,22 @@ the sounds, and decides nothing about how the cat feels. It never changes the ga
 `CatCompanionTest` pins when it speaks.
 
 **The look is pixel art, all of it**, by the owner's choice (2026-11-10, from the pixel demo they
-approved: "아예 싹다 바꾸란 말임"). It keeps concept C's layout (2026-10-09): a dark ground, one lime
-accent (`Palette.Brand500`), cards with no outline (`cardSurface`), the hub's cat inside a ring that
-fills with the day's bar and a start button pinned at the bottom between the movement and the records.
+approved: "아예 싹다 바꾸란 말임"). It keeps concept C's layout (2026-10-09): cards with no outline
+(`cardSurface`), the hub's cat inside a ring that fills with the day's bar and a start button pinned at
+the bottom between 종목 변경 and the records. **The colours are deep space, not lime** (2026-11-11, "아주
+짙은 남색, 아주 짙은 보라, 검은색", a space shooter's feel): navy going to black with a violet haze, and
+pixel stars drifting down in three layers under every menu (`SpaceBackdrop`, still under reduced motion
+or the system's animations off). One call-to-action colour per theme — neon cyan on dark, deep violet on
+light (`Palette.Cta`/`CtaEdge`/`OnCta`); `Palette.Brand500` is the raw cyan for the always-dark run.
+Icons are pixel sprites (`PixelIcons`, `PixelIcon`), not Material's.
 What changed is the drawing: the demo's palette (`ThemeColors.Dark`), corners cut in stairs rather than
 rounded (`PixelShape`, `PixelCircle` — no `RoundedCornerShape`/`CircleShape`), the ring as a grid of
 cells, the cat and its things as sprites, the scenes rendered small and laid over unsmoothed
 (`drawPixelScene`). Every face is Galmuri11 (bold for numbers and headings), with Silkscreen for the run's Latin-only HUD labels such as the combo (`Type.kt`,
 `docs/FONT_CREDITS.md`).
 
-**A set is played in the demo's dark pixel room** (`PixelRoom`): the brick ceiling, the cat, the
+**A set is played in the demo's dark pixel room** (`PixelRoom`), a ship's deck since 2026-11-11 (a
+navy wall with stars through it, a hull-steel ceiling): the ceiling, the cat, the
 pixel HUD and hearts, the depth gauge where the demo has it, all placed on the demo's 240x426 grid
 (`RoomGeometry`). The camera's picture shows only while setting up, which is lining up with it;
 after that the room covers it, so the old 카메라 화면 보기 switch is gone (`AppSettings.showCamera` is

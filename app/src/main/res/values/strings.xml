@@ -71,6 +71,10 @@
     <!-- The hub's one big button, and under it that a session goes on as long as the user likes; the movement is the pill under it, which opens the picker. -->
     <string name="home_cat_play">고양이 지키기</string>
     <string name="home_change_exercise_label">운동 바꾸기</string>
+    <string name="home_change_exercise_short">종목 변경</string>
+    <string name="home_start_description">고양이 지키기 시작, %1$s</string>
+    <string name="home_cat_description">고양이 %1$s</string>
+    <string name="home_today_time">오늘 %1$d분 %2$d초</string>
     <!-- The hub's ring round the cat: today's share of the streak bar, for the movement the button plays. -->
     <string name="home_ring_caption">오늘 %1$s</string>
     <string name="home_ring_caption_hold">오늘 %1$s (초)</string>
@@ -80,6 +84,8 @@
     <!-- What the cat says as the hub opens, by how long it has been. Glad, never reproachful. -->
     <string name="home_welcome_first">반가워요! 같이 천장을 밀어 올려 볼까요?</string>
     <string name="home_welcome_today">오늘도 와 줬네요! 고마워요, 냥</string>
+    <string name="home_welcome_today_2">오늘 몫 끝! 덕분에 천장이 멀어졌어요, 냥</string>
+    <string name="home_welcome_today_streak">벌써 %1$d일째예요! 내일도 기다릴게요, 냥</string>
     <string name="home_welcome_yesterday">또 왔네요! 오늘도 지켜 줄 거죠, 냥?</string>
     <string name="home_welcome_monday">새로운 한 주예요! 이번 주도 같이 해요, 냥</string>
     <string name="home_welcome_back">%1$d일 만이에요! 기다리고 있었어요, 냥</string>
@@ -328,20 +334,20 @@
     <!-- Calories burned: every rep's energy added up, and the food it would take to put it back.
          An estimate for a reference body weight, and said as one. -->
     <!-- The hub's graph: each session's total for one movement, switched by the chips over it. -->
-    <string name="trend_title">세션별 총량</string>
+    <string name="trend_title">%1$s 기록 추이</string>
     <string name="trend_value">%1$,d개</string>
     <string name="trend_value_hold">%1$,d초</string>
-    <string name="trend_latest_label">최근 세션</string>
+    <string name="trend_latest_label">이번 운동</string>
     <string name="trend_up">지난번보다 +%1$,d개</string>
     <string name="trend_up_hold">지난번보다 +%1$,d초</string>
-    <string name="trend_down">지난번보다 -%1$,d개</string>
-    <string name="trend_down_hold">지난번보다 -%1$,d초</string>
+    <string name="trend_down">지난번엔 %1$,d개</string>
+    <string name="trend_down_hold">지난번엔 %1$,d초</string>
     <string name="trend_same">지난번과 같아요</string>
-    <string name="trend_first">첫 세션이에요</string>
-    <string name="trend_empty">%1$s 세션을 하면 여기에 그래프가 그려져요</string>
-    <string name="trend_axis_sessions">최근 %1$d세션</string>
+    <string name="trend_first">첫 기록이에요</string>
+    <string name="trend_empty">%1$s 기록이 생기면 여기에 그래프가 그려져요</string>
+    <string name="trend_axis_sessions">최근 %1$d번</string>
     <string name="trend_axis_latest">최근</string>
-    <string name="trend_graph_label">%1$s 세션별 총량: %2$s</string>
+    <string name="trend_graph_label">%1$s 기록 추이: %2$s</string>
     <string name="burn_title">지금까지 태운 칼로리</string>
     <string name="burn_kcal">%1$skcal</string>
     <string name="burn_none">이제 막 시작했어요</string>

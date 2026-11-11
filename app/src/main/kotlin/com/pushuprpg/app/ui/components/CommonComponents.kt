@@ -24,14 +24,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import com.pushuprpg.app.ui.theme.PixelCircle
 import com.pushuprpg.app.ui.theme.PixelShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.DarkMode
-import androidx.compose.material.icons.rounded.LightMode
-import androidx.compose.material.icons.rounded.LocalFireDepartment
-import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -44,7 +38,6 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
@@ -81,8 +74,9 @@ fun Modifier.cardSurface(
     color: Color = Palette.Bg2,
     borderColor: Color = Color.Transparent,
 ): Modifier = this
-    .clip(shape)
-    .background(color)
+    // Drawn in the shape rather than clipped to it: nothing on a card spills past its edge, and a
+    // clip is a layer per card for nothing.
+    .background(color, shape)
     .then(if (borderColor != Color.Transparent) Modifier.border(1.dp, borderColor, shape) else Modifier)
 
 @Composable
@@ -177,13 +171,13 @@ fun PrimaryButton(
         modifier = modifier
             .fillMaxWidth()
             .heightIn(min = 64.dp)
-            // The face's pressed-in edge: a darker lime under the bottom of the pill, so the button
+            // The face's pressed-in edge: a darker shade under the bottom of the pill, so the button
             // reads as something to push rather than a box with a label in it.
-            .then(if (enabled) Modifier.background(Palette.BrandEdge, PixelCircle).padding(bottom = 5.dp) else Modifier),
+            .then(if (enabled) Modifier.background(Palette.CtaEdge, PixelCircle).padding(bottom = 5.dp) else Modifier),
         shape = PixelCircle,
         colors = ButtonDefaults.buttonColors(
-            containerColor = Palette.Brand500,
-            contentColor = Palette.TextOnAccent,
+            containerColor = Palette.Cta,
+            contentColor = Palette.OnCta,
             disabledContainerColor = Palette.Bg3,
             disabledContentColor = Palette.TextDisabled,
         ),
@@ -258,18 +252,13 @@ fun StreakChip(days: Int, modifier: Modifier = Modifier) {
     val dot = if (alive) LocalGameColors.current.combo else Palette.TextTertiary
     Row(
         modifier = modifier
-            .clip(PixelCircle)
-            .background(Palette.Bg2)
-            .padding(start = 10.dp, end = 14.dp, top = 8.dp, bottom = 8.dp),
+            .heightIn(min = 48.dp)
+            .background(Palette.Bg2, PixelCircle)
+            .padding(start = 12.dp, end = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.Center,
     ) {
-        Icon(
-            imageVector = Icons.Rounded.LocalFireDepartment,
-            contentDescription = null,
-            tint = dot,
-            modifier = Modifier.size(20.dp),
-        )
+        PixelIcon(sprite = PixelIcons.Flame, tint = dot, modifier = Modifier.size(20.dp))
         Spacer(Modifier.width(4.dp))
         Text(
             text = stringResource(R.string.home_streak, days),
@@ -290,7 +279,7 @@ fun StreakChip(days: Int, modifier: Modifier = Modifier) {
 fun ThemeToggle(mode: ThemeMode, onToggle: () -> Unit, modifier: Modifier = Modifier) {
     val toLight = mode == ThemeMode.DARK
     RoundIconButton(
-        icon = if (toLight) Icons.Rounded.LightMode else Icons.Rounded.DarkMode,
+        icon = if (toLight) PixelIcons.Sun else PixelIcons.Moon,
         label = stringResource(if (toLight) R.string.theme_switch_to_light else R.string.theme_switch_to_dark),
         onClick = onToggle,
         modifier = modifier,
@@ -301,7 +290,7 @@ fun ThemeToggle(mode: ThemeMode, onToggle: () -> Unit, modifier: Modifier = Modi
 @Composable
 fun SettingsButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
     RoundIconButton(
-        icon = Icons.Rounded.Settings,
+        icon = PixelIcons.Gear,
         label = stringResource(R.string.action_settings),
         onClick = onClick,
         modifier = modifier,
@@ -310,21 +299,16 @@ fun SettingsButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
 
 /** A round 48dp button with one icon in it, read aloud as [label]. The top bar's buttons are all this. */
 @Composable
-fun RoundIconButton(icon: ImageVector, label: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
+fun RoundIconButton(icon: PixelSprite, label: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
     Box(
         modifier = modifier
             .size(48.dp)
             .clip(PixelCircle)
             .background(Palette.Bg2)
-            .clickable(role = Role.Button, onClick = onClick),
+            .clickable(role = Role.Button, onClickLabel = label, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = label,
-            tint = Palette.TextPrimary,
-            modifier = Modifier.size(22.dp),
-        )
+        PixelIcon(sprite = icon, tint = Palette.TextPrimary, contentDescription = label, modifier = Modifier.size(24.dp))
     }
 }
 
@@ -337,8 +321,7 @@ fun Pill(text: String, tint: Color, modifier: Modifier = Modifier) {
         color = tint,
         maxLines = 1,
         modifier = modifier
-            .clip(PixelCircle)
-            .background(tint.copy(alpha = 0.16f))
+            .background(tint.copy(alpha = 0.16f), PixelCircle)
             .padding(horizontal = 10.dp, vertical = 5.dp),
     )
 }

@@ -3,7 +3,10 @@ package com.pushuprpg.app.ui.components
 import androidx.annotation.StringRes
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -12,6 +15,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.selection.selectable
 import com.pushuprpg.app.ui.theme.PixelCircle
@@ -30,6 +36,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.rememberTextMeasurer
@@ -297,6 +304,7 @@ fun RunGrowthLines(growth: RunGrowth?, modifier: Modifier = Modifier) {
  * for a plank ([com.pushuprpg.core.progression.Trends]). A rise is coloured; a dip is drawn as it was
  * and said in grey — the graph is there to show how it is going, not to scold.
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun SessionTrendCard(
     trends: Map<ExerciseType, SessionTrend>,
@@ -315,31 +323,50 @@ fun SessionTrendCard(
             .padding(20.dp),
     ) {
         Text(
-            text = stringResource(R.string.trend_title),
+            text = stringResource(R.string.trend_title, exerciseName),
             style = Type.labelL,
             color = Palette.TextTertiary,
+            modifier = Modifier.semantics { heading() },
         )
         Spacer(Modifier.height(10.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
+        // Scrolls sideways rather than squeezing: five names in a row do not fit a narrow phone at a
+        // large font. The picked one is filled and underlined, so it is told by more than colour.
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState())
+                .selectableGroup(),
+        ) {
             ExerciseType.entries.forEach { exercise ->
                 val active = exercise == selected
-                Text(
-                    text = stringResource(exerciseLabelRes(exercise)),
-                    style = Type.labelM,
-                    color = if (active) Palette.TextOnAccent else Palette.TextSecondary,
-                    textAlign = TextAlign.Center,
-                    maxLines = 1,
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center,
                     modifier = Modifier
-                        .weight(1f)
-                        .clip(PixelCircle)
-                        // The lime, as the settings' picked segment and the hub's ring are.
-                        .background(if (active) Palette.Brand500 else Palette.Bg3)
+                        .widthIn(min = 64.dp)
+                        .background(if (active) Palette.Cta else Palette.Bg3, PixelCircle)
                         .selectable(selected = active, role = Role.Tab) { onSelect(exercise) }
-                        // A touch target: the chip is a tap to switch, so it is a full 44dp tall.
-                        .heightIn(min = 44.dp)
-                        .wrapContentHeight()
-                        .padding(vertical = 10.dp),
-                )
+                        // A touch target: the chip is a tap to switch, so it is a full 48dp tall.
+                        .heightIn(min = 48.dp)
+                        .padding(horizontal = 14.dp),
+                ) {
+                    Text(
+                        text = stringResource(exerciseLabelRes(exercise)),
+                        style = Type.labelM,
+                        color = if (active) Palette.OnCta else Palette.TextSecondary,
+                        textAlign = TextAlign.Center,
+                        maxLines = 1,
+                        modifier = Modifier.padding(top = 12.dp, bottom = 4.dp),
+                    )
+                    Spacer(
+                        Modifier
+                            .width(16.dp)
+                            .height(3.dp)
+                            .background(if (active) Palette.OnCta else Color.Transparent),
+                    )
+                    Spacer(Modifier.height(6.dp))
+                }
             }
         }
         Spacer(Modifier.height(16.dp))
@@ -356,18 +383,23 @@ fun SessionTrendCard(
             return@Column
         }
 
-        Row(verticalAlignment = Alignment.Bottom) {
+        // Wraps rather than crowds: at a large font the change goes under the number instead of
+        // pushing it off the card.
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.fillMaxWidth(),
+        ) {
             Text(
                 text = stringResource(if (hold) R.string.trend_value_hold else R.string.trend_value, latest),
                 style = Type.numeralL,
                 color = Palette.TextPrimary,
+                modifier = Modifier.align(Alignment.Bottom),
             )
-            Spacer(Modifier.width(8.dp))
             Text(
                 text = stringResource(R.string.trend_latest_label),
                 style = Type.bodyM,
                 color = Palette.TextTertiary,
-                modifier = Modifier.padding(bottom = 5.dp),
+                modifier = Modifier.align(Alignment.Bottom).padding(bottom = 5.dp),
             )
             Spacer(Modifier.weight(1f))
             val change = trend.change
@@ -375,18 +407,19 @@ fun SessionTrendCard(
                 text = when {
                     change == null -> stringResource(R.string.trend_first)
                     change > 0 -> stringResource(if (hold) R.string.trend_up_hold else R.string.trend_up, change)
-                    change < 0 -> stringResource(if (hold) R.string.trend_down_hold else R.string.trend_down, -change)
+                    // A drop reads as what last time was, not as a minus.
+                    change < 0 -> stringResource(if (hold) R.string.trend_down_hold else R.string.trend_down, latest - change)
                     else -> stringResource(R.string.trend_same)
                 },
                 style = Type.labelL,
                 color = if (change != null && change > 0) colors.accept else Palette.TextSecondary,
-                modifier = Modifier.padding(bottom = 6.dp),
+                modifier = Modifier.align(Alignment.Bottom).padding(bottom = 6.dp),
             )
         }
         Spacer(Modifier.height(12.dp))
         TrendLine(
             points = trend.points,
-            // The brand's lime on dark, its olive on light: the ring's colour, readable on either.
+            // The brand colour as text: cyan on dark, violet on light, readable on either.
             line = Palette.Brand400,
             label = stringResource(
                 R.string.trend_graph_label,

@@ -51,6 +51,7 @@ import com.pushuprpg.app.pose.PoseLandmarkerSource
 import com.pushuprpg.app.ui.components.FOLLOWS_PHONE_ROTATION
 import com.pushuprpg.app.ui.components.FollowPhoneRotation
 import com.pushuprpg.app.ui.components.ModelErrorBanner
+import com.pushuprpg.app.ui.components.SpaceBackdrop
 import com.pushuprpg.app.ui.components.RunMusic
 import com.pushuprpg.app.ui.screens.*
 import com.pushuprpg.app.R
@@ -136,12 +137,23 @@ fun PushupRpgApp(
         }
     }
 
+    // The system's "remove animations" counts as asking for less movement too: the setting alone
+    // left the stars drifting and the button breathing for someone who had turned motion off phone-wide.
+    val systemStill = remember(context) {
+        android.provider.Settings.Global.getFloat(
+            context.contentResolver,
+            android.provider.Settings.Global.ANIMATOR_DURATION_SCALE,
+            1f,
+        ) == 0f
+    }
+
     PushupRpgTheme(
         darkTheme = darkTheme,
         colourBlindSafe = settings.colourBlindSafe,
-        reduceMotion = settings.reduceMotion,
+        reduceMotion = settings.reduceMotion || systemStill,
     ) {
         Box(Modifier.fillMaxSize().background(Palette.Bg1)) {
+            SpaceBackdrop(Modifier.matchParentSize())
             // Nothing is drawn until persisted progress and settings have landed; see the nullable
             // collects above.
             if (progressState == null || settingsState == null) return@Box
@@ -580,9 +592,12 @@ private fun SystemBars(darkSurface: Boolean) {
     }
 }
 
-/** [enableEdgeToEdge]'s own default scrims, which it keeps private. */
-private val LIGHT_NAV_SCRIM = android.graphics.Color.argb(0xE6, 0xFF, 0xFF, 0xFF)
-private val DARK_NAV_SCRIM = android.graphics.Color.argb(0x80, 0x1B, 0x1B, 0x1B)
+/**
+ * The three-button bar's scrims, in the ground's own colours: [enableEdgeToEdge]'s default grey drew
+ * a band across the bottom of the hub that belonged to nothing on it.
+ */
+private val LIGHT_NAV_SCRIM = android.graphics.Color.argb(0xE6, 0xED, 0xEE, 0xF9)
+private val DARK_NAV_SCRIM = android.graphics.Color.argb(0xCC, 0x07, 0x08, 0x1A)
 
 /**
  * Whether [entry] is still the screen on top, and so has not already left.

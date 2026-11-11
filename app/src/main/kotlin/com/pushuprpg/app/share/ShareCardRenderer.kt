@@ -46,16 +46,16 @@ object ShareCardRenderer {
     private const val INFO = 0xFF35C3FF.toInt()
 
     // The pixel demo's room and its cheese cat.
-    private const val CAT_BG = 0xFF0B0E14.toInt()
-    private const val CAT_PANEL = 0xFF171C26.toInt()
-    private const val ROOM = 0xFF171C26.toInt()
-    private const val ROOM_STRIPE = 0xFF1F2633.toInt()
-    private const val FLOOR_EDGE = 0xFF2A3140.toInt()
-    private const val FLOOR = 0xFF141922.toInt()
-    private const val FLOOR_BOARD = 0xFF1D2330.toInt()
-    private const val BRICK = 0xFF6B5747.toInt()
-    private const val BRICK_DARK = 0xFF4A3C31.toInt()
-    private const val BRICK_LIT = 0xFF937560.toInt()
+    private const val CAT_BG = 0xFF07081A.toInt()
+    private const val CAT_PANEL = 0xFF0A0B22.toInt()
+    private const val ROOM = 0xFF0A0B22.toInt()
+    private const val ROOM_STRIPE = 0xFF15143A.toInt()
+    private const val FLOOR_EDGE = 0xFF3A3470.toInt()
+    private const val FLOOR = 0xFF0F0E2A.toInt()
+    private const val FLOOR_BOARD = 0xFF1A1840.toInt()
+    private const val BRICK = 0xFF4A4870.toInt()
+    private const val BRICK_DARK = 0xFF2E2C50.toInt()
+    private const val BRICK_LIT = 0xFF7C7AB0.toInt()
     private const val CAT_OUTLINE = 0xFF2B1A12.toInt()
     private const val CAT_FUR = 0xFFFF9A2E.toInt()
     private const val CAT_STRIPE = 0xFFE0761A.toInt()
@@ -78,7 +78,7 @@ object ShareCardRenderer {
     // ---------------------------------------------------------------- 고양이
 
     private fun drawSurvival(res: Resources, canvas: Canvas, data: ShareCardData.Survival) {
-        background(canvas, top = CAT_BG, bottom = 0xFF0B0E14.toInt(), glow = DEEP)
+        background(canvas, top = CAT_BG, bottom = 0xFF1A0E3A.toInt(), glow = DEEP)
         header(res, canvas, chip = data.movement, chipColor = DEEP)
 
         val panel = panel(canvas, CAT_PANEL)

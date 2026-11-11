@@ -42,11 +42,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import com.pushuprpg.app.ui.theme.PixelCircle
 import com.pushuprpg.app.ui.theme.PixelShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -87,6 +83,8 @@ import com.pushuprpg.app.ui.components.CameraErrorCard
 import com.pushuprpg.app.ui.components.KeepScreenOn
 import com.pushuprpg.app.ui.components.ModelErrorBanner
 import com.pushuprpg.app.ui.components.PrimaryButton
+import com.pushuprpg.app.ui.components.PixelIcon
+import com.pushuprpg.app.ui.components.PixelIcons
 import com.pushuprpg.app.ui.components.RoundIconButton
 import com.pushuprpg.app.ui.components.RunGrowthLines
 import com.pushuprpg.app.ui.components.SecondaryButton
@@ -422,10 +420,11 @@ fun SurvivalScreen(
                     .clickable(onClick = close),
                 contentAlignment = Alignment.Center,
             ) {
-                Icon(
-                    imageVector = Icons.Filled.Close,
-                    contentDescription = stringResource(R.string.action_close),
+                PixelIcon(
+                    sprite = PixelIcons.Close,
                     tint = Palette.TextPrimary,
+                    contentDescription = stringResource(R.string.action_close),
+                    modifier = Modifier.size(20.dp),
                 )
             }
         }
@@ -454,7 +453,7 @@ fun SurvivalScreen(
             }
             if (settings != null) {
                 RoundIconButton(
-                    icon = Icons.Rounded.Settings,
+                    icon = PixelIcons.Gear,
                     label = stringResource(R.string.action_settings),
                     onClick = { settingsOpen = true },
                 )
@@ -812,7 +811,7 @@ private fun SetCounter(set: Int, now: Int, best: Int, hold: Boolean, hud: PixelH
 
 /** The demo's HUD faces, in whole multiples of one of the art's pixels ([u]). */
 private class PixelHud(u: Float, private val density: Density) {
-    private val shadow = Shadow(color = Color(0xFF0B0E14), offset = Offset(u, u), blurRadius = 0f)
+    private val shadow = Shadow(color = Color(0xFF07081A), offset = Offset(u, u), blurRadius = 0f)
     private fun face(px: Float, family: FontFamily, weight: FontWeight) = TextStyle(
         fontFamily = family,
         fontWeight = weight,
@@ -827,11 +826,11 @@ private class PixelHud(u: Float, private val density: Density) {
 }
 
 private val HUD_TEXT = Color(0xFFFFF4E0)
-private val HUD_DIM = Color(0xFF9AA3B2)
-private val ROOM_DARK = Color(0xFF171C26)
+private val HUD_DIM = Color(0xFFA9AED6)
+private val ROOM_DARK = Color(0xFF0A0B22)
 
 /** Over the camera while setting up: dark enough for the HUD, light enough to line up by. */
-private val SETUP_WASH = Color(0x8C0B0E14)
+private val SETUP_WASH = Color(0x8C07081A)
 
 /**
  * The rest between two sets.

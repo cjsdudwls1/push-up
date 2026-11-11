@@ -1,18 +1,12 @@
 package com.pushuprpg.app.ui.screens
 
-import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawOutline
+import androidx.compose.ui.graphics.drawscope.translate
 import kotlin.math.PI
 import kotlin.math.atan2
 import kotlin.math.floor
-import kotlin.math.roundToInt
 import kotlin.math.sqrt
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -23,11 +17,6 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import com.pushuprpg.app.ui.theme.PixelCircle
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.BarChart
-import androidx.compose.material.icons.rounded.PlayArrow
-import androidx.compose.material.icons.rounded.SwapHoriz
-import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -37,12 +26,23 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithCache
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableIntStateOf
+import kotlinx.coroutines.delay
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -153,7 +153,6 @@ fun HomeScreen(
     catWear: Set<CatItem>,
     modifier: Modifier = Modifier,
 ) {
-    val colors = LocalGameColors.current
     val name = catName.ifBlank { stringResource(R.string.cat_default_name) }
     val exerciseName = stringResource(exerciseLabelRes(lastExercise))
 
@@ -165,9 +164,11 @@ fun HomeScreen(
         Column(
             modifier = Modifier
                 .weight(1f)
+                .bottomFade()
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 20.dp)
-                .padding(top = 20.dp, bottom = 16.dp),
+                // Room under the last card for the fade: it ends clear of the buttons, not under them.
+                .padding(top = 20.dp, bottom = 40.dp),
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -191,6 +192,18 @@ fun HomeScreen(
                 // Once today's workout is in, a find not yet looked at is the news; a return is said first.
                 text = if (state.newGifts > 0 && state.welcome == Welcome.Today) {
                     stringResource(R.string.home_welcome_gift)
+                } else if (state.welcome == Welcome.Today) {
+                    // Three ways to say thanks, a different one each day, so it is not the same line
+                    // every time the hub opens.
+                    when ((state.today % 3).toInt()) {
+                        0 -> stringResource(R.string.home_welcome_today)
+                        1 -> if (state.streakShown >= 2) {
+                            stringResource(R.string.home_welcome_today_streak, state.streakShown)
+                        } else {
+                            stringResource(R.string.home_welcome_today_2)
+                        }
+                        else -> stringResource(R.string.home_welcome_today_2)
+                    }
                 } else {
                     welcomeText(state.welcome, monday = Weeks.mondayOf(state.today) == state.today)
                 },
@@ -207,12 +220,18 @@ fun HomeScreen(
                 fraction = if (left == 0) 1f else (bar.streakBar - left).toFloat() / bar.streakBar,
                 modifier = Modifier.align(Alignment.CenterHorizontally),
             ) {
+                val catDescription = stringResource(R.string.home_cat_description, name)
                 CatPortrait(
                     coat = catCoat,
                     wear = catWear,
                     modifier = Modifier
                         .size(width = 176.dp, height = 124.dp)
-                        .clickable(onClickLabel = stringResource(R.string.home_wardrobe_open), onClick = onWardrobe),
+                        .clickable(
+                            onClickLabel = stringResource(R.string.home_wardrobe_open),
+                            role = Role.Button,
+                            onClick = onWardrobe,
+                        )
+                        .semantics { contentDescription = catDescription },
                 )
                 if (left > 0) {
                     Row(verticalAlignment = Alignment.Bottom) {
@@ -238,8 +257,14 @@ fun HomeScreen(
                         color = Palette.TextSecondary,
                     )
                 } else {
+                    // A day of only planks has no reps to count, so it says the time instead of 0개.
+                    val seconds = (state.todayActiveMs / 1_000).toInt()
                     Text(
-                        text = stringResource(R.string.home_today_reps, state.todayReps),
+                        text = if (state.todayReps == 0 && seconds > 0) {
+                            stringResource(R.string.home_today_time, seconds / 60, seconds % 60)
+                        } else {
+                            stringResource(R.string.home_today_reps, state.todayReps)
+                        },
                         style = Type.titleL,
                         color = Palette.TextPrimary,
                     )
@@ -290,6 +315,10 @@ fun HomeScreen(
             // going, a movement at a time, switched with one tap on its chip. It opens on the
             // movement picked last; the calories come under it.
             Spacer(Modifier.height(22.dp))
+            if (state.loading) {
+                Spacer(Modifier.fillMaxWidth().height(LOADING_HEIGHT))
+                return@Column
+            }
             var graphed by rememberSaveable(lastExercise) { mutableStateOf(lastExercise) }
             SessionTrendCard(
                 trends = state.trends,
@@ -334,6 +363,33 @@ fun HomeScreen(
         )
     }
 }
+
+/** About the height of the cards under the cat, held while they load so the page does not jump. */
+private val LOADING_HEIGHT = 520.dp
+
+/**
+ * The scroll's bottom edge fades out in four steps over [FADE] rather than being cut off under the
+ * buttons: a card going under them reads as more below, not as a card cut in half. Faded by alpha,
+ * so it works over the moving stars as well as over a plain ground.
+ */
+private fun Modifier.bottomFade(): Modifier = this
+    .graphicsLayer(compositingStrategy = CompositingStrategy.Offscreen)
+    .drawWithContent {
+        drawContent()
+        val band = FADE.toPx() / FADE_STEPS
+        for (step in 0 until FADE_STEPS) {
+            val keep = 1f - (step + 1f) / (FADE_STEPS + 1f)
+            drawRect(
+                Color.Black.copy(alpha = keep),
+                topLeft = Offset(0f, size.height - FADE.toPx() + step * band),
+                size = Size(size.width, band),
+                blendMode = BlendMode.DstIn,
+            )
+        }
+    }
+
+private val FADE = 28.dp
+private const val FADE_STEPS = 4
 
 /**
  * What the cat says as the hub opens. Glad whatever the gap, and more so the longer it was: a week
@@ -394,8 +450,7 @@ private fun PageDots(count: Int, current: Int, modifier: Modifier = Modifier) {
             Box(
                 Modifier
                     .size(6.dp)
-                    .clip(PixelCircle)
-                    .background(if (i == current) colors.accept else Palette.Bg3),
+                    .background(if (i == current) colors.accept else Palette.Bg3, PixelCircle),
             )
         }
     }
@@ -423,6 +478,7 @@ private fun RecordCard(record: MovementRecord, onClick: () -> Unit) {
                 text = stringResource(R.string.home_record_title),
                 style = Type.labelL,
                 color = Palette.TextTertiary,
+                modifier = Modifier.semantics { heading() },
             )
             Spacer(Modifier.height(4.dp))
             Text(
@@ -466,7 +522,7 @@ private fun WeekCard(thisWeek: WeekSummary, lastWeek: WeekSummary, today: Long) 
                 text = stringResource(R.string.week_title),
                 style = Type.titleM,
                 color = Palette.TextPrimary,
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.weight(1f).semantics { heading() },
             )
             Text(
                 text = stringResource(R.string.week_totals, thisWeek.activeDays, thisWeek.reps),
@@ -511,14 +567,16 @@ private fun WeekDays(
 ) {
     val colors = LocalGameColors.current
     val labels = stringArrayResource(R.array.weekday_short)
+    // Dark text on the bright greens and blue of the dark theme, light text on the deep ones of the
+    // light theme: dark on the light theme's green was 3.6:1, white on it is 5.4:1.
+    val onAccept = if (colors.accept.luminance() > 0.25f) Palette.TextOnAccent else Color.White
     Row(modifier = modifier, horizontalArrangement = Arrangement.SpaceBetween) {
         days.forEachIndexed { i, worked ->
             val isToday = i == todayIndex
             Box(
                 modifier = Modifier
                     .size(size)
-                    .clip(PixelCircle)
-                    .background(if (worked) colors.accept else Palette.Bg3)
+                    .background(if (worked) colors.accept else Palette.Bg3, PixelCircle)
                     .then(if (isToday && !worked) Modifier.border(2.dp, colors.accept, PixelCircle) else Modifier),
                 contentAlignment = Alignment.Center,
             ) {
@@ -526,7 +584,7 @@ private fun WeekDays(
                     text = labels.getOrElse(i) { "" },
                     style = Type.labelM,
                     color = when {
-                        worked -> Palette.TextOnAccent
+                        worked -> onAccept
                         isToday -> Palette.TextPrimary
                         else -> Palette.TextTertiary
                     },
@@ -546,13 +604,12 @@ private fun WardrobePill(newGifts: Int, onClick: () -> Unit, modifier: Modifier 
     Text(
         text = if (fresh) stringResource(R.string.home_wardrobe_new, newGifts) else stringResource(R.string.home_wardrobe),
         style = Type.labelL,
-        color = if (fresh) Palette.TextOnAccent else Palette.TextSecondary,
+        color = if (fresh) Palette.OnCta else Palette.TextSecondary,
         maxLines = 1,
         modifier = modifier
             .heightIn(min = 48.dp)
-            .clip(PixelCircle)
-            .background(if (fresh) Palette.Brand500 else Palette.Bg2)
-            .clickable(onClick = onClick)
+            .background(if (fresh) Palette.Cta else Palette.Bg2, PixelCircle)
+            .clickable(role = Role.Button, onClick = onClick)
             .wrapContentHeight(Alignment.CenterVertically)
             .padding(horizontal = 14.dp),
     )
@@ -610,9 +667,9 @@ private fun TodayRing(
 }
 
 /**
- * The bottom of the hub: the start button in the middle, as a round lime button with a pressed
- * edge and a ring that breathes out from it, and a smaller round button either side — the movement
- * it will play, which opens the picker, and the records.
+ * The bottom of the hub: the launch button in the middle, a round button in the call-to-action
+ * colour with a pressed edge and a ring that steps out from it like a charging shot, and a smaller
+ * round button either side: 종목 변경, which opens the picker, and the records.
  */
 @Composable
 private fun StartBar(
@@ -628,14 +685,19 @@ private fun StartBar(
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
         SideOrb(
-            icon = Icons.Rounded.SwapHoriz,
-            label = exerciseName,
+            icon = PixelIcons.Swap,
+            label = stringResource(R.string.home_change_exercise_short),
             description = stringResource(R.string.home_change_exercise_label),
             onClick = onChangeExercise,
         )
-        StartOrb(text = stringResource(R.string.home_cat_play), onClick = onPlay)
+        StartOrb(
+            text = stringResource(R.string.home_cat_play),
+            exerciseName = exerciseName,
+            description = stringResource(R.string.home_start_description, exerciseName),
+            onClick = onPlay,
+        )
         SideOrb(
-            icon = Icons.Rounded.BarChart,
+            icon = PixelIcons.Bars,
             label = stringResource(R.string.action_view_records),
             description = null,
             onClick = onRecords,
@@ -643,82 +705,119 @@ private fun StartBar(
     }
 }
 
+/**
+ * The start button: [text] over the movement it will play, so the one tap says what it starts.
+ *
+ * Its ring is drawn outside the button, in the room around it, and steps out a size at a time, five
+ * sizes, [RING_STEP_MS] apart: a sprite's frames rather than every vsync. Under reduced motion it holds
+ * two faint rings still. The face is the same pixel circle as its darker edge, drawn up from it, so
+ * the two line up cell for cell.
+ */
 @Composable
-private fun StartOrb(text: String, onClick: () -> Unit) {
+private fun StartOrb(text: String, exerciseName: String, description: String, onClick: () -> Unit) {
     val reduceMotion = LocalReduceMotion.current
-    val breath = rememberInfiniteTransition(label = "start-orb")
-    val phase by breath.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(tween(durationMillis = 2_000, easing = LinearEasing)),
-        label = "start-orb-phase",
-    )
-    val lime = Palette.Brand500
-    Box(Modifier.size(156.dp), contentAlignment = Alignment.Center) {
-        Canvas(Modifier.matchParentSize()) {
-            val base = 64.dp.toPx()
-            val reach = size.minDimension / 2f - base
-            // Still, two faint rings; moving, one ring that grows out and fades.
-            fun ring(r: Float, color: Color) {
-                val d = (2f * r).roundToInt().toFloat()
-                val at = (size.minDimension - d) / 2f
-                translate(at, at) {
-                    drawOutline(PixelCircle.createOutline(Size(d, d), layoutDirection, this), color, style = Stroke(3.dp.toPx()))
-                }
-            }
-            if (reduceMotion) {
-                ring(base + reach * 0.45f, lime.copy(alpha = 0.45f))
-                ring(base + reach * 0.95f, lime.copy(alpha = 0.22f))
-            } else {
-                // Stepped outward, a few sizes rather than every frame's, like a sprite's frames.
-                ring(base + reach * (floor(phase * 5f) / 4f).coerceAtMost(1f), lime.copy(alpha = 0.5f * (1f - phase)))
+    val step = remember { mutableIntStateOf(0) }
+    if (!reduceMotion) {
+        LaunchedEffect(Unit) {
+            while (true) {
+                delay(RING_STEP_MS)
+                step.intValue = (step.intValue + 1) % RING_STEPS
             }
         }
+    }
+    val cta = Palette.Cta
+    val edge = Palette.CtaEdge
+    val on = Palette.OnCta
+    Box(Modifier.size(156.dp), contentAlignment = Alignment.Center) {
+        // The ring, its five outlines made once per size and colour, and only picked between per frame.
+        Spacer(
+            Modifier
+                .matchParentSize()
+                .drawWithCache {
+                    val base = 62.dp.toPx()
+                    val reach = size.minDimension / 2f - base
+                    val stroke = Stroke(3.dp.toPx())
+                    fun outline(r: Float) = (2f * r).let { d ->
+                        val dd = floor(d)
+                        Triple(dd, (size.minDimension - dd) / 2f, PixelCircle.createOutline(Size(dd, dd), layoutDirection, this))
+                    }
+                    val moving = List(RING_STEPS) { outline(base + reach * (it + 1f) / RING_STEPS) }
+                    val still = listOf(outline(base + reach * 0.45f), outline(base + reach * 0.95f))
+                    onDrawBehind {
+                        if (reduceMotion) {
+                            still.forEachIndexed { i, (_, at, o) ->
+                                translate(at, at) { drawOutline(o, cta.copy(alpha = if (i == 0) 0.45f else 0.22f), style = stroke) }
+                            }
+                        } else {
+                            val i = step.intValue
+                            val (_, at, o) = moving[i]
+                            translate(at, at) { drawOutline(o, cta.copy(alpha = 0.55f * (1f - i / RING_STEPS.toFloat())), style = stroke) }
+                        }
+                    }
+                },
+        )
         Box(
             modifier = Modifier
-                .size(124.dp)
-                .clip(PixelCircle)
-                .background(Palette.BrandEdge)
-                .padding(bottom = 6.dp)
-                .clip(PixelCircle)
-                .background(lime)
-                .clickable(role = Role.Button, onClick = onClick),
-            contentAlignment = Alignment.Center,
+                .size(width = 124.dp, height = 130.dp)
+                .clickable(role = Role.Button, onClickLabel = description, onClick = onClick)
+                .semantics { contentDescription = description },
+            contentAlignment = Alignment.TopCenter,
         ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Icon(
-                    imageVector = Icons.Rounded.PlayArrow,
-                    contentDescription = null,
-                    tint = Palette.TextOnAccent,
-                    modifier = Modifier.size(30.dp),
-                )
-                Text(
-                    text = text,
-                    style = Type.titleM,
-                    color = Palette.TextOnAccent,
-                    textAlign = TextAlign.Center,
-                    maxLines = 2,
-                    modifier = Modifier.widthIn(max = 96.dp),
-                )
+            // The edge: the face's own circle, 6dp lower, so only its bottom shows and the two match cell
+            // for cell.
+            Spacer(
+                Modifier
+                    .padding(top = 6.dp)
+                    .size(124.dp)
+                    .background(edge, PixelCircle),
+            )
+            Box(
+                Modifier
+                    .size(124.dp)
+                    .background(cta, PixelCircle),
+                contentAlignment = Alignment.Center,
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    PixelIcon(sprite = PixelIcons.Play, tint = on, modifier = Modifier.size(24.dp))
+                    Spacer(Modifier.height(2.dp))
+                    Text(
+                        text = text,
+                        style = Type.titleM,
+                        color = on,
+                        textAlign = TextAlign.Center,
+                        maxLines = 2,
+                        modifier = Modifier.widthIn(max = 100.dp),
+                    )
+                    Text(
+                        text = exerciseName,
+                        style = Type.labelM,
+                        color = on,
+                        textAlign = TextAlign.Center,
+                        maxLines = 1,
+                    )
+                }
             }
         }
     }
 }
 
-/** A round 76dp button with an icon over a short label, beside the start button. */
+private const val RING_STEPS = 5
+private const val RING_STEP_MS = 400L
+
+/** A round button, at least 76dp, with an icon over a short label, beside the start button. */
 @Composable
-private fun SideOrb(icon: ImageVector, label: String, description: String?, onClick: () -> Unit) {
+private fun SideOrb(icon: PixelSprite, label: String, description: String?, onClick: () -> Unit) {
     Column(
         modifier = Modifier
-            .size(76.dp)
-            .clip(PixelCircle)
-            .background(Palette.Bg2)
-            .clickable(onClickLabel = description, role = Role.Button, onClick = onClick),
+            .sizeIn(minWidth = 76.dp, minHeight = 76.dp)
+            .background(Palette.Bg2, PixelCircle)
+            .clickable(onClickLabel = description, role = Role.Button, onClick = onClick)
+            .padding(horizontal = 8.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        Icon(imageVector = icon, contentDescription = null, tint = Palette.Brand400, modifier = Modifier.size(24.dp))
-        Spacer(Modifier.height(2.dp))
+        PixelIcon(sprite = icon, tint = Palette.Brand400, modifier = Modifier.size(24.dp))
+        Spacer(Modifier.height(4.dp))
         Text(text = label, style = Type.labelM, color = Palette.TextPrimary, maxLines = 1)
     }
 }
@@ -740,6 +839,7 @@ private fun RecapCard(recap: WeekRecap) {
             text = stringResource(R.string.recap_title),
             style = Type.titleM,
             color = Palette.TextPrimary,
+            modifier = Modifier.semantics { heading() },
         )
         Spacer(Modifier.height(10.dp))
         WeekDays(days = week.days, size = 28.dp, modifier = Modifier.fillMaxWidth())
