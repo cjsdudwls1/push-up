@@ -362,6 +362,7 @@ fun SurvivalScreen(
                         set = state.ended.size + 1,
                         now = if (hold) (life.elapsedMs / 1000L).toInt() else life.reps,
                         best = setBests.at(state.ended.size),
+                        last = setBests.lastAt(state.ended.size),
                         hold = hold,
                         hud = hud,
                     )
@@ -787,7 +788,16 @@ private fun TutorialDoneCard(
  * last seconds. Under reduced motion it holds still. The view model plays a rising blip with each.
  */
 @Composable
-private fun SetCounter(set: Int, now: Int, best: Int, hold: Boolean, hud: PixelHud, modifier: Modifier = Modifier) {
+private fun SetCounter(
+    set: Int,
+    now: Int,
+    best: Int,
+    /** What this set did last session, for doing a little more; null when there was no such set. */
+    last: Int?,
+    hold: Boolean,
+    hud: PixelHud,
+    modifier: Modifier = Modifier,
+) {
     val beaten = best > 0 && now > best
     val toGo = recordToGo(now, best, hold)
     val reduceMotion = LocalReduceMotion.current
@@ -816,6 +826,23 @@ private fun SetCounter(set: Int, now: Int, best: Int, hold: Boolean, hud: PixelH
             style = hud.small,
             color = if (beaten) Palette.Deep else HUD_TEXT,
         )
+        // Last time's count, dim until it is passed (2026-11-12, the owner: progressive overload).
+        if (last != null && last > 0) {
+            val past = now > last
+            Text(
+                text = stringResource(
+                    when {
+                        past && hold -> R.string.set_last_passed_hold
+                        past -> R.string.set_last_passed
+                        hold -> R.string.set_last_hold
+                        else -> R.string.set_last
+                    },
+                    if (past) now - last else last,
+                ),
+                style = hud.small,
+                color = if (past) HUD_TEXT else HUD_DIM,
+            )
+        }
         if (beaten) {
             Text(
                 text = stringResource(R.string.set_record_broken),

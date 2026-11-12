@@ -321,8 +321,9 @@ pixel HUD and hearts, the depth gauge where the demo has it, all placed on the d
 (`RoomGeometry`). The camera's picture shows only while setting up, which is lining up with it;
 after that the room covers it, so the old 카메라 화면 보기 switch is gone (`AppSettings.showCamera` is
 kept only so the stored value reads back). The music in a set is the demo's chiptune (`Chiptune.kt`),
-and a lost heart an 8-bit bonk. The voice says where to stand and nothing else: the cat's lines are
-off, by the owner's choice the same day.
+and a lost heart an 8-bit bonk. The voice says where to stand, and the cat's lines are spoken before
+a set and between sets, never during one: off for two days with the pixel look, back by the owner's
+choice (2026-11-12).
 
 ## Copy
 

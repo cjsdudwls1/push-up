@@ -124,7 +124,7 @@ fun RecordsScreen(
 
         item { CalorieCard(progress = burn, exercise = exercise) }
 
-        // Each movement's best one go against its first: the number that says the body is changing.
+        // Each movement's last run against the one before it, for doing a little more each time.
         if (records.isNotEmpty()) {
             item { SectionHeader(text = stringResource(R.string.records_movements_title)) }
             items(records, key = { "record-" + it.exercise.name }) { record -> MovementRecordRow(record) }
@@ -234,7 +234,11 @@ private fun SessionRow(session: SessionRecord) {
 /** 오후 3:12. */
 private val TIME_OF_DAY: DateTimeFormatter = DateTimeFormatter.ofPattern("a h:mm", Locale.KOREAN)
 
-/** One movement's records: its best one go, its first, and everything done with it. */
+/**
+ * One movement's records: the last run, big, against the one before it (2026-11-12, the owner:
+ * progressive overload is measured against last time, not the first), with its best one go and
+ * everything done with it under the name.
+ */
 @Composable
 private fun MovementRecordRow(record: MovementRecord) {
     val colors = LocalGameColors.current
@@ -256,7 +260,7 @@ private fun MovementRecordRow(record: MovementRecord) {
             Text(
                 text = stringResource(
                     if (hold) R.string.records_movement_line_hold else R.string.records_movement_line,
-                    record.first,
+                    record.best,
                     record.total,
                 ),
                 style = Type.labelM,
@@ -265,18 +269,23 @@ private fun MovementRecordRow(record: MovementRecord) {
         }
         Column(horizontalAlignment = Alignment.End) {
             Text(
-                text = stringResource(if (hold) R.string.records_duration_s else R.string.records_reps_value, record.best),
+                text = stringResource(if (hold) R.string.records_duration_s else R.string.records_reps_value, record.latest),
                 style = Type.numeralL,
                 color = Palette.TextPrimary,
             )
-            if (record.gain > 0) {
+            val since = record.sinceLast
+            if (since != null) {
+                // More than last time in the colour of a win; the same or less just says what last
+                // time was, with no minus sign to read as a telling-off.
+                val up = since > 0
                 Text(
-                    text = stringResource(
-                        if (hold) R.string.home_record_gain_hold else R.string.home_record_gain,
-                        record.gain,
-                    ),
+                    text = if (up) {
+                        stringResource(if (hold) R.string.records_since_last_up_hold else R.string.records_since_last_up, since)
+                    } else {
+                        stringResource(if (hold) R.string.records_last_time_hold else R.string.records_last_time, record.previous ?: 0)
+                    },
                     style = Type.labelM,
-                    color = colors.accept,
+                    color = if (up) colors.accept else Palette.TextTertiary,
                 )
             }
         }

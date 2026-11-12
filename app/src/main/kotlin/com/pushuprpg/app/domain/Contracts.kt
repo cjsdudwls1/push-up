@@ -41,6 +41,8 @@ data class PlayerProgress(
     val giftsSeen: Set<String> = emptySet(),
     /** Each movement's best per set (see [com.pushuprpg.core.progression.SetBests]); absent when never played. */
     val setBests: Map<ExerciseType, List<Int>> = emptyMap(),
+    /** Each movement's last session, set by set, counted as [setBests] is; absent when never played. */
+    val lastSets: Map<ExerciseType, List<Int>> = emptyMap(),
     /** 츄르 in hand: earned by set records, spent in the shop, never otherwise lost. */
     val churu: Int = 0,
     /** Things bought in the shop, by [com.pushuprpg.core.progression.CatItem] name. Never taken back. */
@@ -48,7 +50,8 @@ data class PlayerProgress(
 )
 
 /** [exercise]'s best per set. */
-fun PlayerProgress.setBestsOf(exercise: ExerciseType): SetBests = SetBests(setBests[exercise].orEmpty())
+fun PlayerProgress.setBestsOf(exercise: ExerciseType): SetBests =
+    SetBests(setBests[exercise].orEmpty(), lastSets[exercise].orEmpty())
 
 /** What the shop sees. */
 fun PlayerProgress.purse(): Purse = Purse(

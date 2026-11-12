@@ -16,9 +16,18 @@ import com.pushuprpg.core.survival.SetResult
 data class SetBests(
     /** Index 0 is the first set. Missing or 0 is a set never played. */
     val bests: List<Int> = emptyList(),
+    /**
+     * The last session's sets, as [bests] counts them: what each set did last time, shown beside
+     * its best while it is played (2026-11-12, the owner: progressive overload is a little more than
+     * last time). Empty before the first session of the movement.
+     */
+    val last: List<Int> = emptyList(),
 ) {
     /** The best for the set at [index], or 0 when there is none to beat yet. */
     fun at(index: Int): Int = bests.getOrNull(index) ?: 0
+
+    /** What the set at [index] did last session, or null when that session had no such set. */
+    fun lastAt(index: Int): Int? = last.getOrNull(index)
 
     companion object {
         /** A set played for the first time sets its best: worth a little, so the first session pays. */

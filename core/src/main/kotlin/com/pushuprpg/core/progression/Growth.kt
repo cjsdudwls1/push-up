@@ -141,9 +141,20 @@ data class MovementRecord(
     val total: Int,
     /** Days it was done on. */
     val days: Int,
+    /** The last run's work, in its own unit. */
+    val latest: Int = 0,
+    /** The run's before it, for progressive overload; null while there has been only one. */
+    val previous: Int? = null,
 ) {
     /** How far the best has come from the first; never negative, since a record only goes up. */
     val gain: Int get() = (best - first).coerceAtLeast(0)
+
+    /**
+     * The last run against the one before it, which is what progressive overload is measured by
+     * (2026-11-12, the owner): the first was a long way back, and doing a little more than last
+     * time is the habit. Null with nothing to compare against; negative when it was less.
+     */
+    val sinceLast: Int? get() = previous?.let { latest - it }
 }
 
 object Records {
@@ -158,6 +169,8 @@ object Records {
                 first = ordered.firstOrNull { it.oneGo() > 0 }?.oneGo() ?: 0,
                 total = ordered.sumOf { it.amount() },
                 days = ordered.map { it.epochDay }.distinct().size,
+                latest = ordered.last().amount(),
+                previous = ordered.getOrNull(ordered.size - 2)?.amount(),
             )
         }.filterValues { it.total > 0 || it.best > 0 }
 

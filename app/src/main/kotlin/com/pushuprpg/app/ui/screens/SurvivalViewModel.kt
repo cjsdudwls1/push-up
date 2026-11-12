@@ -280,11 +280,11 @@ class SurvivalViewModel(
         // it used to tell them to come closer over the ending.
         val coaching = now.phase == CatPhase.PLAYING && now.life.alive
         val live = coaching && now.life.started
-        // Only where to stand is spoken: by the owner's decision (2026-11-10, with the pixel look)
-        // the cat's lines are off in the run, before a set and between them as well as during one —
-        // the chiptune speeding up and the one danger meow carry it.
+        // The cat speaks again before a set and between sets, never over one (2026-11-12, the owner:
+        // "고양이 목소리가 더 좋았던거 같기도" — the lines were off for two days with the pixel look).
+        // 설정 → 목소리 turns them off with the rest.
         voice.announce(
-            announcer.survival(null, _placement.value.advice.takeIf { coaching }, tick.tMs),
+            announcer.survival(catView.speech.takeUnless { live }, _placement.value.advice.takeIf { coaching }, tick.tMs),
             exercise = exercise,
         )
         // Not over an ending published from the screen while this frame was in flight.
@@ -588,9 +588,13 @@ class SurvivalViewModel(
                 // Against what is stored now, not what this session started from: a session banked
                 // meanwhile from another screen must not have its records written over.
                 val setsNow = if (tutorial) null else SetOutcome.of(current.setBestsOf(exercise), played, hold)
-                sets = setsNow
+                // This session becomes the last one, unless it did nothing: a session abandoned
+                // while setting up would otherwise wipe what the next one is shown to beat.
+                val lastNow = played.map { SetBests.valueOf(it, hold) }.takeIf { v -> !tutorial && v.any { it > 0 } }
+                sets = setsNow?.copy(bests = setsNow.bests.copy(last = lastNow ?: current.lastSets[exercise].orEmpty()))
                 current.withSurvivalScore(exercise, score).copy(
                     setBests = if (setsNow == null) current.setBests else current.setBests + (exercise to setsNow.bests.bests),
+                    lastSets = if (lastNow == null) current.lastSets else current.lastSets + (exercise to lastNow),
                     churu = current.churu + (setsNow?.churu ?: 0),
                     lifetimeReps = current.lifetimeReps + repsDone,
                     bestCombo = maxOf(current.bestCombo, bestSet),

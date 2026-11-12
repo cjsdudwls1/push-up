@@ -93,8 +93,6 @@
     <string name="home_welcome_gift">선물을 찾아 왔어요! 저를 눌러 보세요, 냥</string>
     <string name="home_welcome_back_month">정말 오랜만이에요! %1$d일 만이네요. 오늘은 가볍게 한 판만 해요, 냥</string>
     <!-- The best one go of the movement picked last, and how far it has come from the first. -->
-    <string name="home_record_gain">처음보다 +%1$d개</string>
-    <string name="home_record_gain_hold">처음보다 +%1$d초</string>
     <!-- The week at a glance. %1$d days with work, %2$d reps. -->
     <!-- Last week summed up, at the start of this one until its first workout. -->
     <string name="recap_title">지난주 결과</string>
@@ -121,8 +119,12 @@
     <string name="records_days_trained">운동한 날</string>
     <string name="records_movements_title">종목별 최고 기록</string>
     <!-- Under a movement's name: where its best one go started, and everything done with it. -->
-    <string name="records_movement_line">처음 %1$d개 · 모두 %2$,d개</string>
-    <string name="records_movement_line_hold">처음 %1$d초 · 모두 %2$,d초</string>
+    <string name="records_movement_line">최고 %1$d개 · 모두 %2$,d개</string>
+    <string name="records_movement_line_hold">최고 %1$d초 · 모두 %2$,d초</string>
+    <string name="records_since_last_up">지난번보다 +%1$d개</string>
+    <string name="records_since_last_up_hold">지난번보다 +%1$d초</string>
+    <string name="records_last_time">지난번 %1$d개</string>
+    <string name="records_last_time_hold">지난번 %1$d초</string>
 
     <!-- Settings -->
     <string name="settings_sfx">효과음</string>
@@ -244,6 +246,10 @@
     <string name="set_now_best_hold">%1$d세트 · 지금 %2$d초 / 최고 %3$d초</string>
     <string name="set_now_first">%1$d세트 · 지금 %2$d · 첫 기록</string>
     <string name="set_now_first_hold">%1$d세트 · 지금 %2$d초 · 첫 기록</string>
+    <string name="set_last">지난번 %1$d개</string>
+    <string name="set_last_hold">지난번 %1$d초</string>
+    <string name="set_last_passed">지난번보다 +%1$d개</string>
+    <string name="set_last_passed_hold">지난번보다 +%1$d초</string>
     <string name="set_record_broken">기록 경신!</string>
     <string name="set_near_record">기록까지 %1$d개!</string>
     <string name="set_near_record_hold">기록까지 %1$d초!</string>
