@@ -54,6 +54,8 @@ android {
         versionCode = (findProperty("pushup.versionCode") as String?)?.toIntOrNull() ?: 1
         versionName = "0.1.1"
         buildConfigField("boolean", "FIREBASE_CONFIGURED", firebaseConfigured.toString())
+        // Where a debug build's 동작 기록 보내기 addresses its mail; set only in debug, below.
+        buildConfigField("String", "TRACE_EMAIL", "\"\"")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         // Korean-only for v1: the default resources are Korean, so shipping an "en"
@@ -111,6 +113,12 @@ android {
             (findProperty("pushup.buildId") as String?)
                 ?.takeIf { it.isNotBlank() }
                 ?.let { versionNameSuffix = "-$it" }
+
+            // The developer's address for a trace, prefilled in the mail app so sending one is a
+            // tap. Kept out of this public repo: it comes from ~/.gradle/gradle.properties
+            // (pushup.traceEmail=...), and a build without it leaves the recipient to the sender.
+            val traceEmail = (findProperty("pushup.traceEmail") as String?)?.trim().orEmpty()
+            buildConfigField("String", "TRACE_EMAIL", "\"${traceEmail.replace("\"", "")}\"")
         }
         release {
             isMinifyEnabled = true

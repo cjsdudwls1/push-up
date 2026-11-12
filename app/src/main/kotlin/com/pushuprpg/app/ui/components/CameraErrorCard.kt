@@ -5,7 +5,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
+import com.pushuprpg.app.ui.theme.PixelShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -30,7 +30,7 @@ fun CameraErrorCard(onRetry: () -> Unit, modifier: Modifier = Modifier) {
         modifier = modifier
             .padding(horizontal = 28.dp)
             .fillMaxWidth()
-            .cardSurface(shape = RoundedCornerShape(22.dp), color = Palette.Bg1)
+            .cardSurface(shape = PixelShape(22.dp), color = Palette.Bg1)
             .padding(22.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {

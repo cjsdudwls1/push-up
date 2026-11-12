@@ -4,7 +4,7 @@ import androidx.annotation.StringRes
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
+import com.pushuprpg.app.ui.theme.PixelShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
@@ -106,6 +106,12 @@ fun SettingsScreen(
             checked = settings.voiceEnabled,
             onCheckedChange = { v -> onChange { it.copy(voiceEnabled = v) } },
         )
+        SwitchSetting(
+            title = stringResource(R.string.settings_cat_voice),
+            subtitle = stringResource(R.string.settings_cat_voice_sub),
+            checked = settings.catVoiceEnabled,
+            onCheckedChange = { v -> onChange { it.copy(catVoiceEnabled = v) } },
+        )
         SegmentedSetting(
             title = stringResource(R.string.settings_music),
             subtitle = stringResource(R.string.settings_music_sub),
@@ -142,12 +148,6 @@ fun SettingsScreen(
             checked = settings.wideCamera,
             onCheckedChange = { v -> onChange { it.copy(wideCamera = v) } },
         )
-        SwitchSetting(
-            title = stringResource(R.string.settings_show_camera),
-            subtitle = stringResource(R.string.settings_show_camera_sub),
-            checked = settings.showCamera,
-            onCheckedChange = { v -> onChange { it.copy(showCamera = v) } },
-        )
         // No exercise picker here. It is the hub's 운동 바꾸기, where the choice is actually being
         // made and where the per-exercise camera placement is worth reading.
 
@@ -173,7 +173,7 @@ fun SettingsScreen(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .cardSurface(shape = RoundedCornerShape(16.dp))
+                .cardSurface(shape = PixelShape(16.dp))
                 .padding(14.dp),
         ) {
             Text(
@@ -228,10 +228,9 @@ fun RunSettingsPanel(
             onCheckedChange = { v -> onChange { it.copy(voiceEnabled = v) } },
         )
         SwitchSetting(
-            title = stringResource(R.string.settings_show_camera),
-            subtitle = stringResource(R.string.settings_show_camera_sub),
-            checked = settings.showCamera,
-            onCheckedChange = { v -> onChange { it.copy(showCamera = v) } },
+            title = stringResource(R.string.settings_cat_voice),
+            checked = settings.catVoiceEnabled,
+            onCheckedChange = { v -> onChange { it.copy(catVoiceEnabled = v) } },
         )
         SegmentedSetting(
             title = stringResource(R.string.settings_music),
@@ -284,7 +283,7 @@ private fun SwitchSetting(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .cardSurface(shape = RoundedCornerShape(16.dp))
+            .cardSurface(shape = PixelShape(16.dp))
             .clickable { onCheckedChange(!checked) }
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -317,7 +316,7 @@ private fun <T> SegmentedSetting(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .cardSurface(shape = RoundedCornerShape(16.dp))
+            .cardSurface(shape = PixelShape(16.dp))
             .padding(16.dp),
     ) {
         Text(text = title, style = Type.bodyL, color = Palette.TextPrimary)
@@ -332,14 +331,14 @@ private fun <T> SegmentedSetting(
                 Text(
                     text = labelFor(option),
                     style = Type.labelL,
-                    color = if (active) Palette.TextOnAccent else Palette.TextSecondary,
+                    color = if (active) Palette.OnCta else Palette.TextSecondary,
                     textAlign = TextAlign.Center,
                     maxLines = 1,
                     modifier = Modifier
                         .weight(1f)
                         .cardSurface(
-                            shape = RoundedCornerShape(12.dp),
-                            color = if (active) Palette.Brand500 else Palette.Bg3,
+                            shape = PixelShape(12.dp),
+                            color = if (active) Palette.Cta else Palette.Bg3,
                         )
                         .clickable { onSelect(option) }
                         // A touch target: the label and its padding alone came to 40dp.
@@ -357,7 +356,7 @@ private fun ActionSetting(title: String, onClick: () -> Unit, subtitle: String? 
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .cardSurface(shape = RoundedCornerShape(16.dp))
+            .cardSurface(shape = PixelShape(16.dp))
             .clickable(onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 16.dp),
     ) {

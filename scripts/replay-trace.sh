@@ -9,7 +9,8 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-TRACE="$(cd "$(dirname "$1")" && pwd)/$(basename "$1")"
+# Git Bash on Windows: `pwd -W` gives C:/... that the JVM can open; /c/... it cannot.
+TRACE="$(cd "$(dirname "$1")" && { pwd -W 2>/dev/null || pwd; })/$(basename "$1")"
 shift
 OUT="${PUSHUP_REPLAY_BUILD_DIR:-${TMPDIR:-/tmp}/pushup-replay-standalone}"
 

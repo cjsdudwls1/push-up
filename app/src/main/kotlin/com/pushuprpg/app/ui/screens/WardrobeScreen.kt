@@ -19,7 +19,7 @@ import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
+import com.pushuprpg.app.ui.theme.PixelShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
@@ -235,7 +235,7 @@ private fun ShopTile(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val shape = RoundedCornerShape(14.dp)
+    val shape = PixelShape(14.dp)
     val tappable = owned || affordable
     Column(
         modifier = modifier
@@ -286,7 +286,7 @@ private fun GiftTile(
     modifier: Modifier = Modifier,
 ) {
     val colors = LocalGameColors.current
-    val shape = RoundedCornerShape(14.dp)
+    val shape = PixelShape(14.dp)
     Column(
         modifier = modifier
             .cardSurface(shape = shape, color = if (worn) Palette.Bg3 else Palette.Bg2)
@@ -333,7 +333,7 @@ private fun GiftTile(
 /** A found thing, on the user's own cat: see [drawItemPicture]. */
 @Composable
 private fun ItemPicture(item: CatItem, coat: CatCoat, modifier: Modifier = Modifier) {
-    Canvas(modifier.clip(RoundedCornerShape(10.dp))) { drawItemPicture(item, coat) }
+    Canvas(modifier.clip(PixelShape(10.dp))) { drawItemPicture(item, coat) }
 }
 
 /** A gift still wrapped: what a secret looks like. */

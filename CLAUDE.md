@@ -1,5 +1,7 @@
 # Working in this repo
 
+**Start with `docs/STATUS.md`**: what is shipped, which PRs wait on what, and the owner's open requests.
+
 ## Layout
 
 - `core/` — pure Kotlin/JVM. Rep detection, calibration, 고양이 지켜줘 (the ceiling, the session
@@ -66,7 +68,7 @@ could not move, and every hand-placed fixture agreed with them.
 
 **The placement coach never contradicts the detector.** `PlacementCoach` says 좋아요 only when the
 detector's own quality is OK and it has armed; every other line is geometry measured on the frame
-the detector refused. Placement advice lives there and in one line per movement on the picker —
+the detector refused. Placement advice lives there and in one line per movement under the hub's chips —
 not in paragraphs.
 
 **A plank is read from the model's 3-D skeleton, not the picture.** From the head, all fours,
@@ -225,8 +227,14 @@ in one session is a full one, which a gift is for (`Gifts.FULL_SESSION_SETS`). `
 all of it.
 
 **The cat is the whole app; the dungeons were taken out** (2026-09-30), by the owner's decision.
-The hub's one big button is 고양이 지키기, and it starts the movement it names at once — the picker
-is the 운동 바꾸기 link under it. There are no classes, levels, XP, difficulty or dungeon unlocks any
+The hub is the picker (2026-11-11, "바로 운동 종목명만 크게"): a dock of one chip per movement
+over one big button that says only the movement's name and starts it at once; the chip picked drives
+the ring round the cat, and is remembered as the last choice. Nothing else is under the cat
+(2026-11-11, by the owner's decision: the graph, the week, the records and the calories were cards
+nobody would look at); the records are the top bar's button, and a record is told in the run instead —
+기록까지 3개! blinking with a rising blip as a set closes in on its best (`recordToGo`), then the
+record's burst. There is no
+picker screen any more; the ending's 운동 바꾸기 goes back to the hub. There are no classes, levels, XP, difficulty or dungeon unlocks any
 more. What they stored is left where it was and not read, so a downgrade still finds it; rows played
 in a dungeon stay in the session table and count everywhere (`SessionRecord.dungeonIndex`), and the
 table kept its columns so there is no migration. Whether tracking works on real phones (H2) is read
@@ -245,14 +253,16 @@ since the app does not ask anyone's weight — and name the foods it would take 
 movement's record is its best one go against its first, and each movement keeps its own best score,
 by the owner's decision, since a pull-up is not a pushup. None of them ever falls, and a set the
 ceiling won or a week away subtracts nothing. The one exception is the graph, by the owner's request
-(2026-11-06): first of the hub's numbers, above the calories, each session's total (every rep of a
+(2026-11-06): each session's total (every rep of a
 10-set session, or every second held) for one movement as a line, the last `Trends.SHOWN`, switched
 by a chip per movement in one tap (`Trends`, `SessionTrendCard`). It draws a dip as a dip, since it is
 there to show how it is going; a rise is coloured and a dip is said in grey, never as a shortfall, and
-a session with nothing in it is left out rather than drawn as a drop. `TrendsTest` pins it. The hub's cat greets by how long it has been (`Welcome`), glad
+a session with nothing in it is left out rather than drawn as a drop. `TrendsTest` pins it. It left
+the hub with the other cards on 2026-11-11 and is drawn nowhere for now; `SessionTrendCard` is kept
+for whichever screen the owner wants it on. The hub's cat greets by how long it has been (`Welcome`), glad
 whatever the answer, and a broken streak is never said — by the owner's decision, pointing at what
-was lost is how a return becomes a goodbye. The week is one card, its days named 월 to 일 rather
-than drawn as dots, with last week summed up at the start of the next (`Weeks.recap`). There are no
+was lost is how a return becomes a goodbye. Last week is summed up on the hub at the start of the
+next (`Weeks.recap`), its days named 월 to 일 rather than drawn as dots. There are no
 push notifications, by the owner's decision.
 
 **The run screen has its own gear**, by the owner's request (2026-11-06): the sound, the cat's voice,
@@ -262,10 +272,11 @@ which a run cannot open without ending. Nothing pauses for it (the ceiling never
 says so while a set is on. The run reads the settings live, so a change is heard at once.
 
 **The cat starts out as 지수**, by the owner's decision (2026-11-06): `cat_default_name`, which a blank
-stored name reads as, and what the name field starts with. **The launcher icon is that cat, the whole of it
-from the paws on the ceiling to its feet and tail, holding the ceiling up over its head** (2026-11-10, by
-the owner's request: the paws and a head alone read as strange) on the ring look's charcoal, the ceiling in its lime — the whole app in one picture; the Play listing's
-512 px copy is `docs/store-assets/icon-512.png`.
+stored name reads as, and what the name field starts with. **The launcher icon is the run's cat, the whole of it,
+holding the ceiling up over its head** (2026-11-10, by the owner's request: the paws and a head alone read
+as strange), in pixels since the same day: the demo's cheese cat under the hull-steel ceiling on the run's ship deck
+(navy, stars, a neon-cyan edge, since 2026-11-11) — the whole app in one picture. `tools/pixel_icon.py` writes the three adaptive layers and the Play
+listing's 512 px copy (`docs/store-assets/icon-512.png`) from one raster; edit it, not the XML.
 
 **The cat's things are gifts it finds, and beside them a shop for 츄르**, by the owner's decisions.
 The shop came later (2026-10-01): a set that beats its own best pays 츄르 (`SetOutcome.churu`), and
@@ -290,11 +301,31 @@ state and events — the rest's lines included; the screen draws the `CatView` i
 the sounds, and decides nothing about how the cat feels. It never changes the game —
 `CatCompanionTest` pins when it speaks.
 
-**The look is concept C, the ring**, by the owner's choice (2026-10-09, from four mockups): a dark
-ground, one lime accent (`Palette.Brand500`), and cards with no outline (`cardSurface`) — a row of
-thin-bordered boxes read as a developer's dashboard. The hub is the cat inside a ring that fills with
-the day's bar, and a round start button pinned at the bottom between the movement and the records.
-Numbers and headings are Orbit, sentences Gowun Dodum (`Type.kt`, `docs/FONT_CREDITS.md`).
+**The look is pixel art, all of it**, by the owner's choice (2026-11-10, from the pixel demo they
+approved: "아예 싹다 바꾸란 말임"). It keeps concept C's layout (2026-10-09): cards with no outline
+(`cardSurface`), the hub's cat inside a ring that fills with the day's bar and the movement dock pinned at
+the bottom (chips, the picked one's camera line, the start button), the records button in the top bar
+where the theme toggle was (the theme is in the settings). **The colours are deep space, not lime** (2026-11-11, "아주
+짙은 남색, 아주 짙은 보라, 검은색", a space shooter's feel): a still gradient under every menu, black-navy
+at the top to a violet haze at the foot in flat bands (`SpaceBackdrop`). It had drifting stars until the
+owner found them busy the same day ("정신사나워"); the stars live only in the run's room now. One call-to-action colour per theme — neon cyan on dark, deep violet on
+light (`Palette.Cta`/`CtaEdge`/`OnCta`); `Palette.Brand500` is the raw cyan for the always-dark run.
+Icons are pixel sprites (`PixelIcons`, `PixelIcon`), not Material's.
+What changed is the drawing: the demo's palette (`ThemeColors.Dark`), corners cut in stairs rather than
+rounded (`PixelShape`, `PixelCircle` — no `RoundedCornerShape`/`CircleShape`), the ring as a grid of
+cells, the cat and its things as sprites, the scenes rendered small and laid over unsmoothed
+(`drawPixelScene`). Every face is Galmuri11 (bold for numbers and headings), with Silkscreen for the run's Latin-only HUD labels such as the combo (`Type.kt`,
+`docs/FONT_CREDITS.md`).
+
+**A set is played in the demo's dark pixel room** (`PixelRoom`), a ship's deck since 2026-11-11 (a
+navy wall with stars through it, a hull-steel ceiling): the ceiling, the cat, the
+pixel HUD and hearts, the depth gauge where the demo has it, all placed on the demo's 240x426 grid
+(`RoomGeometry`). The camera's picture shows only while setting up, which is lining up with it;
+after that the room covers it, so the old 카메라 화면 보기 switch is gone (`AppSettings.showCamera` is
+kept only so the stored value reads back). The music in a set is the demo's chiptune (`Chiptune.kt`),
+and a lost heart an 8-bit bonk. The voice says where to stand, and the cat's lines are all spoken, during a
+set too: off for two days with the pixel look, back by the owner's choice (2026-11-12), with their own
+switch (설정 → 고양이 목소리, `AppSettings.catVoiceEnabled`) under 음성 안내, which mutes everything.
 
 ## Copy
 

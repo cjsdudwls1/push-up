@@ -32,12 +32,6 @@ object Routes {
         "$SURVIVAL_BASE/$tutorial/${exercise.name}"
 
     /**
-     * Choosing the movement for 고양이 지켜줘, on its own destination rather than inside the run:
-     * the camera is not live while somebody reads a safety note.
-     */
-    const val SURVIVAL_PICK = "survival_pick"
-
-    /**
      * The run, which is dark whatever the user picked for the menus.
      *
      * The destination wraps its screen in `AlwaysDark`; this set is what tells the system bars the

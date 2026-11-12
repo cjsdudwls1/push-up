@@ -9,6 +9,8 @@ import com.pushuprpg.app.AppContainer
 import com.pushuprpg.app.audio.GameAudio
 import com.pushuprpg.app.audio.GameVoice
 import com.pushuprpg.core.audio.Announcer
+import com.pushuprpg.core.audio.SoundCue
+import com.pushuprpg.core.audio.SoundRequest
 import com.pushuprpg.app.domain.SettingsRepository
 import com.pushuprpg.app.domain.ProgressRepository
 import com.pushuprpg.app.telemetry.Event
@@ -153,12 +155,16 @@ class SurvivalViewModel(
     /** The set whose record burst has been shown, so it plays once a set; -1 for none yet. */
     @Volatile
     private var recordShownForSet = -1
+    /** The set and the step of its count to the record last heard, so each step is heard once. */
+    private var nearHeard: Pair<Int, Int>? = null
 
     private val _setupSkeleton = MutableStateFlow<RenderSkeleton?>(null)
     val setupSkeleton: StateFlow<RenderSkeleton?> = _setupSkeleton.asStateFlow()
 
     // The cat's face, words and voice. It reads the run and changes nothing in it.
     private val cat = CatCompanion()
+    /** Whether the cat's lines are spoken (설정 → 고양이 목소리). */
+    @Volatile private var catVoice = true
     private val _cat = MutableStateFlow(cat.view())
     val catView: StateFlow<CatView> = _cat.asStateFlow()
 
@@ -168,6 +174,7 @@ class SurvivalViewModel(
                 audio.soundEnabled = it.sfxEnabled
                 audio.hapticStrength = it.hapticStrength
                 voice.enabled = it.voiceEnabled
+                catVoice = it.catVoiceEnabled
                 restMs = it.catRestSeconds * 1_000L
             }
         }
@@ -275,12 +282,12 @@ class SurvivalViewModel(
         // the session is over — after the tenth set the camera still sees the user getting up, and
         // it used to tell them to come closer over the ending.
         val coaching = now.phase == CatPhase.PLAYING && now.life.alive
-        // While the ceiling is moving the cat is read, not heard: by the owner's decision
-        // (2026-11-10) the narration did not suit the run, and the music speeding up and the one
-        // danger meow carry it. Before a set and between sets it still speaks.
         val live = coaching && now.life.started
+        // All of the cat's lines are spoken, during a set as well (2026-11-12, the owner: "고양이
+        // 목소리는 싹다 넣자. on/off 할 수 있게") — off for two days with the pixel look. 설정 →
+        // 고양이 목소리 turns them off alone; 음성 안내 turns off everything spoken.
         voice.announce(
-            announcer.survival(catView.speech.takeUnless { live }, _placement.value.advice.takeIf { coaching }, tick.tMs),
+            announcer.survival(catView.speech.takeIf { catVoice }, _placement.value.advice.takeIf { coaching }, tick.tMs),
             exercise = exercise,
         )
         // Not over an ending published from the screen while this frame was in flight.
@@ -392,10 +399,18 @@ class SurvivalViewModel(
             recordShownForSet = set
             _fx.tryEmit(FxCue.RECORD)
         }
+        // Closing in on it: a blip a step higher with each rep (or second) still to go, as the
+        // counter blinks 기록까지 N개!. Only on a change, so a hold does not blip every frame.
+        val toGo = if (now.life.alive) recordToGo(value, best, hold) else null
+        if (toGo != null && nearHeard != set to toGo) {
+            nearHeard = set to toGo
+            audio.play(SoundRequest(SoundCue.COMBO_UP, rate = 1.6f - 0.12f * (toGo - 1)))
+        }
     }
 
     private fun applyRestart() {
         recordShownForSet = -1
+        nearHeard = null
         session.reset()
         detector.reset()
         cat.reset()
@@ -576,9 +591,13 @@ class SurvivalViewModel(
                 // Against what is stored now, not what this session started from: a session banked
                 // meanwhile from another screen must not have its records written over.
                 val setsNow = if (tutorial) null else SetOutcome.of(current.setBestsOf(exercise), played, hold)
-                sets = setsNow
+                // This session becomes the last one, unless it did nothing: a session abandoned
+                // while setting up would otherwise wipe what the next one is shown to beat.
+                val lastNow = played.map { SetBests.valueOf(it, hold) }.takeIf { v -> !tutorial && v.any { it > 0 } }
+                sets = setsNow?.copy(bests = setsNow.bests.copy(last = lastNow ?: current.lastSets[exercise].orEmpty()))
                 current.withSurvivalScore(exercise, score).copy(
                     setBests = if (setsNow == null) current.setBests else current.setBests + (exercise to setsNow.bests.bests),
+                    lastSets = if (lastNow == null) current.lastSets else current.lastSets + (exercise to lastNow),
                     churu = current.churu + (setsNow?.churu ?: 0),
                     lifetimeReps = current.lifetimeReps + repsDone,
                     bestCombo = maxOf(current.bestCombo, bestSet),

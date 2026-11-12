@@ -107,9 +107,6 @@ internal enum class Sprite(
     val lengthMs: Float get() = frames * frameMs
 }
 
-/** The art's pixels across the screen. */
-private const val ART_WIDTH = 240f
-
 internal class Burst(val sprite: Sprite, val delayMs: Long) {
     /** Frame time of the first frame it was seen on, once its sheet is loaded; -1 until then. */
     var bornNanos = -1L
@@ -131,6 +128,25 @@ class PixelFxState internal constructor(private val resources: Resources) {
             (Random.nextFloat() * 2f - 1f) * shakeAmp,
             (Random.nextFloat() * 2f - 1f) * shakeAmp,
         )
+    }
+
+    private var squashFrom = 0f
+    private var squashAtNanos = 0L
+
+    /**
+     * How far the cat is pressed into the floor at frame time [now]: 1 on a push landing, 1.4 on a
+     * deep one, back up at six a second, as the demo's.
+     */
+    internal fun squash(now: Long): Float {
+        if (squashFrom == 0f) return 0f
+        val left = squashFrom - (now - squashAtNanos) / 1_000_000_000f * 6f
+        return left.coerceIn(0f, squashFrom)
+    }
+
+    internal fun startSquash(amount: Float) {
+        squashFrom = amount
+        // Frame times are System.nanoTime's on Android, so a push lands on the next frame.
+        squashAtNanos = System.nanoTime()
     }
 
     internal fun startShake(amp: Float, ms: Long) {
@@ -172,6 +188,11 @@ fun rememberPixelFx(cues: Flow<FxCue>, reduceMotion: Boolean): PixelFxState {
                 FxCue.RECORD -> Triple(listOf(Sprite.RECORD, Sprite.CONFETTI), 3f, 260L)
                 FxCue.COMBO_END -> Triple(listOf(Sprite.COMBO_END), 3f, 300L)
             }
+            when (cue) {
+                FxCue.HIT -> state.startSquash(1f)
+                FxCue.PERFECT -> state.startSquash(1.4f)
+                else -> Unit
+            }
             val shown = if (calm) sprites.filter { it in CALM_SPRITES } else sprites
             if (!calm && amp > 0f) state.startShake(amp, ms)
             for (sprite in shown) {
@@ -210,14 +231,15 @@ fun rememberPixelFx(cues: Flow<FxCue>, reduceMotion: Boolean): PixelFxState {
 
 private val CALM_SPRITES = setOf(Sprite.HIT, Sprite.COMBO5, Sprite.COMBO10, Sprite.COMBO20, Sprite.COMBO_END)
 
-/** The bursts, over the cat. [floorAt] is where the floor is, as a fraction of the height. */
+/** The bursts, over the cat, placed where the demo had them in its room (see [RoomGeometry]). */
 @Composable
-fun PixelFxLayer(state: PixelFxState, floorAt: Float, modifier: Modifier = Modifier) {
+fun PixelFxLayer(state: PixelFxState, modifier: Modifier = Modifier) {
     Canvas(modifier) {
         val now = state.nowNanos
-        val u = size.width / ART_WIDTH
-        val floorY = size.height * floorAt
-        val cx = size.width / 2f
+        val g = RoomGeometry(size.width, size.height)
+        val u = g.u
+        val floorY = g.floorY
+        val cx = g.cx
         for (burst in state.bursts) {
             val image = state.sheets[burst.sprite] ?: continue
             if (burst.bornNanos < 0) continue
@@ -230,10 +252,10 @@ fun PixelFxLayer(state: PixelFxState, floorAt: Float, modifier: Modifier = Modif
                 Sprite.HIT -> Offset(cx - 26f * u, floorY - 2f * u)
                 Sprite.COMBO_END -> Offset(cx, floorY - 110f * u)
                 Sprite.CONFETTI -> Offset(cx, floorY + 38f * u)
-                Sprite.PERFECT -> Offset(cx, size.height * (215f / 426f))
-                Sprite.MILESTONE -> Offset(cx, size.height * (128f / 426f))
-                Sprite.RECORD -> Offset(cx, size.height * (180f / 426f))
-                else -> Offset(cx, size.height * (170f / 426f))
+                Sprite.PERFECT -> Offset(cx, floorY - 157f * u)
+                Sprite.MILESTONE -> Offset(cx, floorY - 244f * u)
+                Sprite.RECORD -> Offset(cx, floorY - 192f * u)
+                else -> Offset(cx, floorY - 202f * u)
             }
             drawImage(
                 image = image,
@@ -246,4 +268,3 @@ fun PixelFxLayer(state: PixelFxState, floorAt: Float, modifier: Modifier = Modif
         }
     }
 }
-

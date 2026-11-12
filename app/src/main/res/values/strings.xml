@@ -16,6 +16,7 @@
     <string name="action_skip">건너뛰기</string>
     <string name="action_home">홈으로</string>
     <string name="action_view_records">기록 보기</string>
+    <string name="card_more_records">기록 보기 ›</string>
     <string name="action_settings">설정</string>
 
     <!-- Onboarding & permission -->
@@ -69,8 +70,10 @@
     <!-- Home -->
     <string name="home_today_reps">오늘 %1$d개</string>
     <!-- The hub's one big button, and under it that a session goes on as long as the user likes; the movement is the pill under it, which opens the picker. -->
-    <string name="home_cat_play">고양이 지키기</string>
-    <string name="home_change_exercise_label">운동 바꾸기</string>
+    <string name="home_start_description">%1$s 시작하기</string>
+    <string name="home_exercise_chip_unvalidated">%1$s, 시험 중</string>
+    <string name="home_cat_description">고양이 %1$s</string>
+    <string name="home_today_time">오늘 %1$d분 %2$d초</string>
     <!-- The hub's ring round the cat: today's share of the streak bar, for the movement the button plays. -->
     <string name="home_ring_caption">오늘 %1$s</string>
     <string name="home_ring_caption_hold">오늘 %1$s (초)</string>
@@ -80,6 +83,8 @@
     <!-- What the cat says as the hub opens, by how long it has been. Glad, never reproachful. -->
     <string name="home_welcome_first">반가워요! 같이 천장을 밀어 올려 볼까요?</string>
     <string name="home_welcome_today">오늘도 와 줬네요! 고마워요, 냥</string>
+    <string name="home_welcome_today_2">오늘 몫 끝! 덕분에 천장이 멀어졌어요, 냥</string>
+    <string name="home_welcome_today_streak">벌써 %1$d일째예요! 내일도 기다릴게요, 냥</string>
     <string name="home_welcome_yesterday">또 왔네요! 오늘도 지켜 줄 거죠, 냥?</string>
     <string name="home_welcome_monday">새로운 한 주예요! 이번 주도 같이 해요, 냥</string>
     <string name="home_welcome_back">%1$d일 만이에요! 기다리고 있었어요, 냥</string>
@@ -88,18 +93,7 @@
     <string name="home_welcome_gift">선물을 찾아 왔어요! 저를 눌러 보세요, 냥</string>
     <string name="home_welcome_back_month">정말 오랜만이에요! %1$d일 만이네요. 오늘은 가볍게 한 판만 해요, 냥</string>
     <!-- The best one go of the movement picked last, and how far it has come from the first. -->
-    <string name="home_record_title">내 최고 기록</string>
-    <string name="home_record_value">%1$s 한 번에 %2$d개</string>
-    <string name="home_record_value_hold">%1$s %2$d초</string>
-    <string name="home_record_gain">처음보다 +%1$d개</string>
-    <string name="home_record_gain_hold">처음보다 +%1$d초</string>
     <!-- The week at a glance. %1$d days with work, %2$d reps. -->
-    <string name="week_title">이번 주</string>
-    <string name="week_totals">%1$d일 · %2$,d개</string>
-    <string name="week_ahead">벌써 지난주보다 %1$,d개 더 했어요!</string>
-    <string name="week_last">지난주에는 %1$d일, %2$,d개 했어요</string>
-    <string name="week_empty">이번 주 첫 운동을 해 볼까요?</string>
-    <string name="week_first">좋아요, 이번 주를 시작했어요!</string>
     <!-- Last week summed up, at the start of this one until its first workout. -->
     <string name="recap_title">지난주 결과</string>
     <string name="recap_totals">%1$d일 동안 %2$,d개 했어요</string>
@@ -108,8 +102,6 @@
     <string name="recap_next">이번 주도 같이 해요!</string>
     <string name="home_streak">연속 %1$d일</string>
     <!-- %1$s is the movement picked last, %2$d that movement's streak bar: the real one. -->
-    <string name="home_nudge">오늘은 아직이에요. %1$s %2$d개만 해볼까요?</string>
-    <string name="home_nudge_hold">오늘은 아직이에요. %1$s %2$d초만 버텨 볼까요?</string>
     <!-- Today has begun short of the bar: %2$d is how much more of the movement picked last keeps
          the streak, what was already done today counted. -->
     <string name="home_left">%1$s %2$d개 더 하면 오늘 연속이 이어져요.</string>
@@ -127,8 +119,12 @@
     <string name="records_days_trained">운동한 날</string>
     <string name="records_movements_title">종목별 최고 기록</string>
     <!-- Under a movement's name: where its best one go started, and everything done with it. -->
-    <string name="records_movement_line">처음 %1$d개 · 모두 %2$,d개</string>
-    <string name="records_movement_line_hold">처음 %1$d초 · 모두 %2$,d초</string>
+    <string name="records_movement_line">최고 %1$d개 · 모두 %2$,d개</string>
+    <string name="records_movement_line_hold">최고 %1$d초 · 모두 %2$,d초</string>
+    <string name="records_since_last_up">지난번보다 +%1$d개</string>
+    <string name="records_since_last_up_hold">지난번보다 +%1$d초</string>
+    <string name="records_last_time">지난번 %1$d개</string>
+    <string name="records_last_time_hold">지난번 %1$d초</string>
 
     <!-- Settings -->
     <string name="settings_sfx">효과음</string>
@@ -137,8 +133,6 @@
     <string name="settings_cat_rest">고양이 쉬는 시간</string>
     <string name="settings_cat_rest_sub">목숨이 하나 줄면 이만큼 쉬고 다음 세트를 시작해요. 쉬어야 다음 세트에 더 많이 해요.</string>
     <string name="settings_wide_camera">광각으로 찍기</string>
-    <string name="settings_show_camera">운동 중 카메라 화면 보기</string>
-    <string name="settings_show_camera_sub">꺼도 자세는 그대로 알아봐요. 자리 잡는 동안에는 화면이 보여요.</string>
     <string name="survival_depth_count">1회</string>
     <string name="survival_depth_deep">깊게</string>
     <string name="settings_wide_camera_sub">방이 좁아도 몸이 화면에 다 들어오게 넓게 찍어요. 운동 화면 오른쪽 위 광각 버튼을 눌러도 바로 켜지고 꺼져요. 넓게 찍는 만큼 폰 가까이에서 해요.</string>
@@ -182,8 +176,6 @@
     <string name="settings_cvd_none">없음</string>
     <string name="settings_cvd_blue_yellow">파랑-노랑</string>
     <string name="settings_reduce_motion">모션 줄이기</string>
-    <string name="pick_exercise_start">이걸로 시작</string>
-    <string name="pick_exercise_last">지난번</string>
     <string name="pick_exercise_hold">시간으로 세요</string>
     <string name="settings_privacy">개인정보 처리방침</string>
     <string name="settings_terms">이용약관·건강 안내</string>
@@ -218,7 +210,6 @@
     <string name="survival_best_of">%1$s 최고 %2$,d점</string>
     <!-- Before the first armed frame. The ceiling does not move until the user is in position. -->
     <string name="survival_waiting_with">%1$s 자세를 잡으면 천장이 내려오기 시작해요</string>
-    <string name="pick_survival_title">뭐로 밀어 올릴까요?</string>
     <!-- Under the pushup placement hint, before the tutorial's ceiling starts. -->
     <string name="tutorial_intro_body">푸쉬업 자세를 잡으면 천장이 내려와요. 밀어 올려서 고양이를 지켜 주세요.</string>
     <!-- The tutorial's ending, by what it counted: reps; none, but reps refused as not deep enough;
@@ -255,7 +246,13 @@
     <string name="set_now_best_hold">%1$d세트 · 지금 %2$d초 / 최고 %3$d초</string>
     <string name="set_now_first">%1$d세트 · 지금 %2$d · 첫 기록</string>
     <string name="set_now_first_hold">%1$d세트 · 지금 %2$d초 · 첫 기록</string>
+    <string name="set_last">지난번 %1$d개</string>
+    <string name="set_last_hold">지난번 %1$d초</string>
+    <string name="set_last_passed">지난번보다 +%1$d개</string>
+    <string name="set_last_passed_hold">지난번보다 +%1$d초</string>
     <string name="set_record_broken">기록 경신!</string>
+    <string name="set_near_record">기록까지 %1$d개!</string>
+    <string name="set_near_record_hold">기록까지 %1$d초!</string>
 
     <!-- The session ended by the user. The cat's line goes through cat_says with its name. -->
     <string name="session_over_title">오늘의 고양이 지키기 끝!</string>
@@ -330,20 +327,20 @@
     <!-- Calories burned: every rep's energy added up, and the food it would take to put it back.
          An estimate for a reference body weight, and said as one. -->
     <!-- The hub's graph: each session's total for one movement, switched by the chips over it. -->
-    <string name="trend_title">세션별 총량</string>
+    <string name="trend_title">%1$s 기록 추이</string>
     <string name="trend_value">%1$,d개</string>
     <string name="trend_value_hold">%1$,d초</string>
-    <string name="trend_latest_label">최근 세션</string>
+    <string name="trend_latest_label">이번 운동</string>
     <string name="trend_up">지난번보다 +%1$,d개</string>
     <string name="trend_up_hold">지난번보다 +%1$,d초</string>
-    <string name="trend_down">지난번보다 -%1$,d개</string>
-    <string name="trend_down_hold">지난번보다 -%1$,d초</string>
+    <string name="trend_down">지난번엔 %1$,d개</string>
+    <string name="trend_down_hold">지난번엔 %1$,d초</string>
     <string name="trend_same">지난번과 같아요</string>
-    <string name="trend_first">첫 세션이에요</string>
-    <string name="trend_empty">%1$s 세션을 하면 여기에 그래프가 그려져요</string>
-    <string name="trend_axis_sessions">최근 %1$d세션</string>
+    <string name="trend_first">첫 기록이에요</string>
+    <string name="trend_empty">%1$s 기록이 생기면 여기에 그래프가 그려져요</string>
+    <string name="trend_axis_sessions">최근 %1$d번</string>
     <string name="trend_axis_latest">최근</string>
-    <string name="trend_graph_label">%1$s 세션별 총량: %2$s</string>
+    <string name="trend_graph_label">%1$s 기록 추이: %2$s</string>
     <string name="burn_title">지금까지 태운 칼로리</string>
     <string name="burn_kcal">%1$skcal</string>
     <string name="burn_none">이제 막 시작했어요</string>
@@ -499,7 +496,9 @@
     <string name="settings_section_exercise">운동</string>
     <string name="settings_reduce_motion_sub">화면 흔들림과 번쩍임을 줄여요.</string>
     <string name="settings_cvd_sub">초록·빨강 대신 파랑·노랑으로 구분해요.</string>
-    <string name="settings_voice_sub">자리 잡기 안내와 쉬는 시간의 고양이 말을 목소리로 알려줘요. 천장이 내려오는 동안에는 말 대신 음악이 빨라져요.</string>
+    <string name="settings_voice_sub">자리 잡기 안내와 고양이 말을 목소리로 들려줘요.</string>
+    <string name="settings_cat_voice">고양이 목소리</string>
+    <string name="settings_cat_voice_sub">운동하는 동안 고양이가 하는 말을 들려줘요. 꺼도 자리 잡기 안내는 들려요.</string>
     <!-- Share card -->
     <string name="share_card_survival_headline">고양이를 지켰어요</string>
     <string name="share_card_survival_hero_label">천장을 밀어 올린 점수</string>
@@ -519,4 +518,5 @@
          before the listing can be published, so it is part of the release checklist, not a link. -->
     <string name="privacy_policy_url" translatable="false">https://cjsdudwls1.github.io/push-up/privacy.html</string>
     <string name="terms_url" translatable="false">https://cjsdudwls1.github.io/push-up/terms.html</string>
+    <string name="survival_combo">x%1$d</string>
 </resources>

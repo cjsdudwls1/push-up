@@ -41,6 +41,13 @@ class MusicPlayer(context: Context) {
 
     private var hasFocus = false
 
+    /** Whether the music should be heard now: started, and not paused or out of focus. */
+    private var active = false
+
+    /** 고양이 지켜줘 plays [Chiptune] in place of the picked track, while the track keeps its place. */
+    private var chipMode = false
+    private val chip = Chiptune(attributes)
+
     /** How fast the track plays: 1 normally, more as 고양이 지켜줘's ceiling closes. See [setUrgency]. */
     private var tempo = 1f
 
@@ -77,11 +84,38 @@ class MusicPlayer(context: Context) {
         }.getOrNull()?.apply {
             isLooping = true
             setVolume(VOLUME, VOLUME)
-            start()
-            applyTempo(this)
         }
         current = if (player != null) track else MusicTrack.OFF
-        if (player == null) abandonFocus()
+        if (player == null) {
+            abandonFocus()
+            return
+        }
+        active = true
+        sync()
+    }
+
+    /**
+     * Plays the chiptune instead of the track, for 고양이 지켜줘 — as long as music is on at all: with
+     * the music set to off, the run is as quiet as before. Off again, the track picks up where it was.
+     */
+    fun setChiptune(on: Boolean) {
+        if (chipMode == on) return
+        chipMode = on
+        sync()
+    }
+
+    /** Puts what is heard in line with [active] and [chipMode]. */
+    private fun sync() {
+        val p = player
+        if (active && chipMode && p != null) chip.start() else chip.stop()
+        if (p == null) return
+        val mediaOn = active && !chipMode
+        if (mediaOn && !p.isPlaying) {
+            p.start()
+            applyTempo(p)
+        } else if (!mediaOn && p.isPlaying) {
+            p.pause()
+        }
     }
 
     /**
@@ -93,6 +127,7 @@ class MusicPlayer(context: Context) {
     fun setUrgency(urgency: Float) {
         val step = (urgency.coerceIn(0f, 1f) * TEMPO_STEPS).roundToInt()
         val s = 1f + (MAX_TEMPO - 1f) * step / TEMPO_STEPS
+        chip.intensity = urgency.coerceIn(0f, 1f)
         if (s == tempo) return
         tempo = s
         // Only on a playing player: setting a speed on a paused one starts it.
@@ -111,11 +146,13 @@ class MusicPlayer(context: Context) {
     fun setDucked(ducked: Boolean) {
         val v = if (ducked) VOLUME * DUCK else VOLUME
         player?.setVolume(v, v)
+        chip.gain = if (ducked) DUCK else 1f
     }
 
     /** Holds the place, for the app going to the background. */
     fun pause() {
-        player?.takeIf { it.isPlaying }?.pause()
+        active = false
+        sync()
         abandonFocus()
     }
 
@@ -124,16 +161,17 @@ class MusicPlayer(context: Context) {
      * keeps playing, or the phone is in a call and focus is refused.
      */
     fun resume() {
-        val p = player ?: return
-        if (p.isPlaying) return
+        if (player == null || active) return
         if (audio?.isMusicActive == true) return
         if (requestFocus()) {
-            p.start()
-            applyTempo(p)
+            active = true
+            sync()
         }
     }
 
     fun stop() {
+        active = false
+        chip.stop()
         player?.run {
             runCatching { stop() }
             release()
@@ -147,19 +185,19 @@ class MusicPlayer(context: Context) {
         when (change) {
             // Someone else's music: it is theirs now, and the app does not take it back on its own.
             AudioManager.AUDIOFOCUS_LOSS -> {
-                player?.takeIf { it.isPlaying }?.pause()
+                active = false
+                sync()
                 abandonFocus()
             }
-            AudioManager.AUDIOFOCUS_LOSS_TRANSIENT -> player?.takeIf { it.isPlaying }?.let {
-                it.pause()
+            AudioManager.AUDIOFOCUS_LOSS_TRANSIENT -> if (active) {
+                active = false
+                sync()
                 pausedForTransientLoss = true
             }
             AudioManager.AUDIOFOCUS_GAIN -> if (pausedForTransientLoss) {
                 pausedForTransientLoss = false
-                player?.let {
-                    it.start()
-                    applyTempo(it)
-                }
+                active = true
+                sync()
             }
             // A duck: another app's is done by the platform, the game's own voice's by setDucked.
             else -> Unit

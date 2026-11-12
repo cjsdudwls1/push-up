@@ -76,6 +76,7 @@ private val KEY_ONBOARDED = booleanPreferencesKey("onboarded")
 private val KEY_GIFTS_SEEN = stringSetPreferencesKey("gifts_seen")
 /** One movement's bests per set, comma-separated, first set first. */
 private fun setBestsKey(e: ExerciseType) = stringPreferencesKey("set_bests_${e.name}")
+private fun lastSetsKey(e: ExerciseType) = stringPreferencesKey("last_sets_${e.name}")
 private val KEY_CHURU = intPreferencesKey("churu")
 private val KEY_BOUGHT = stringSetPreferencesKey("bought")
 
@@ -93,6 +94,9 @@ private fun Preferences.toProgress(): PlayerProgress = PlayerProgress(
     setBests = ExerciseType.entries.mapNotNull { e ->
         this[setBestsKey(e)]?.let { raw -> e to raw.split(',').mapNotNull { it.trim().toIntOrNull() } }
     }.toMap(),
+    lastSets = ExerciseType.entries.mapNotNull { e ->
+        this[lastSetsKey(e)]?.let { raw -> e to raw.split(',').mapNotNull { it.trim().toIntOrNull() } }
+    }.toMap(),
     churu = this[KEY_CHURU] ?: PROGRESS_DEFAULT.churu,
     bought = this[KEY_BOUGHT] ?: PROGRESS_DEFAULT.bought,
 )
@@ -109,6 +113,7 @@ private fun MutablePreferences.writeProgress(p: PlayerProgress) {
     this[KEY_ONBOARDED] = p.onboarded
     this[KEY_GIFTS_SEEN] = p.giftsSeen
     p.setBests.forEach { (exercise, bests) -> this[setBestsKey(exercise)] = bests.joinToString(",") }
+    p.lastSets.forEach { (exercise, sets) -> this[lastSetsKey(exercise)] = sets.joinToString(",") }
     this[KEY_CHURU] = p.churu
     this[KEY_BOUGHT] = p.bought
 }

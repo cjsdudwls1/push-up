@@ -1,21 +1,20 @@
 package com.pushuprpg.app.ui.components
 
-import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.PathEffect
-import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.drawscope.CanvasDrawScope
 import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.drawscope.clipPath
+import androidx.compose.ui.graphics.drawscope.translate
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.LayoutDirection
 import com.pushuprpg.app.domain.CatCoat
 import com.pushuprpg.core.progression.CatItem
 import com.pushuprpg.core.progression.WearSlot
 import com.pushuprpg.core.survival.CatMood
-import kotlin.math.PI
-import kotlin.math.sin
+import kotlin.math.roundToInt
 
 /** The colours of one coat. Pattern colours are null for a coat that has none. */
 data class CoatColors(
@@ -72,29 +71,31 @@ fun coatColors(coat: CatCoat): CoatColors = when (coat) {
 }
 
 /**
- * 고양이.
+ * 고양이, as pixel art: the sprite of the demo the owner approved (2026-11-10), 20 cells across and
+ * 21 down, in the colours of its [coat]. Every picture of the cat draws this — the hub, the cards,
+ * the share card and the run — so the whole app has the one cat.
  *
- * The same cat the share card draws, and that is the reason it is not just three circles: this is
- * the mascot, and the first thing anyone who has not installed the app ever sees. The parts that
- * make it read as a cat rather than a snowman — tall swept ears, whiskers, a tail — cost a handful
- * of draw calls and are worth every one.
- *
- * Its whole emotional read is carried by shape, so it survives greyscale and a glance:
- * - [mood] is the stage of fear [com.pushuprpg.core.survival.CatCompanion] decided — the tail stops
- *   swaying, the body crouches and trembles, the eyes go wide and then wet, and at the end the paws
- *   go up as if to hold the ceiling off.
- * - [alarm] is the continuous closeness, for what should move smoothly between stages: the ears.
- * - [cheer] is the moment after a push: eyes close into a smile and the cheeks flush.
- * - [phase] is a free-running 0..1 animation clock for the sway and the tremble; hold it at 0 to
- *   keep the cat still, which is what reduced motion does.
- * - [wear] is what it has on — the gifts it found — drawn with it so they move as it does. A scene
- *   is not worn; see [drawCatScene]. A toy is not worn either, but it is the cat's: it sits on the
- *   floor at its left, [TOY_OFFSET] heads from its middle, and stays put while the cat trembles.
- * - [tail] false leaves the tail off, for a picture framed from the chest up: all of the tail it
- *   would show is its tip, poking in from the edge on its own.
+ * Its emotional read is in the eyes and a few cells, so it survives a glance:
+ * - [mood] is the stage of fear [com.pushuprpg.core.survival.CatCompanion] decided: strained eyes
+ *   and a bead of sweat once the ceiling is coming, and at the end crossed eyes, a tremble and sweat
+ *   on both sides, with the paws up (만세) to hold the ceiling off.
+ * - [cheer] is the moment after a push. The eyes stay open and bright through it: the owner found
+ *   the smile's closed eyes too hard to see (2026-11-10); hearts still rise (see [drawHearts]).
+ * - [phase] is a free-running 0..1 clock over four seconds, for the sweat and the tremble; hold it at 0
+ *   to keep the cat still, which is what reduced motion does.
+ * - [holdUpTo] raises the paws to that height, as the run does with the ceiling coming down; null
+ *   leaves them down outside a panic. They never reach higher than seven cells over the ears.
+ * - [squash] is a push landing, 0..1.4 as the demo has it: the cat dips into the floor and back.
+ * - [wear] is what it has on, drawn on the same cells (see [drawPixelThing]). A scene is not worn;
+ *   see [drawCatScene]. A toy is not worn either, but it sits on the floor at its left,
+ *   [TOY_OFFSET] heads from its middle, and stays put while the cat trembles.
  * - [toy] false leaves the toy out, for a picture framed close around the cat with no room beside it,
  *   or one that draws it itself with [drawCatToyBeside], behind something else.
+ *
+ * [alarm] and [tail] are kept for the callers that pass them; the sprite has no tail and its ears do
+ * not move.
  */
+@Suppress("UNUSED_PARAMETER")
 fun DrawScope.drawCat(
     centerX: Float,
     baseY: Float,
@@ -107,318 +108,275 @@ fun DrawScope.drawCat(
     wear: Set<CatItem> = emptySet(),
     tail: Boolean = true,
     toy: Boolean = true,
+    holdUpTo: Float? = null,
+    squash: Float = 0f,
 ) {
-    val c = coatColors(coat)
-    val tau = 2f * PI.toFloat()
-
     // The toy first, behind everything: where it meets the cat's side, the cat is in front.
     if (toy) drawCatToyBeside(wear, centerX, baseY, scale)
 
-    val tremble = when (mood) {
-        CatMood.SCARED -> 1.2f
-        CatMood.PANIC -> 2.6f
-        else -> 0f
-    } * scale * sin(phase * tau * 23f)
-    val cx = centerX + tremble
+    val s = catCell(scale)
+    val p = pixelPalette(coat)
+    val ms = phase * PHASE_MS
+    val eyes = when {
+        mood == CatMood.PANIC -> EyeLook.PANIC
+        mood == CatMood.SCARED || mood == CatMood.UNEASY -> EyeLook.STRAIN
+        else -> EyeLook.NORMAL
+    }
+    val tremble = if (eyes == EyeLook.PANIC && phase != 0f) (if ((ms / 40f).toInt() % 2 == 0) 1f else -1f) * s / 4f else 0f
+    val ox = centerX - SPRITE_COLS * s / 2f + tremble
+    val top = baseY - SPRITE_ROWS * s + (squash * 2f).roundToInt() * s
 
-    val crouch = crouchFor(mood)
-    val body = 46f * scale
-    val bodyH = body * 1.05f * crouch
-    val head = 30f * scale
-    val headY = baseY - bodyH - head * 0.72f
-    val frightened = mood == CatMood.SCARED || mood == CatMood.PANIC
+    fun cell(col: Float, row: Float, w: Float, h: Float, color: Color) {
+        val l = (ox + col * s).roundToInt().toFloat()
+        val t = (top + row * s).roundToInt().toFloat()
+        val r = (ox + (col + w) * s).roundToInt().toFloat()
+        val b = (top + (row + h) * s).roundToInt().toFloat()
+        if (r > l && b > t) drawRect(color, topLeft = Offset(l, t), size = Size(r - l, b - t))
+    }
 
-    // Tail first: the body edge hides where it joins. It sways while the cat is at ease, and puffs
-    // up and stiffens once it is frightened.
-    val rimWidth = head * 0.14f
-    if (tail) {
-        val sway = if (mood == CatMood.CALM) sin(phase * tau * 2f) * 0.16f else 0f
-        val tailWidth = head * if (frightened) 0.52f else 0.30f
-        val tailPath = Path().apply {
-            moveTo(cx + body * 0.82f, baseY - body * 0.18f)
-            cubicTo(
-                cx + body * 1.62f, baseY - body * 0.30f,
-                cx + body * (1.55f + sway * 0.5f), baseY - body * 0.74f,
-                cx + body * (1.48f + sway), baseY - body * 0.98f,
-            )
-            cubicTo(
-                cx + body * (1.36f + sway * 1.6f), baseY - body * 1.46f,
-                cx + body * (1.16f + sway * 2f), baseY - body * 1.44f,
-                cx + body * (0.98f + sway * 2f), baseY - body * (if (frightened) 1.62f else 1.40f),
-            )
-        }
-        c.rim?.let { drawPath(tailPath, color = it, style = Stroke(width = tailWidth + rimWidth, cap = StrokeCap.Round)) }
-        drawPath(tailPath, color = c.patchA ?: c.fur, style = Stroke(width = tailWidth, cap = StrokeCap.Round))
-        c.stripe?.let { s ->
-            // A ringed tail reads as a tabby from across the room.
-            drawPath(
-                tailPath,
-                color = s,
-                style = Stroke(
-                    width = tailWidth,
-                    cap = StrokeCap.Butt,
-                    pathEffect = PathEffect.dashPathEffect(floatArrayOf(head * 0.16f, head * 0.26f), head * 0.3f),
-                ),
-            )
+    // 만세: the paws over the head, pressed against the ceiling when it is close and held up when not.
+    if (holdUpTo != null || mood == CatMood.PANIC) {
+        val shoulder = 11f
+        val reach = maxOf(((holdUpTo ?: Float.NEGATIVE_INFINITY) - top) / s, -7f)
+        for (ax in floatArrayOf(-2f, 19f)) {
+            cell(ax - 0.25f, reach, 3.5f, shoulder - reach, p.k)
+            cell(ax + 0.25f, reach + 0.5f, 2.5f, shoulder - reach - 0.5f, p.o)
+            cell(ax - 0.5f, reach - 0.5f, 4f, 2f, p.k)
+            cell(ax, reach, 3f, 1f, p.l)
+            cell(ax + 1f, reach + 0.25f, 1f, 0.5f, p.p)
         }
     }
 
-    // Body.
-    val bodyTop = baseY - bodyH
-    val bodyPath = Path().apply {
-        addRoundRect(
-            androidx.compose.ui.geometry.RoundRect(
-                left = cx - body, top = bodyTop, right = cx + body, bottom = baseY,
-                cornerRadius = CornerRadius(body * 0.62f),
-            )
-        )
-    }
-    c.rim?.let { drawPath(bodyPath, color = it, style = Stroke(width = rimWidth)) }
-    drawPath(bodyPath, color = c.fur)
-    clipPath(bodyPath) {
-        c.patchA?.let { drawCircle(it, radius = body * 0.62f, center = Offset(cx - body * 0.72f, bodyTop + bodyH * 0.35f)) }
-        c.patchB?.let { drawCircle(it, radius = body * 0.52f, center = Offset(cx + body * 0.78f, bodyTop + bodyH * 0.75f)) }
-        c.stripe?.let { s ->
-            listOf(-0.62f, -0.34f, 0.34f, 0.62f).forEach { x ->
-                drawLine(
-                    color = s,
-                    start = Offset(cx + body * x, bodyTop - body * 0.05f),
-                    end = Offset(cx + body * x * 1.12f, bodyTop + bodyH * 0.42f),
-                    strokeWidth = body * 0.10f,
-                    cap = StrokeCap.Round,
-                )
-            }
-        }
-        c.bib?.let { drawOval(it, topLeft = Offset(cx - body * 0.42f, bodyTop + bodyH * 0.08f), size = Size(body * 0.84f, bodyH * 1.2f)) }
-    }
-
-    // Front paws, tucked at the base — or, at the very end, raised over the head to hold the
-    // ceiling off, which is the one pose that says "help" without a word.
-    val pawColor = c.bib ?: c.muzzle ?: c.fur
-    val pawR = head * 0.24f
-    if (mood == CatMood.PANIC) {
-        listOf(-1f, 1f).forEach { side ->
-            val shoulder = Offset(cx + side * body * 0.55f, bodyTop + bodyH * 0.25f)
-            val paw = Offset(cx + side * head * 1.18f, headY - head * 1.25f)
-            c.rim?.let { drawLine(it, shoulder, paw, strokeWidth = head * 0.34f + rimWidth, cap = StrokeCap.Round) }
-            drawLine(c.fur, shoulder, paw, strokeWidth = head * 0.34f, cap = StrokeCap.Round)
-            drawCircle(pawColor, radius = pawR, center = paw)
-        }
-    } else {
-        listOf(-1f, 1f).forEach { side ->
-            drawOval(
-                pawColor,
-                topLeft = Offset(cx + side * body * 0.34f - pawR * 1.2f, baseY - pawR * 1.2f),
-                size = Size(pawR * 2.4f, pawR * 1.5f),
-            )
+    for (r in 0 until SPRITE_ROWS) {
+        val line = CAT_SPRITE[r]
+        var c = 0
+        while (c < SPRITE_COLS) {
+            val color = p.at(line[c], r, c)
+            if (color == null) { c++; continue }
+            // A run of one colour is one rectangle, so the edges between cells cannot show.
+            var end = c + 1
+            while (end < SPRITE_COLS && p.at(line[end], r, end) == color) end++
+            cell(c.toFloat(), r.toFloat(), (end - c).toFloat(), 1f, color)
+            c = end
         }
     }
 
-    // Ears before the head, so their bases vanish under it. Flattening is clamped so an alarmed cat
-    // still has ears — a cat with none reads as a bug rather than as fear.
-    val lift = 1f - 0.42f * alarm
-    listOf(-1f, 1f).forEach { side ->
-        val outer = if (side < 0) c.patchB ?: c.fur else c.patchA ?: c.fur
-        val earPath = Path().apply {
-            moveTo(cx + side * head * 0.16f, headY - head * 0.62f)
-            lineTo(cx + side * head * (0.74f + 0.30f * alarm), headY - head * 1.58f * lift)
-            lineTo(cx + side * head * 1.00f, headY - head * 0.34f)
-            close()
-        }
-        c.rim?.let { drawPath(earPath, color = it, style = Stroke(width = rimWidth)) }
-        drawPath(earPath, color = outer)
-        drawPath(
-            path = Path().apply {
-                moveTo(cx + side * head * 0.36f, headY - head * 0.66f)
-                lineTo(cx + side * head * (0.71f + 0.28f * alarm), headY - head * 1.28f * lift)
-                lineTo(cx + side * head * 0.84f, headY - head * 0.52f)
-                close()
-            },
-            color = c.earInner,
-        )
-    }
-
-    // Head, with its markings clipped to it.
-    val headCenter = Offset(cx, headY)
-    val headPath = Path().apply {
-        addOval(androidx.compose.ui.geometry.Rect(center = headCenter, radius = head))
-    }
-    c.rim?.let { drawPath(headPath, color = it, style = Stroke(width = rimWidth)) }
-    drawPath(headPath, color = c.fur)
-    clipPath(headPath) {
-        c.patchB?.let { drawCircle(it, radius = head * 0.62f, center = Offset(cx - head * 0.78f, headY - head * 0.62f)) }
-        c.patchA?.let { drawCircle(it, radius = head * 0.58f, center = Offset(cx + head * 0.80f, headY - head * 0.55f)) }
-        c.stripe?.let { s ->
-            // The tabby's forehead M, as three short strokes.
-            listOf(-0.22f, 0f, 0.22f).forEach { x ->
-                drawLine(
-                    color = s,
-                    start = Offset(cx + head * x, headY - head * 0.98f),
-                    end = Offset(cx + head * x * 0.8f, headY - head * (if (x == 0f) 0.50f else 0.62f)),
-                    strokeWidth = head * 0.09f,
-                    cap = StrokeCap.Round,
-                )
-            }
-            listOf(-1f, 1f).forEach { side ->
-                drawLine(s, Offset(cx + side * head * 0.98f, headY - head * 0.05f), Offset(cx + side * head * 0.70f, headY + head * 0.02f), strokeWidth = head * 0.08f, cap = StrokeCap.Round)
-                drawLine(s, Offset(cx + side * head * 0.96f, headY + head * 0.18f), Offset(cx + side * head * 0.72f, headY + head * 0.20f), strokeWidth = head * 0.08f, cap = StrokeCap.Round)
-            }
-        }
-        c.muzzle?.let {
-            drawOval(it, topLeft = Offset(cx - head * 0.52f, headY + head * 0.02f), size = Size(head * 1.04f, head * 0.80f))
-            if (c.bib != null) {
-                // A tuxedo's white runs up between the eyes.
-                drawPath(
-                    Path().apply {
-                        moveTo(cx - head * 0.16f, headY + head * 0.10f)
-                        lineTo(cx, headY - head * 0.42f)
-                        lineTo(cx + head * 0.16f, headY + head * 0.10f)
-                        close()
-                    },
-                    color = it,
-                )
-            }
+    val look = if (p.iris != null && eyes == EyeLook.NORMAL) TUXEDO_EYE else eyes.grid
+    for ((side, startCol) in listOf(0 to 3, 1 to 14)) {
+        val grid = look[side]
+        for (r in 0 until 3) for (c in 0 until 3) {
+            val color = when (grid[r][c]) {
+                'E' -> p.e
+                'I' -> p.iris ?: p.e
+                'W' -> Color.White
+                else -> null
+            } ?: continue
+            cell((startCol + c).toFloat(), (6 + r).toFloat(), 1f, 1f, color)
         }
     }
 
-    val eyeY = headY - head * 0.10f
-    val stroke = head * 0.055f
-    val happy = cheer > 0.35f
-    // Lines drawn straight onto the fur: dark on a light coat, light on a tuxedo's black, where a
-    // dark smile would simply vanish.
-    val onFur = if (c.bib != null) c.whisker else c.ink
-    listOf(-1f, 1f).forEach { side ->
-        val ex = cx + side * head * 0.36f
-        when {
-            happy -> {
-                // ^ ^ — the smile is in the eyes.
-                drawArc(
-                    color = onFur,
-                    startAngle = 200f, sweepAngle = 140f, useCenter = false,
-                    topLeft = Offset(ex - head * 0.16f, eyeY - head * 0.08f),
-                    size = Size(head * 0.32f, head * 0.26f),
-                    style = Stroke(width = stroke * 1.5f, cap = StrokeCap.Round),
-                )
-            }
-            else -> {
-                val wide = frightened
-                val eyeR = head * (0.15f + 0.07f * alarm) * (if (wide) 1.1f else 1f)
-                // Looking up at the ceiling once it is worth watching.
-                val look = if (mood == CatMood.CALM) 0f else -eyeR * 0.28f
-                if (c.pupil != null || wide) {
-                    // A ringed eye: a coloured iris, or the white of a frightened one.
-                    drawCircle(if (c.pupil != null) c.eye else Color.White, radius = eyeR, center = Offset(ex, eyeY))
-                    drawCircle(c.pupil ?: c.eye, radius = eyeR * (if (wide) 0.48f else 0.62f), center = Offset(ex, eyeY + look))
-                } else {
-                    drawCircle(c.eye, radius = eyeR, center = Offset(ex, eyeY + look))
-                }
-                // The glint that makes a dot an eye.
-                drawCircle(Color.White, radius = eyeR * 0.32f, center = Offset(ex + eyeR * 0.30f, eyeY + look - eyeR * 0.34f))
-            }
-        }
+    if (eyes == EyeLook.STRAIN || eyes == EyeLook.PANIC) {
+        // A bead of sweat, running down beside the head.
+        val d = (ms / 120f).toInt() % 6
+        cell(20f, (3 + d % 3).toFloat(), 1f, 1f, SWEAT)
+        if (eyes == EyeLook.PANIC) cell(-1f, (4 + (d + 2) % 3).toFloat(), 1f, 1f, SWEAT)
     }
 
-    // Worried brows once the ceiling is coming, on a coat where they would show.
-    if (mood != CatMood.CALM && !happy) {
-        listOf(-1f, 1f).forEach { side ->
-            drawLine(
-                onFur,
-                start = Offset(cx + side * head * 0.20f, eyeY - head * 0.30f),
-                end = Offset(cx + side * head * 0.50f, eyeY - head * 0.40f),
-                strokeWidth = stroke,
-                cap = StrokeCap.Round,
-            )
-        }
+    // What it has on, over everything, in the order a cat would put things on; each on the cat's cells.
+    for (slot in listOf(WearSlot.NECK, WearSlot.FACE, WearSlot.HEAD)) {
+        val item = wear.firstOrNull { it.slot == slot } ?: continue
+        drawPixelThing(wornSprite(item), ox, top, s)
     }
-
-    if (happy) {
-        // Flushed cheeks.
-        listOf(-1f, 1f).forEach { side ->
-            drawOval(
-                Color(0x99F28C8C),
-                topLeft = Offset(cx + side * head * 0.58f - head * 0.17f, eyeY + head * 0.16f),
-                size = Size(head * 0.34f, head * 0.18f),
-            )
-        }
-    }
-
-    val noseY = eyeY + head * 0.30f
-    drawPath(
-        path = Path().apply {
-            moveTo(cx - head * 0.10f, noseY)
-            lineTo(cx + head * 0.10f, noseY)
-            lineTo(cx, noseY + head * 0.11f)
-            close()
-        },
-        color = if (c.bib != null) Color(0xFFE3A1A4) else c.ink,
-    )
-
-    val mouthY = noseY + head * 0.12f
-    when {
-        happy -> {
-            // ω
-            listOf(-1f, 1f).forEach { side ->
-                drawArc(
-                    color = c.ink,
-                    startAngle = 0f, sweepAngle = 180f, useCenter = false,
-                    topLeft = Offset(cx + (if (side < 0) -head * 0.22f else 0f), mouthY - head * 0.06f),
-                    size = Size(head * 0.22f, head * 0.16f),
-                    style = Stroke(width = stroke, cap = StrokeCap.Round),
-                )
-            }
-        }
-        frightened -> {
-            // An open mouth: a gasp, and at the end a cry.
-            val open = if (mood == CatMood.PANIC) 0.26f else 0.15f
-            drawOval(
-                Color(0xFF7A2E2E),
-                topLeft = Offset(cx - head * open * 0.55f, mouthY),
-                size = Size(head * open * 1.1f, head * open),
-            )
-        }
-        else -> {
-            drawLine(c.ink, Offset(cx, mouthY), Offset(cx - head * 0.14f, mouthY + head * 0.12f), strokeWidth = stroke, cap = StrokeCap.Round)
-            drawLine(c.ink, Offset(cx, mouthY), Offset(cx + head * 0.14f, mouthY + head * 0.12f), strokeWidth = stroke, cap = StrokeCap.Round)
-        }
-    }
-
-    listOf(-1f, 1f).forEach { side ->
-        val from = cx + side * head * 0.42f
-        drawLine(c.whisker, Offset(from, noseY - head * 0.04f), Offset(from + side * head * 0.72f, noseY - head * 0.22f), strokeWidth = stroke, cap = StrokeCap.Round)
-        drawLine(c.whisker, Offset(from, noseY + head * 0.12f), Offset(from + side * head * 0.76f, noseY + head * 0.16f), strokeWidth = stroke, cap = StrokeCap.Round)
-    }
-
-    if (mood == CatMood.SCARED) {
-        // A bead of sweat.
-        val sx = cx + head * 0.92f
-        val sy = headY - head * 0.62f
-        drawPath(
-            Path().apply {
-                moveTo(sx, sy - head * 0.22f)
-                quadraticTo(sx + head * 0.14f, sy, sx, sy + head * 0.08f)
-                quadraticTo(sx - head * 0.14f, sy, sx, sy - head * 0.22f)
-                close()
-            },
-            color = Color(0xFF9FD3F5),
-        )
-    }
-    if (mood == CatMood.PANIC && !happy) {
-        // Tears, falling on the clock so they run rather than sit.
-        listOf(-1f, 1f).forEach { side ->
-            val fall = (phase * 3f + if (side < 0) 0f else 0.5f) % 1f
-            drawCircle(
-                Color(0xCC9FD3F5),
-                radius = head * 0.075f,
-                center = Offset(cx + side * head * 0.40f, eyeY + head * (0.22f + 0.45f * fall)),
-            )
-        }
-    }
-
-    // What it has on, over everything, in the order a cat would put things on.
-    wear.firstOrNull { it.slot == WearSlot.NECK }?.let { drawNeckItem(it, cx, headY + head * 0.98f, head) }
-    wear.firstOrNull { it.slot == WearSlot.FACE }?.let { drawFaceItem(it, cx, eyeY, head) }
-    wear.firstOrNull { it.slot == WearSlot.HEAD }?.let { drawHeadItem(it, cx, headY, head) }
 }
+
+/** How the eyes look, as two 3-by-3 grids: E the eye, W its glint. */
+private enum class EyeLook(val grid: List<List<String>>) {
+    NORMAL(listOf(listOf("EEW", "EEE", "EEE"), listOf("EEW", "EEE", "EEE"))),
+    STRAIN(listOf(listOf("...", "EEE", "..."), listOf("...", "EEE", "..."))),
+    PANIC(listOf(listOf("E..", ".E.", "E.."), listOf("..E", ".E.", "..E"))),
+}
+
+/** A tuxedo's coloured iris around its pupil; E alone would vanish into the black fur. */
+private val TUXEDO_EYE = listOf(listOf("IIW", "IEI", "III"), listOf("IIW", "IEI", "III"))
+
+private val CAT_SPRITE = arrayOf(
+    "..KK............KK..",
+    ".KOOK..........KOOK.",
+    ".KOPOK........KOPOK.",
+    "KOOPOOKKKKKKKKOOPOOK",
+    "KOOOOOOOSSSSOOOOOOOK",
+    "KOOOOOOOOSSOOOOOOOOK",
+    "KOOOOOOOOOOOOOOOOOOK",
+    "KOOOOOOOOOOOOOOOOOOK",
+    "KOOOOOOOOOOOOOOOOOOK",
+    "KOOOOOOOOPPOOOOOOOOK",
+    "KOPPOOOOKOOKOOOOPPOK",
+    "KOOOOOOOOKKOOOOOOOOK",
+    ".KOOOOOOOOOOOOOOOOK.",
+    "..KKKOOOOOOOOOOKKK..",
+    "....KOLLLLLLLLOK....",
+    "...KOOLLLLLLLLOOK...",
+    "...KOOLLLLLLLLOOK...",
+    "...KOOOLLLLLLOOOK...",
+    "...KOOOOOOOOOOOOK...",
+    "...KLLLKKKKKKLLLK...",
+    "....KKK......KKK....",
+)
+private const val SPRITE_COLS = 20
+private const val SPRITE_ROWS = 21
+
+/** [drawCat]'s [phase] runs once over this many milliseconds. */
+private const val PHASE_MS = 4_000f
+
+private val SWEAT = Color(0xFF7FD4FF)
+
+/** One of the sprite's cells, in pixels, for a cat drawn at [scale]. */
+internal fun catCell(scale: Float): Float = 4.6f * scale
+
+/**
+ * A coat as the sprite's letters: K the outline, O the fur, S the forehead mark and stripes, L the
+ * muzzle, belly and paws, P the ears, nose and cheeks, E the eyes. Patches and stripes are cells of
+ * the fur painted over, chosen by [at].
+ */
+private class PixelPalette(
+    val k: Color,
+    val o: Color,
+    val s: Color,
+    val l: Color,
+    val p: Color,
+    val e: Color,
+    val iris: Color? = null,
+    val coat: CatCoat,
+) {
+    fun at(ch: Char, r: Int, c: Int): Color? = when (ch) {
+        'K' -> k
+        'S' -> s
+        'L' -> l
+        'P' -> p
+        'O' -> fur(r, c)
+        else -> null
+    }
+
+    private fun fur(r: Int, c: Int): Color = when (coat) {
+        CatCoat.CALICO -> when {
+            r <= 5 && c <= 6 -> CALICO_DARK
+            (r in 3..8 && c >= 13) || (r in 15..18 && c >= 12) -> CALICO_ORANGE
+            else -> o
+        }
+        CatCoat.MACKEREL -> if ((r == 5 || r == 7) && (c in 1..2 || c in 17..18) || (r == 15 || r == 17) && (c == 4 || c == 15)) s else o
+        CatCoat.TUXEDO -> if (r in 10..12 && c in 6..13) l else o
+        else -> o
+    }
+}
+
+private val CALICO_DARK = Color(0xFF34302C)
+private val CALICO_ORANGE = Color(0xFFE39A4C)
+private val OUTLINE = Color(0xFF2B1A12)
+
+private fun pixelPalette(coat: CatCoat): PixelPalette = when (coat) {
+    // The demo's own cat.
+    CatCoat.CHEESE -> PixelPalette(OUTLINE, Color(0xFFFF9A2E), Color(0xFFE0761A), Color(0xFFFFD9A8), Color(0xFFFF8FAB), Color(0xFF1E1A2E), coat = coat)
+    CatCoat.CREAM -> PixelPalette(OUTLINE, Color(0xFFF3D9A8), Color(0xFFDDB57A), Color(0xFFFFF3DC), Color(0xFFFF8FAB), Color(0xFF1E1A2E), coat = coat)
+    CatCoat.MACKEREL -> PixelPalette(Color(0xFF1C1A18), Color(0xFFABA79D), Color(0xFF55524C), Color(0xFFE9E5DC), Color(0xFFE8A3A8), Color(0xFF1E1A2E), coat = coat)
+    // Its outline is grey: a dark one would lose the black cat in the dark room.
+    CatCoat.TUXEDO -> PixelPalette(Color(0xFF6A6A74), Color(0xFF2A2A2F), Color(0xFFF4F1EA), Color(0xFFF4F1EA), Color(0xFFE3A1A4), Color(0xFF1A1A1A), iris = Color(0xFFC9D46A), coat = coat)
+    CatCoat.CALICO -> PixelPalette(OUTLINE, Color(0xFFF7F2E8), CALICO_ORANGE, Color(0xFFFFFDF8), Color(0xFFE7A3A6), Color(0xFF1E1A2E), coat = coat)
+}
+
+/**
+ * The cat's things as pixel art. Each is drawn once with its own drawing, at [SUB] pixels to a cell of
+ * the cat, and kept: the edge's half-covered pixels made whole or empty and an outline put round it,
+ * as the sprite has. The cat's cells, and a thing's place on them, do not depend on how large the cat
+ * is drawn, so one copy serves every picture.
+ */
+internal class PixelThing(val cols: Int, val rows: Int, val argb: IntArray, val leftCells: Float, val topCells: Float)
+
+/** Pixels of a thing to one of the cat's cells. */
+private const val SUB = 3
+
+private val pixelThings = HashMap<Any, PixelThing>()
+
+/**
+ * A thing drawn by [draw] into a grid [colsCells] by [rowsCells] of the cat's cells, whose top left is
+ * [leftCells], [topCells] from the sprite's; [draw] sees a cell as [SUB] pixels with the sprite's top
+ * left at the origin.
+ */
+internal fun pixelThing(
+    key: Any,
+    leftCells: Float,
+    topCells: Float,
+    colsCells: Int,
+    rowsCells: Int,
+    draw: DrawScope.() -> Unit,
+): PixelThing = pixelThings.getOrPut(key) {
+    val w = colsCells * SUB
+    val h = rowsCells * SUB
+    val bitmap = ImageBitmap(w, h)
+    val canvas = androidx.compose.ui.graphics.Canvas(bitmap)
+    CanvasDrawScope().draw(Density(1f), LayoutDirection.Ltr, canvas, Size(w.toFloat(), h.toFloat())) {
+        translate(-leftCells * SUB, -topCells * SUB) { draw() }
+    }
+    val px = IntArray(w * h)
+    bitmap.readPixels(px)
+    // Whole or empty, never half: a soft edge is what smooth drawing looks like.
+    val solid = BooleanArray(w * h) { (px[it] ushr 24) >= 0x80 }
+    val out = IntArray(w * h)
+    val ink = OUTLINE.toArgb()
+    for (y in 0 until h) for (x in 0 until w) {
+        val i = y * w + x
+        out[i] = when {
+            solid[i] -> px[i] or (0xFF shl 24)
+            (x > 0 && solid[i - 1]) || (x < w - 1 && solid[i + 1]) ||
+                (y > 0 && solid[i - w]) || (y < h - 1 && solid[i + w]) -> ink
+            else -> 0
+        }
+    }
+    PixelThing(w, h, out, leftCells, topCells)
+}
+
+/** Draws [thing] on a cat whose sprite's top left is [ox], [top], with cells of [s] pixels. */
+internal fun DrawScope.drawPixelThing(thing: PixelThing, ox: Float, top: Float, s: Float) {
+    val unit = s / SUB
+    val left = ox + thing.leftCells * s
+    val upper = top + thing.topCells * s
+    for (y in 0 until thing.rows) {
+        val row = y * thing.cols
+        var x = 0
+        while (x < thing.cols) {
+            val argb = thing.argb[row + x]
+            if (argb == 0) { x++; continue }
+            var end = x + 1
+            while (end < thing.cols && thing.argb[row + end] == argb) end++
+            val l = (left + x * unit).roundToInt().toFloat()
+            val t = (upper + y * unit).roundToInt().toFloat()
+            val r = (left + end * unit).roundToInt().toFloat()
+            val b = (upper + (y + 1) * unit).roundToInt().toFloat()
+            if (r > l && b > t) drawRect(Color(argb), topLeft = Offset(l, t), size = Size(r - l, b - t))
+            x = end
+        }
+    }
+}
+
+/**
+ * Where a worn thing sits on the sprite, in cells from its top left, as the drawings expect it: the
+ * head's middle and size, the line of the eyes, and the chin.
+ */
+private const val HEAD_ROW = 9.5f
+private const val HEAD_CELLS = 7f
+private const val EYE_ROW = 7.5f
+private const val CHIN_ROW = 13f
+
+private fun wornSprite(item: CatItem): PixelThing =
+    pixelThing(item, leftCells = -8f, topCells = -16f, colsCells = SPRITE_COLS + 16, rowsCells = SPRITE_ROWS + 22) {
+        val cx = SPRITE_COLS * SUB / 2f
+        val head = HEAD_CELLS * SUB
+        when (item.slot) {
+            WearSlot.NECK -> drawNeckItem(item, cx, CHIN_ROW * SUB, head)
+            WearSlot.FACE -> drawFaceItem(item, cx, EYE_ROW * SUB, head)
+            WearSlot.HEAD -> drawHeadItem(item, cx, HEAD_ROW * SUB, head)
+            else -> Unit
+        }
+    }
 
 /**
  * The toy among [wear], if there is one, on the floor at the left of a cat drawn at [centerX], [baseY]
@@ -427,8 +385,13 @@ fun DrawScope.drawCat(
  */
 fun DrawScope.drawCatToyBeside(wear: Set<CatItem>, centerX: Float, baseY: Float, scale: Float) {
     val toy = wear.firstOrNull { it.slot == WearSlot.TOY } ?: return
-    val head = 30f * scale
-    drawCatToy(toy, centerX - TOY_OFFSET * head, baseY, head)
+    val s = catCell(scale)
+    // Its middle TOY_OFFSET heads left of the cat's, standing on the floor: within a head either side
+    // and 4.4 heads up, as CatToys keeps it.
+    val sprite = pixelThing(toy, leftCells = -12f, topCells = -32f, colsCells = 24, rowsCells = 34) {
+        drawCatToy(toy, 0f, 0f, HEAD_CELLS * SUB)
+    }
+    drawPixelThing(sprite, centerX - TOY_OFFSET * HEAD_CELLS * s, baseY, s)
 }
 
 /**
@@ -449,55 +412,61 @@ internal val BRAND = Color(0xFF7C6BFF)
 internal val CREAM_WHITE = Color(0xFFF5F0E8)
 internal val FRAME = Color(0xFF6B4A2B)
 
+
 /**
  * Hearts after a push: [count] of them, drifting up and out from beside the ears and fading as
  * [cheer] runs down. Out to the sides rather than straight up, because straight up is where the
- * speech bubble is.
+ * speech bubble is. Pixel hearts, on half the cat's cells.
  */
 fun DrawScope.drawHearts(centerX: Float, headTopY: Float, scale: Float, count: Int, cheer: Float) {
     if (count <= 0 || cheer <= 0f) return
-    val head = 30f * scale
-    val rise = (1f - cheer) * 55f * scale
+    val s = catCell(scale)
+    val rise = (1f - cheer) * 12f * s
     val color = Color(0xFFFF6F91).copy(alpha = cheer.coerceIn(0f, 1f))
-    // (side, how far out in heads, a head start upward, size)
+    // (side, how far out in cells, a head start upward in cells, size of a pixel in cells)
     val spots = listOf(
-        listOf(1f, 1.05f, 0f, 15f),
-        listOf(-1f, 1.05f, 6f, 13f),
-        listOf(1f, 1.65f, 18f, 11f),
+        listOf(1f, 11f, 0f, 0.5f),
+        listOf(-1f, 11f, 1.5f, 0.45f),
+        listOf(1f, 15f, 4f, 0.4f),
     )
     for (spot in spots.take(count)) {
-        val (side, out, lead, size) = spot
-        val x = centerX + side * (head * out + rise * 0.45f)
-        val y = headTopY + head * 0.45f - rise - lead * scale
-        drawHeart(Offset(x, y), size = size * scale, color = color)
+        val (side, out, lead, unit) = spot
+        val x = centerX + side * (out * s + rise * 0.45f)
+        val y = headTopY + 4f * s - rise - lead * s
+        drawPixelHeart(Offset(x, y), unit * s, color)
     }
 }
 
-private fun DrawScope.drawHeart(center: Offset, size: Float, color: Color) {
-    val r = size * 0.5f
-    drawCircle(color, radius = r * 0.62f, center = Offset(center.x - r * 0.5f, center.y - r * 0.2f))
-    drawCircle(color, radius = r * 0.62f, center = Offset(center.x + r * 0.5f, center.y - r * 0.2f))
-    drawPath(
-        Path().apply {
-            moveTo(center.x - r * 1.08f, center.y - r * 0.02f)
-            lineTo(center.x + r * 1.08f, center.y - r * 0.02f)
-            lineTo(center.x, center.y + r * 1.05f)
-            close()
-        },
-        color = color,
-    )
+private val HEART_SPRITE = arrayOf(
+    ".XX.XX.",
+    "XXXXXXX",
+    "XXXXXXX",
+    ".XXXXX.",
+    "..XXX..",
+    "...X...",
+)
+
+/** A heart seven pixels of [unit] across, centred on [center]. */
+internal fun DrawScope.drawPixelHeart(center: Offset, unit: Float, color: Color) {
+    val left = center.x - 3.5f * unit
+    val top = center.y - 3f * unit
+    for ((r, line) in HEART_SPRITE.withIndex()) {
+        val from = line.indexOf('X')
+        val to = line.lastIndexOf('X') + 1
+        if (from < 0) continue
+        // Each row is one run, except the top, whose two lobes are split.
+        val runs = if (r == 0) listOf(1 to 3, 4 to 6) else listOf(from to to)
+        for ((a, b) in runs) {
+            val l = (left + a * unit).roundToInt().toFloat()
+            val t = (top + r * unit).roundToInt().toFloat()
+            val rr = (left + b * unit).roundToInt().toFloat()
+            val bb = (top + (r + 1) * unit).roundToInt().toFloat()
+            drawRect(color, topLeft = Offset(l, t), size = Size(rr - l, bb - t))
+        }
+    }
 }
 
-/** Where the top of the cat's head is, for placing what floats above it. */
-fun catHeadTop(baseY: Float, scale: Float, mood: CatMood = CatMood.CALM): Float {
-    val head = 30f * scale
-    return baseY - 46f * scale * 1.05f * crouchFor(mood) - head * 0.72f - head
-}
-
-/** How low a frightened cat makes itself. */
-private fun crouchFor(mood: CatMood): Float = when (mood) {
-    CatMood.CALM -> 1f
-    CatMood.UNEASY -> 0.97f
-    CatMood.SCARED -> 0.88f
-    CatMood.PANIC -> 0.82f
-}
+/** Where the top of the cat's head is — the tips of its ears — for placing what floats above it. */
+@Suppress("UNUSED_PARAMETER")
+fun catHeadTop(baseY: Float, scale: Float, mood: CatMood = CatMood.CALM): Float =
+    baseY - SPRITE_ROWS * catCell(scale)

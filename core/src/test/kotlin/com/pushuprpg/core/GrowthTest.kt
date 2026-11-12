@@ -105,7 +105,12 @@ class GrowthTest {
         assertEquals(6, r.gain)
         assertEquals(51, r.total)
         assertEquals(2, r.days)
-        assertEquals(20, Records.of(facts).getValue(ExerciseType.SQUAT).best)
+        assertEquals(9, r.latest)
+        assertEquals(30, r.previous)
+        assertEquals(-21, r.sinceLast)
+        val squat = Records.of(facts).getValue(ExerciseType.SQUAT)
+        assertEquals(20, squat.best)
+        assertEquals(null, squat.sinceLast)
     }
 
     @Test

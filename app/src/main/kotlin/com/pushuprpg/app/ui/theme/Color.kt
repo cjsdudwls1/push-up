@@ -41,17 +41,33 @@ object Palette {
     /** Text on [Brand600], which is dark enough to want light text in either theme. */
     val TextOnBrand = Color(0xFFF2F5FA)
 
-    // Brand: one lime, the colour of the hub's ring and its start button (concept C, chosen by the
-    // owner on 2026-10-09). It is never a border round a box — the cards are plain surfaces.
-    /** Brand colour used as text — a link, a level-up line, a selection ring. Deepens on a light surface. */
+    // Brand: deep space (2026-11-11, by the owner's request: "아주 짙은 남색, 아주 짙은 보라, 검은색",
+    // a space shooter's look). The ground is navy going to black, the cards a deep violet, and the one
+    // thing that glows is the neon cyan of whatever is to be pressed — a shooter's HUD. It is never a
+    // border round a box; the cards are plain surfaces.
+    /** Brand colour used as text — a link, a selection mark. Deepens to violet on a light surface. */
     val Brand400: Color @Composable @ReadOnlyComposable get() = LocalThemeColors.current.brandText
-    /** The lime itself. Takes [TextOnAccent]: light text on it is unreadable. */
-    val Brand500 = Color(0xFFC6F432)
-    /** The lime's pressed edge, under a button's face. */
-    val BrandEdge = Color(0xFF94BC14)
-    /** A deep olive for fills that carry [TextOnBrand]. */
-    val Brand600 = Color(0xFF4A6600)
-    val BrandWash = Color(0x1FC6F432)
+    /** The neon cyan itself, for the dark run. Takes [TextOnAccent]: light text on it is unreadable. */
+    val Brand500 = Color(0xFF34E7FF)
+    /** The cyan's pressed edge, under a button's face. */
+    val BrandEdge = Color(0xFF0E86A8)
+    /** A deep violet for fills that carry [TextOnBrand]. */
+    val Brand600 = Color(0xFF3B1E96)
+    val BrandWash = Color(0x2634E7FF)
+    /** The second neon, magenta: engine glow, a shot, a passing comet. Never a label. */
+    val Neon = Color(0xFFFF4FD8)
+
+    /**
+     * What is to be pressed: the start button, a selected chip. Cyan on the dark ground; on a light one
+     * cyan fell to 1.2:1 against the ground and vanished, so there it is the deep violet, with light text.
+     */
+    val Cta: Color @Composable @ReadOnlyComposable get() = LocalThemeColors.current.cta
+    val CtaEdge: Color @Composable @ReadOnlyComposable get() = LocalThemeColors.current.ctaEdge
+    val OnCta: Color @Composable @ReadOnlyComposable get() = LocalThemeColors.current.onCta
+
+    /** The backdrop's stars, and the violet haze at the bottom of the screen. */
+    val Star: Color @Composable @ReadOnlyComposable get() = LocalThemeColors.current.star
+    val Nebula: Color @Composable @ReadOnlyComposable get() = LocalThemeColors.current.nebula
 
     // Game semantics
     val Accept = Color(0xFF35E08A)
@@ -72,8 +88,8 @@ object Palette {
     val Idle = Color(0xFF8FA3BF)
 
     // Over-camera
-    val ScrimPanel = Color(0x9E0B0E14)
-    val ScrimPanelHigh = Color(0xC70B0E14)
+    val ScrimPanel = Color(0x9E07081A)
+    val ScrimPanelHigh = Color(0xC707081A)
     /**
      * [com.pushuprpg.app.ui.components.CameraText]'s stroke. Near opaque: at 62% a white wall behind
      * it showed through, and secondary text on it fell to 2.9:1.
@@ -115,46 +131,61 @@ data class ThemeColors(
     val tierRare: Color,
     val tierEpic: Color,
     val tierLegend: Color,
+    val cta: Color,
+    val ctaEdge: Color,
+    val onCta: Color,
+    val star: Color,
+    val nebula: Color,
 ) {
     companion object {
         val Dark = ThemeColors(
             isDark = true,
-            bg0 = Color(0xFF0B0C0E),
-            bg1 = Color(0xFF111316),
-            bg2 = Color(0xFF1B1E22),
-            bg3 = Color(0xFF24282E),
-            strokeSoft = Color(0x14FFFFFF),
-            strokeHard = Color(0xFF30353C),
-            textPrimary = Color(0xFFF2F4EE),
-            textSecondary = Color(0xFFAEB4BC),
-            textTertiary = Color(0xFF8E959E),
-            textDisabled = Color(0xFF4A4F57),
-            brandText = Color(0xFFC6F432),
+            bg0 = Color(0xFF04040C),
+            bg1 = Color(0xFF07081A),
+            bg2 = Color(0xFF11112E),
+            bg3 = Color(0xFF1C1A44),
+            strokeSoft = Color(0x1A8C9CFF),
+            strokeHard = Color(0xFF2A2860),
+            textPrimary = Color(0xFFEEF0FF),
+            textSecondary = Color(0xFFA9AED6),
+            textTertiary = Color(0xFF9198C4),
+            textDisabled = Color(0xFF4A4A70),
+            brandText = Color(0xFF4DF0FF),
             info = Color(0xFF35C3FF),
             tierCommon = Color(0xFFC6CEDB),
             tierRare = Color(0xFF4DA3FF),
             tierEpic = Color(0xFFB48CFF),
             tierLegend = Color(0xFFFFC53D),
+            cta = Color(0xFF34E7FF),
+            ctaEdge = Color(0xFF0E86A8),
+            onCta = Color(0xFF0B0D12),
+            star = Color(0xFFDDE4FF),
+            nebula = Color(0xFF2A1260),
         )
 
         val Light = ThemeColors(
             isDark = false,
-            bg0 = Color(0xFFE9EBE6),
-            bg1 = Color(0xFFF3F4F0),
+            bg0 = Color(0xFFE3E4F3),
+            bg1 = Color(0xFFEDEEF9),
             bg2 = Color(0xFFFFFFFF),
-            bg3 = Color(0xFFE5E7E1),
-            strokeSoft = Color(0x1A111316),
-            strokeHard = Color(0xFFD3D6CF),
-            textPrimary = Color(0xFF121417),
-            textSecondary = Color(0xFF474D55),
-            textTertiary = Color(0xFF5E646C),
-            textDisabled = Color(0xFF9EA39B),
-            brandText = Color(0xFF4A6600),
-            info = Color(0xFF0A6E9E),
+            bg3 = Color(0xFFDEDFF0),
+            strokeSoft = Color(0x1A10112A),
+            strokeHard = Color(0xFFCBCDE3),
+            textPrimary = Color(0xFF10112A),
+            textSecondary = Color(0xFF43476A),
+            textTertiary = Color(0xFF575B7E),
+            textDisabled = Color(0xFF9C9EB8),
+            brandText = Color(0xFF4527B8),
+            info = Color(0xFF0A62A8),
             tierCommon = Color(0xFF5F6B7E),
             tierRare = Color(0xFF1C62C4),
             tierEpic = Color(0xFF6E43CC),
             tierLegend = Color(0xFF8F5A00),
+            cta = Color(0xFF4527B8),
+            ctaEdge = Color(0xFF26137A),
+            onCta = Color(0xFFF2F5FA),
+            star = Color(0xFF9A92D8),
+            nebula = Color(0xFFD9D3F5),
         )
     }
 }
