@@ -163,6 +163,8 @@ class SurvivalViewModel(
 
     // The cat's face, words and voice. It reads the run and changes nothing in it.
     private val cat = CatCompanion()
+    /** Whether the cat's lines are spoken (설정 → 고양이 목소리). */
+    @Volatile private var catVoice = true
     private val _cat = MutableStateFlow(cat.view())
     val catView: StateFlow<CatView> = _cat.asStateFlow()
 
@@ -172,6 +174,7 @@ class SurvivalViewModel(
                 audio.soundEnabled = it.sfxEnabled
                 audio.hapticStrength = it.hapticStrength
                 voice.enabled = it.voiceEnabled
+                catVoice = it.catVoiceEnabled
                 restMs = it.catRestSeconds * 1_000L
             }
         }
@@ -280,11 +283,11 @@ class SurvivalViewModel(
         // it used to tell them to come closer over the ending.
         val coaching = now.phase == CatPhase.PLAYING && now.life.alive
         val live = coaching && now.life.started
-        // The cat speaks again before a set and between sets, never over one (2026-11-12, the owner:
-        // "고양이 목소리가 더 좋았던거 같기도" — the lines were off for two days with the pixel look).
-        // 설정 → 목소리 turns them off with the rest.
+        // All of the cat's lines are spoken, during a set as well (2026-11-12, the owner: "고양이
+        // 목소리는 싹다 넣자. on/off 할 수 있게") — off for two days with the pixel look. 설정 →
+        // 고양이 목소리 turns them off alone; 음성 안내 turns off everything spoken.
         voice.announce(
-            announcer.survival(catView.speech.takeUnless { live }, _placement.value.advice.takeIf { coaching }, tick.tMs),
+            announcer.survival(catView.speech.takeIf { catVoice }, _placement.value.advice.takeIf { coaching }, tick.tMs),
             exercise = exercise,
         )
         // Not over an ending published from the screen while this frame was in flight.

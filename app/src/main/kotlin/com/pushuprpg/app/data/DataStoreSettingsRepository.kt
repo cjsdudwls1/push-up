@@ -41,6 +41,7 @@ private val KEY_SFX = booleanPreferencesKey("sfx_enabled")
 // A track name. The older "music_enabled" boolean was never read by anything that played music.
 private val KEY_MUSIC = stringPreferencesKey("music_track")
 private val KEY_VOICE = booleanPreferencesKey("voice_enabled")
+private val KEY_CAT_VOICE = booleanPreferencesKey("cat_voice_enabled")
 private val KEY_CAPTIONS = booleanPreferencesKey("captions_enabled")
 private val KEY_HAPTIC = stringPreferencesKey("haptic_strength")
 private val KEY_COLOUR_BLIND_SAFE = booleanPreferencesKey("colour_blind_safe")
@@ -61,6 +62,7 @@ private fun Preferences.toSettings(): AppSettings = AppSettings(
     sfxEnabled = this[KEY_SFX] ?: SETTINGS_DEFAULT.sfxEnabled,
     music = enumOrDefault(this[KEY_MUSIC], SETTINGS_DEFAULT.music),
     voiceEnabled = this[KEY_VOICE] ?: SETTINGS_DEFAULT.voiceEnabled,
+    catVoiceEnabled = this[KEY_CAT_VOICE] ?: SETTINGS_DEFAULT.catVoiceEnabled,
     captionsEnabled = this[KEY_CAPTIONS] ?: SETTINGS_DEFAULT.captionsEnabled,
     hapticStrength = enumOrDefault(this[KEY_HAPTIC], SETTINGS_DEFAULT.hapticStrength),
     colourBlindSafe = this[KEY_COLOUR_BLIND_SAFE] ?: SETTINGS_DEFAULT.colourBlindSafe,
@@ -82,6 +84,7 @@ private fun MutablePreferences.writeSettings(s: AppSettings) {
     this[KEY_SFX] = s.sfxEnabled
     this[KEY_MUSIC] = s.music.name
     this[KEY_VOICE] = s.voiceEnabled
+    this[KEY_CAT_VOICE] = s.catVoiceEnabled
     this[KEY_CAPTIONS] = s.captionsEnabled
     this[KEY_HAPTIC] = s.hapticStrength.name
     this[KEY_COLOUR_BLIND_SAFE] = s.colourBlindSafe

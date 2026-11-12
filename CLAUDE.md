@@ -1,5 +1,7 @@
 # Working in this repo
 
+**Start with `docs/STATUS.md`**: what is shipped, which PRs wait on what, and the owner's open requests.
+
 ## Layout
 
 - `core/` — pure Kotlin/JVM. Rep detection, calibration, 고양이 지켜줘 (the ceiling, the session
@@ -321,9 +323,9 @@ pixel HUD and hearts, the depth gauge where the demo has it, all placed on the d
 (`RoomGeometry`). The camera's picture shows only while setting up, which is lining up with it;
 after that the room covers it, so the old 카메라 화면 보기 switch is gone (`AppSettings.showCamera` is
 kept only so the stored value reads back). The music in a set is the demo's chiptune (`Chiptune.kt`),
-and a lost heart an 8-bit bonk. The voice says where to stand, and the cat's lines are spoken before
-a set and between sets, never during one: off for two days with the pixel look, back by the owner's
-choice (2026-11-12).
+and a lost heart an 8-bit bonk. The voice says where to stand, and the cat's lines are all spoken, during a
+set too: off for two days with the pixel look, back by the owner's choice (2026-11-12), with their own
+switch (설정 → 고양이 목소리, `AppSettings.catVoiceEnabled`) under 음성 안내, which mutes everything.
 
 ## Copy
 

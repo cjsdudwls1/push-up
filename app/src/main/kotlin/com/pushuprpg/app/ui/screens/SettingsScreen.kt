@@ -106,6 +106,12 @@ fun SettingsScreen(
             checked = settings.voiceEnabled,
             onCheckedChange = { v -> onChange { it.copy(voiceEnabled = v) } },
         )
+        SwitchSetting(
+            title = stringResource(R.string.settings_cat_voice),
+            subtitle = stringResource(R.string.settings_cat_voice_sub),
+            checked = settings.catVoiceEnabled,
+            onCheckedChange = { v -> onChange { it.copy(catVoiceEnabled = v) } },
+        )
         SegmentedSetting(
             title = stringResource(R.string.settings_music),
             subtitle = stringResource(R.string.settings_music_sub),
@@ -220,6 +226,11 @@ fun RunSettingsPanel(
             title = stringResource(R.string.settings_voice),
             checked = settings.voiceEnabled,
             onCheckedChange = { v -> onChange { it.copy(voiceEnabled = v) } },
+        )
+        SwitchSetting(
+            title = stringResource(R.string.settings_cat_voice),
+            checked = settings.catVoiceEnabled,
+            onCheckedChange = { v -> onChange { it.copy(catVoiceEnabled = v) } },
         )
         SegmentedSetting(
             title = stringResource(R.string.settings_music),

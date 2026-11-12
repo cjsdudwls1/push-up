@@ -496,7 +496,9 @@
     <string name="settings_section_exercise">운동</string>
     <string name="settings_reduce_motion_sub">화면 흔들림과 번쩍임을 줄여요.</string>
     <string name="settings_cvd_sub">초록·빨강 대신 파랑·노랑으로 구분해요.</string>
-    <string name="settings_voice_sub">자리 잡기 안내와 쉬는 시간의 고양이 말을 목소리로 알려줘요. 천장이 내려오는 동안에는 말 대신 음악이 빨라져요.</string>
+    <string name="settings_voice_sub">자리 잡기 안내와 고양이 말을 목소리로 들려줘요.</string>
+    <string name="settings_cat_voice">고양이 목소리</string>
+    <string name="settings_cat_voice_sub">운동하는 동안 고양이가 하는 말을 들려줘요. 꺼도 자리 잡기 안내는 들려요.</string>
     <!-- Share card -->
     <string name="share_card_survival_headline">고양이를 지켰어요</string>
     <string name="share_card_survival_hero_label">천장을 밀어 올린 점수</string>

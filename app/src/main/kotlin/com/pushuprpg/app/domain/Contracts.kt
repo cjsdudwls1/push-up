@@ -126,6 +126,8 @@ data class AppSettings(
     /** The background music during a run, or [MusicTrack.OFF]. */
     val music: MusicTrack = MusicTrack.ADVENTURE,
     val voiceEnabled: Boolean = true,
+    /** The cat's own lines in a run, before, during and between sets; [voiceEnabled] still mutes all. */
+    val catVoiceEnabled: Boolean = true,
     val captionsEnabled: Boolean = false,
     val hapticStrength: HapticStrength = HapticStrength.MEDIUM,
     val colourBlindSafe: Boolean = false,
