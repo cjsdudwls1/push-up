@@ -2,6 +2,8 @@
 
 **Start with `docs/STATUS.md`**: what is shipped, which PRs wait on what, and the owner's open requests.
 
+**진행 중 작업서: `docs/SHOP_FLASHY_TASK.md` — 소유자가 시키면 바로 이것부터. 끝나면 그 파일과 이 줄을 지운다.**
+
 ## Layout
 
 - `core/` — pure Kotlin/JVM. Rep detection, calibration, 고양이 지켜줘 (the ceiling, the session
