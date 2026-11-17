@@ -99,7 +99,7 @@ with the objection that kills installs for a camera app.
 · 모든 운동과 모든 세트
 · 운동 기록, 연속 일수, 태운 칼로리
 · 고양이 이름·털 색·선물
-· 광고 없음
+· 운동 중 광고 없음
 
 ※ 이 앱은 의료기기가 아니며 의학적 조언을 제공하지 않아요. 칼로리는 몸무게 65kg 기준 어림값이에요.
 통증이 있으면 바로 멈추고, 지병이 있다면 시작 전에 의사와 상의해 주세요.
@@ -159,7 +159,7 @@ Shoot all eight in one session on the real device. Do not mock them.
   budgets it cannot compete with, and the people searching 홈트 are in 건강/피트니스.
   (This choice also affects 게임물관리위원회 classification; see RELEASE.md.)
 - **Tags:** 운동, 피트니스, 홈트레이닝
-- **Contains ads:** No
+- **Contains ads:** Yes (광고가 든 버전부터. v0.1.0은 No)
 - **In-app purchases:** No — the app is free for the whole test period (`DECISIONS.md`)
 - **Content rating:** complete the IARC questionnaire. There is no combat and no blood; a cartoon
   ceiling comes down towards a frightened cartoon cat, and reaching it ends a set.

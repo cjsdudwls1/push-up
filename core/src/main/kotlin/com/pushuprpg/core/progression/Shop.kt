@@ -3,7 +3,8 @@ package com.pushuprpg.core.progression
 /**
  * What 츄르 buys: things for the cat that no gift brings, by the owner's decision (2026-10-01).
  *
- * 츄르 comes only from sets played against their own best ([SetOutcome.churu]): a first session pays
+ * 츄르 comes from sets played against their own best ([SetOutcome.churu]) and, since 2026-11-08, from
+ * ads the user chooses to watch ([AdRules]). The prices are set against the sets: a first session pays
  * about ten, a set record three. The prices are set against that — the cheapest is under half a first
  * session, the dearest a few weeks of records, and the whole shelf (379) months of them — and ordered
  * cheapest first, which is how the shelf is shown. Twenty things, from eight, since the owner asked for

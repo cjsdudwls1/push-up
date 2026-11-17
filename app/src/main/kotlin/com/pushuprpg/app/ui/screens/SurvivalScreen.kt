@@ -198,6 +198,12 @@ fun SurvivalScreen(
     settings: AppSettings? = null,
     onSettingsChange: ((AppSettings) -> AppSettings) -> Unit = {},
     onPreviewHaptic: (HapticStrength) -> Unit = {},
+    /** Ads may be requested, so the ending may offer 츄르 2배. */
+    adsAvailable: Boolean = false,
+    /** The ad for 츄르 2배 is being fetched or played; the camera lets go meanwhile. */
+    cameraOff: Boolean = false,
+    churuDoubled: Boolean = false,
+    onDoubleChuru: () -> Unit = {},
 ) {
     val hold = Exercises.of(exercise).kind == MovementKind.HOLD
     KeepScreenOn()
@@ -249,15 +255,17 @@ fun SurvivalScreen(
         // The pose is read from the camera, so it always runs; its picture shows only while
         // setting up, which is lining up with it, by the owner's choice (2026-11-10): a set is
         // played in the pixel demo's dark room. The room covers it the rest of the time.
-        CameraPreview(
-            source = poseSource,
-            modifier = Modifier.fillMaxSize(),
-            attempt = cameraAttempt,
-            wide = wideCamera,
-            wideZoom = wideZoom,
-            onWideRange = { wideLeast = it },
-            onCameraError = { failed -> cameraFailed = failed },
-        )
+        if (!cameraOff) {
+            CameraPreview(
+                source = poseSource,
+                modifier = Modifier.fillMaxSize(),
+                attempt = cameraAttempt,
+                wide = wideCamera,
+                wideZoom = wideZoom,
+                onWideRange = { wideLeast = it },
+                onCameraError = { failed -> cameraFailed = failed },
+            )
+        }
 
         // Until the run starts the lower part of the picture is the framing guide's: the ghost's head
         // and arms for a pushup sit where the cat does, so the cat is drawn faint underneath it.
@@ -545,6 +553,10 @@ fun SurvivalScreen(
                     onHome = onHome,
                     onChangeExercise = onChangeExercise,
                     setOutcome = setOutcome,
+                    adsAvailable = adsAvailable,
+                    adLoading = cameraOff,
+                    churuDoubled = churuDoubled,
+                    onDoubleChuru = onDoubleChuru,
                     modifier = Modifier.align(Alignment.Center),
                 )
             }
@@ -1017,6 +1029,10 @@ private fun SessionOverCard(
     onHome: () -> Unit,
     onChangeExercise: () -> Unit,
     setOutcome: SetOutcome?,
+    adsAvailable: Boolean,
+    adLoading: Boolean,
+    churuDoubled: Boolean,
+    onDoubleChuru: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val hold = Exercises.of(exercise).kind == MovementKind.HOLD
@@ -1085,6 +1101,25 @@ private fun SessionOverCard(
                 style = Type.bodyM,
                 color = Palette.TextSecondary,
             )
+            if (churuDoubled) {
+                Text(
+                    text = stringResource(R.string.session_double_done, setOutcome.churu),
+                    style = Type.bodyM,
+                    color = Palette.Deep,
+                )
+            } else if (adsAvailable) {
+                Spacer(Modifier.height(8.dp))
+                SecondaryButton(
+                    text = if (adLoading) {
+                        stringResource(R.string.session_double_loading)
+                    } else {
+                        stringResource(R.string.session_double_churu, setOutcome.churu)
+                    },
+                    onClick = onDoubleChuru,
+                    enabled = !adLoading,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
         }
         if (!hold) {
             Spacer(Modifier.height(8.dp))
