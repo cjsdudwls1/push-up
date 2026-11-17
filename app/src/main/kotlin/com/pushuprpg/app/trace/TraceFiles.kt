@@ -6,6 +6,7 @@ import android.content.Intent
 import android.net.Uri
 import android.util.Log
 import androidx.core.content.FileProvider
+import com.pushuprpg.app.BuildConfig
 import com.pushuprpg.app.R
 import com.pushuprpg.core.trace.PoseTrace
 import kotlinx.coroutines.Dispatchers
@@ -58,6 +59,11 @@ object TraceFiles {
             type = "application/json"
             putExtra(Intent.EXTRA_STREAM, uri)
             putExtra(Intent.EXTRA_SUBJECT, context.getString(R.string.trace_share_subject))
+            // A mail app opens addressed to the developer (2026-11-12, the owner: "내 이메일로
+            // 보내지게"); other targets ignore it, so the chooser still offers 카카오톡 and the rest.
+            if (BuildConfig.TRACE_EMAIL.isNotEmpty()) {
+                putExtra(Intent.EXTRA_EMAIL, arrayOf(BuildConfig.TRACE_EMAIL))
+            }
             // Both the flag and the ClipData, for the same reason as the share card: targets read
             // the grant from one or the other.
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)

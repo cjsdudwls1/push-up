@@ -22,7 +22,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 OUT="${PUSHUP_CAT_BUILD_DIR:-${TMPDIR:-/tmp}/pushup-cat-preview-$(printf %s "$ROOT" | cksum | cut -d' ' -f1)}"
 SHEETS="${1:-$ROOT/build/cat-preview}"
 shift || true
-case "$SHEETS" in /*) ;; *) SHEETS="$PWD/$SHEETS" ;; esac
+case "$SHEETS" in /*|[A-Za-z]:/*) ;; *) SHEETS="$PWD/$SHEETS" ;; esac
 
 COMPONENTS="$ROOT/app/src/main/kotlin/com/pushuprpg/app/ui/components"
 ART=(CatArt CatHeadItems CatFaceItems CatNeckItems CatToys CatScenes CatPictures)
@@ -38,6 +38,7 @@ case "$(uname -s)-$(uname -m)" in
     Linux-aarch64) SKIKO_TARGET=linux-arm64 ;;
     Darwin-arm64) SKIKO_TARGET=macos-arm64 ;;
     Darwin-x86_64) SKIKO_TARGET=macos-x64 ;;
+    MINGW*-x86_64|MSYS*-x86_64) SKIKO_TARGET=windows-x64 ;;
     *) echo "render-cat.sh: no Skia build for $(uname -s)-$(uname -m)" >&2; exit 1 ;;
 esac
 

@@ -580,7 +580,11 @@ class RepDetectorImpl(
     /** One full swing: up to [peak], then down at least a swing. Called once the valley after it is known. */
     private fun onWatchdogPeak(peak: Float, straightest: Float, bentMost: Float) {
         val straightened = straightest.isNaN() || straightest <= WATCHDOG_JOINT_REST_MAX
-        val bent = bentMost.isNaN() || bentMost >= WATCHDOG_JOINT_BENT_MIN
+        // A joint that may not veto a rep may not veto the rescue either: filmed from the front, a
+        // dip's elbow read 32-43 degrees bent at the bottom of honest dips (2026-11-12, SM-A556S),
+        // and the top stayed out of reach for four of them. The swing in h is the descent there.
+        val bent = bentMost.isNaN() || bentMost >= WATCHDOG_JOINT_BENT_MIN ||
+            config.descriptor.signal?.jointVetoes == false
         val short = calibrator.mapRaw(peak) > config.topEnter
         if (short && straightened && bent) wdPeaks += peak else wdPeaks.clear()
         if (wdPeaks.size < WATCHDOG_TURNS) return

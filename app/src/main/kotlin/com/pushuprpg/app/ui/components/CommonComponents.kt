@@ -22,16 +22,10 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.DarkMode
-import androidx.compose.material.icons.rounded.LightMode
-import androidx.compose.material.icons.rounded.LocalFireDepartment
-import androidx.compose.material.icons.rounded.Settings
+import com.pushuprpg.app.ui.theme.PixelCircle
+import com.pushuprpg.app.ui.theme.PixelShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -44,8 +38,8 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -55,7 +49,7 @@ import androidx.compose.ui.unit.dp
 import com.pushuprpg.app.R
 import com.pushuprpg.app.domain.ThemeMode
 import com.pushuprpg.app.ui.theme.LocalGameColors
-import com.pushuprpg.app.ui.theme.Orbit
+import com.pushuprpg.app.ui.theme.Galmuri
 import com.pushuprpg.app.ui.theme.Palette
 import com.pushuprpg.app.ui.theme.Type
 import com.pushuprpg.core.detect.ExerciseType
@@ -63,7 +57,7 @@ import com.pushuprpg.core.detect.Exercises
 import java.util.WeakHashMap
 
 /** The one card radius the hub screens use, so nothing drifts by a few dp between screens. */
-val CardShape: Shape = RoundedCornerShape(24.dp)
+val CardShape: Shape = PixelShape(24.dp)
 
 /**
  * Card chrome as a modifier rather than a wrapper composable, so callers stay free to be a Row, a
@@ -81,8 +75,9 @@ fun Modifier.cardSurface(
     color: Color = Palette.Bg2,
     borderColor: Color = Color.Transparent,
 ): Modifier = this
-    .clip(shape)
-    .background(color)
+    // Drawn in the shape rather than clipped to it: nothing on a card spills past its edge, and a
+    // clip is a layer per card for nothing.
+    .background(color, shape)
     .then(if (borderColor != Color.Transparent) Modifier.border(1.dp, borderColor, shape) else Modifier)
 
 @Composable
@@ -110,7 +105,7 @@ fun ProgressTrack(
     trackColor: Color = Palette.Bg3,
 ) {
     val filled = fraction.coerceIn(0f, 1f)
-    val shape = RoundedCornerShape(height / 2)
+    val shape = PixelShape(height / 2)
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -140,7 +135,7 @@ fun StatTile(
 ) {
     Column(
         modifier = modifier
-            .cardSurface(shape = RoundedCornerShape(18.dp))
+            .cardSurface(shape = PixelShape(18.dp))
             .padding(horizontal = 12.dp, vertical = 18.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
@@ -177,13 +172,13 @@ fun PrimaryButton(
         modifier = modifier
             .fillMaxWidth()
             .heightIn(min = 64.dp)
-            // The face's pressed-in edge: a darker lime under the bottom of the pill, so the button
+            // The face's pressed-in edge: a darker shade under the bottom of the pill, so the button
             // reads as something to push rather than a box with a label in it.
-            .then(if (enabled) Modifier.background(Palette.BrandEdge, CircleShape).padding(bottom = 5.dp) else Modifier),
-        shape = CircleShape,
+            .then(if (enabled) Modifier.background(Palette.CtaEdge, PixelCircle).padding(bottom = 5.dp) else Modifier),
+        shape = PixelCircle,
         colors = ButtonDefaults.buttonColors(
-            containerColor = Palette.Brand500,
-            contentColor = Palette.TextOnAccent,
+            containerColor = Palette.Cta,
+            contentColor = Palette.OnCta,
             disabledContainerColor = Palette.Bg3,
             disabledContentColor = Palette.TextDisabled,
         ),
@@ -221,7 +216,7 @@ fun SecondaryButton(
         modifier = modifier
             .fillMaxWidth()
             .heightIn(min = 56.dp),
-        shape = CircleShape,
+        shape = PixelCircle,
         border = null,
         colors = ButtonDefaults.outlinedButtonColors(
             containerColor = Palette.Bg3,
@@ -258,22 +253,17 @@ fun StreakChip(days: Int, modifier: Modifier = Modifier) {
     val dot = if (alive) LocalGameColors.current.combo else Palette.TextTertiary
     Row(
         modifier = modifier
-            .clip(CircleShape)
-            .background(Palette.Bg2)
-            .padding(start = 10.dp, end = 14.dp, top = 8.dp, bottom = 8.dp),
+            .heightIn(min = 48.dp)
+            .background(Palette.Bg2, PixelCircle)
+            .padding(start = 12.dp, end = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.Center,
     ) {
-        Icon(
-            imageVector = Icons.Rounded.LocalFireDepartment,
-            contentDescription = null,
-            tint = dot,
-            modifier = Modifier.size(20.dp),
-        )
+        PixelIcon(sprite = PixelIcons.Flame, tint = dot, modifier = Modifier.size(20.dp))
         Spacer(Modifier.width(4.dp))
         Text(
             text = stringResource(R.string.home_streak, days),
-            style = Type.labelL.copy(fontFamily = Orbit, fontWeight = FontWeight.Normal),
+            style = Type.labelL.copy(fontFamily = Galmuri, fontWeight = FontWeight.Bold),
             color = if (alive) Palette.TextPrimary else Palette.TextSecondary,
             maxLines = 1,
         )
@@ -290,7 +280,7 @@ fun StreakChip(days: Int, modifier: Modifier = Modifier) {
 fun ThemeToggle(mode: ThemeMode, onToggle: () -> Unit, modifier: Modifier = Modifier) {
     val toLight = mode == ThemeMode.DARK
     RoundIconButton(
-        icon = if (toLight) Icons.Rounded.LightMode else Icons.Rounded.DarkMode,
+        icon = if (toLight) PixelIcons.Sun else PixelIcons.Moon,
         label = stringResource(if (toLight) R.string.theme_switch_to_light else R.string.theme_switch_to_dark),
         onClick = onToggle,
         modifier = modifier,
@@ -301,7 +291,7 @@ fun ThemeToggle(mode: ThemeMode, onToggle: () -> Unit, modifier: Modifier = Modi
 @Composable
 fun SettingsButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
     RoundIconButton(
-        icon = Icons.Rounded.Settings,
+        icon = PixelIcons.Gear,
         label = stringResource(R.string.action_settings),
         onClick = onClick,
         modifier = modifier,
@@ -310,21 +300,16 @@ fun SettingsButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
 
 /** A round 48dp button with one icon in it, read aloud as [label]. The top bar's buttons are all this. */
 @Composable
-fun RoundIconButton(icon: ImageVector, label: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
+fun RoundIconButton(icon: PixelSprite, label: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
     Box(
         modifier = modifier
             .size(48.dp)
-            .clip(CircleShape)
+            .clip(PixelCircle)
             .background(Palette.Bg2)
-            .clickable(role = Role.Button, onClick = onClick),
+            .clickable(role = Role.Button, onClickLabel = label, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = label,
-            tint = Palette.TextPrimary,
-            modifier = Modifier.size(22.dp),
-        )
+        PixelIcon(sprite = icon, tint = Palette.TextPrimary, contentDescription = label, modifier = Modifier.size(24.dp))
     }
 }
 
@@ -337,8 +322,7 @@ fun Pill(text: String, tint: Color, modifier: Modifier = Modifier) {
         color = tint,
         maxLines = 1,
         modifier = modifier
-            .clip(CircleShape)
-            .background(tint.copy(alpha = 0.16f))
+            .background(tint.copy(alpha = 0.16f), PixelCircle)
             .padding(horizontal = 10.dp, vertical = 5.dp),
     )
 }
@@ -460,10 +444,30 @@ fun ExerciseNotes(exercise: ExerciseType) {
             color = Palette.TextSecondary,
             modifier = Modifier.weight(1f),
         )
+        // A plank is counted in seconds, not reps, which changes what the run shows: said before it.
+        if (Exercises.of(exercise).kind == com.pushuprpg.core.detect.MovementKind.HOLD) {
+            Spacer(Modifier.width(8.dp))
+            Pill(text = stringResource(R.string.pick_exercise_hold), tint = Palette.TextSecondary)
+        }
         // Honest in two words rather than a sentence: no real body has confirmed the count yet.
         if (!Exercises.of(exercise).validatedOnDevice) {
             Spacer(Modifier.width(8.dp))
             Pill(text = stringResource(R.string.exercise_unvalidated), tint = Palette.TextTertiary)
         }
     }
+}
+
+/**
+ * "기록 보기 ›" in a tappable card's corner, so the card reads as one that opens something. Left out of
+ * the accessibility tree: the card's own click label already says it.
+ */
+@Composable
+fun MoreLink(modifier: Modifier = Modifier) {
+    Text(
+        text = stringResource(R.string.card_more_records),
+        style = Type.labelS,
+        color = Palette.TextTertiary,
+        maxLines = 1,
+        modifier = modifier.clearAndSetSemantics {},
+    )
 }

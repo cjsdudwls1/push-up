@@ -4,7 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.CircleShape
+import com.pushuprpg.app.ui.theme.PixelCircle
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -46,7 +46,7 @@ fun WideCameraControl(
         color = if (on) Palette.TextPrimary else Palette.TextSecondary,
         modifier = modifier
             .height(48.dp)
-            .clip(CircleShape)
+            .clip(PixelCircle)
             .background(if (on) LocalGameColors.current.accept.copy(alpha = 0.55f) else Palette.ScrimPanelHigh)
             .clickable(role = Role.Switch) { onToggle(!on) }
             .padding(horizontal = 18.dp, vertical = 13.dp),

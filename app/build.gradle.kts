@@ -63,6 +63,8 @@ android {
         buildConfigField("String", "ADMOB_REWARDED", "\"${admob("rewarded", "ca-app-pub-3940256099942544/5224354917")}\"")
         buildConfigField("String", "ADMOB_INTERSTITIAL", "\"${admob("interstitial", "ca-app-pub-3940256099942544/1033173712")}\"")
         buildConfigField("String", "ADMOB_BANNER", "\"${admob("banner", "ca-app-pub-3940256099942544/9214589741")}\"")
+        // Where a debug build's 동작 기록 보내기 addresses its mail; set only in debug, below.
+        buildConfigField("String", "TRACE_EMAIL", "\"\"")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         // Korean-only for v1: the default resources are Korean, so shipping an "en"
@@ -120,6 +122,12 @@ android {
             (findProperty("pushup.buildId") as String?)
                 ?.takeIf { it.isNotBlank() }
                 ?.let { versionNameSuffix = "-$it" }
+
+            // The developer's address for a trace, prefilled in the mail app so sending one is a
+            // tap. Kept out of this public repo: it comes from ~/.gradle/gradle.properties
+            // (pushup.traceEmail=...), and a build without it leaves the recipient to the sender.
+            val traceEmail = (findProperty("pushup.traceEmail") as String?)?.trim().orEmpty()
+            buildConfigField("String", "TRACE_EMAIL", "\"${traceEmail.replace("\"", "")}\"")
         }
         release {
             isMinifyEnabled = true

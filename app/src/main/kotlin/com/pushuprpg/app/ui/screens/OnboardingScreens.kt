@@ -3,7 +3,7 @@ package com.pushuprpg.app.ui.screens
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.shape.RoundedCornerShape
+import com.pushuprpg.app.ui.theme.PixelShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -128,7 +128,7 @@ fun PermissionScreen(
             color = colors.accept,
             modifier = Modifier
                 .fillMaxWidth()
-                .cardSurface(shape = RoundedCornerShape(18.dp), color = colors.acceptDim)
+                .cardSurface(shape = PixelShape(18.dp), color = colors.acceptDim)
                 .padding(18.dp),
         )
         // What the camera is for, and what helps it see. Placement for each movement is still said

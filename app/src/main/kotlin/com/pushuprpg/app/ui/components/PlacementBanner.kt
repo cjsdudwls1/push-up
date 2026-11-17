@@ -8,7 +8,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
+import com.pushuprpg.app.ui.theme.PixelShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -79,7 +79,7 @@ fun PlacementBanner(
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier
-                .clip(RoundedCornerShape(18.dp))
+                .clip(PixelShape(18.dp))
                 .background(Palette.ScrimPanelHigh)
                 .padding(horizontal = 20.dp, vertical = 12.dp),
         ) {

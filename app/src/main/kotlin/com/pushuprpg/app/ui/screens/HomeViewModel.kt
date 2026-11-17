@@ -17,6 +17,7 @@ import com.pushuprpg.core.progression.Records
 import com.pushuprpg.core.progression.Trends
 import com.pushuprpg.core.progression.Weeks
 import com.pushuprpg.core.progression.recap
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -24,6 +25,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import java.time.Duration
@@ -91,7 +93,10 @@ class HomeViewModel(
             lastWorkoutDay = facts.maxOfOrNull { it.epochDay },
             gifts = Gifts.earned(facts, progress.bestStreakDays),
         )
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeUiState())
+    }
+        // The records, trends and gifts are worked out from every run there is: off the main thread.
+        .flowOn(Dispatchers.Default)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeUiState())
 
     /**
      * Keeps [day] current for as long as it runs: read now, and again at each midnight. The hub runs

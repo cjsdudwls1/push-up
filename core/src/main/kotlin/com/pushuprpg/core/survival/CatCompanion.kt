@@ -69,7 +69,7 @@ data class CatView(
  * The mode works because the user is protecting something, and something that does not react is
  * not something anyone protects. So the cat has four stages of fear read from the ceiling's height,
  * brightens for a moment at every push, says so in words, and is heard — purring while the ceiling
- * is high, crying as it comes down, with a heartbeat that quickens near the end and a creak from the
+ * is high, one meow as it comes into danger, with a heartbeat that quickens near the end and a creak from the
  * ceiling that gets louder as it closes. None of it changes the game: [CeilingSurvival] decides what
  * happens, and this only decides how the cat feels about it.
  *
@@ -275,14 +275,26 @@ class CatCompanion {
         }
     }
 
+    /**
+     * One short meow as the ceiling comes into the frightening part, and nothing else said aloud.
+     *
+     * By the owner's decision (2026-11-10) the cry is gone: heard at every stage it grated, and the
+     * music speeding up already says the ceiling is closing. The lines still go up in the bubble;
+     * the meow is the one sound that marks the danger, and the hysteresis in [moodFor] keeps it
+     * from coming again until the ceiling has been pushed back out of it.
+     */
     private fun onWorse(now: CatMood): List<SoundRequest> = when (now) {
         CatMood.CALM -> emptyList()
-        CatMood.UNEASY ->
-            if (say(CatLine.UNEASY, nowMs)) listOf(SoundRequest(SoundCue.CAT_MEOW, volume = 0.8f)) else emptyList()
+        CatMood.UNEASY -> {
+            say(CatLine.UNEASY, nowMs)
+            emptyList()
+        }
         CatMood.SCARED ->
-            if (say(CatLine.SCARED, nowMs)) listOf(SoundRequest(SoundCue.CAT_CRY, volume = 0.85f)) else emptyList()
-        CatMood.PANIC ->
-            if (say(CatLine.PANIC, nowMs)) listOf(SoundRequest(SoundCue.CAT_CRY, rate = 1.2f)) else emptyList()
+            if (say(CatLine.SCARED, nowMs)) listOf(SoundRequest(SoundCue.CAT_MEOW, rate = DANGER_MEOW_RATE, volume = 0.7f)) else emptyList()
+        CatMood.PANIC -> {
+            say(CatLine.PANIC, nowMs)
+            emptyList()
+        }
     }
 
     /**
@@ -360,6 +372,9 @@ class CatCompanion {
         const val HEARTBEAT_SLOW_MS = 850L
         const val HEARTBEAT_FAST_MS = 420L
         const val HOLD_SOUND_EVERY_MS = 900L
+
+        /** The danger meow, a little higher than the cat's ordinary one. */
+        const val DANGER_MEOW_RATE = 1.15f
 
         /** When the cat says ten seconds of the rest are left. */
         const val REST_TEN_MS = 10_000L

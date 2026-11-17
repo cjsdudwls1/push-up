@@ -9,6 +9,7 @@ import android.os.Handler
 import android.os.Looper
 import com.pushuprpg.app.R
 import com.pushuprpg.app.domain.MusicTrack
+import kotlin.math.roundToInt
 
 /**
  * Background music: one looping track at a time, under the game's sounds.
@@ -39,6 +40,16 @@ class MusicPlayer(context: Context) {
         .build()
 
     private var hasFocus = false
+
+    /** Whether the music should be heard now: started, and not paused or out of focus. */
+    private var active = false
+
+    /** 고양이 지켜줘 plays [Chiptune] in place of the picked track, while the track keeps its place. */
+    private var chipMode = false
+    private val chip = Chiptune(attributes)
+
+    /** How fast the track plays: 1 normally, more as 고양이 지켜줘's ceiling closes. See [setUrgency]. */
+    private var tempo = 1f
 
     /** Paused for a call or another app's short sound, and to come back when it is over. */
     private var pausedForTransientLoss = false
@@ -73,21 +84,75 @@ class MusicPlayer(context: Context) {
         }.getOrNull()?.apply {
             isLooping = true
             setVolume(VOLUME, VOLUME)
-            start()
         }
         current = if (player != null) track else MusicTrack.OFF
-        if (player == null) abandonFocus()
+        if (player == null) {
+            abandonFocus()
+            return
+        }
+        active = true
+        sync()
+    }
+
+    /**
+     * Plays the chiptune instead of the track, for 고양이 지켜줘 — as long as music is on at all: with
+     * the music set to off, the run is as quiet as before. Off again, the track picks up where it was.
+     */
+    fun setChiptune(on: Boolean) {
+        if (chipMode == on) return
+        chipMode = on
+        sync()
+    }
+
+    /** Puts what is heard in line with [active] and [chipMode]. */
+    private fun sync() {
+        val p = player
+        if (active && chipMode && p != null) chip.start() else chip.stop()
+        if (p == null) return
+        val mediaOn = active && !chipMode
+        if (mediaOn && !p.isPlaying) {
+            p.start()
+            applyTempo(p)
+        } else if (!mediaOn && p.isPlaying) {
+            p.pause()
+        }
+    }
+
+    /**
+     * Plays the track faster as [urgency] goes from 0 to 1 — up to [MAX_TEMPO], at the same pitch:
+     * the ceiling coming down is heard as the music hurrying (owner's decision, 2026-11-10). In
+     * [TEMPO_STEPS] steps, so a ceiling moving every frame is not a playback change every frame. It
+     * holds for whatever plays next, so the run sets it back to 0 when it is over.
+     */
+    fun setUrgency(urgency: Float) {
+        val step = (urgency.coerceIn(0f, 1f) * TEMPO_STEPS).roundToInt()
+        val s = 1f + (MAX_TEMPO - 1f) * step / TEMPO_STEPS
+        chip.intensity = urgency.coerceIn(0f, 1f)
+        if (s == tempo) return
+        tempo = s
+        // Only on a playing player: setting a speed on a paused one starts it.
+        player?.takeIf { it.isPlaying }?.let { applyTempo(it) }
+    }
+
+    private fun applyTempo(p: MediaPlayer) {
+        // Some decoders refuse a time-stretch; the music then just keeps its pace.
+        runCatching {
+            val params = p.playbackParams
+            if (params.speed != tempo) p.playbackParams = params.setSpeed(tempo).setPitch(1f)
+        }
     }
 
     /** Lowers the music under a spoken line, and brings it back after. */
     fun setDucked(ducked: Boolean) {
         val v = if (ducked) VOLUME * DUCK else VOLUME
         player?.setVolume(v, v)
+        chip.gain = if (ducked) DUCK else 1f
     }
 
     /** Holds the place, for the app going to the background. */
     fun pause() {
-        player?.takeIf { it.isPlaying }?.pause()
+        active = false
+        sync()
         abandonFocus()
     }
 
@@ -96,13 +161,17 @@ class MusicPlayer(context: Context) {
      * keeps playing, or the phone is in a call and focus is refused.
      */
     fun resume() {
-        val p = player ?: return
-        if (p.isPlaying) return
+        if (player == null || active) return
         if (audio?.isMusicActive == true) return
-        if (requestFocus()) p.start()
+        if (requestFocus()) {
+            active = true
+            sync()
+        }
     }
 
     fun stop() {
+        active = false
+        chip.stop()
         player?.run {
             runCatching { stop() }
             release()
@@ -116,16 +185,19 @@ class MusicPlayer(context: Context) {
         when (change) {
             // Someone else's music: it is theirs now, and the app does not take it back on its own.
             AudioManager.AUDIOFOCUS_LOSS -> {
-                player?.takeIf { it.isPlaying }?.pause()
+                active = false
+                sync()
                 abandonFocus()
             }
-            AudioManager.AUDIOFOCUS_LOSS_TRANSIENT -> player?.takeIf { it.isPlaying }?.let {
-                it.pause()
+            AudioManager.AUDIOFOCUS_LOSS_TRANSIENT -> if (active) {
+                active = false
+                sync()
                 pausedForTransientLoss = true
             }
             AudioManager.AUDIOFOCUS_GAIN -> if (pausedForTransientLoss) {
                 pausedForTransientLoss = false
-                player?.start()
+                active = true
+                sync()
             }
             // A duck: another app's is done by the platform, the game's own voice's by setDucked.
             else -> Unit
@@ -160,5 +232,9 @@ class MusicPlayer(context: Context) {
 
         /** How far the music drops while the voice speaks. */
         const val DUCK = 0.3f
+
+        /** The fastest the music goes with the ceiling at the cat's head. More than this smears. */
+        const val MAX_TEMPO = 1.35f
+        const val TEMPO_STEPS = 7
     }
 }

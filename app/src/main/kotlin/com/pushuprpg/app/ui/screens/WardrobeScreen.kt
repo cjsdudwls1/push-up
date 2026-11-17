@@ -19,7 +19,7 @@ import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
+import com.pushuprpg.app.ui.theme.PixelShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
@@ -203,13 +203,23 @@ fun WardrobeScreen(
             SecondaryButton(
                 text = when {
                     adsLeft == 0 -> stringResource(R.string.shop_ad_done_today)
-                    adReady -> stringResource(R.string.shop_ad_watch, AdRules.SHOP_AD_CHURU, adsLeft)
+                    adReady -> stringResource(R.string.shop_ad_watch, AdRules.SHOP_AD_CHURU)
                     else -> stringResource(R.string.shop_ad_loading)
                 },
                 onClick = onWatchAd,
                 enabled = adsLeft > 0 && adReady,
                 modifier = Modifier.fillMaxWidth(),
             )
+            // The count left today is its own line: in the button, on one line of the pixel
+            // face, it ran past a 1080 px phone's edge and was cut.
+            if (adsLeft > 0 && adReady) {
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = stringResource(R.string.shop_ad_left, adsLeft),
+                    style = Type.bodyM,
+                    color = Palette.TextSecondary,
+                )
+            }
         }
         Spacer(Modifier.height(12.dp))
         ShopItem.entries.chunked(TILES_PER_ROW).forEach { row ->
@@ -255,7 +265,7 @@ private fun ShopTile(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val shape = RoundedCornerShape(14.dp)
+    val shape = PixelShape(14.dp)
     val tappable = owned || affordable
     Column(
         modifier = modifier
@@ -306,7 +316,7 @@ private fun GiftTile(
     modifier: Modifier = Modifier,
 ) {
     val colors = LocalGameColors.current
-    val shape = RoundedCornerShape(14.dp)
+    val shape = PixelShape(14.dp)
     Column(
         modifier = modifier
             .cardSurface(shape = shape, color = if (worn) Palette.Bg3 else Palette.Bg2)
@@ -353,7 +363,7 @@ private fun GiftTile(
 /** A found thing, on the user's own cat: see [drawItemPicture]. */
 @Composable
 private fun ItemPicture(item: CatItem, coat: CatCoat, modifier: Modifier = Modifier) {
-    Canvas(modifier.clip(RoundedCornerShape(10.dp))) { drawItemPicture(item, coat) }
+    Canvas(modifier.clip(PixelShape(10.dp))) { drawItemPicture(item, coat) }
 }
 
 /** A gift still wrapped: what a secret looks like. */

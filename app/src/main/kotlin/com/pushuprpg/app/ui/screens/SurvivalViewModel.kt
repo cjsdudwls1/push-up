@@ -9,9 +9,12 @@ import com.pushuprpg.app.AppContainer
 import com.pushuprpg.app.audio.GameAudio
 import com.pushuprpg.app.audio.GameVoice
 import com.pushuprpg.core.audio.Announcer
+import com.pushuprpg.core.audio.SoundCue
+import com.pushuprpg.core.audio.SoundRequest
 import com.pushuprpg.app.domain.SettingsRepository
 import com.pushuprpg.app.domain.ProgressRepository
 import com.pushuprpg.app.telemetry.Event
+import com.pushuprpg.app.ui.components.FxCue
 import com.pushuprpg.app.telemetry.Telemetry
 import com.pushuprpg.app.telemetry.TutorialEnd
 import com.pushuprpg.app.trace.RunTraces
@@ -49,7 +52,11 @@ import com.pushuprpg.core.survival.CatSessionEvent
 import com.pushuprpg.core.survival.CatSessionState
 import com.pushuprpg.core.survival.CatView
 import com.pushuprpg.core.survival.CeilingSurvival
+import com.pushuprpg.core.survival.SurvivalEvent
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -134,13 +141,36 @@ class SurvivalViewModel(
 
     private val announcer = Announcer()
 
+    /**
+     * How deep the user is right now, 0..100 as the detector reads it, for the run's depth gauge;
+     * 0 when no set is being played, and always for a hold, which has no depth to show.
+     */
+    private val _depth = MutableStateFlow(0f)
+    val depth: StateFlow<Float> = _depth.asStateFlow()
+
+    /** Where the gauge's 1회 and 깊게 lines sit: the detector's own thresholds. */
+    val depthLines: Pair<Float, Float> = detector.config.countEnter to detector.config.deepEnter
+
     // The skeleton, only while setting up: the mode hides it on purpose, but lining up with the
     // framing guide is done by watching the lines.
+    // The pixel bursts over the cat: a push landing, a deep one, a combo, a record. Emitted from the
+    // pose thread as the event happens and dropped if nobody is drawing, never queued up for later.
+    private val _fx = MutableSharedFlow<FxCue>(extraBufferCapacity = 8)
+    val fx: SharedFlow<FxCue> = _fx.asSharedFlow()
+
+    /** The set whose record burst has been shown, so it plays once a set; -1 for none yet. */
+    @Volatile
+    private var recordShownForSet = -1
+    /** The set and the step of its count to the record last heard, so each step is heard once. */
+    private var nearHeard: Pair<Int, Int>? = null
+
     private val _setupSkeleton = MutableStateFlow<RenderSkeleton?>(null)
     val setupSkeleton: StateFlow<RenderSkeleton?> = _setupSkeleton.asStateFlow()
 
     // The cat's face, words and voice. It reads the run and changes nothing in it.
     private val cat = CatCompanion()
+    /** Whether the cat's lines are spoken (설정 → 고양이 목소리). */
+    @Volatile private var catVoice = true
     private val _cat = MutableStateFlow(cat.view())
     val catView: StateFlow<CatView> = _cat.asStateFlow()
 
@@ -150,6 +180,7 @@ class SurvivalViewModel(
                 audio.soundEnabled = it.sfxEnabled
                 audio.hapticStrength = it.hapticStrength
                 voice.enabled = it.voiceEnabled
+                catVoice = it.catVoiceEnabled
                 restMs = it.catRestSeconds * 1_000L
             }
         }
@@ -250,21 +281,26 @@ class SurvivalViewModel(
             cat.update(now.life, step.life, tick.tMs, best = best, hold = hold) +
                 cat.rest(now.restLeftMs, step.session, tick.tMs)
         )
+        if (now.phase == CatPhase.PLAYING) emitFx(step.life, now, best)
         val catView = cat.view()
-        // The cat's lines are heard as well as read: the bubble is small and the phone is far. Where
-        // to stand is said only while a set is on, as the banner shows it: not during a rest, since
-        // stepping away for water is what a rest is for, and not once the ceiling has won or the
-        // session is over — after the tenth set the camera still sees the user getting up, and it
-        // used to tell them to come closer over the ending.
+        // Where to stand is said only while a set is on, as the banner shows it: not during a rest,
+        // since stepping away for water is what a rest is for, and not once the ceiling has won or
+        // the session is over — after the tenth set the camera still sees the user getting up, and
+        // it used to tell them to come closer over the ending.
         val coaching = now.phase == CatPhase.PLAYING && now.life.alive
+        val live = coaching && now.life.started
+        // All of the cat's lines are spoken, during a set as well (2026-11-12, the owner: "고양이
+        // 목소리는 싹다 넣자. on/off 할 수 있게") — off for two days with the pixel look. 설정 →
+        // 고양이 목소리 turns them off alone; 음성 안내 turns off everything spoken.
         voice.announce(
-            announcer.survival(catView.speech, _placement.value.advice.takeIf { coaching }, tick.tMs),
+            announcer.survival(catView.speech.takeIf { catVoice }, _placement.value.advice.takeIf { coaching }, tick.tMs),
             exercise = exercise,
         )
         // Not over an ending published from the screen while this frame was in flight.
         if (endedHere) return
         _state.value = now
         _cat.value = catView
+        _depth.value = if (live && !hold) tick.depth else 0f
         val settingUp = now.phase == CatPhase.PLAYING && !now.life.started
         detector.skeletonMode = if (settingUp) SkeletonMode.FULL else SkeletonMode.OFF
         _setupSkeleton.value = if (settingUp) tick.render else null
@@ -343,7 +379,44 @@ class SurvivalViewModel(
         return true
     }
 
+    private fun emitFx(events: List<SurvivalEvent>, now: CatSessionState, best: Int) {
+        for (event in events) {
+            when (event) {
+                is SurvivalEvent.Pushed -> if (!event.hold) {
+                    _fx.tryEmit(if (event.deep) FxCue.PERFECT else FxCue.HIT)
+                    val combo = event.combo
+                    when {
+                        combo == 5 -> _fx.tryEmit(FxCue.COMBO5)
+                        combo == 10 -> _fx.tryEmit(FxCue.COMBO10)
+                        combo >= 20 && combo % 10 == 0 -> _fx.tryEmit(FxCue.COMBO20)
+                    }
+                }
+                is SurvivalEvent.Deepened -> _fx.tryEmit(FxCue.PERFECT)
+                // The sprite says 30 SEC, so only the first.
+                is SurvivalEvent.Milestone -> if (event.seconds == 30) _fx.tryEmit(FxCue.MILESTONE)
+                is SurvivalEvent.GameOver -> _fx.tryEmit(FxCue.COMBO_END)
+                else -> Unit
+            }
+        }
+        // As the cat's RECORD line counts it: reps, or a hold's seconds.
+        val value = if (hold) (now.life.elapsedMs / 1000L).toInt() else now.life.reps
+        val set = now.ended.size
+        if (best > 0 && value > best && now.life.alive && recordShownForSet != set) {
+            recordShownForSet = set
+            _fx.tryEmit(FxCue.RECORD)
+        }
+        // Closing in on it: a blip a step higher with each rep (or second) still to go, as the
+        // counter blinks 기록까지 N개!. Only on a change, so a hold does not blip every frame.
+        val toGo = if (now.life.alive) recordToGo(value, best, hold) else null
+        if (toGo != null && nearHeard != set to toGo) {
+            nearHeard = set to toGo
+            audio.play(SoundRequest(SoundCue.COMBO_UP, rate = 1.6f - 0.12f * (toGo - 1)))
+        }
+    }
+
     private fun applyRestart() {
+        recordShownForSet = -1
+        nearHeard = null
         session.reset()
         detector.reset()
         cat.reset()
@@ -525,9 +598,13 @@ class SurvivalViewModel(
                 // Against what is stored now, not what this session started from: a session banked
                 // meanwhile from another screen must not have its records written over.
                 val setsNow = if (tutorial) null else SetOutcome.of(current.setBestsOf(exercise), played, hold)
-                sets = setsNow
+                // This session becomes the last one, unless it did nothing: a session abandoned
+                // while setting up would otherwise wipe what the next one is shown to beat.
+                val lastNow = played.map { SetBests.valueOf(it, hold) }.takeIf { v -> !tutorial && v.any { it > 0 } }
+                sets = setsNow?.copy(bests = setsNow.bests.copy(last = lastNow ?: current.lastSets[exercise].orEmpty()))
                 current.withSurvivalScore(exercise, score).copy(
                     setBests = if (setsNow == null) current.setBests else current.setBests + (exercise to setsNow.bests.bests),
+                    lastSets = if (lastNow == null) current.lastSets else current.lastSets + (exercise to lastNow),
                     churu = current.churu + (setsNow?.churu ?: 0),
                     lifetimeReps = current.lifetimeReps + repsDone,
                     bestCombo = maxOf(current.bestCombo, bestSet),

@@ -4,7 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
+import com.pushuprpg.app.ui.theme.PixelShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -69,7 +69,7 @@ fun CameraText(
             maxLines = maxLines,
             onTextLayout = onTextLayout,
             modifier = modifier
-                .clip(RoundedCornerShape(12.dp))
+                .clip(PixelShape(12.dp))
                 .background(Palette.ScrimPanel)
                 .padding(horizontal = 12.dp, vertical = 6.dp),
         )

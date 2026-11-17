@@ -197,6 +197,11 @@ class RealTraceTest {
         // the hands and is not a fourth. The elbow's 3-D angle read straighter at the bottom than at
         // the top, and refused all three while it could veto a dip.
         Set("dip-front-full-model.json.gz", ExerciseType.DIP, 3, 3, "dips from the front, the full model"),
+        // 2026-11-12, SM-A556S: five dips from the front, small in the picture, after a climb onto the
+        // bars that the prior's top took for the lockout. Every dip turned around at 45 on the gauge
+        // and the elbow read 32-43 degrees bent at the bottom, so the arming watchdog waited for a
+        // bend it would not see and one dip in five counted. The climb counts as one; 4-6 is the band.
+        Set("dip-front-mount-short-top.json.gz", ExerciseType.DIP, 4, 6, "dips from the front under a top set too high"),
     )
 
     @Test

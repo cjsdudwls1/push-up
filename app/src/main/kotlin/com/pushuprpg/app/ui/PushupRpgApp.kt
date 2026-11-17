@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -49,6 +50,7 @@ import com.pushuprpg.app.domain.AppSettings
 import com.pushuprpg.app.domain.ThemeMode
 import com.pushuprpg.app.domain.wearing
 import com.pushuprpg.app.domain.withWear
+import com.pushuprpg.core.survival.CatPhase
 import com.pushuprpg.core.detect.ExerciseType
 import com.pushuprpg.app.pose.PoseFrameSink
 import com.pushuprpg.app.share.ShareCardData
@@ -56,6 +58,7 @@ import com.pushuprpg.app.pose.PoseLandmarkerSource
 import com.pushuprpg.app.ui.components.FOLLOWS_PHONE_ROTATION
 import com.pushuprpg.app.ui.components.FollowPhoneRotation
 import com.pushuprpg.app.ui.components.ModelErrorBanner
+import com.pushuprpg.app.ui.components.SpaceBackdrop
 import com.pushuprpg.app.ui.components.RunMusic
 import com.pushuprpg.app.ui.screens.*
 import com.pushuprpg.app.R
@@ -160,12 +163,23 @@ fun PushupRpgApp(
         }
     }
 
+    // The system's "remove animations" counts as asking for less movement too: the setting alone
+    // left the stars drifting and the button breathing for someone who had turned motion off phone-wide.
+    val systemStill = remember(context) {
+        android.provider.Settings.Global.getFloat(
+            context.contentResolver,
+            android.provider.Settings.Global.ANIMATOR_DURATION_SCALE,
+            1f,
+        ) == 0f
+    }
+
     PushupRpgTheme(
         darkTheme = darkTheme,
         colourBlindSafe = settings.colourBlindSafe,
-        reduceMotion = settings.reduceMotion,
+        reduceMotion = settings.reduceMotion || systemStill,
     ) {
         Box(Modifier.fillMaxSize().background(Palette.Bg1)) {
+            SpaceBackdrop(Modifier.matchParentSize())
             // Nothing is drawn until persisted progress and settings have landed; see the nullable
             // collects above.
             if (progressState == null || settingsState == null) return@Box
@@ -273,24 +287,19 @@ fun PushupRpgApp(
                     }
                     HomeScreen(
                         state = state,
-                        themeMode = settings.themeMode,
-                        onToggleTheme = toggleTheme,
-                        // Straight in with the movement the button names; changing it is the link under it.
-                        onPlayCat = {
-                            navController.navigateFrom(entry, Routes.survival(exercise = settings.exercise))
+                        // Straight in with the movement the button names, remembered as the last
+                        // choice. Not awaited: the run takes its movement from the route, so there is
+                        // nothing for the write to race.
+                        onPlayCat = { ex ->
+                            scope.launch { container.settingsRepository.update { it.copy(exercise = ex) } }
+                            navController.navigateFrom(entry, Routes.survival(exercise = ex))
                         },
-                        onChangeExercise = {
-                            navController.navigateFrom(entry, Routes.SURVIVAL_PICK)
+                        onSelectExercise = { ex ->
+                            scope.launch { container.settingsRepository.update { it.copy(exercise = ex) } }
                         },
-                        onRecords = {
-                            navController.navigateFrom(entry, Routes.RECORDS)
-                        },
-                        onSettings = {
-                            navController.navigateFrom(entry, Routes.SETTINGS)
-                        },
-                        onWardrobe = {
-                            navController.navigateFrom(entry, Routes.WARDROBE)
-                        },
+                        onRecords = { navController.navigateFrom(entry, Routes.RECORDS) },
+                        onSettings = { navController.navigateFrom(entry, Routes.SETTINGS) },
+                        onWardrobe = { navController.navigateFrom(entry, Routes.WARDROBE) },
                         lastExercise = settings.exercise,
                         catName = settings.catName,
                         catCoat = settings.catCoat,
@@ -383,25 +392,6 @@ fun PushupRpgApp(
                     )
                 }
 
-                composable(Routes.SURVIVAL_PICK) { entry ->
-                    ExercisePickScreen(
-                        initial = settings.exercise,
-                        onStart = { picked ->
-                            // Remembered as the last choice, which the hub's button starts. Not
-                            // awaited: the run takes its movement from the route, so there is nothing
-                            // for the write to race.
-                            scope.launch {
-                                container.settingsRepository.update { it.copy(exercise = picked) }
-                            }
-                            if (navController.isOnTop(entry)) {
-                                navController.navigate(Routes.survival(exercise = picked)) {
-                                    popUpTo(Routes.SURVIVAL_PICK) { inclusive = true }
-                                }
-                            }
-                        },
-                    )
-                }
-
                 composable(
                     route = Routes.SURVIVAL,
                     arguments = listOf(
@@ -431,6 +421,25 @@ fun PushupRpgApp(
                     // are not asked to share the phone.
                     var cameraOff by remember { mutableStateOf(false) }
                     DisposableEffect(vm) { onDispose { ads.cancelWaiting() } }
+                    val depth by vm.depth.collectAsState()
+
+                    // The music hurries as the ceiling closes, and is back to its pace once the
+                    // set is not being played and when the run is left.
+                    val urgency = if (state.phase == CatPhase.PLAYING && state.life.started && state.life.alive) {
+                        state.life.intensity
+                    } else {
+                        0f
+                    }
+                    SideEffect { container.music.setUrgency(urgency) }
+                    // The run plays the pixel chiptune, which follows the ceiling, in place of the
+                    // picked track; the track comes back when the run is left.
+                    DisposableEffect(Unit) {
+                        container.music.setChiptune(true)
+                        onDispose {
+                            container.music.setUrgency(0f)
+                            container.music.setChiptune(false)
+                        }
+                    }
 
                     DisposableEffect(vm) {
                         val consumer: (com.pushuprpg.core.pose.PoseFrame) -> Unit = vm::onPoseFrame
@@ -451,6 +460,9 @@ fun PushupRpgApp(
                                 cat = cat,
                                 placement = placement,
                                 setupSkeleton = setupSkeleton,
+                                depth = { depth },
+                                depthLines = vm.depthLines,
+                                fx = vm.fx,
                                 catName = settings.catName,
                                 catCoat = settings.catCoat,
                                 catWear = settings.wearing(),
@@ -524,13 +536,11 @@ fun PushupRpgApp(
                                     }
                                 },
                                 onChangeExercise = {
-                                    // The ending's 운동 바꾸기: banked like 홈으로, then straight to the
-                                    // picker, which starts the next session itself.
+                                    // The ending's 운동 바꾸기: banked like 홈으로, then back to the hub,
+                                    // whose dock is the picker since 2026-11-11.
                                     if (navController.isOnTop(entry)) {
                                         vm.leave()
-                                        navController.navigate(Routes.SURVIVAL_PICK) {
-                                            popUpTo(Routes.SURVIVAL) { inclusive = true }
-                                        }
+                                        navController.popBackStack(Routes.SURVIVAL, inclusive = true)
                                     }
                                 },
                                 onHome = {
@@ -685,9 +695,12 @@ private fun SystemBars(darkSurface: Boolean) {
     }
 }
 
-/** [enableEdgeToEdge]'s own default scrims, which it keeps private. */
-private val LIGHT_NAV_SCRIM = android.graphics.Color.argb(0xE6, 0xFF, 0xFF, 0xFF)
-private val DARK_NAV_SCRIM = android.graphics.Color.argb(0x80, 0x1B, 0x1B, 0x1B)
+/**
+ * The three-button bar's scrims, in the ground's own colours: [enableEdgeToEdge]'s default grey drew
+ * a band across the bottom of the hub that belonged to nothing on it.
+ */
+private val LIGHT_NAV_SCRIM = android.graphics.Color.argb(0xE6, 0xED, 0xEE, 0xF9)
+private val DARK_NAV_SCRIM = android.graphics.Color.argb(0xCC, 0x07, 0x08, 0x1A)
 
 /**
  * Whether [entry] is still the screen on top, and so has not already left.

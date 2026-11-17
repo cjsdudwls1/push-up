@@ -91,6 +91,14 @@ fun main(args: Array<String>) {
         println("${at(e.tMs)}  $line")
     }
 
+    // REPLAY_FRAMES=1 prints every tick, for when the events alone do not say why a rep was missed.
+    if (System.getenv("REPLAY_FRAMES") == "1") {
+        println()
+        for (t in result.ticks) {
+            println("${at(t.tMs)}  depth %5.1f  %-10s %-15s %s".format(t.depth, t.phase, t.quality, t.calibration))
+        }
+    }
+
     println()
     println("reps      ${result.repCount}")
     val refusals = result.events.filterIsInstance<RepEvent.Abandoned>().groupingBy { it.reason }.eachCount()

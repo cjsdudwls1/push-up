@@ -42,6 +42,8 @@ data class PlayerProgress(
     val giftsSeen: Set<String> = emptySet(),
     /** Each movement's best per set (see [com.pushuprpg.core.progression.SetBests]); absent when never played. */
     val setBests: Map<ExerciseType, List<Int>> = emptyMap(),
+    /** Each movement's last session, set by set, counted as [setBests] is; absent when never played. */
+    val lastSets: Map<ExerciseType, List<Int>> = emptyMap(),
     /** 츄르 in hand: earned by set records, spent in the shop, never otherwise lost. */
     val churu: Int = 0,
     /** Things bought in the shop, by [com.pushuprpg.core.progression.CatItem] name. Never taken back. */
@@ -51,7 +53,8 @@ data class PlayerProgress(
 )
 
 /** [exercise]'s best per set. */
-fun PlayerProgress.setBestsOf(exercise: ExerciseType): SetBests = SetBests(setBests[exercise].orEmpty())
+fun PlayerProgress.setBestsOf(exercise: ExerciseType): SetBests =
+    SetBests(setBests[exercise].orEmpty(), lastSets[exercise].orEmpty())
 
 /** What the shop sees. */
 fun PlayerProgress.purse(): Purse = Purse(
@@ -126,6 +129,8 @@ data class AppSettings(
     /** The background music during a run, or [MusicTrack.OFF]. */
     val music: MusicTrack = MusicTrack.ADVENTURE,
     val voiceEnabled: Boolean = true,
+    /** The cat's own lines in a run, before, during and between sets; [voiceEnabled] still mutes all. */
+    val catVoiceEnabled: Boolean = true,
     val captionsEnabled: Boolean = false,
     val hapticStrength: HapticStrength = HapticStrength.MEDIUM,
     val colourBlindSafe: Boolean = false,
@@ -171,6 +176,14 @@ data class AppSettings(
      * screen's slider. 0 is as wide as the camera goes, whatever that is on this phone.
      */
     val wideZoom: Float = 0f,
+    /**
+     * Show the camera's picture under 고양이 지켜줘 once a set is under way. Off leaves the room
+     * dark behind the ceiling and the cat; the pose is read either way, and the picture still shows
+     * while setting up, which is lining up with it. By the owner's request (2026-11-10).
+     * No longer read: the pixel room (2026-11-10) always covers a set, so the switch was taken out.
+     * Kept so the stored value still reads back.
+     */
+    val showCamera: Boolean = true,
 )
 
 enum class HapticStrength { OFF, LIGHT, MEDIUM, STRONG }

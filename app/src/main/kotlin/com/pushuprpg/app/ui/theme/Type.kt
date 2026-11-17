@@ -10,18 +10,20 @@ import androidx.compose.ui.unit.sp
 import com.pushuprpg.app.R
 
 /**
- * The two faces, both under the SIL Open Font License (`docs/fonts/`), both cut down to the Latin
- * letters and the 2,350 Hangul syllables of KS X 1001 plus every character in `strings.xml`
- * (anything else, an unusual syllable in a cat's name, falls back to the phone's font).
+ * The pixel faces, all under the SIL Open Font License (`docs/fonts/`). By the owner's request
+ * (2026-11-10, "싹다") the whole app wears the pixel demo's look, type included.
  *
- * Orbit is the HUD: every number and every heading, the counter's 120sp included. Its geometric
- * figures are what the ring and the start button were drawn around (concept C, 2026-10-09). Gowun
- * Dodum is the voice: everything read as a sentence, where Orbit's square letters tire the eye.
- * Each ships one weight; a heavier style asks for a synthesised one, which is kept for Gowun Dodum's
- * small labels and not asked of Orbit, whose own weight is already heavy.
+ * Galmuri11 is everything with Korean in it, in two weights: bold for numbers and headings, regular
+ * for sentences. Cut down to the Latin letters and the 2,350 Hangul syllables of KS X 1001 plus
+ * every character in `strings.xml` (anything else, an unusual syllable in a cat's name, falls back
+ * to the phone's font). Silkscreen is the demo's HUD face, for the run's Latin-only labels (SEC,
+ * BEST, xCOMBO, DEPTH); it has no Hangul, so it is never given Korean.
  */
-val Orbit = FontFamily(Font(R.font.orbit_regular))
-val GowunDodum = FontFamily(Font(R.font.gowun_dodum_regular))
+val Galmuri = FontFamily(
+    Font(R.font.galmuri11_regular, FontWeight.Normal),
+    Font(R.font.galmuri11_bold, FontWeight.Bold),
+)
+val Silkscreen = FontFamily(Font(R.font.silkscreen_regular))
 
 /**
  * Type scale.
@@ -40,8 +42,8 @@ object Type {
     private fun numeric(
         size: Int, line: Int, tracking: Float = 0f,
     ) = TextStyle(
-        fontFamily = Orbit,
-        fontWeight = FontWeight.Normal,
+        fontFamily = Galmuri,
+        fontWeight = FontWeight.Bold,
         fontSize = size.sp,
         lineHeight = line.sp,
         letterSpacing = tracking.em,
@@ -52,8 +54,8 @@ object Type {
     private fun heading(
         size: Int, line: Int, tracking: Float = 0f,
     ) = TextStyle(
-        fontFamily = Orbit,
-        fontWeight = FontWeight.Normal,
+        fontFamily = Galmuri,
+        fontWeight = FontWeight.Bold,
         fontSize = size.sp,
         lineHeight = line.sp,
         letterSpacing = tracking.em,
@@ -62,8 +64,9 @@ object Type {
     private fun text(
         size: Int, line: Int, weight: FontWeight, tracking: Float = 0f,
     ) = TextStyle(
-        fontFamily = GowunDodum,
-        fontWeight = weight,
+        fontFamily = Galmuri,
+        // Two weights only: anything heavier than regular is the bold cut, never a synthesised one.
+        fontWeight = if (weight >= FontWeight.SemiBold) FontWeight.Bold else FontWeight.Normal,
         fontSize = size.sp,
         lineHeight = line.sp,
         letterSpacing = tracking.em,

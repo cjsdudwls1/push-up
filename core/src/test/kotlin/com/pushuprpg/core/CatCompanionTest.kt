@@ -81,7 +81,7 @@ class CatCompanionTest {
     }
 
     @Test
-    fun `left alone, the cat goes through every stage of fear once, in order, crying louder`() {
+    fun `left alone, the cat goes through every stage of fear once, in order, meowing once and never crying`() {
         val run = Run()
         run.frame()
         while (run.game.state().alive) run.frame()
@@ -90,10 +90,11 @@ class CatCompanionTest {
         val said = run.lines.map { it.line }.filter { it != CatLine.HELLO }
         assertEquals(listOf(CatLine.UNEASY, CatLine.SCARED, CatLine.PANIC), said)
 
-        assertEquals(1, run.played(SoundCue.CAT_MEOW).size)
-        val cries = run.played(SoundCue.CAT_CRY).map { it.second }
-        assertEquals(2, cries.size)
-        assertTrue(cries[1].rate > cries[0].rate, "panic should cry higher than fear: $cries")
+        // The one meow is the danger's: the cry grated, and the music carries the rest (2026-11-10).
+        val meows = run.played(SoundCue.CAT_MEOW).map { it.second }
+        assertEquals(1, meows.size)
+        assertEquals(CatCompanion.DANGER_MEOW_RATE, meows[0].rate)
+        assertTrue(run.played(SoundCue.CAT_CRY).isEmpty(), "the cry is gone")
     }
 
     @Test
