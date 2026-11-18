@@ -11,6 +11,15 @@
 - `claude/pushup-rpg-app-2xnr4o` = 내부·비공개 테스트 트랙. 0.1.1 이 여기 올라가 있고 **v0.1.1 프로덕션 태그는 아직 안 붙임** (붙일지 소유자 결정 대기).
 - 비공개 테스트·품앗이(맞설치) 앱들은 ~11-15 까지 유지.
 
+## 스토어 그래픽 (2026-11-18)
+
+- Play 스토어 페이지가 아직 옛 칼 아이콘·옛 스크린샷이었음 → 소유자 "다 교체, 플레이스토어 적용까지".
+- 새 스크린샷 5장(1080x1920)·그래픽 이미지: `scripts/store-screenshots.sh` (Robolectric 으로 실제 화면을 JVM에서 그림
+  + `tools/store_screenshots.py` 가 문구 입힘). 아이콘은 기존 `docs/store-assets/icon-512.png`(도트 고양이).
+- 업로드: `docs/store-assets/**` 가 설치 브랜치에 들어가면 `.github/workflows/listing.yml` → `tools/play.py listing`
+  (한국어 등록정보의 아이콘·그래픽·폰 스크린샷만 교체, 글은 그대로). Actions → Store listing 으로 손으로도 돌릴 수 있음.
+- 콘솔의 "AI 생성 그래픽" 체크 등 선언은 소유자 몫.
+
 ## 열린 PR
 
 ### #21 `claude/pixel-everything` — 앱 전체 도트화: **2026-11-12 머지됨** (57a6c04, 소유자 "다 머지 ㄱㄱ")
