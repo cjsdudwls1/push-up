@@ -1,0 +1,37 @@
+name: Store listing
+
+# The Korean Play listing's icon, feature graphic and phone screenshots, from docs/store-assets
+# (tools/store_screenshots.py makes them, tools/play.py listing uploads them). Runs when those
+# pictures change on the install branch, or by hand. The listing's text is not touched, and no build
+# is involved: release.yml ignores docs/.
+on:
+  push:
+    branches: ["claude/pushup-rpg-app-2xnr4o"]
+    paths: ["docs/store-assets/**"]
+  workflow_dispatch:
+
+# Play allows one open edit at a time per app, so this waits for any upload or promotion.
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  listing:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install --quiet google-auth requests pillow
+      - name: Check the pictures
+        run: python tools/play.py listing --dry-run
+      - name: Upload to the listing
+        env:
+          PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+        run: |
+          if [ -z "$PLAY_SERVICE_ACCOUNT_JSON" ]; then
+            echo "::error::PLAY_SERVICE_ACCOUNT_JSON is not set."
+            exit 1
+          fi
+          python tools/play.py listing

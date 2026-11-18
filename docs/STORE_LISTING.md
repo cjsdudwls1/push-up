@@ -128,28 +128,35 @@ keyword gains.
 
 | Asset | Spec | Status |
 |-------|------|--------|
-| App icon | 512×512 PNG, 32-bit | `docs/store-assets/icon-512.png`, rendered from `ic_launcher` (the cat holding up the ceiling) |
-| Feature graphic | 1024×500 PNG | **Done** — `docs/store-assets/feature-graphic.png`, regenerate with `scripts/render-art.sh`. The picture is the share card's own ceiling and cat |
-| Phone screenshots | 2–8, 16:9 or 9:16, min 320px | **Needs a real device** |
+| App icon | 512×512 PNG, 32-bit | `docs/store-assets/icon-512.png`, written by `tools/pixel_icon.py` with the launcher icon (the pixel cat holding up the ceiling) |
+| Feature graphic | 1024×500 PNG | `docs/store-assets/feature-graphic.png`, written by `scripts/store-screenshots.sh`: the run's pixel room beside the title |
+| Phone screenshots | 2–8, 9:16 | `docs/store-assets/screenshots/01-05.png` (1080×1920), written by `scripts/store-screenshots.sh` |
 | Tablet screenshots | optional | Skip |
 | Promo video | optional, YouTube URL | See the launch plan |
 
-### Screenshots — what each one has to do
+### Getting them onto Play (since 2026-11-18)
 
-Only the first two or three appear in search results without a tap, so they carry the whole listing.
-Caption text is burned into the image above the screenshot, in the app's own type.
+A push that changes `docs/store-assets/` on `claude/pushup-rpg-app-2xnr4o` runs
+`.github/workflows/listing.yml`, which replaces the Korean listing's icon, feature graphic and phone
+screenshots with these files (`tools/play.py listing`, one edit; the text is not touched). It can be
+run by hand from Actions → Store listing. Google reviews a listing change before the store shows it.
+The Console's declaration about AI-made store graphics stays the owner's to tick.
 
-1. **고양이, mid-set.** Ceiling low, cat alarmed. Caption: `천장이 내려와요. 밀어 올리세요.`
-   First — it is the most legible frame in the app and needs no fitness context.
-2. **The cat waiting for the first rep**, its line in the bubble. Caption: `팔굽혀펴기 한 번에 천장이 올라가요.`
-3. **The rest between sets**, the countdown large. Caption: `쉬고 나서 다음 세트로 이어 가요.`
-4. **A set past its best**, 지금 13 / 최고 12 in the record colour. Caption: `세트마다 내 기록을 깨 봐요.`
-5. **The hub** with the calories card and a food. Caption: `태운 칼로리는 음식으로 보여 줘요.`
-6. **Records**, one movement's best against its first. Caption: `운동마다 내 기록이 남아요.`
-7. **꾸미기**, the cat wearing something it found. Caption: `고양이가 선물을 찾아와요.`
-8. **Privacy line from onboarding.** Caption: `카메라 영상은 저장되지 않아요.`
+### Screenshots — how they are made
 
-Shoot all eight in one session on the real device. Do not mock them.
+`scripts/store-screenshots.sh` draws the real screens on the JVM with Robolectric
+(`app/src/test/.../store/StoreScreenshots.kt`, each screen fed a plausible state by hand), then
+`tools/store_screenshots.py` puts a caption above each on the menus' deep-space ground, in Galmuri11.
+They are the app's own drawing, not a mock-up, but the states are staged — not a recording of a real
+set. Change a caption in `SHOTS` in the script; add a screen in the test.
+
+| # | Screen | Caption |
+|---|--------|---------|
+| 1 | A set, ceiling low, cat in a panic | 천장이 내려와요 / 팔굽혀펴기로 밀어 올려 주세요 |
+| 2 | A set, ceiling pushed up, record line | 한 번에 천장이 쑥 / 카메라가 개수를 세요 |
+| 3 | The rest between sets | 목숨 10개, 세트 10번 / 쉬고 나서 다음 세트로 이어 가요 |
+| 4 | The hub: cat, ring, movement dock | 맨몸운동 다섯 가지 / 고르고 바로 시작해요 |
+| 5 | 꾸미기 | 고양이가 선물을 찾아와요 / 츄르로 꾸밀 수도 있어요 |
 
 ---
 

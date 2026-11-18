@@ -153,6 +153,15 @@ android {
         noCompress += "ogg"
     }
 
+    testOptions {
+        // Robolectric reads the merged resources: the strings and the fonts the screenshots show.
+        unitTests.isIncludeAndroidResources = true
+        unitTests.all { test ->
+            (findProperty("pushup.storeShots") as String?)?.let { test.systemProperty("pushup.storeShots", it) }
+            test.outputs.upToDateWhen { false }
+        }
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
@@ -223,6 +232,12 @@ dependencies {
     }
 
     testImplementation(libs.junit)
+    // The store screenshots (StoreScreenshots, scripts/store-screenshots.sh): the real screens drawn
+    // by Robolectric's native graphics on the JVM, with no phone.
+    testImplementation(libs.robolectric)
+    testImplementation(platform(libs.androidx.compose.bom))
+    testImplementation(libs.androidx.compose.ui.test.junit4)
+    debugImplementation(libs.androidx.compose.ui.test.manifest)
     androidTestImplementation(libs.androidx.test.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))
