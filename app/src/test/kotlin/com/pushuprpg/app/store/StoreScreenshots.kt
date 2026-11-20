@@ -27,6 +27,7 @@ import com.pushuprpg.core.detect.ExerciseType
 import com.pushuprpg.core.progression.CatItem
 import com.pushuprpg.core.progression.Gift
 import com.pushuprpg.core.progression.SetBests
+import com.pushuprpg.core.progression.SetOutcome
 import com.pushuprpg.core.survival.CatLine
 import com.pushuprpg.core.survival.CatMood
 import com.pushuprpg.core.survival.CatPhase
@@ -87,7 +88,14 @@ class StoreScreenshots {
     }
 
     @Composable
-    private fun Run(state: CatSessionState, cat: CatView, bests: SetBests) {
+    private fun Run(
+        state: CatSessionState,
+        cat: CatView,
+        bests: SetBests,
+        depth: Float = 62f,
+        coat: CatCoat = CatCoat.CHEESE,
+        outcome: SetOutcome? = null,
+    ) {
         val context = LocalContext.current
         PushupRpgTheme(darkTheme = true) {
             AlwaysDark {
@@ -102,10 +110,11 @@ class StoreScreenshots {
                     onHome = {},
                     cat = cat,
                     catName = "",
-                    catCoat = CatCoat.CREAM,
+                    catCoat = coat,
                     catWear = wear,
                     setBests = bests,
-                    depth = { 62f },
+                    setOutcome = outcome,
+                    depth = { depth },
                     cameraOff = true,
                 )
             }
@@ -173,6 +182,63 @@ class StoreScreenshots {
             cat = CatView(mood = CatMood.CALM),
             bests = SetBests(bests = listOf(15, 13, 12, 11), last = listOf(14, 12, 10, 9)),
         )
+    }
+
+    @Test
+    fun run_deep() = shoot("06-deep") {
+        Run(
+            state = CatSessionState(
+                phase = CatPhase.PLAYING,
+                life = SurvivalState(
+                    height = 0.55f, score = 210, elapsedMs = 30_000, started = true,
+                    reps = 9, combo = 9, bestCombo = 9, alive = true, intensity = 0.4f,
+                ),
+                ended = earlierSets + earlierSets,
+                setDeepReps = 8,
+            ),
+            cat = CatView(mood = CatMood.UNEASY, cheer = 0.8f, hearts = 4),
+            bests = SetBests(bests = listOf(15, 13, 12, 12, 10), last = listOf(14, 12, 10, 11, 9)),
+            depth = 96f,
+            coat = CatCoat.TUXEDO,
+        )
+    }
+
+    private val tenSets = listOf(15, 14, 13, 12, 12, 11, 10, 10, 9, 8).mapIndexed { i, reps ->
+        SetResult(reps = reps, score = reps * 13, survivedMs = 40_000L + i * 1_000, deepReps = reps - 3)
+    }
+
+    @Test
+    fun ending() = shoot("07-ending") {
+        val before = SetBests(bests = listOf(15, 13, 12, 11, 12, 10, 9, 10, 8, 8))
+        Run(
+            state = CatSessionState(
+                phase = CatPhase.OVER,
+                life = SurvivalState(height = 0f, score = 104, elapsedMs = 49_000, started = true, reps = 8, alive = false),
+                ended = tenSets,
+            ),
+            cat = CatView(mood = CatMood.CALM),
+            bests = before,
+            outcome = SetOutcome.of(before, tenSets, hold = false),
+        )
+    }
+
+    @Test
+    @Config(qualifiers = "w360dp-h4000dp-xxhdpi")
+    fun shop() = shoot("08-shop-tall") {
+        Menu {
+            WardrobeScreen(
+                catName = "",
+                catCoat = CatCoat.CHEESE,
+                onCatChange = { _, _ -> },
+                wearing = setOf(CatItem.HEADPHONES, CatItem.STAR_GLASSES, CatItem.CAT_TOWER, CatItem.STAGE),
+                found = Gift.entries.take(12).toSet(),
+                fresh = emptySet(),
+                onWear = {},
+                onTakeOff = {},
+                churu = 31,
+                bought = setOf(CatItem.HEADPHONES, CatItem.STAR_GLASSES, CatItem.CAT_TOWER, CatItem.STAGE),
+            )
+        }
     }
 
     @Test

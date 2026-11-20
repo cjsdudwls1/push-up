@@ -130,7 +130,7 @@ keyword gains.
 |-------|------|--------|
 | App icon | 512×512 PNG, 32-bit | `docs/store-assets/icon-512.png`, written by `tools/pixel_icon.py` with the launcher icon (the pixel cat holding up the ceiling) |
 | Feature graphic | 1024×500 PNG | `docs/store-assets/feature-graphic.png`, written by `scripts/store-screenshots.sh`: the run's pixel room beside the title |
-| Phone screenshots | 2–8, 9:16 | `docs/store-assets/screenshots/01-05.png` (1080×1920), written by `scripts/store-screenshots.sh` |
+| Phone screenshots | 2–8, 9:16 | `docs/store-assets/screenshots/01-08.png` (1080×1920), written by `scripts/store-screenshots.sh` |
 | Tablet screenshots | optional | Skip |
 | Promo video | optional, YouTube URL | See the launch plan |
 
@@ -150,13 +150,20 @@ The Console's declaration about AI-made store graphics stays the owner's to tick
 They are the app's own drawing, not a mock-up, but the states are staged — not a recording of a real
 set. Change a caption in `SHOTS` in the script; add a screen in the test.
 
+One deep-space strip runs behind all eight, so side by side in the store they read as one picture;
+captions carry their key words in the record yellow, and most shots have a badge and part of the
+screen zoomed out of the phone. Decorations are drawn at a sixth of the size and enlarged unsmoothed.
+
 | # | Screen | Caption |
 |---|--------|---------|
-| 1 | A set, ceiling low, cat in a panic | 천장이 내려와요 / 팔굽혀펴기로 밀어 올려 주세요 |
-| 2 | A set, ceiling pushed up, record line | 한 번에 천장이 쑥 / 카메라가 개수를 세요 |
-| 3 | The rest between sets | 목숨 10개, 세트 10번 / 쉬고 나서 다음 세트로 이어 가요 |
-| 4 | The hub: cat, ring, movement dock | 맨몸운동 다섯 가지 / 고르고 바로 시작해요 |
-| 5 | 꾸미기 | 고양이가 선물을 찾아와요 / 츄르로 꾸밀 수도 있어요 |
+| 1 | A set, ceiling low, the cat zoomed with 살려 줘요, 냥!! | 천장이 내려와요! / 팔굽혀펴기로 밀어 올려 고양이를 지켜요 |
+| 2 | Ceiling pushed up, 기록 경신 badge, hearts | 한 번에 천장이 쑥! / 카메라가 개수를 세요 |
+| 3 | A deep rep, the gauge zoomed | 깊게 내려갈수록 더 높이 올라가요 |
+| 4 | The rest | 목숨 10개, 세트 10번 / 쉬는 시간까지가 운동이에요 |
+| 5 | The ending, its chart zoomed, 츄르 +18 | 세트마다 내 기록을 깨 봐요 |
+| 6 | The hub, the movement chips zoomed | 맨몸운동 다섯 가지 |
+| 7 | 꾸미기's shop, the stage zoomed | 선물 32가지, 상점 20가지 |
+| 8 | The cat, and four promises | 전부 무료예요 / 회원가입도, 결제도 없어요 |
 
 ---
 

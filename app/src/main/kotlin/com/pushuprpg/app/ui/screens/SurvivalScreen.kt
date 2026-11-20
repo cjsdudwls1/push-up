@@ -1181,9 +1181,19 @@ private fun SetsChart(sets: List<SetResult>, hold: Boolean, broken: Set<Int> = e
                     modifier = Modifier.width(barWidth),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
-                    // A set that beat its own best is starred, in the record colour.
+                    // A set that beat its own best is starred, in the record colour. The star sits
+                    // on its own line: beside a two-figure count it was wider than the bar on a
+                    // 360 dp phone and the count was cut to its first figure ("\u26051" for 14).
+                    if (i in broken) {
+                        Text(
+                            text = "\u2605",
+                            style = Type.labelS,
+                            color = Palette.Deep,
+                            maxLines = 1,
+                        )
+                    }
                     Text(
-                        text = if (i in broken) "\u2605$value" else value.toString(),
+                        text = value.toString(),
                         style = Type.labelS,
                         color = if (i in broken) Palette.Deep else Palette.TextSecondary,
                         maxLines = 1,
