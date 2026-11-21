@@ -154,11 +154,11 @@ screenshots of the game with captions about the ceiling) failed that: no person 
 - **One idea a picture**, in a caption of one or two short lines; the picture explains, and the app's
   own screens appear where they show what happens (their small print is not meant to be read).
 - **Marks instead of words** where a word would need reading: ↕ for movements counted in reps, a
-  stopwatch and 0:30 for the plank, arrows for which way the ceiling goes.
+  stopwatch and 30초 for the plank, arrows for which way the ceiling goes.
 
 | # | Picture | Caption |
 |---|---------|---------|
-| 1 | The five movements in cards, named; the squat marked 시험 중 as the app marks it | 맨몸운동 5가지 / 카메라가 세 줘요 |
+| 1 | The five movements in cards, named | 맨몸운동 5가지 / 카메라가 세 줘요 |
 | 2 | A person doing push-ups facing a phone on the floor, its camera's view drawn, the run's room called out, +1 | 폰만 세워 두면 / 개수를 세 줘요 |
 | 3 | Two rooms: the ceiling on the cat (arrows down) and pushed up (arrows up) | 1개 할 때마다 / 천장이 올라가요 |
 | 4 | 지금 13 / 최고 12 from the run, a 기록 경신 burst, the ending's chart of sets, ★ explained | 세트마다 / 내 기록에 도전해요 |
@@ -167,8 +167,9 @@ screenshots of the game with captions about the ceiling) failed that: no person 
 
 Rules the pictures keep, from the reviews:
 
-- **Only what the app says.** A movement the app marks 시험 중 (`ExerciseDescriptor.validatedOnDevice`
-  false) is marked so in the picture too; a plank is counted in seconds (30초, as the run says it).
+- **Only what the app does.** A plank is counted in seconds (30초, as the run says it). The squat is
+  시험 중 in the app (`ExerciseDescriptor.validatedOnDevice` false) but not marked in the pictures, by
+  the owner's decision (2026-11-21, "남기지마"): the blind reviewer read the mark as "may not work".
 - **No price words on the graphics** ("무료", "free"): Play's guidance for preview assets. The listing's
   text and Play's own price label say it.
 - **Gifts are the cat's finds**, never a reward promised for exercise (the gifts rule in CLAUDE.md):
@@ -194,7 +195,8 @@ Each round was shown to reviewers who had not made them, in parallel with the wo
 - **Claims and copy**, by a reviewer with the code: every caption checked against the app. It caught
   "세트마다 내 기록을 깨요" (three bars had no star: now 도전해요), "전부 무료" (a price word),
   "운동할수록 선물이 와요" (a promised reward, which the app avoids), the squat being 시험 중 in the
-  app, 0:30 where the app says 30초, and a crop that cut the cats' toys off.
+  app (marked, then unmarked by the owner), 0:30 where the app says 30초, and a crop that cut the cats'
+  toys off.
 - **The blind session, a second time**, on the fixed pictures: 1, 2, 3, 5 and 6 understood at once
   ("03: 위/아래 화살표로 방향 완전히 이해됨"). It still guessed at the stars (4, now explained in one
   line), found the phone small (2, larger), the run's small print meaningless (2 and 3, cropped away)

@@ -372,11 +372,9 @@ def small_phone(raw_dir: pathlib.Path, k: int = 8) -> Image.Image:
 
 # ---------------------------------------------------------------- the six
 
-# Movements the app itself marks 시험 중: no recording of a real set has confirmed the count yet
-# (ExerciseDescriptor.validatedOnDevice). The pictures say what the app says.
-UNVALIDATED = {"squat"}
-
-
+# The squat is 시험 중 in the app (ExerciseDescriptor.validatedOnDevice), but the pictures do not say so,
+# by the owner's decision (2026-11-21, "남기지마"): a blind reviewer read the mark as "may not work" and
+# hesitated to install. Do not put it back without asking.
 def shot_movements(c: Image.Image):
     caption(c, 84, ["[맨몸운동 5가지]", "카메라가 세 줘요"])
     s = 6
@@ -403,12 +401,6 @@ def shot_movements(c: Image.Image):
             tw2 = d.textlength("30초", font=t)
             d.text((x + w - 56 - tw2 + 5, y + 160 + 6), "30초", font=t, fill=SHADOW)
             d.text((x + w - 56 - tw2, y + 160), "30초", font=t, fill=YELLOW)
-        if name in UNVALIDATED:
-            # As the app marks it (Exercises.validatedOnDevice): no real set has confirmed the count yet.
-            pf = font(FONT_BOLD, 34)
-            pw = int(d.textlength("시험 중", font=pf)) + 36
-            panel(c, x + 22, y + 22, pw, 64, fill=(0x2A, 0x28, 0x50), edge=(0x44, 0x42, 0x7A), step=8)
-            d.text((x + 40, y + 34), "시험 중", font=pf, fill=TEXT_2)
 
     card(40, 376, 1000, 350, "pushup", "푸쉬업", UPDOWN, wide=True)
     w3 = (1000 - 2 * 20) // 3
