@@ -158,12 +158,23 @@ screenshots of the game with captions about the ceiling) failed that: no person 
 
 | # | Picture | Caption |
 |---|---------|---------|
-| 1 | The five movements in cards, named | 맨몸운동 5가지 / 카메라가 세 줘요 |
-| 2 | A person doing push-ups facing a phone on the floor, its camera's view drawn, its screen called out, +1 | 폰만 세워 두면 / 개수를 세 줘요 |
-| 3 | Two screens: the ceiling on the cat (arrows down) and pushed up (arrows up) | 1개 할 때마다 / 천장이 올라가요 |
-| 4 | 지금 13 / 최고 12 from the run, a 기록 경신 burst, the ending's chart of sets | 세트마다 / 내 기록을 깨요 |
-| 5 | Four cats in outfits and scenes | 고양이를 꾸며요 |
-| 6 | Three promises, the cat | 전부 무료예요 |
+| 1 | The five movements in cards, named; the squat marked 시험 중 as the app marks it | 맨몸운동 5가지 / 카메라가 세 줘요 |
+| 2 | A person doing push-ups facing a phone on the floor, its camera's view drawn, the run's room called out, +1 | 폰만 세워 두면 / 개수를 세 줘요 |
+| 3 | Two rooms: the ceiling on the cat (arrows down) and pushed up (arrows up) | 1개 할 때마다 / 천장이 올라가요 |
+| 4 | 지금 13 / 최고 12 from the run, a 기록 경신 burst, the ending's chart of sets, ★ explained | 세트마다 / 내 기록에 도전해요 |
+| 5 | Six cats in outfits and scenes | 고양이를 꾸며요 / 고양이가 선물을 찾아와요 |
+| 6 | Two promises, the cat | 마음 놓고 운동해요 |
+
+Rules the pictures keep, from the reviews:
+
+- **Only what the app says.** A movement the app marks 시험 중 (`ExerciseDescriptor.validatedOnDevice`
+  false) is marked so in the picture too; a plank is counted in seconds (30초, as the run says it).
+- **No price words on the graphics** ("무료", "free"): Play's guidance for preview assets. The listing's
+  text and Play's own price label say it.
+- **Gifts are the cat's finds**, never a reward promised for exercise (the gifts rule in CLAUDE.md):
+  고양이가 선물을 찾아와요, not 운동할수록 선물이 와요.
+- **No jargon a stranger cannot read**: 츄르 is not named; the run's small print and depth gauge are
+  cropped away where the room is what matters (`ROOM_BOX`).
 
 ### How they were checked
 
@@ -180,7 +191,14 @@ Each round was shown to reviewers who had not made them, in parallel with the wo
   고양이 게임"; the new one as a fitness app. What it could not tell, fixed since: which way the ceiling
   moves (3, now arrows), where the phone stands (2, now larger, with its camera's view), whether a plank
   is counted (1, now 0:30), why the tallest bar had no star (4), and what 츄르 is (5, no longer named).
-- **Claims and copy**, by a reviewer with the code: every caption checked against the app.
+- **Claims and copy**, by a reviewer with the code: every caption checked against the app. It caught
+  "세트마다 내 기록을 깨요" (three bars had no star: now 도전해요), "전부 무료" (a price word),
+  "운동할수록 선물이 와요" (a promised reward, which the app avoids), the squat being 시험 중 in the
+  app, 0:30 where the app says 30초, and a crop that cut the cats' toys off.
+- **The blind session, a second time**, on the fixed pictures: 1, 2, 3, 5 and 6 understood at once
+  ("03: 위/아래 화살표로 방향 완전히 이해됨"). It still guessed at the stars (4, now explained in one
+  line), found the phone small (2, larger), the run's small print meaningless (2 and 3, cropped away)
+  and the icon's figure steep enough to read as crawling (now long and low).
 
 Do the same after any change: a person who has never seen the app should say what it does from the
 search result alone.

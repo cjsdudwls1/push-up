@@ -134,7 +134,9 @@ def background(floor_y: int):
 
 # ---------------------------------------------------------------- the variants
 
-CHIBI = dict(torso=13.5, thigh=10.5, shin=10.5, upper_arm=8.5, forearm=7.5, head_r=6.6)
+# Long in the body and short in the arm, so the push-up's straight line from head to heels lies
+# low: with longer arms it stood steep and read as crawling at 48 dp (the blind review, 2026-11-21).
+CHIBI = dict(torso=15.0, thigh=12.0, shin=12.0, upper_arm=7.0, forearm=6.5, head_r=6.6)
 
 
 def pushup_cat():

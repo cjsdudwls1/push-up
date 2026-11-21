@@ -13,8 +13,8 @@ to be read.
 2. How: a person doing push-ups facing a phone on the floor, its screen called out, +1.
 3. The game: the ceiling low if you stay still, pushed up if you move.
 4. Each set against its best.
-5. Dressing the cat.
-6. Free, and no video kept.
+5. Dressing the cat: six of them, and the cat finds gifts (never promised for exercise).
+6. Peace of mind: no sign-up, no video kept. No price words: Play asks graphics not to carry them.
 
 One deep-space strip runs behind all six, so side by side in the store they read as one. Writes
 docs/store-assets/screenshots/NN.png (1080x1920) and docs/store-assets/feature-graphic.png (1024x500).
@@ -329,6 +329,16 @@ def figure(name: str, scale: int) -> tuple[Image.Image, int]:
     return up(crop, scale), (floor - box[1]) * scale
 
 
+ROOM_BOX = (140, 590, 845, 2160)  # the run's room in a 1080x2160 screen: under the HUD, the yarn in, short of the gauge's labels (x 852 on)
+
+
+def room(raw_dir: pathlib.Path, name: str, width: int) -> Image.Image:
+    """The run's room alone, the cat in the middle: the screen's small print and the depth gauge are
+    the app's, but to a stranger they were noise (the blind review of 2026-11-21)."""
+    s = Image.open(raw_dir / f"{name}.png").convert("RGB").crop(ROOM_BOX)
+    return s.resize((width, round(s.height * width / s.width)), Image.LANCZOS)
+
+
 def screen(raw_dir: pathlib.Path, name: str, width: int) -> Image.Image:
     s = Image.open(raw_dir / f"{name}.png").convert("RGB")
     return s.resize((width, round(s.height * width / s.width)), Image.LANCZOS)
@@ -362,6 +372,11 @@ def small_phone(raw_dir: pathlib.Path, k: int = 8) -> Image.Image:
 
 # ---------------------------------------------------------------- the six
 
+# Movements the app itself marks 시험 중: no recording of a real set has confirmed the count yet
+# (ExerciseDescriptor.validatedOnDevice). The pictures say what the app says.
+UNVALIDATED = {"squat"}
+
+
 def shot_movements(c: Image.Image):
     caption(c, 84, ["[맨몸운동 5가지]", "카메라가 세 줘요"])
     s = 6
@@ -385,9 +400,15 @@ def shot_movements(c: Image.Image):
         if mark is STOPWATCH:
             # Counted in time, not reps: said as a time, which a blind reviewer could not tell.
             t = font(FONT_BOLD, 64)
-            tw2 = d.textlength("0:30", font=t)
-            d.text((x + w - 56 - tw2 + 5, y + 160 + 6), "0:30", font=t, fill=SHADOW)
-            d.text((x + w - 56 - tw2, y + 160), "0:30", font=t, fill=YELLOW)
+            tw2 = d.textlength("30초", font=t)
+            d.text((x + w - 56 - tw2 + 5, y + 160 + 6), "30초", font=t, fill=SHADOW)
+            d.text((x + w - 56 - tw2, y + 160), "30초", font=t, fill=YELLOW)
+        if name in UNVALIDATED:
+            # As the app marks it (Exercises.validatedOnDevice): no real set has confirmed the count yet.
+            pf = font(FONT_BOLD, 34)
+            pw = int(d.textlength("시험 중", font=pf)) + 36
+            panel(c, x + 22, y + 22, pw, 64, fill=(0x2A, 0x28, 0x50), edge=(0x44, 0x42, 0x7A), step=8)
+            d.text((x + 40, y + 34), "시험 중", font=pf, fill=TEXT_2)
 
     card(40, 376, 1000, 350, "pushup", "푸쉬업", UPDOWN, wide=True)
     w3 = (1000 - 2 * 20) // 3
@@ -402,7 +423,7 @@ def shot_how(c: Image.Image, raw_dir: pathlib.Path):
     floor_band(c, floor_y)
     fig, floor = figure("pushup", 10)
     fx = 10
-    ph = small_phone(raw_dir, 10)
+    ph = small_phone(raw_dir, 12)
     px_, py_ = 1080 - ph.width - 40, floor_y - ph.height + 10
     # What the phone's camera sees: a pale cone from its lens to the person, drawn under them.
     lens = (px_ + 22, py_ + 26)
@@ -418,9 +439,8 @@ def shot_how(c: Image.Image, raw_dir: pathlib.Path):
     c.alpha_composite(fig, (fx, floor_y - floor))
     c.alpha_composite(ph, (px_, py_))
     # The phone's screen, called out above it: the room, not the HUD's small print.
-    full = Image.open(raw_dir / "02-push.png").convert("RGB").crop((0, 620, 1080, 2160))
-    scr = full.resize((420, round(full.height * 420 / full.width)), Image.LANCZOS)
-    sx, sy = 590, 400
+    scr = room(raw_dir, "02-push", 380)
+    sx, sy = 620, 400
     framed(c, scr, sx, sy)
     tip = (px_ + ph.width // 2, py_ - 16)
     base_y = sy + scr.height + 14
@@ -434,32 +454,33 @@ def shot_how(c: Image.Image, raw_dir: pathlib.Path):
 
 def shot_game(c: Image.Image, raw_dir: pathlib.Path):
     caption(c, 84, ["1개 할 때마다", "천장이 [올라가요]"])
-    w = 440
-    left = screen(raw_dir, "game-low", w)
-    right = screen(raw_dir, "game-high", w)
-    k = w / 1080
-    y = 560
-    text_center(c, 440, "가만히 있으면", 56, TEXT_2, x0=50, width=w + 20)
-    text_center(c, 440, "운동하면!", 56, YELLOW, x0=590, width=w + 20)
-    framed(c, left, 60, y, edge=PINK, outer=(0x8A, 0x20, 0x48))
-    framed(c, right, 600, y)
+    w = 420
+    left = room(raw_dir, "game-low", w)
+    right = room(raw_dir, "game-high", w)
+    k = w / (ROOM_BOX[2] - ROOM_BOX[0])
+    y = 540
+    text_center(c, 430, "가만히 있으면", 56, TEXT_2, x0=60, width=w + 20)
+    text_center(c, 430, "운동하면!", 56, YELLOW, x0=600, width=w + 20)
+    framed(c, left, 70, y, edge=PINK, outer=(0x8A, 0x20, 0x48))
+    framed(c, right, 610, y)
     # The ceiling's edge on each screen (rows 1481 and 603 of the 2160 the app drew), and arrows
     # saying which way it goes: a blind reviewer could not tell whether the red wall came or went.
     down = up(DOWN, 8)
-    for ax in (60 + w * 0.26, 60 + w * 0.62):
-        c.alpha_composite(down, (int(ax - down.width / 2), int(y + 1481 * k - down.height - 70)))
+    top = ROOM_BOX[1]
+    for ax in (70 + w * 0.28, 70 + w * 0.72):
+        c.alpha_composite(down, (int(ax - down.width / 2), int(y + (1481 - top) * k - down.height - 60)))
     upa = up(UP, 8)
-    for ax in (600 + w * 0.26, 600 + w * 0.62):
-        c.alpha_composite(upa, (int(ax - upa.width / 2), int(y + 603 * k + 40)))
+    for ax in (610 + w * 0.28, 610 + w * 0.72):
+        c.alpha_composite(upa, (int(ax - upa.width / 2), int(y + (603 - top) * k + 50)))
     a = up(ARROW_RIGHT, 10)
     c.alpha_composite(a, (540 - a.width // 2, y + left.height // 2 - a.height // 2))
-    text_center(c, y + left.height + 70, "천장에 눌리지 않게", 60, TEXT)
-    text_center(c, y + left.height + 150, "고양이를 지켜 주세요", 60, CYAN)
+    text_center(c, y + left.height + 56, "천장에 눌리지 않게", 60, TEXT)
+    text_center(c, y + left.height + 136, "고양이를 지켜 주세요", 60, CYAN)
     heart(c, 980, 470, k=7)
 
 
 def shot_records(c: Image.Image, raw_dir: pathlib.Path):
-    caption(c, 84, ["세트마다", "[내 기록]을 깨요"])
+    caption(c, 84, ["세트마다", "[내 기록]에 도전해요"])
     # What the run says as a set passes its best, big: now 13, best 12.
     hud = Image.open(raw_dir / "02-push.png").convert("RGB").crop((205, 336, 875, 404))
     hud = hud.resize((980, round(hud.height * 980 / hud.width)), Image.LANCZOS)
@@ -467,9 +488,14 @@ def shot_records(c: Image.Image, raw_dir: pathlib.Path):
     burst(c, 540, 770, "기록\n경신!", size=84, r=205)
     # The ending: every set of the session, the ones that beat their best starred.
     s = Image.open(raw_dir / "07-ending.png").convert("RGB")
-    chart = s.crop((120, 610, 960, 1120))
+    # Down to the end of 세트 기록을 N개 깼어요 (rows 1069-1123) and not into the 츄르 line under it
+    # (from 1137), then padded in the card's own colour so the line does not sit on the frame.
+    cut = s.crop((120, 610, 960, 1130))
+    chart = Image.new("RGB", (cut.width, cut.height + 26), s.getpixel((140, 1128)))
+    chart.paste(cut, (0, 0))
     chart = chart.resize((980, round(chart.height * 980 / chart.width)), Image.LANCZOS)
     framed(c, chart, 50, 1000, edge=YELLOW, outer=YELLOW_DARK)
+    text_center(c, 1000 + chart.height + 60, "★ 그 세트의 최고 기록을 깼어요", 46, TEXT_2, bold=False)
     sparkle(c, 110, 700, 4, YELLOW)
     sparkle(c, 980, 640, 3)
     heart(c, 140, 900, k=7)
@@ -478,31 +504,29 @@ def shot_records(c: Image.Image, raw_dir: pathlib.Path):
 
 def shot_cats(c: Image.Image, raw_dir: pathlib.Path):
     caption(c, 84, ["[고양이]를 꾸며요"])
-    text_center(c, 230, "모자, 안경, 배경까지 50가지 넘게", 46, CYAN, bold=False)
-    size = 470
-    for i in range(4):
+    text_center(c, 230, "모자·안경·배경까지 50가지가 넘어요", 46, CYAN, bold=False)
+    for i in range(6):
         p = Image.open(raw_dir / f"cat-{i + 1}.png").convert("RGB")
-        side = min(p.width, p.height)
-        p = p.crop(((p.width - side) // 2, (p.height - side) // 2, (p.width + side) // 2, (p.height + side) // 2))
-        p = p.resize((size, size), Image.LANCZOS)
-        x = 55 + (i % 2) * (size + 30)
-        y = 400 + (i // 2) * (size + 40)
-        framed(c, p, x, y, edge=CYAN if i % 3 == 0 else PINK, outer=CYAN_EDGE if i % 3 == 0 else (0x8A, 0x20, 0x48))
-    for hx, hy in [(120, 1460), (960, 1500), (540, 1560)]:
+        # Exactly half: the art's cells stay whole, where a centre crop cut the toys off.
+        p = p.resize((p.width // 2, p.height // 2), Image.BOX)
+        x = 70 + (i % 2) * (p.width + 40)
+        y = 380 + (i // 2) * (p.height + 44)
+        pink = i in (1, 2, 5)
+        framed(c, p, x, y, edge=PINK if pink else CYAN, outer=(0x8A, 0x20, 0x48) if pink else CYAN_EDGE)
+    text_center(c, 1560, "고양이가 선물을 찾아와요", 64, TEXT)
+    for hx, hy in [(130, 1700), (950, 1690), (540, 1770)]:
         heart(c, hx, hy, k=8)
-    text_center(c, 1620, "운동할수록 선물이 와요", 60, TEXT)
 
 
 def shot_free(c: Image.Image, raw_dir: pathlib.Path):
-    caption(c, 84, ["[전부 무료]예요"])
+    caption(c, 84, ["[마음 놓고] 운동해요"])
     rows = [
-        "모든 운동 · 모든 세트",
-        "회원가입 없이 바로 시작",
+        "가입 없이 바로 시작해요",
         "영상은 저장하지 않아요",
     ]
     f = font(FONT_BOLD, 62)
     d = ImageDraw.Draw(c)
-    y = 360
+    y = 380
     for t in rows:
         panel(c, 70, y, 940, 170)
         chk = up(CHECK, 9)
@@ -512,9 +536,9 @@ def shot_free(c: Image.Image, raw_dir: pathlib.Path):
         y += 200
     # The cat, glad.
     run = Image.open(raw_dir / "02-push.png").convert("RGB").crop((150, 1380, 800, 1960))
-    run = run.resize((run.width * 13 // 10, run.height * 13 // 10), Image.LANCZOS)
-    framed(c, run, (W - run.width) // 2, 1000)
-    for hx, hy in [(130, 1180), (950, 1120), (980, 1500)]:
+    run = run.resize((run.width * 14 // 10, run.height * 14 // 10), Image.LANCZOS)
+    framed(c, run, (W - run.width) // 2, 860)
+    for hx, hy in [(110, 1060), (970, 1000), (990, 1460), (90, 1500)]:
         heart(c, hx, hy, k=8)
 
 
@@ -559,7 +583,7 @@ def feature(raw_dir: pathlib.Path) -> Image.Image:
     d = ImageDraw.Draw(img)
     for (t, f, col, x, y) in [
         ("고양이 지켜줘", font(FONT_BOLD, 40), CYAN, 56, 40),
-        ("맨몸운동 5가지,", font(FONT_BOLD, 64), TEXT, 56, 98),
+        ("맨몸운동 5가지", font(FONT_BOLD, 64), TEXT, 56, 98),
         ("카메라가 세 줘요", font(FONT_BOLD, 64), YELLOW, 56, 176),
     ]:
         d.text((x + 5, y + 7), t, font=f, fill=SHADOW)

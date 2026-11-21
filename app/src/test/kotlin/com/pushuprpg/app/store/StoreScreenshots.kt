@@ -220,4 +220,14 @@ class StoreScreenshots {
     fun cat4() = shoot("cat-4") {
         Portrait(CatCoat.MACKEREL, setOf(CatItem.HEADBAND, CatItem.SPORTS_TOWEL, CatItem.BALL, CatItem.GYM))
     }
+
+    @Test
+    @Config(qualifiers = "w300dp-h220dp-xxhdpi")
+    fun cat5() = shoot("cat-5") { Portrait(CatCoat.CREAM, setOf(CatItem.GRAD_CAP, CatItem.NECKTIE, CatItem.CITY)) }
+
+    @Test
+    @Config(qualifiers = "w300dp-h220dp-xxhdpi")
+    fun cat6() = shoot("cat-6") {
+        Portrait(CatCoat.CHEESE, setOf(CatItem.FROG_HAT, CatItem.HEART_GLASSES, CatItem.FISH_TOY, CatItem.PARK))
+    }
 }

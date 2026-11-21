@@ -251,7 +251,10 @@ def pushup(down: bool = False, mid: bool = True) -> tuple[Image.Image, int]:
     s = Sprite(78, 36)
     floor = s.h - 3
     wrist = (60.0, floor - 1.4)
-    height = 9.5 if down else (15.0 if mid else 20.0)
+    # The shoulder over the hand by the arm's length at the top, three quarters of it halfway, about
+    # half at the bottom (20, 15 and 9.5 at the default lengths), so other proportions stay a push-up.
+    reach = UPPER_ARM + FOREARM + 1.0
+    height = reach * (0.475 if down else (0.75 if mid else 1.0))
     shoulder = (wrist[0] - (1.0 if down or mid else 0.0), floor - height)
     dec = solve_decline(shoulder[1], floor)
     d, hip, knee, ankle, toe = body_line(shoulder, dec, floor)
