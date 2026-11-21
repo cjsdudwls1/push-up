@@ -128,11 +128,11 @@ keyword gains.
 
 | Asset | Spec | Status |
 |-------|------|--------|
-| App icon | 512×512 PNG, 32-bit | `docs/store-assets/icon-512.png`, written by `tools/pixel_icon.py` with the launcher icon (the pixel cat holding up the ceiling) |
-| Feature graphic | 1024×500 PNG | `docs/store-assets/feature-graphic.png`, written by `scripts/store-screenshots.sh`: the run's pixel room beside the title |
-| Phone screenshots | 2–8, 9:16 | `docs/store-assets/screenshots/01-08.png` (1080×1920), written by `scripts/store-screenshots.sh` |
+| App icon | 512×512 PNG, 32-bit | `docs/store-assets/icon-512.png`, written by `tools/pixel_icon.py` with the launcher icon: a person doing a push-up with the cat on their back |
+| Feature graphic | 1024×500 PNG | `docs/store-assets/feature-graphic.png`, written by `scripts/store-screenshots.sh`: the five movements in a row under 맨몸운동 5가지, 카메라가 세 줘요, the cat in the corner |
+| Phone screenshots | 2–8, 9:16 | `docs/store-assets/screenshots/01-06.png` (1080×1920), written by `scripts/store-screenshots.sh` |
 | Tablet screenshots | optional | Skip |
-| Promo video | optional, YouTube URL | See the launch plan |
+| Promo video | optional, YouTube URL | None, by the owner's decision (2026-11-18: "동영상은 하지마") |
 
 ### Getting them onto Play (since 2026-11-18)
 
@@ -140,30 +140,70 @@ A push that changes `docs/store-assets/` on `claude/pushup-rpg-app-2xnr4o` runs
 `.github/workflows/listing.yml`, which replaces the Korean listing's icon, feature graphic and phone
 screenshots with these files (`tools/play.py listing`, one edit; the text is not touched). It can be
 run by hand from Actions → Store listing. Google reviews a listing change before the store shows it.
-The Console's declaration about AI-made store graphics stays the owner's to tick.
+The service account needs 앱 정보 관리 in the Console (turned on 2026-11-20); without it the commit is a
+403. The Console's declaration about AI-made store graphics stays the owner's to tick.
 
-### Screenshots — how they are made
+### What the pictures have to do (the owner, 2026-11-21)
 
-`scripts/store-screenshots.sh` draws the real screens on the JVM with Robolectric
-(`app/src/test/.../store/StoreScreenshots.kt`, each screen fed a plausible state by hand), then
-`tools/store_screenshots.py` puts a caption above each on the menus' deep-space ground, in Galmuri11.
-They are the app's own drawing, not a mock-up, but the states are staged — not a recording of a real
-set. Change a caption in `SHOTS` in the script; add a screen in the test.
+Someone scrolling past must see at once that this is a bodyweight-workout app, that it does push-ups,
+squats, planks, pull-ups and dips, and that the phone counts — without reading. The second pass (eight
+screenshots of the game with captions about the ceiling) failed that: no person was ever in them. So:
 
-One deep-space strip runs behind all eight, so side by side in the store they read as one picture;
-captions carry their key words in the record yellow, and most shots have a badge and part of the
-screen zoomed out of the phone. Decorations are drawn at a sixth of the size and enlarged unsmoothed.
+- **A person does the movements.** `tools/pixel_people.py` draws one pixel person, with fixed segment
+  lengths, in each of the five; the same person is the icon's, shorter and bigger-headed.
+- **One idea a picture**, in a caption of one or two short lines; the picture explains, and the app's
+  own screens appear where they show what happens (their small print is not meant to be read).
+- **Marks instead of words** where a word would need reading: ↕ for movements counted in reps, a
+  stopwatch and 30초 for the plank, arrows for which way the ceiling goes.
 
-| # | Screen | Caption |
-|---|--------|---------|
-| 1 | A set, ceiling low, the cat zoomed with 살려 줘요, 냥!! | 천장이 내려와요! / 팔굽혀펴기로 밀어 올려 고양이를 지켜요 |
-| 2 | Ceiling pushed up, 기록 경신 badge, hearts | 한 번에 천장이 쑥! / 카메라가 개수를 세요 |
-| 3 | A deep rep, the gauge zoomed | 깊게 내려갈수록 더 높이 올라가요 |
-| 4 | The rest | 목숨 10개, 세트 10번 / 쉬는 시간까지가 운동이에요 |
-| 5 | The ending, its chart zoomed, 츄르 +18 | 세트마다 내 기록을 깨 봐요 |
-| 6 | The hub, the movement chips zoomed | 맨몸운동 다섯 가지 |
-| 7 | 꾸미기's shop, the stage zoomed | 선물 32가지, 상점 20가지 |
-| 8 | The cat, and four promises | 전부 무료예요 / 회원가입도, 결제도 없어요 |
+| # | Picture | Caption |
+|---|---------|---------|
+| 1 | The five movements in cards, named | 맨몸운동 5가지 / 카메라가 세 줘요 |
+| 2 | A person doing push-ups facing a phone on the floor, its camera's view drawn, the run's room called out, +1 | 폰만 세워 두면 / 개수를 세 줘요 |
+| 3 | Two rooms: the ceiling on the cat (arrows down) and pushed up (arrows up) | 1개 할 때마다 / 천장이 올라가요 |
+| 4 | 지금 13 / 최고 12 from the run, a 기록 경신 burst, the ending's chart of sets, ★ explained | 세트마다 / 내 기록에 도전해요 |
+| 5 | Six cats in outfits and scenes | 고양이를 꾸며요 / 고양이가 선물을 찾아와요 |
+| 6 | Two promises, the cat | 마음 놓고 운동해요 |
+
+Rules the pictures keep, from the reviews:
+
+- **Only what the app does.** A plank is counted in seconds (30초, as the run says it). The squat is
+  시험 중 in the app (`ExerciseDescriptor.validatedOnDevice` false) but not marked in the pictures, by
+  the owner's decision (2026-11-21, "남기지마"): the blind reviewer read the mark as "may not work".
+- **No price words on the graphics** ("무료", "free"): Play's guidance for preview assets. The listing's
+  text and Play's own price label say it.
+- **Gifts are the cat's finds**, never a reward promised for exercise (the gifts rule in CLAUDE.md):
+  고양이가 선물을 찾아와요, not 운동할수록 선물이 와요.
+- **No jargon a stranger cannot read**: 츄르 is not named; the run's small print and depth gauge are
+  cropped away where the room is what matters (`ROOM_BOX`).
+
+### How they were checked
+
+Each round was shown to reviewers who had not made them, in parallel with the work:
+
+- **The figures, unlabelled and shuffled**, named by two reviewers: all five named, but at the small
+  size the dip read as standing between two posts and the push-up as a high plank. The dip became the
+  classic side view (the elbow out behind the back, the feet off the floor), the push-up a rep caught
+  halfway, the plank got its stopwatch.
+- **The store page, truly blind**: a fresh cloud session with no repository (so none of this file or
+  CLAUDE.md in its context) fetched the icon, a mock search result and the six pictures from the branch
+  and said what it saw. From the search result alone, in three seconds: "카메라가 맨몸운동 개수를 세 주는
+  고양이 게임 앱", all five movements, and the cat as the one to protect. The old icon read as "감옥에 갇힌
+  고양이 게임"; the new one as a fitness app. What it could not tell, fixed since: which way the ceiling
+  moves (3, now arrows), where the phone stands (2, now larger, with its camera's view), whether a plank
+  is counted (1, now 0:30), why the tallest bar had no star (4), and what 츄르 is (5, no longer named).
+- **Claims and copy**, by a reviewer with the code: every caption checked against the app. It caught
+  "세트마다 내 기록을 깨요" (three bars had no star: now 도전해요), "전부 무료" (a price word),
+  "운동할수록 선물이 와요" (a promised reward, which the app avoids), the squat being 시험 중 in the
+  app (marked, then unmarked by the owner), 0:30 where the app says 30초, and a crop that cut the cats'
+  toys off.
+- **The blind session, a second time**, on the fixed pictures: 1, 2, 3, 5 and 6 understood at once
+  ("03: 위/아래 화살표로 방향 완전히 이해됨"). It still guessed at the stars (4, now explained in one
+  line), found the phone small (2, larger), the run's small print meaningless (2 and 3, cropped away)
+  and the icon's figure steep enough to read as crawling (now long and low).
+
+Do the same after any change: a person who has never seen the app should say what it does from the
+search result alone.
 
 ---
 

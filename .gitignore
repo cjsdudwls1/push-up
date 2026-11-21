@@ -29,3 +29,6 @@ google-services.json
 # of this repo and are removed when the work finishes; committing one would nest the repo inside
 # itself.
 .claude/worktrees/
+
+# Python bytecode from running tools/*.py
+__pycache__/
