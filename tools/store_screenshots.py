@@ -209,6 +209,29 @@ ARROW_RIGHT = from_rows([
     "......X.....",
 ], {"X": YELLOW})
 
+UP = from_rows([
+    "....X....",
+    "...XXX...",
+    "..XXXXX..",
+    ".XXXXXXX.",
+    "XXXXXXXXX",
+    "...XXX...",
+    "...XXX...",
+    "...XXX...",
+    "...XXX...",
+], {"X": YELLOW})
+DOWN = from_rows(list(reversed([
+    "....X....",
+    "...XXX...",
+    "..XXXXX..",
+    ".XXXXXXX.",
+    "XXXXXXXXX",
+    "...XXX...",
+    "...XXX...",
+    "...XXX...",
+    "...XXX...",
+])), {"X": TEXT})
+
 CHECK = from_rows([
     "......X",
     ".....XX",
@@ -357,7 +380,14 @@ def shot_movements(c: Image.Image):
         d.text((tx + 6, ty + 7), word, font=label, fill=SHADOW)
         d.text((tx, ty), word, font=label, fill=TEXT)
         m = up(mark, 7)
-        c.alpha_composite(m, (int(tx - m.width - 24), y + 44) if wide else (x + w - m.width - 22, y + 22))
+        mx, my = (int(tx - m.width - 24), y + 44) if wide else (x + w - m.width - 22, y + 22)
+        c.alpha_composite(m, (mx, my))
+        if mark is STOPWATCH:
+            # Counted in time, not reps: said as a time, which a blind reviewer could not tell.
+            t = font(FONT_BOLD, 64)
+            tw2 = d.textlength("0:30", font=t)
+            d.text((x + w - 56 - tw2 + 5, y + 160 + 6), "0:30", font=t, fill=SHADOW)
+            d.text((x + w - 56 - tw2, y + 160), "0:30", font=t, fill=YELLOW)
 
     card(40, 376, 1000, 350, "pushup", "푸쉬업", UPDOWN, wide=True)
     w3 = (1000 - 2 * 20) // 3
@@ -371,37 +401,56 @@ def shot_how(c: Image.Image, raw_dir: pathlib.Path):
     floor_y = 1700
     floor_band(c, floor_y)
     fig, floor = figure("pushup", 10)
-    fx = 20
-    c.alpha_composite(fig, (fx, floor_y - floor))
-    ph = small_phone(raw_dir, 8)
-    px_, py_ = 880, floor_y - ph.height + 8
-    c.alpha_composite(ph, (px_, py_))
-    # The phone's screen, called out above it.
-    scr = screen(raw_dir, "02-push", 430)
-    sx, sy = 560, 420
-    framed(c, scr, sx, sy)
-    # The callout's tail, down to the phone on the floor.
+    fx = 10
+    ph = small_phone(raw_dir, 10)
+    px_, py_ = 1080 - ph.width - 40, floor_y - ph.height + 10
+    # What the phone's camera sees: a pale cone from its lens to the person, drawn under them.
+    lens = (px_ + 22, py_ + 26)
+    cone = Image.new("RGBA", c.size)
+    ImageDraw.Draw(cone).polygon([lens, (fx + 120, floor_y - 330), (fx + 120, floor_y + 4)], fill=CYAN + (46,))
+    c.alpha_composite(cone)
     d = ImageDraw.Draw(c)
-    tip = (px_ + ph.width // 2, py_ - 18)
+    for t in range(0, 100, 4):
+        for end in ((fx + 120, floor_y - 330), (fx + 120, floor_y + 4)):
+            k0, k1 = t / 100, (t + 2) / 100
+            d.line([(lens[0] + (end[0] - lens[0]) * k0, lens[1] + (end[1] - lens[1]) * k0),
+                    (lens[0] + (end[0] - lens[0]) * k1, lens[1] + (end[1] - lens[1]) * k1)], fill=CYAN, width=5)
+    c.alpha_composite(fig, (fx, floor_y - floor))
+    c.alpha_composite(ph, (px_, py_))
+    # The phone's screen, called out above it: the room, not the HUD's small print.
+    full = Image.open(raw_dir / "02-push.png").convert("RGB").crop((0, 620, 1080, 2160))
+    scr = full.resize((420, round(full.height * 420 / full.width)), Image.LANCZOS)
+    sx, sy = 590, 400
+    framed(c, scr, sx, sy)
+    tip = (px_ + ph.width // 2, py_ - 16)
     base_y = sy + scr.height + 14
-    d.polygon([(tip[0] - 60, base_y), (tip[0] + 30, base_y), tip], fill=CYAN_EDGE)
-    d.polygon([(tip[0] - 44, base_y), (tip[0] + 18, base_y), (tip[0], tip[1] - 22)], fill=CYAN)
-    burst(c, 270, 900, "+1", size=150, r=170)
-    sparkle(c, 120, 640, 4, YELLOW)
-    sparkle(c, 470, 1180, 3)
-    heart(c, 470, 760, k=8)
+    d.polygon([(tip[0] - 64, base_y), (tip[0] + 34, base_y), tip], fill=CYAN_EDGE)
+    d.polygon([(tip[0] - 46, base_y), (tip[0] + 20, base_y), (tip[0], tip[1] - 24)], fill=CYAN)
+    burst(c, 280, 860, "+1", size=150, r=170)
+    sparkle(c, 110, 600, 4, YELLOW)
+    sparkle(c, 500, 1150, 3)
+    heart(c, 470, 700, k=8)
 
 
 def shot_game(c: Image.Image, raw_dir: pathlib.Path):
-    caption(c, 84, ["1개 할 때마다", "천장이 [쑥!]"])
+    caption(c, 84, ["1개 할 때마다", "천장이 [올라가요]"])
     w = 440
     left = screen(raw_dir, "game-low", w)
     right = screen(raw_dir, "game-high", w)
+    k = w / 1080
     y = 560
     text_center(c, 440, "가만히 있으면", 56, TEXT_2, x0=50, width=w + 20)
     text_center(c, 440, "운동하면!", 56, YELLOW, x0=590, width=w + 20)
     framed(c, left, 60, y, edge=PINK, outer=(0x8A, 0x20, 0x48))
     framed(c, right, 600, y)
+    # The ceiling's edge on each screen (rows 1481 and 603 of the 2160 the app drew), and arrows
+    # saying which way it goes: a blind reviewer could not tell whether the red wall came or went.
+    down = up(DOWN, 8)
+    for ax in (60 + w * 0.26, 60 + w * 0.62):
+        c.alpha_composite(down, (int(ax - down.width / 2), int(y + 1481 * k - down.height - 70)))
+    upa = up(UP, 8)
+    for ax in (600 + w * 0.26, 600 + w * 0.62):
+        c.alpha_composite(upa, (int(ax - upa.width / 2), int(y + 603 * k + 40)))
     a = up(ARROW_RIGHT, 10)
     c.alpha_composite(a, (540 - a.width // 2, y + left.height // 2 - a.height // 2))
     text_center(c, y + left.height + 70, "천장에 눌리지 않게", 60, TEXT)
@@ -415,10 +464,10 @@ def shot_records(c: Image.Image, raw_dir: pathlib.Path):
     hud = Image.open(raw_dir / "02-push.png").convert("RGB").crop((205, 336, 875, 404))
     hud = hud.resize((980, round(hud.height * 980 / hud.width)), Image.LANCZOS)
     framed(c, hud, 50, 430)
-    burst(c, 540, 770, "기록\n경신!", size=84)
+    burst(c, 540, 770, "기록\n경신!", size=84, r=205)
     # The ending: every set of the session, the ones that beat their best starred.
     s = Image.open(raw_dir / "07-ending.png").convert("RGB")
-    chart = s.crop((120, 650, 960, 1120))
+    chart = s.crop((120, 610, 960, 1120))
     chart = chart.resize((980, round(chart.height * 980 / chart.width)), Image.LANCZOS)
     framed(c, chart, 50, 1000, edge=YELLOW, outer=YELLOW_DARK)
     sparkle(c, 110, 700, 4, YELLOW)
@@ -429,7 +478,7 @@ def shot_records(c: Image.Image, raw_dir: pathlib.Path):
 
 def shot_cats(c: Image.Image, raw_dir: pathlib.Path):
     caption(c, 84, ["[고양이]를 꾸며요"])
-    text_center(c, 230, "선물 32가지 · 츄르 상점 20가지", 46, CYAN, bold=False)
+    text_center(c, 230, "모자, 안경, 배경까지 50가지 넘게", 46, CYAN, bold=False)
     size = 470
     for i in range(4):
         p = Image.open(raw_dir / f"cat-{i + 1}.png").convert("RGB")
@@ -448,7 +497,7 @@ def shot_free(c: Image.Image, raw_dir: pathlib.Path):
     caption(c, 84, ["[전부 무료]예요"])
     rows = [
         "모든 운동 · 모든 세트",
-        "운동 중엔 광고 없어요",
+        "회원가입 없이 바로 시작",
         "영상은 저장하지 않아요",
     ]
     f = font(FONT_BOLD, 62)
@@ -487,6 +536,22 @@ def compose(raw_dir: pathlib.Path):
     return shots
 
 
+def cat_sprite(k: int) -> Image.Image:
+    """The run's cat, sitting, as the icon draws it (tools/pixel_icon.py), [k] pixels a cell."""
+    import pixel_icon as pi
+    img = Image.new("RGBA", (len(pi.CAT[0]), len(pi.CAT)))
+    for r, line in enumerate(pi.CAT):
+        for c, ch in enumerate(line):
+            if ch in pi.CAT_COLORS:
+                img.putpixel((c, r), pi.CAT_COLORS[ch] + (255,))
+    for start in (3, 14):
+        for dy in range(3):
+            for dx in range(3):
+                img.putpixel((start + dx, 6 + dy), pi.EYE + (255,))
+        img.putpixel((start + 2, 6), pi.GLINT + (255,))
+    return up(img, k)
+
+
 def feature(raw_dir: pathlib.Path) -> Image.Image:
     fw, fh = 1024, 500
     strip = up(panorama())
@@ -511,6 +576,11 @@ def feature(raw_dir: pathlib.Path) -> Image.Image:
     for f, floor in figs:
         img.alpha_composite(f, (x, floor_y - floor))
         x += f.width + gap
+    # The cat, cheering from the corner.
+    cat = cat_sprite(6)
+    img.alpha_composite(cat, (fw - cat.width - 70, 40))
+    for hx, hy in [(fw - 60, 60), (fw - cat.width - 96, 150)]:
+        heart(img, hx, hy, k=4)
     return img.convert("RGB")
 
 

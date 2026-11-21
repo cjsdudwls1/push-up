@@ -274,11 +274,15 @@ which a run cannot open without ending. Nothing pauses for it (the ceiling never
 says so while a set is on. The run reads the settings live, so a change is heard at once.
 
 **The cat starts out as 지수**, by the owner's decision (2026-11-06): `cat_default_name`, which a blank
-stored name reads as, and what the name field starts with. **The launcher icon is the run's cat, the whole of it,
-holding the ceiling up over its head** (2026-11-10, by the owner's request: the paws and a head alone read
-as strange), in pixels since the same day: the demo's cheese cat under the hull-steel ceiling on the run's ship deck
-(navy, stars, a neon-cyan edge, since 2026-11-11) — the whole app in one picture. `tools/pixel_icon.py` writes the three adaptive layers and the Play
-listing's 512 px copy (`docs/store-assets/icon-512.png`) from one raster; edit it, not the XML.
+stored name reads as, and what the name field starts with. **The launcher icon is a person doing a push-up with the cheese cat sitting on their back**
+(2026-11-21, by the owner's request: the cat holding the ceiling up, the icon since 2026-11-10, did not
+say it is a workout app — a blind reviewer read it as "a cat locked in a prison game"), in pixels on the
+run's deck. The person is `tools/pixel_people.py`'s, shorter and bigger-headed for the icon, arms
+straight (bent, they read as a lump at 48 dp). `tools/pixel_icon.py` writes the three adaptive layers
+and the Play listing's 512 px copy (`docs/store-assets/icon-512.png`) from one grid, one pixel a dp;
+edit it, not the XML. **The store pictures show a person doing the movements and say one thing each**,
+by the owner's request (2026-11-21: a stranger must understand them without reading):
+`scripts/store-screenshots.sh`, and `docs/STORE_LISTING.md` for how they are made and checked.
 
 **The cat's things are gifts it finds, and beside them a shop for 츄르**, by the owner's decisions.
 The shop came later (2026-10-01): a set that beats its own best pays 츄르 (`SetOutcome.churu`), and

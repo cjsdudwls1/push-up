@@ -13,8 +13,8 @@ the cat the run's sprite. The store icon is the middle 64 dp at eight pixels eac
 square and sharp; everything that matters sits inside the 66 dp safe zone, and the script says how
 far out it reaches.
 
-Usage: python3 tools/pixel_icon.py [--preview DIR]   (--preview also writes each variant and how a
-launcher's masks show it, for choosing; the layers and the store icon are always the chosen variant)
+Usage: python3 tools/pixel_icon.py [--preview DIR]   (--preview also writes the store icon and how
+launchers' circle and squircle masks show it, for looking at)
 """
 from __future__ import annotations
 
@@ -38,7 +38,6 @@ GLOW = (0x1C, 0x1A, 0x4C)
 FLOOR_EDGE = (0x3A, 0x34, 0x70)
 FLOOR = (0x0F, 0x0E, 0x2A)
 FLOOR_BOARD = (0x1A, 0x18, 0x40)
-ARROW = (0xFF, 0xC5, 0x3D)
 
 OUTLINE = (0x2B, 0x1A, 0x12)
 FUR = (0xFF, 0x9A, 0x2E)
@@ -133,62 +132,34 @@ def background(floor_y: int):
     return g
 
 
-def arrow_up(g, x, y, h=9):
-    """A pixel arrow pointing up, [h] tall, its tip at x, y."""
-    for k in range(4):
-        rect(g, x - k, y + k, 2 * k + 1, 1, ARROW)
-    rect(g, x - 1, y + 4, 3, h - 4, ARROW)
-
-
 # ---------------------------------------------------------------- the variants
 
 CHIBI = dict(torso=13.5, thigh=10.5, shin=10.5, upper_arm=8.5, forearm=7.5, head_r=6.6)
 
 
-def pushup_cat(down: bool = False):
+def pushup_cat():
     floor_y = 72
     g = background(floor_y)
     fg = grid()
     # Straight arms: at 48 dp the bent elbow of a rep caught halfway read as a lump. The cat on the
     # back is what says it is not a plank.
     with pp.proportions(**CHIBI):
-        img, floor = pp.pushup(down, mid=False)
+        img, floor = pp.pushup(mid=False)
     # The figure spans most of its sprite; centre what is drawn, not the canvas.
     bbox = img.getbbox()
     x0 = 54 - (bbox[0] + bbox[2]) // 2
     y0 = floor_y - floor
     sprite(fg, img, x0, y0)
-    # The cat on the small of the back, sitting up.
+    # The cat on the back, sitting up, at the middle of what is drawn.
     back_x = x0 + (bbox[0] + bbox[2]) // 2 - 2
-    top = None
-    for y in range(G):
-        if fg[y][back_x] is not None:
-            top = y
-            break
+    top = next(y for y in range(G) if fg[y][back_x] is not None)
     cat(fg, back_x - 10, top - 20)
-    if down:
-        arrow_up(fg, x0 + 70, floor_y - 30)
     return g, fg
 
 
-def pullup_cat():
-    floor_y = 92
-    g = background(floor_y)
-    fg = grid()
-    img, floor = pp.pullup()
-    bbox = img.getbbox()
-    x0 = 54 - (bbox[0] + bbox[2]) // 2
-    y0 = 30 - 9  # the bar at 30
-    sprite(fg, img, x0, y0)
-    cat(fg, x0 + 34, 30 - 21)
-    return g, fg
-
-
-VARIANTS = {
-    "pushup-cat": lambda: pushup_cat(False),
-    "pushup-down-cat": lambda: pushup_cat(True),
-    "pullup-cat": pullup_cat,
-}
+# Tried on 2026-11-21 and dropped: the push-up caught at the bottom with an arrow (the cat floated off
+# the lowered back) and a pull-up with the cat on the bar (too tall for the mask at one pixel a dp).
+VARIANTS = {"pushup-cat": pushup_cat}
 CHOSEN = "pushup-cat"
 
 
@@ -199,9 +170,11 @@ def hexc(c):
 
 
 def runs(g):
-    """Each colour's horizontal runs, merged down into rectangles where they repeat row after row."""
+    """Each colour's horizontal runs, merged down into rectangles where they repeat row after row.
+    Sorted throughout, so the same picture always writes the same XML (sets alone came out in a
+    different order on every run, which churned the diff)."""
     by_color: dict[str, list[tuple[int, int, int, int]]] = {}
-    open_rects: dict[tuple[int, int, str], list[int]] = {}
+    open_rects: dict[tuple, list[int]] = {}
     for y in range(G + 1):
         row_runs = set()
         if y < G:
@@ -215,15 +188,15 @@ def runs(g):
                 while x < G and g[y][x] == c:
                     x += 1
                 row_runs.add((s, x, c))
-        for key in list(open_rects):
+        for key in sorted(open_rects):
             if key not in row_runs:
                 s, e, c = key
                 top = open_rects.pop(key)[0]
                 by_color.setdefault(hexc(c) if isinstance(c, tuple) else c, []).append((s, top, e - s, y - top))
-        for key in row_runs:
+        for key in sorted(row_runs):
             if key not in open_rects:
                 open_rects[key] = [y]
-    return by_color
+    return {c: sorted(r, key=lambda t: (t[1], t[0])) for c, r in sorted(by_color.items())}
 
 
 def vector(g, comment, tint=None, mono=False):
