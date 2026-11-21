@@ -242,6 +242,69 @@ class StoreScreenshots {
     }
 
     @Test
+    fun gameLow() = shoot("game-low") {
+        Run(
+            state = CatSessionState(
+                phase = CatPhase.PLAYING,
+                life = SurvivalState(
+                    height = 0.06f, score = 96, elapsedMs = 30_000, started = true,
+                    reps = 8, combo = 0, bestCombo = 5, alive = true, intensity = 1f,
+                ),
+                ended = earlierSets,
+                setDeepReps = 5,
+            ),
+            cat = CatView(mood = CatMood.PANIC),
+            bests = SetBests(bests = listOf(15, 13, 12), last = listOf(14, 12, 10)),
+        )
+    }
+
+    @Test
+    fun gameHigh() = shoot("game-high") {
+        Run(
+            state = CatSessionState(
+                phase = CatPhase.PLAYING,
+                life = SurvivalState(
+                    height = 0.97f, score = 184, elapsedMs = 46_000, started = true,
+                    reps = 14, combo = 8, bestCombo = 8, alive = true, intensity = 0f,
+                ),
+                ended = earlierSets,
+                setDeepReps = 10,
+            ),
+            cat = CatView(mood = CatMood.CALM, cheer = 1f, hearts = 4),
+            bests = SetBests(bests = listOf(15, 13, 12), last = listOf(14, 12, 10)),
+        )
+    }
+
+    @Composable
+    private fun Portrait(coat: CatCoat, wear: Set<CatItem>) {
+        PushupRpgTheme(darkTheme = true) {
+            Box(Modifier.fillMaxSize().background(Palette.Bg1)) {
+                com.pushuprpg.app.ui.components.CatPortrait(coat = coat, wear = wear, modifier = Modifier.fillMaxSize())
+            }
+        }
+    }
+
+    @Test
+    @Config(qualifiers = "w300dp-h220dp-xxhdpi")
+    fun cat1() = shoot("cat-1") { Portrait(CatCoat.CHEESE, setOf(CatItem.CROWN, CatItem.BOW_TIE, CatItem.YARN, CatItem.SPACE)) }
+
+    @Test
+    @Config(qualifiers = "w300dp-h220dp-xxhdpi")
+    fun cat2() = shoot("cat-2") {
+        Portrait(CatCoat.TUXEDO, setOf(CatItem.HEADPHONES, CatItem.STAR_GLASSES, CatItem.CAT_TOWER, CatItem.STAGE))
+    }
+
+    @Test
+    @Config(qualifiers = "w300dp-h220dp-xxhdpi")
+    fun cat3() = shoot("cat-3") { Portrait(CatCoat.CALICO, setOf(CatItem.FLOWER_CROWN, CatItem.PEARLS, CatItem.CHERRY_BLOSSOM)) }
+
+    @Test
+    @Config(qualifiers = "w300dp-h220dp-xxhdpi")
+    fun cat4() = shoot("cat-4") {
+        Portrait(CatCoat.MACKEREL, setOf(CatItem.HEADBAND, CatItem.SPORTS_TOWEL, CatItem.BALL, CatItem.GYM))
+    }
+
+    @Test
     fun hub() = shoot("04-hub") {
         Menu {
             HomeScreen(
